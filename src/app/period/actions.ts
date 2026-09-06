@@ -7,6 +7,7 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getTeamRollup, getGates, PILLARS } from '@/lib/queries';
 import { generateBoardOutput } from '@/lib/board-output';
+import { sendBoardOutputReadyEmail } from '@/lib/email';
 
 /** Enter the two hard gates for the current period. */
 export async function saveGates(formData: FormData) {
@@ -43,6 +44,13 @@ export async function lockPeriod(formData: FormData) {
   const [y, m] = period.period.split('-').map(Number);
   const next = `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, '0')}`;
   await db.insert(schema.periods).values({ id: randomUUID(), tenantId: user.tenantId, period: next }).onConflictDoNothing();
+
+  const notify = await db.select({ email: schema.users.email }).from(schema.users)
+    .where(and(eq(schema.users.tenantId, user.tenantId), eq(schema.users.access, 'full')));
+  for (const { email } of notify) {
+    await sendBoardOutputReadyEmail({ to: email, businessName: tenant.name, period: period.period, periodId });
+  }
+
   revalidatePath('/'); revalidatePath('/journey');
   redirect(`/board/${periodId}`);
 }
