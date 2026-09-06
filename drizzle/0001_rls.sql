@@ -19,10 +19,14 @@
 -- backfills the first time someone actually signs in via their magic link. Until that backfill has
 -- happened for a user, auth_tenant_id() returns null and every policy below denies them — which is
 -- the safe default (no accidental cross-tenant read) rather than a bug to work around.
+--
+-- auth.uid() returns uuid; users.auth_user_id is text (it stores Supabase's auth user id as a
+-- string), so the comparison needs an explicit ::text cast or Postgres raises
+-- "operator does not exist: text = uuid".
 
 create or replace function auth_tenant_id() returns text
 language sql stable security definer set search_path = public as $$
-  select tenant_id from users where auth_user_id = auth.uid() limit 1;
+  select tenant_id from users where auth_user_id = auth.uid()::text limit 1;
 $$;
 
 -- Tables with their own tenant_id column: straightforward tenant_id = auth_tenant_id().
