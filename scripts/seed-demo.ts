@@ -1,6 +1,6 @@
 /** Provision a demo tenant ("Acme Electrical") with people assigned and a partly scored first month. */
 import { db, schema } from '../src/db';
-import { provisionTenant, assignPerson } from '../src/lib/provision';
+import { provisionTenant, assignPerson, openFirstPeriod } from '../src/lib/provision';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
@@ -9,12 +9,15 @@ async function main() {
   const existing = existingRows[0];
   if (existing) { console.log('Demo tenant already exists:', existing.id); return; }
 
-  const { tenantId, periodId, roleIds } = await provisionTenant({
+  const { tenantId, roleIds } = await provisionTenant({
     name: 'Acme Electrical', sector: 'Electrical services',
     roleTemplates: ['gm', 'commercial_manager', 'operations_manager', 'growth_manager', 'supervisor'],
   });
   // Supervisor reports to Operations, not GM.
   await db.update(schema.roles).set({ reportsToRoleId: roleIds.operations_manager }).where(eq(schema.roles.id, roleIds.supervisor));
+  // Demo tenant is "paid" so the rollup and board output have something to show.
+  await db.update(schema.tenants).set({ plan: 'basic' }).where(eq(schema.tenants.id, tenantId));
+  const { id: periodId } = await openFirstPeriod(tenantId);
 
   await assignPerson(tenantId, roleIds.gm, { name: 'Alex Morgan', email: 'alex@acme.example' });
   await assignPerson(tenantId, roleIds.commercial_manager, { name: 'Sam Lee', email: 'sam@acme.example' });

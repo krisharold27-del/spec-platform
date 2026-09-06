@@ -10,7 +10,18 @@ export const dynamic = 'force-dynamic';
 export default async function ExecutiveSummary() {
   const user = await getCurrentUser(); if (!user) redirect('/start');
   const tenant = (await getTenantById(user.tenantId))!;
-  const period = (await getCurrentPeriod(tenant.id))!;
+  const period = await getCurrentPeriod(tenant.id);
+  if (!period) {
+    return (
+      <Shell title={`${tenant.name} — Executive summary`} subtitle="No period open yet">
+        <div className="rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
+          <div className="font-medium">Nothing to show yet</div>
+          <p className="mt-1 text-slate-600">Registering Claude, building the org chart and setting KPIs are free. Scoring a month and this executive summary need a period open — that starts with SPEC Basic.</p>
+          <Link href="/journey" className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700">Back to the journey</Link>
+        </div>
+      </Shell>
+    );
+  }
   const rollup = await getTeamRollup(tenant.id, period.id);
   const g = await getGates(period.id);
   const baseline = rollup.scoredCount === 0;

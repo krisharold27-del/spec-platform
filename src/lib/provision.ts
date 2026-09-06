@@ -36,13 +36,25 @@ export interface ProvisionOptions {
   sector?: string;
   /** Template ids to create, in org order. Default: gm + three COGS heads. */
   roleTemplates?: string[];
-  /** First open period, YYYY-MM. Default: current month. */
-  period?: string;
+}
+
+/**
+ * Opens the first (or next unopened) period for a tenant. Gated on plan — trial tenants get the
+ * full deployment journey (Stage 0–1: register Claude, roles, KPIs, people) but no period to score
+ * against, so scoring and the board output stay out of reach until they pay (see docs/
+ * SPEC_GoLive_and_Operations.md §6 and the Stripe webhook at src/app/api/stripe/webhook/route.ts).
+ * Idempotent — safe to call again for a tenant that already has an open period.
+ */
+export async function openFirstPeriod(tenantId: string, period?: string) {
+  const existing = await db.select().from(schema.periods).where(eq(schema.periods.tenantId, tenantId));
+  if (existing.length) return existing[0];
+  const periodId = id();
+  await db.insert(schema.periods).values({ id: periodId, tenantId, period: period ?? now().slice(0, 7) }).onConflictDoNothing();
+  return { id: periodId, tenantId, period: period ?? now().slice(0, 7), status: 'open' as const };
 }
 
 export async function provisionTenant(opts: ProvisionOptions) {
   const tenantId = id();
-  const period = opts.period ?? now().slice(0, 7);
   const wanted = opts.roleTemplates ?? ['gm', 'commercial_manager', 'operations_manager', 'growth_manager'];
   const roleTemplates = (templates.roles as TemplateRole[]).filter(r => wanted.includes(r.template_id));
 
@@ -78,15 +90,14 @@ export async function provisionTenant(opts: ProvisionOptions) {
     }
   }
 
-  const periodId = id();
-  await db.insert(schema.periods).values({ id: periodId, tenantId, period });
-
   // Rule book is global, loaded once.
   for (const r of rulebook.rules) {
     await db.insert(schema.rulebookRules).values({ ...r, version: rulebook.version }).onConflictDoNothing();
   }
 
-  return { tenantId, periodId, roleIds: Object.fromEntries(roleIds) };
+  // No period is opened here — trial tenants get the full journey (Stage 0–1) but nothing to
+  // score until they pay. See openFirstPeriod, called from the Stripe webhook on checkout success.
+  return { tenantId, roleIds: Object.fromEntries(roleIds) };
 }
 
 /** Assign a person to a role. Creates the user if needed. Access is inherited from the role. */

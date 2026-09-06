@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Shell, PillarTile, PILLAR_META, pct } from '@/components/ui';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
@@ -11,9 +12,19 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
   const { roleId } = await params;
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
-  const period = (await getCurrentPeriod(tenant.id))!;
+  const period = await getCurrentPeriod(tenant.id);
   const role = (await getRoles(tenant.id)).find(r => r.id === roleId);
   if (!role) return <Shell title="Role not found"><p>No such role in this business.</p></Shell>;
+  if (!period) {
+    return (
+      <Shell title={`${role.title} — scorecard`} subtitle="No period open yet">
+        <div className="rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
+          <p className="text-slate-600">Nothing to score yet — this needs a period open, which starts with SPEC Basic.</p>
+          <Link href="/journey" className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700">Back to the journey</Link>
+        </div>
+      </Shell>
+    );
+  }
   const { rows, score } = await getScorecard(roleId, period.id);
   const scored = rows.some(r => r.answer !== '');
   const weightProblems = validateWeights(rows.map(r => ({ id: r.criterionId, pillar: r.pillar, text: r.text, weight: r.weight })));

@@ -15,6 +15,8 @@ export const tenants = pgTable('tenants', {
   status: text('status').notNull().default('active'), // active | paused | closed
   plan: text('plan').notNull().default('trial'),      // trial | basic (self-serve, ~$100/yr) | program (rollout + training, principal on site) | lapsed
   programRequestedAt: text('program_requested_at'),
+  stripeCustomerId: text('stripe_customer_id'),        // set on first Checkout Session; reused for the billing portal
+  stripeSubscriptionId: text('stripe_subscription_id'), // set on checkout.session.completed; used to match invoice/subscription webhooks back to a tenant
 }).enableRLS();
 
 // One row per app user, linked to a Supabase Auth identity via authUserId (auth.users.id).

@@ -25,8 +25,26 @@ export default async function Journey() {
   const four = (await db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, user.tenantId))).filter(d => d.sectionId === 'four_questions');
   const hurting = four.filter(d => d.answer === 'yes').map(d => d.questionId);
 
+  const PLAN_LABEL: Record<string, string> = { trial: 'Trial', basic: 'Basic (self-serve)', program: 'SPEC Program', lapsed: 'Lapsed' };
+
   return (
-    <Shell title={`${tenant.name} — deployment journey`} subtitle={`${done} of ${steps.length} steps done · ${tenant.plan === 'program' ? 'SPEC Program' : 'Basic (self-serve)'}`}>
+    <Shell title={`${tenant.name} — deployment journey`} subtitle={`${done} of ${steps.length} steps done · ${PLAN_LABEL[tenant.plan] ?? tenant.plan}`}>
+      {tenant.plan === 'lapsed' && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900">
+          <span>Your subscription has lapsed — the business is read-only until it's renewed. Nothing has been deleted.</span>
+          <form action="/api/stripe/checkout" method="post"><button className="ml-4 shrink-0 rounded-lg bg-red-900 px-4 py-2 text-sm font-medium text-white hover:bg-red-800">Renew — $100/year</button></form>
+        </div>
+      )}
+      {tenant.plan === 'trial' && (
+        <div className="mb-4 rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
+          <div className="font-medium">You're on a trial</div>
+          <p className="mt-1 text-slate-600">Registering Claude, building the org chart and setting KPIs are all free. Scoring a month and generating the board output need a period open, which starts with <b>SPEC Basic — $100/year</b>.</p>
+          <form action="/api/stripe/checkout" method="post" className="mt-3"><button className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700">Start Basic — $100/year</button></form>
+        </div>
+      )}
+      {(tenant.plan === 'basic' || tenant.plan === 'program') && (
+        <form action="/api/stripe/portal" method="post" className="mb-4 text-right"><button className="text-sm text-slate-500 underline hover:text-slate-900">Billing</button></form>
+      )}
       {four.length > 0 && (
         <div className="mb-4 rounded-lg bg-white p-4 text-sm">
           <span className="font-medium">Where it hurts, in your words:</span> {hurting.length ? hurting.map(h => h[0].toUpperCase() + h.slice(1)).join(', ') : 'nowhere yet'}.
