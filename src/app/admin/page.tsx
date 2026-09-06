@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
+import { Footer } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
 import { journeyFor } from '@/lib/journey';
@@ -127,6 +128,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           </div>
         </section>
         <p className="mt-6 text-xs text-slate-500"><Link href="/journey" className="underline">Back to the app</Link></p>
+        <Footer />
       </main>
     </div>
   );

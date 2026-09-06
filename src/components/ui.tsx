@@ -30,8 +30,20 @@ export function Shell({ title, subtitle, children }: { title: string; subtitle?:
         <h1 className="text-2xl font-semibold">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
         <div className="mt-6">{children}</div>
+        <Footer />
       </main>
     </div>
+  );
+}
+
+/** Terms / Privacy / Get help — the same three links everywhere, signed in or not. */
+export function Footer() {
+  return (
+    <footer className="mt-16 flex flex-wrap gap-4 border-t pt-4 text-xs text-slate-400">
+      <Link href="/terms" className="hover:text-slate-600">Terms</Link>
+      <Link href="/privacy" className="hover:text-slate-600">Privacy</Link>
+      <a href="mailto:manager@specbizhq.com?subject=SPEC%20help" className="hover:text-slate-600">Get help</a>
+    </footer>
   );
 }
 

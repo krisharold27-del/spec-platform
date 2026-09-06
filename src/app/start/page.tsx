@@ -1,4 +1,4 @@
-import { PILLAR_META } from '@/components/ui';
+import { PILLAR_META, Footer } from '@/components/ui';
 import { PILLARS } from '@/lib/scoring';
 
 const ASK: Record<string, string> = {
@@ -29,6 +29,7 @@ export default function Start() {
           <button className="w-full rounded-lg bg-slate-900 px-5 py-3 text-white hover:bg-slate-700">See what this means for my business</button>
           <p className="text-center text-xs text-slate-500">Already using SPEC? <a href="/signin" className="underline">Sign in</a></p>
         </form>
+        <Footer />
       </div>
     </main>
   );

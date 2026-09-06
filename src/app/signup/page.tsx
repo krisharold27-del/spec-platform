@@ -1,3 +1,4 @@
+import { Footer } from '@/components/ui';
 import { signUp } from './actions';
 
 const NAMES: Record<string, string> = { safety: 'Safety', people: 'People', earnings: 'Earnings', compliance: 'Compliance' };
@@ -41,6 +42,7 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<R
         <button className="w-full rounded-lg bg-slate-900 px-5 py-2.5 text-white hover:bg-slate-700">Create my business</button>
         <p className="text-center text-xs text-slate-500">Already set up? <a href="/signin" className="underline">Sign in</a></p>
       </form>
+      <Footer />
     </main>
   );
 }

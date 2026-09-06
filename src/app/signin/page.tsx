@@ -1,3 +1,4 @@
+import { Footer } from '@/components/ui';
 import { signIn } from './actions';
 export default async function SignIn({ searchParams }: { searchParams: Promise<{ unknown?: string; exists?: string; sent?: string }> }) {
   const sp = await searchParams;
@@ -16,6 +17,7 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
           <p className="text-center text-xs text-slate-500">No password needed — we'll email you a secure link. New here? <a href="/signup" className="underline">Start a business</a></p>
         </form>
       )}
+      <Footer />
     </main>
   );
 }
