@@ -1,0 +1,366 @@
+{
+  "version": "2026-09-06",
+  "note": "Generic role templates. Two KPIs per pillar is the SPEC standard; extra behavioural criteria are optional. Weights within a pillar must sum to 1. Targets in {braces} are negotiated per client during the cascade. No client names or figures.",
+  "pillars": [
+    {
+      "code": "safety",
+      "name": "Safety",
+      "colour": "#E67E22",
+      "sort": 1
+    },
+    {
+      "code": "people",
+      "name": "People",
+      "colour": "#5B9E3F",
+      "sort": 2
+    },
+    {
+      "code": "earnings",
+      "name": "Earnings",
+      "colour": "#169BD5",
+      "sort": 3
+    },
+    {
+      "code": "compliance",
+      "name": "Compliance",
+      "colour": "#8064A2",
+      "sort": 4
+    }
+  ],
+  "organisational_standard": {
+    "note": "Mirrored into every role at supervisor level and above.",
+    "safety": [
+      {
+        "text": "Zero incidents (LTI / MTI)",
+        "weight": 0.5,
+        "kpi": true,
+        "target": "0"
+      },
+      {
+        "text": "Zero workers compensation claims",
+        "weight": 0.5,
+        "kpi": true,
+        "target": "0"
+      }
+    ]
+  },
+  "roles": [
+    {
+      "template_id": "gm",
+      "title": "General Manager",
+      "stream": "gm",
+      "level": "gm",
+      "criteria": {
+        "safety": "organisational_standard",
+        "people": [
+          {
+            "text": "All manager roles filled and scored monthly",
+            "weight": 0.5,
+            "kpi": true
+          },
+          {
+            "text": "Zero negative turnover across the business",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "0"
+          }
+        ],
+        "earnings": [
+          {
+            "text": "Controllable cash net profit at or above target",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{net_profit_target}"
+          },
+          {
+            "text": "Monthly revenue at or above target",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{revenue_target}"
+          }
+        ],
+        "compliance": [
+          {
+            "text": "Business is SPEC: all four pillars ≥ 90% for two consecutive months",
+            "weight": 0.5,
+            "kpi": true
+          },
+          {
+            "text": "Monthly board output delivered on time",
+            "weight": 0.5,
+            "kpi": true
+          }
+        ]
+      },
+      "pnl_view": "controllable_net_profit"
+    },
+    {
+      "template_id": "commercial_manager",
+      "title": "Head of Commercial",
+      "stream": "commercial",
+      "level": "manager",
+      "criteria": {
+        "safety": "organisational_standard",
+        "people": [
+          {
+            "text": "Admin and finance team fully staffed and trained",
+            "weight": 0.5,
+            "kpi": true
+          },
+          {
+            "text": "Weekly gross profit report delivered on time with a proposed improvement",
+            "weight": 0.5,
+            "kpi": true
+          }
+        ],
+        "earnings": [
+          {
+            "text": "STAR rating on monthly financial reporting (Systems, Truth, Accuracy, Results)",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "5 stars"
+          },
+          {
+            "text": "Invoicing variance between job system and accounting system within threshold",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "≤ 1%"
+          }
+        ],
+        "compliance": [
+          {
+            "text": "Three standing monthly P&L reports produced (operational EBITDA, controllable net profit, full statutory)",
+            "weight": 0.5,
+            "kpi": true
+          },
+          {
+            "text": "Debtor days within target",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{debtor_days_target}"
+          }
+        ]
+      },
+      "pnl_view": "full_statutory"
+    },
+    {
+      "template_id": "operations_manager",
+      "title": "Head of Operations",
+      "stream": "operations",
+      "level": "manager",
+      "criteria": {
+        "safety": "organisational_standard",
+        "people": [
+          {
+            "text": "Zero negative turnover",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "0"
+          },
+          {
+            "text": "Supervisor development pathway fulfilled",
+            "weight": 0.5,
+            "kpi": true
+          }
+        ],
+        "earnings": [
+          {
+            "text": "Billable utilisation above target",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{utilisation_target, default 85%}"
+          },
+          {
+            "text": "Gross profit margin at target",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{gp_target}"
+          }
+        ],
+        "compliance": [
+          {
+            "text": "Zero breaches (licensing, procedures, golden rules)",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "0"
+          },
+          {
+            "text": "Client net promoter score at or above target",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{nps_target, default 80}"
+          }
+        ]
+      },
+      "pnl_view": "operational_ebitda"
+    },
+    {
+      "template_id": "growth_manager",
+      "title": "Head of Growth",
+      "stream": "growth",
+      "level": "manager",
+      "criteria": {
+        "safety": "organisational_standard",
+        "people": [
+          {
+            "text": "Client net promoter score above target",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{nps_target, default 80}"
+          },
+          {
+            "text": "Department 100% staffed (hires or AI-covered roles)",
+            "weight": 0.5,
+            "kpi": true
+          }
+        ],
+        "earnings": [
+          {
+            "text": "Quote-to-win conversion ratio at target (segmented by sector once data allows)",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{conversion_target}"
+          },
+          {
+            "text": "Monthly revenue at or above target",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{revenue_target}"
+          }
+        ],
+        "compliance": [
+          {
+            "text": "Adherence to contractual work obligations",
+            "weight": 0.5,
+            "kpi": true
+          },
+          {
+            "text": "Share of work formally under contract at target",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{contract_share_target}"
+          }
+        ]
+      },
+      "power_meter": {
+        "target": 0.9,
+        "weight_share": 0.8
+      }
+    },
+    {
+      "template_id": "supervisor",
+      "title": "Supervisor",
+      "stream": "operations",
+      "level": "supervisor",
+      "criteria": {
+        "safety": [
+          {
+            "text": "Zero incidents on my sites",
+            "weight": 0.4,
+            "kpi": true,
+            "target": "0"
+          },
+          {
+            "text": "All incidents and hazards reported immediately",
+            "weight": 0.2,
+            "kpi": true
+          },
+          {
+            "text": "Daily risk assessments completed to standard",
+            "weight": 0.2
+          },
+          {
+            "text": "Team fit for work and PPE compliant",
+            "weight": 0.2
+          }
+        ],
+        "people": [
+          {
+            "text": "Team trained, confident and capable for their tasks",
+            "weight": 0.5,
+            "kpi": true
+          },
+          {
+            "text": "Open, honest communication — safe to raise issues",
+            "weight": 0.5,
+            "kpi": true
+          }
+        ],
+        "earnings": [
+          {
+            "text": "Team billable utilisation at target",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{utilisation_target}"
+          },
+          {
+            "text": "Job notes and timesheets complete same day",
+            "weight": 0.5,
+            "kpi": true
+          }
+        ],
+        "compliance": [
+          {
+            "text": "Logbooks / test sheets completed for every required job",
+            "weight": 0.5,
+            "kpi": true
+          },
+          {
+            "text": "Monthly hazard report submitted",
+            "weight": 0.5,
+            "kpi": true
+          }
+        ]
+      }
+    },
+    {
+      "template_id": "staff",
+      "title": "Team member",
+      "stream": "operations",
+      "level": "staff",
+      "note": "Read-only. Shown as a done / not-done checklist, not a score.",
+      "criteria": {
+        "safety": [
+          {
+            "text": "Daily risk assessment completed",
+            "weight": 0.5
+          },
+          {
+            "text": "Hazard report submitted this month",
+            "weight": 0.5
+          }
+        ],
+        "people": [
+          {
+            "text": "On site 5 minutes before prestart",
+            "weight": 0.5
+          },
+          {
+            "text": "Training plan items completed",
+            "weight": 0.5
+          }
+        ],
+        "earnings": [
+          {
+            "text": "Timesheet submitted daily",
+            "weight": 0.5
+          },
+          {
+            "text": "Job notes completed before leaving site",
+            "weight": 0.5
+          }
+        ],
+        "compliance": [
+          {
+            "text": "Licences and tickets current",
+            "weight": 0.5
+          },
+          {
+            "text": "Test sheets / logbook entries complete",
+            "weight": 0.5
+          }
+        ]
+      }
+    }
+  ]
+}
