@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function RolesSetup() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
-  const roles = getRoles(user.tenantId);
+  const roles = await getRoles(user.tenantId);
   const gm = roles.find(r => r.level === 'gm');
   const have = new Set(roles.map(r => `${r.stream}:${r.level}`));
   const proposals = (templates.roles as { template_id: string; title: string; stream: string; level: string }[])

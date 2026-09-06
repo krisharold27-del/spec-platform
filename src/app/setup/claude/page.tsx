@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function ClaudeRegistration() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
-  const reg = db.select().from(schema.claudeRegistrations).where(eq(schema.claudeRegistrations.tenantId, user.tenantId)).get();
+  const reg = (await db.select().from(schema.claudeRegistrations).where(eq(schema.claudeRegistrations.tenantId, user.tenantId)))[0];
   return (
     <Shell title="Register Claude" subtitle="Required before the journey opens.">
       <div className="max-w-2xl">

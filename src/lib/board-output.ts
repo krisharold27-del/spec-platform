@@ -6,8 +6,8 @@
 import type { getTeamRollup, getGates } from './queries';
 import type { Pillar } from './scoring';
 
-type Rollup = ReturnType<typeof getTeamRollup>;
-type Gates = ReturnType<typeof getGates>;
+type Rollup = Awaited<ReturnType<typeof getTeamRollup>>;
+type Gates = Awaited<ReturnType<typeof getGates>>;
 
 export interface BoardInputs { tenantName: string; period: string; rollup: Rollup; gates: Gates; pillars: Pillar[] }
 

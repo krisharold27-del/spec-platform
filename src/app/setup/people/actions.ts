@@ -13,6 +13,6 @@ export async function assign(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   if (!name || !email) redirect('/setup/people');
   const u = await assignPerson(user.tenantId, roleId, { name, email });
-  db.update(schema.users).set({ invitedAt: new Date().toISOString() }).where(eq(schema.users.id, u.id)).run();
+  await db.update(schema.users).set({ invitedAt: new Date().toISOString() }).where(eq(schema.users.id, u.id));
   revalidatePath('/setup/people'); revalidatePath('/org'); revalidatePath('/journey');
 }

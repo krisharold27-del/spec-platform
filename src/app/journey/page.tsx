@@ -18,11 +18,11 @@ const STATUS: Record<StepStatus, { label: string; cls: string }> = {
 
 export default async function Journey() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
-  const tenant = db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)).get()!;
-  const steps = journeyFor(user.tenantId);
+  const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
+  const steps = await journeyFor(user.tenantId);
   const next = steps.find(s => s.status !== 'done');
   const done = steps.filter(s => s.status === 'done').length;
-  const four = db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, user.tenantId)).all().filter(d => d.sectionId === 'four_questions');
+  const four = (await db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, user.tenantId))).filter(d => d.sectionId === 'four_questions');
   const hurting = four.filter(d => d.answer === 'yes').map(d => d.questionId);
 
   return (

@@ -8,7 +8,8 @@ import { db, schema } from '@/db';
 export async function saveScorecard(formData: FormData) {
   const roleId = String(formData.get('roleId'));
   const periodId = String(formData.get('periodId'));
-  const period = db.select().from(schema.periods).where(eq(schema.periods.id, periodId)).get();
+  const periods = await db.select().from(schema.periods).where(eq(schema.periods.id, periodId));
+  const period = periods[0];
   if (!period || period.status === 'locked') throw new Error('Period is locked — locked months are never edited.');
 
   const now = new Date().toISOString();
@@ -17,12 +18,13 @@ export async function saveScorecard(formData: FormData) {
     const criterionId = key.slice('answer:'.length);
     const answer = String(value);
     const note = String(formData.get(`note:${criterionId}`) ?? '') || null;
-    const existing = db.select().from(schema.assessments)
-      .where(and(eq(schema.assessments.periodId, periodId), eq(schema.assessments.roleId, roleId), eq(schema.assessments.criterionId, criterionId))).get();
+    const existingRows = await db.select().from(schema.assessments)
+      .where(and(eq(schema.assessments.periodId, periodId), eq(schema.assessments.roleId, roleId), eq(schema.assessments.criterionId, criterionId)));
+    const existing = existingRows[0];
     if (existing) {
-      db.update(schema.assessments).set({ answer, note, enteredAt: now }).where(eq(schema.assessments.id, existing.id)).run();
+      await db.update(schema.assessments).set({ answer, note, enteredAt: now }).where(eq(schema.assessments.id, existing.id));
     } else {
-      db.insert(schema.assessments).values({ id: randomUUID(), periodId, roleId, criterionId, answer, note, enteredAt: now }).run();
+      await db.insert(schema.assessments).values({ id: randomUUID(), periodId, roleId, criterionId, answer, note, enteredAt: now });
     }
   }
   revalidatePath('/'); revalidatePath('/team'); revalidatePath(`/scorecard/${roleId}`);

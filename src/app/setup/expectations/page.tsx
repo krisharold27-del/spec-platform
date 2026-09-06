@@ -13,7 +13,7 @@ type Section = { id: string; title: string; when: string; intro?: string; type?:
 
 export default async function Expectations() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
-  const answers = db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, user.tenantId)).all();
+  const answers = await db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, user.tenantId));
   const get = (s: string, q: string) => answers.find(a => a.sectionId === s && a.questionId === q)?.answer ?? '';
   const sections = (diagnostic.sections as Section[]).filter(s => ['before_day_one', 'week_one'].includes(s.when));
 

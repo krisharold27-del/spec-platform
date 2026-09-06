@@ -10,11 +10,11 @@ export const dynamic = 'force-dynamic';
 export default async function Scorecard({ params }: { params: Promise<{ roleId: string }> }) {
   const { roleId } = await params;
   const user = await getCurrentUser(); if (!user) redirect('/signin');
-  const tenant = getTenantById(user.tenantId)!;
-  const period = getCurrentPeriod(tenant.id)!;
-  const role = getRoles(tenant.id).find(r => r.id === roleId);
+  const tenant = (await getTenantById(user.tenantId))!;
+  const period = (await getCurrentPeriod(tenant.id))!;
+  const role = (await getRoles(tenant.id)).find(r => r.id === roleId);
   if (!role) return <Shell title="Role not found"><p>No such role in this business.</p></Shell>;
-  const { rows, score } = getScorecard(roleId, period.id);
+  const { rows, score } = await getScorecard(roleId, period.id);
   const scored = rows.some(r => r.answer !== '');
   const weightProblems = validateWeights(rows.map(r => ({ id: r.criterionId, pillar: r.pillar, text: r.text, weight: r.weight })));
   const readonly = user.access !== 'full' || period.status === 'locked';

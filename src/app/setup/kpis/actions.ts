@@ -11,7 +11,8 @@ import { validateWeights, type Pillar } from '@/lib/scoring';
 export async function saveCriteria(formData: FormData) {
   const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
   const roleId = String(formData.get('roleId'));
-  const role = db.select().from(schema.roles).where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId))).get();
+  const roleRows = await db.select().from(schema.roles).where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
+  const role = roleRows[0];
   if (!role) redirect('/setup/kpis');
 
   const rows: { id: string; pillar: Pillar; text: string; weight: number; kpi: boolean; target: string | null }[] = [];
@@ -30,15 +31,16 @@ export async function saveCriteria(formData: FormData) {
   const problems = validateWeights(rows);
   if (problems.length) redirect(`/setup/kpis?role=${roleId}&err=${encodeURIComponent(problems.map(p => `${p.pillar} = ${Math.round(p.total * 100)}%`).join(', '))}`);
 
-  const existing = db.select().from(schema.criteria).where(eq(schema.criteria.roleId, roleId)).all();
+  const existing = await db.select().from(schema.criteria).where(eq(schema.criteria.roleId, roleId));
   const keep = new Set(rows.map(r => r.id));
-  for (const e of existing) if (!keep.has(e.id)) db.update(schema.criteria).set({ active: false }).where(eq(schema.criteria.id, e.id)).run();
-  rows.forEach((r, i) => {
+  for (const e of existing) if (!keep.has(e.id)) await db.update(schema.criteria).set({ active: false }).where(eq(schema.criteria.id, e.id));
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
     const e = existing.find(x => x.id === r.id);
-    if (e) db.update(schema.criteria).set({ text: r.text, weight: r.weight, kpi: r.kpi, target: r.target, pillar: r.pillar, sortOrder: i, active: true,
-      proposedTarget: e.proposedTarget ?? e.target }).where(eq(schema.criteria.id, r.id)).run();
-    else db.insert(schema.criteria).values({ id: randomUUID(), roleId, pillar: r.pillar, text: r.text, weight: r.weight, kpi: r.kpi, target: r.target, proposedTarget: null, sortOrder: i }).run();
-  });
+    if (e) await db.update(schema.criteria).set({ text: r.text, weight: r.weight, kpi: r.kpi, target: r.target, pillar: r.pillar, sortOrder: i, active: true,
+      proposedTarget: e.proposedTarget ?? e.target }).where(eq(schema.criteria.id, r.id));
+    else await db.insert(schema.criteria).values({ id: randomUUID(), roleId, pillar: r.pillar, text: r.text, weight: r.weight, kpi: r.kpi, target: r.target, proposedTarget: null, sortOrder: i });
+  }
   revalidatePath('/setup/kpis'); revalidatePath('/journey'); revalidatePath(`/scorecard/${roleId}`);
   redirect(`/setup/kpis?role=${roleId}&saved=1`);
 }

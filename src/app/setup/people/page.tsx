@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function People() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
-  const roles = getRoles(user.tenantId);
+  const roles = await getRoles(user.tenantId);
   return (
     <Shell title="Assign people to roles" subtitle="Access follows the role: supervisor and above are full access; staff are read-only. An invite goes to the email you enter.">
       <ul className="max-w-3xl divide-y rounded-lg border bg-white">

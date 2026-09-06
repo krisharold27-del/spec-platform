@@ -12,10 +12,10 @@ export const dynamic = 'force-dynamic';
 export default async function KpiSetup({ searchParams }: { searchParams: Promise<{ role?: string; err?: string; saved?: string }> }) {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   const sp = await searchParams;
-  const roles = getRoles(user.tenantId).filter(r => r.level !== 'staff');
+  const roles = (await getRoles(user.tenantId)).filter(r => r.level !== 'staff');
   const role = roles.find(r => r.id === sp.role) ?? roles[0];
   if (!role) return <Shell title="KPIs"><p>Define roles first.</p></Shell>;
-  const crit = db.select().from(schema.criteria).where(and(eq(schema.criteria.roleId, role.id), eq(schema.criteria.active, true))).orderBy(schema.criteria.sortOrder).all();
+  const crit = await db.select().from(schema.criteria).where(and(eq(schema.criteria.roleId, role.id), eq(schema.criteria.active, true))).orderBy(schema.criteria.sortOrder);
 
   return (
     <Shell title="KPIs per role" subtitle="Two per pillar. Weights sum to 100%. Targets are negotiated — the proposed figure stays on record.">

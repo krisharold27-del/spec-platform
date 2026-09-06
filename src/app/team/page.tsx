@@ -8,9 +8,9 @@ export const dynamic = 'force-dynamic';
 
 export default async function TeamRollup() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
-  const tenant = getTenantById(user.tenantId)!;
-  const period = getCurrentPeriod(tenant.id)!;
-  const rollup = getTeamRollup(tenant.id, period.id);
+  const tenant = (await getTenantById(user.tenantId))!;
+  const period = (await getCurrentPeriod(tenant.id))!;
+  const rollup = await getTeamRollup(tenant.id, period.id);
   const scoredRoles = rollup.roles.filter(r => r.rows.some(x => x.answer !== ''));
   return (
     <Shell title="Team rollup" subtitle={`${period.period} · averages across scored roles only (${scoredRoles.length} of ${rollup.roleCount})`}>

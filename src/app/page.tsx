@@ -9,10 +9,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function ExecutiveSummary() {
   const user = await getCurrentUser(); if (!user) redirect('/start');
-  const tenant = getTenantById(user.tenantId)!;
-  const period = getCurrentPeriod(tenant.id)!;
-  const rollup = getTeamRollup(tenant.id, period.id);
-  const g = getGates(period.id);
+  const tenant = (await getTenantById(user.tenantId))!;
+  const period = (await getCurrentPeriod(tenant.id))!;
+  const rollup = await getTeamRollup(tenant.id, period.id);
+  const g = await getGates(period.id);
   const baseline = rollup.scoredCount === 0;
 
   return (

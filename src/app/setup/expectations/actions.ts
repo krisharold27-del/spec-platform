@@ -15,10 +15,11 @@ export async function saveSection(formData: FormData) {
     if (!key.startsWith('q:')) continue;
     const [, sec, qid] = key.split(':');
     const answer = String(value).trim();
-    const existing = db.select().from(schema.diagnostics)
-      .where(and(eq(schema.diagnostics.tenantId, user.tenantId), eq(schema.diagnostics.sectionId, sec), eq(schema.diagnostics.questionId, qid))).get();
-    if (existing) db.update(schema.diagnostics).set({ answer, answeredBy: user.email, answeredAt: now }).where(eq(schema.diagnostics.id, existing.id)).run();
-    else if (answer) db.insert(schema.diagnostics).values({ id: randomUUID(), tenantId: user.tenantId, sectionId: sec, questionId: qid, answer, answeredBy: user.email, answeredAt: now }).run();
+    const existingRows = await db.select().from(schema.diagnostics)
+      .where(and(eq(schema.diagnostics.tenantId, user.tenantId), eq(schema.diagnostics.sectionId, sec), eq(schema.diagnostics.questionId, qid)));
+    const existing = existingRows[0];
+    if (existing) await db.update(schema.diagnostics).set({ answer, answeredBy: user.email, answeredAt: now }).where(eq(schema.diagnostics.id, existing.id));
+    else if (answer) await db.insert(schema.diagnostics).values({ id: randomUUID(), tenantId: user.tenantId, sectionId: sec, questionId: qid, answer, answeredBy: user.email, answeredAt: now });
   }
   revalidatePath('/setup/expectations'); revalidatePath('/journey');
   redirect(`/setup/expectations#${sectionId}`);

@@ -19,9 +19,10 @@ export async function saveGates(formData: FormData) {
     { gate: 'clear_to_work', value: String(training), pass: training >= 1, reason: String(formData.get('ctwReason') ?? '') || null },
   ];
   for (const r of rows) {
-    const e = db.select().from(schema.gates).where(and(eq(schema.gates.periodId, periodId), eq(schema.gates.gate, r.gate))).get();
-    if (e) db.update(schema.gates).set(r).where(eq(schema.gates.id, e.id)).run();
-    else db.insert(schema.gates).values({ id: randomUUID(), periodId, ...r }).run();
+    const existingRows = await db.select().from(schema.gates).where(and(eq(schema.gates.periodId, periodId), eq(schema.gates.gate, r.gate)));
+    const e = existingRows[0];
+    if (e) await db.update(schema.gates).set(r).where(eq(schema.gates.id, e.id));
+    else await db.insert(schema.gates).values({ id: randomUUID(), periodId, ...r });
   }
   revalidatePath('/'); revalidatePath('/journey');
 }
@@ -30,17 +31,18 @@ export async function saveGates(formData: FormData) {
 export async function lockPeriod(formData: FormData) {
   const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
   const periodId = String(formData.get('periodId'));
-  const period = db.select().from(schema.periods).where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId))).get();
+  const periodRows = await db.select().from(schema.periods).where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId)));
+  const period = periodRows[0];
   if (!period || period.status === 'locked') redirect('/');
-  const tenant = db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)).get()!;
-  const rollup = getTeamRollup(user.tenantId, periodId);
-  const gates = getGates(periodId);
+  const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
+  const rollup = await getTeamRollup(user.tenantId, periodId);
+  const gates = await getGates(periodId);
   const md = await generateBoardOutput({ tenantName: tenant.name, period: period.period, rollup, gates, pillars: PILLARS });
-  db.insert(schema.boardOutputs).values({ id: randomUUID(), periodId, markdown: md, generatedBy: 'claude', createdAt: new Date().toISOString() }).run();
-  db.update(schema.periods).set({ status: 'locked' }).where(eq(schema.periods.id, periodId)).run();
+  await db.insert(schema.boardOutputs).values({ id: randomUUID(), periodId, markdown: md, generatedBy: 'claude', createdAt: new Date().toISOString() });
+  await db.update(schema.periods).set({ status: 'locked' }).where(eq(schema.periods.id, periodId));
   const [y, m] = period.period.split('-').map(Number);
   const next = `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, '0')}`;
-  db.insert(schema.periods).values({ id: randomUUID(), tenantId: user.tenantId, period: next }).onConflictDoNothing().run();
+  await db.insert(schema.periods).values({ id: randomUUID(), tenantId: user.tenantId, period: next }).onConflictDoNothing();
   revalidatePath('/'); revalidatePath('/journey');
   redirect(`/board/${periodId}`);
 }
@@ -48,6 +50,6 @@ export async function lockPeriod(formData: FormData) {
 export async function approveBoardOutput(formData: FormData) {
   const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
   const periodId = String(formData.get('periodId'));
-  db.update(schema.boardOutputs).set({ approvedBy: user.email }).where(eq(schema.boardOutputs.periodId, periodId)).run();
+  await db.update(schema.boardOutputs).set({ approvedBy: user.email }).where(eq(schema.boardOutputs.periodId, periodId));
   revalidatePath(`/board/${periodId}`); revalidatePath('/journey');
 }

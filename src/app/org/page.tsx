@@ -26,8 +26,8 @@ function Node({ role, all, depth }: { role: RoleView; all: RoleView[]; depth: nu
 
 export default async function OrgChart() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
-  const tenant = getTenantById(user.tenantId)!;
-  const roles = getRoles(tenant.id);
+  const tenant = (await getTenantById(user.tenantId))!;
+  const roles = await getRoles(tenant.id);
   const top = roles.filter(r => !r.reportsToRoleId);
   return (
     <Shell title="Org chart" subtitle="Roles report to roles. A role can exist with nobody in it; a person cannot exist without a role.">

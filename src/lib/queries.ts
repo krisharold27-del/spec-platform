@@ -3,12 +3,14 @@ import { eq, and, isNull, desc } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { roleScore, teamScore, gates as gateCalc, PILLARS, type Pillar, type RoleScore, type Answer } from './scoring';
 
-export function getTenantById(id: string) {
-  return db.select().from(schema.tenants).where(eq(schema.tenants.id, id)).get();
+export async function getTenantById(id: string) {
+  const rows = await db.select().from(schema.tenants).where(eq(schema.tenants.id, id));
+  return rows[0];
 }
 
-export function getCurrentPeriod(tenantId: string) {
-  return db.select().from(schema.periods).where(eq(schema.periods.tenantId, tenantId)).orderBy(desc(schema.periods.period)).get();
+export async function getCurrentPeriod(tenantId: string) {
+  const rows = await db.select().from(schema.periods).where(eq(schema.periods.tenantId, tenantId)).orderBy(desc(schema.periods.period));
+  return rows[0];
 }
 
 export interface RoleView {
@@ -16,17 +18,19 @@ export interface RoleView {
   holder: { name: string; email: string; access: string } | null;
 }
 
-export function getRoles(tenantId: string): RoleView[] {
-  const rows = db.select().from(schema.roles)
+export async function getRoles(tenantId: string): Promise<RoleView[]> {
+  const rows = await db.select().from(schema.roles)
     .where(and(eq(schema.roles.tenantId, tenantId), eq(schema.roles.active, true)))
-    .orderBy(schema.roles.sortOrder).all();
-  return rows.map(r => {
-    const a = db.select({ name: schema.users.name, email: schema.users.email, access: schema.users.access })
+    .orderBy(schema.roles.sortOrder);
+  const out: RoleView[] = [];
+  for (const r of rows) {
+    const a = await db.select({ name: schema.users.name, email: schema.users.email, access: schema.users.access })
       .from(schema.roleAssignments)
       .innerJoin(schema.users, eq(schema.users.id, schema.roleAssignments.userId))
-      .where(and(eq(schema.roleAssignments.roleId, r.id), isNull(schema.roleAssignments.toDate))).get();
-    return { id: r.id, title: r.title, stream: r.stream, level: r.level, reportsToRoleId: r.reportsToRoleId, holder: a ?? null };
-  });
+      .where(and(eq(schema.roleAssignments.roleId, r.id), isNull(schema.roleAssignments.toDate)));
+    out.push({ id: r.id, title: r.title, stream: r.stream, level: r.level, reportsToRoleId: r.reportsToRoleId, holder: a[0] ?? null });
+  }
+  return out;
 }
 
 export interface ScorecardRow {
@@ -34,12 +38,12 @@ export interface ScorecardRow {
   answer: Answer; note: string | null;
 }
 
-export function getScorecard(roleId: string, periodId: string): { rows: ScorecardRow[]; score: RoleScore } {
-  const crit = db.select().from(schema.criteria)
+export async function getScorecard(roleId: string, periodId: string): Promise<{ rows: ScorecardRow[]; score: RoleScore }> {
+  const crit = await db.select().from(schema.criteria)
     .where(and(eq(schema.criteria.roleId, roleId), eq(schema.criteria.active, true)))
-    .orderBy(schema.criteria.sortOrder).all();
-  const ans = db.select().from(schema.assessments)
-    .where(and(eq(schema.assessments.roleId, roleId), eq(schema.assessments.periodId, periodId))).all();
+    .orderBy(schema.criteria.sortOrder);
+  const ans = await db.select().from(schema.assessments)
+    .where(and(eq(schema.assessments.roleId, roleId), eq(schema.assessments.periodId, periodId)));
   const byId = new Map(ans.map(a => [a.criterionId, a]));
   const rows: ScorecardRow[] = crit.map(c => ({
     criterionId: c.id, pillar: c.pillar as Pillar, text: c.text, weight: c.weight, kpi: c.kpi, target: c.target,
@@ -52,17 +56,18 @@ export function getScorecard(roleId: string, periodId: string): { rows: Scorecar
   return { rows, score };
 }
 
-export function getTeamRollup(tenantId: string, periodId: string) {
-  const roles = getRoles(tenantId).filter(r => r.level !== 'staff');
-  const perRole = roles.map(r => ({ role: r, ...getScorecard(r.id, periodId) }));
+export async function getTeamRollup(tenantId: string, periodId: string) {
+  const roles = (await getRoles(tenantId)).filter(r => r.level !== 'staff');
+  const perRole = [];
+  for (const r of roles) perRole.push({ role: r, ...(await getScorecard(r.id, periodId)) });
   // Team averages use scored roles only — an unscored role is missing data, not a zero.
   const answered = perRole.filter(p => p.rows.some(r => r.answer !== ''));
   const team = teamScore(answered.map(p => p.score));
   return { roles: perRole, team, scoredCount: answered.length, roleCount: roles.length };
 }
 
-export function getGates(periodId: string) {
-  const rows = db.select().from(schema.gates).where(eq(schema.gates.periodId, periodId)).all();
+export async function getGates(periodId: string) {
+  const rows = await db.select().from(schema.gates).where(eq(schema.gates.periodId, periodId));
   const zh = rows.find(g => g.gate === 'zero_harm');
   const ctw = rows.find(g => g.gate === 'clear_to_work');
   const entered = !!(zh || ctw);
