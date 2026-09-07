@@ -7,45 +7,72 @@ import { getTenantById, getRoles, type RoleView } from '@/lib/queries';
 export const dynamic = 'force-dynamic';
 
 /**
- * The org chart is read by business owners, not by org designers, so it is laid out the way they
- * already think about the business: the streams of work. Leadership sits across the top; beneath it
- * one column per COGS stream, each headed by the role that owns it, with that stream's people under
- * it. A role can exist with nobody in it — a vacancy is information, so it is drawn, not hidden.
+ * The org chart is read by business owners, not org designers, so it is laid out the way they
+ * already describe the business: leadership across the top, then one column per COGS stream, each
+ * headed by the role that owns it. A role can exist with nobody in it — a vacancy is information,
+ * so it is drawn plainly rather than hidden.
  */
-const STREAMS: { key: string; name: string; owns: string; accent: string }[] = [
-  { key: 'commercial', name: 'Commercial', owns: 'The numbers are right and on time — weekly gross profit, monthly net profit, STAR rating.', accent: 'bg-[#169BD5]' },
-  { key: 'operations', name: 'Operations', owns: 'The work gets done safely and profitably — billable hours, safety, supervisors signed off as capable.', accent: 'bg-[#5B9E3F]' },
-  { key: 'growth', name: 'Growth', owns: 'Keep the clients we have, win more — retention and acquisition.', accent: 'bg-[#E67E22]' },
+const STREAMS: { key: string; name: string; owns: string; colour: string }[] = [
+  { key: 'commercial', name: 'Commercial', owns: 'The numbers are right and on time', colour: '#169BD5' },
+  { key: 'operations', name: 'Operations', owns: 'The work gets done safely and profitably', colour: '#5B9E3F' },
+  { key: 'growth', name: 'Growth', owns: 'Keep the clients we have, win more', colour: '#C1440E' },
 ];
 
-function PersonLine({ role }: { role: RoleView }) {
-  if (role.holder) {
-    return <span className="text-ink-light">{role.holder.name}<span className="text-xs text-ink-light/60"> · {role.holder.access}</span></span>;
+const initials = (name: string) =>
+  name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '?';
+
+function Avatar({ role, size = 'md' }: { role: RoleView; size?: 'md' | 'sm' }) {
+  const dim = size === 'md' ? 'h-9 w-9 text-xs' : 'h-7 w-7 text-[10px]';
+  if (!role.holder) {
+    return <span className={`${dim} flex shrink-0 items-center justify-center rounded-full border border-dashed border-ink/25 font-semibold text-ink-light/40`}>—</span>;
   }
-  return <span className="italic text-ink-light/60">vacant — role exists, nobody assigned</span>;
+  return <span className={`${dim} flex shrink-0 items-center justify-center rounded-full bg-ink/5 font-semibold text-ink-light`}>{initials(role.holder.name)}</span>;
 }
 
-function RoleCard({ role, lead = false }: { role: RoleView; lead?: boolean }) {
+function Holder({ role }: { role: RoleView }) {
+  if (!role.holder) return <span className="text-xs italic text-ink-light/60">Vacant — role defined, nobody assigned</span>;
   return (
-    <div className={`rounded-lg border bg-white px-4 py-3 ${lead ? 'border-ink/20 shadow-sm' : ''}`}>
-      <Link href={`/scorecard/${role.id}`} className={`hover:underline ${lead ? 'font-semibold text-ink' : 'font-medium text-rust'}`}>{role.title}</Link>
-      <div className="mt-0.5 text-sm"><PersonLine role={role} /></div>
-    </div>
+    <span className="text-xs text-ink-light">
+      {role.holder.name}
+      {role.holder.access === 'readonly' && <span className="ml-1.5 text-ink-light/50">read-only</span>}
+    </span>
   );
 }
 
-/** Everything below a stream head, drawn as a simple indented list — supervisors, then their staff. */
+function HeadCard({ role }: { role: RoleView }) {
+  return (
+    <Link
+      href={`/scorecard/${role.id}`}
+      className={`flex items-center gap-3 rounded-lg border bg-white p-3 transition-colors hover:border-rust/40 ${role.holder ? 'border-ink/10' : 'border-dashed border-ink/25'}`}
+    >
+      <Avatar role={role} />
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-semibold text-ink">{role.title}</span>
+        <Holder role={role} />
+      </span>
+    </Link>
+  );
+}
+
+/** Supervisors and their staff, nested under a stream head with a connector rail. */
 function Reports({ role, all }: { role: RoleView; all: RoleView[] }) {
   const reports = all.filter(r => r.reportsToRoleId === role.id);
   if (reports.length === 0) return null;
   return (
-    <ul className="mt-2 space-y-2 border-l border-ink/10 pl-3">
+    <ul className="mt-2 space-y-2 border-l border-ink/10 pl-4">
       {reports.map(r => (
-        <li key={r.id}>
-          <div className="rounded-md border bg-white/70 px-3 py-2">
-            <Link href={`/scorecard/${r.id}`} className="text-sm font-medium text-rust hover:underline">{r.title}</Link>
-            <div className="text-xs"><PersonLine role={r} /></div>
-          </div>
+        <li key={r.id} className="relative">
+          <span className="absolute -left-4 top-4 h-px w-3 bg-ink/10" aria-hidden />
+          <Link
+            href={`/scorecard/${r.id}`}
+            className={`flex items-center gap-2.5 rounded-md border bg-white/80 px-3 py-2 transition-colors hover:border-rust/40 ${r.holder ? 'border-ink/10' : 'border-dashed border-ink/20'}`}
+          >
+            <Avatar role={r} size="sm" />
+            <span className="min-w-0">
+              <span className="block truncate text-[13px] font-medium text-ink">{r.title}</span>
+              <Holder role={r} />
+            </span>
+          </Link>
           <Reports role={r} all={all} />
         </li>
       ))}
@@ -62,47 +89,71 @@ export default async function OrgChart() {
   const leadership = roles.filter(r => r.stream === 'gm');
   const claimed = new Set<string>([...board, ...leadership].map(r => r.id));
 
-  // A stream's head is the role in that stream that doesn't report to another role in the same stream.
-  const streamGroups = STREAMS.map(s => {
+  const groups = STREAMS.map(s => {
     const inStream = roles.filter(r => r.stream === s.key);
     const heads = inStream.filter(r => !inStream.some(o => o.id === r.reportsToRoleId));
     inStream.forEach(r => claimed.add(r.id));
-    return { ...s, heads };
+    return { ...s, heads, count: inStream.length, vacant: inStream.filter(r => !r.holder).length };
   });
 
   const unplaced = roles.filter(r => !claimed.has(r.id));
+  const totalVacant = roles.filter(r => !r.holder).length;
 
   return (
-    <Shell title="Org chart" subtitle="The business by stream of work. A role can exist with nobody in it; a person cannot exist without a role.">
+    <Shell title={`${tenant.name} — org chart`} subtitle="The business by stream of work. A role can exist with nobody in it; a person cannot exist without a role.">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-ink-light">
+        <span><b className="font-semibold text-ink">{roles.length}</b> roles defined</span>
+        <span><b className="font-semibold text-ink">{roles.length - totalVacant}</b> filled</span>
+        {totalVacant > 0 && <span className="text-rust-dark"><b className="font-semibold">{totalVacant}</b> vacant</span>}
+      </div>
+
       {board.length > 0 && (
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {board.map(r => <RoleCard key={r.id} role={r} lead />)}
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          {board.map(r => (
+            <div key={r.id} className="w-full max-w-sm">
+              <div className="label-caps mb-1 text-center text-[10px]">Board</div>
+              <HeadCard role={r} />
+            </div>
+          ))}
         </div>
       )}
 
       {leadership.length > 0 && (
-        <div className="mb-6 space-y-3">
-          {leadership.map(r => <RoleCard key={r.id} role={r} lead />)}
-          <div className="text-center text-xs uppercase tracking-wide text-ink-light/60">runs the three streams below</div>
+        <div className="mt-6">
+          <div className="mx-auto flex max-w-sm flex-col gap-2">
+            {leadership.map(r => (
+              <div key={r.id}>
+                <div className="label-caps mb-1 text-center text-[10px]">Leadership</div>
+                <HeadCard role={r} />
+              </div>
+            ))}
+          </div>
+          <div className="mx-auto h-6 w-px bg-ink/15" aria-hidden />
+          <div className="h-px w-full bg-ink/15" aria-hidden />
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {streamGroups.map(s => (
-          <section key={s.key} className="rounded-lg border bg-cream/40 p-4">
-            <div className="flex items-center gap-2">
-              <span className={`h-2.5 w-2.5 rounded-full ${s.accent}`} aria-hidden />
-              <h2 className="font-serif text-lg font-bold text-ink">{s.name}</h2>
+      <div className="mt-px grid gap-4 lg:grid-cols-3">
+        {groups.map(s => (
+          <section key={s.key} className="overflow-hidden rounded-lg border border-ink/10 bg-white">
+            <div className="h-1 w-full" style={{ backgroundColor: s.colour }} aria-hidden />
+            <div className="border-b border-ink/10 bg-cream/40 px-4 py-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <h2 className="font-serif text-base font-bold text-ink">{s.name}</h2>
+                <span className="shrink-0 text-[11px] text-ink-light">
+                  {s.count} {s.count === 1 ? 'role' : 'roles'}{s.vacant > 0 && <span className="text-rust-dark"> · {s.vacant} vacant</span>}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-ink-light">{s.owns}</p>
             </div>
-            <p className="mt-1 text-xs text-ink-light">{s.owns}</p>
-            <div className="mt-3 space-y-3">
+            <div className="space-y-3 p-4">
               {s.heads.length === 0 ? (
-                <div className="rounded-lg border border-dashed bg-white/50 px-4 py-3 text-sm italic text-ink-light/70">
-                  No role owns this stream yet.
+                <div className="rounded-lg border border-dashed border-ink/20 px-4 py-6 text-center text-xs italic text-ink-light/60">
+                  No role owns this stream yet
                 </div>
               ) : s.heads.map(h => (
                 <div key={h.id}>
-                  <RoleCard role={h} />
+                  <HeadCard role={h} />
                   <Reports role={h} all={roles} />
                 </div>
               ))}
@@ -112,18 +163,20 @@ export default async function OrgChart() {
       </div>
 
       {unplaced.length > 0 && (
-        <div className="mt-6 rounded-lg border bg-white p-4">
-          <div className="text-sm font-medium text-ink">Not yet assigned to a stream</div>
-          <ul className="mt-2 space-y-2">
+        <div className="card mt-6">
+          <div className="label-caps">Not yet assigned to a stream</div>
+          <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {unplaced.map(r => (
-              <li key={r.id} className="text-sm">
-                <Link href={`/scorecard/${r.id}`} className="font-medium text-rust hover:underline">{r.title}</Link>
-                {' — '}<PersonLine role={r} />
-              </li>
+              <li key={r.id}><HeadCard role={r} /></li>
             ))}
           </ul>
         </div>
       )}
+
+      <p className="mt-6 text-xs text-ink-light/70">
+        Every role links to its scorecard. Roles are defined by what the business needs, then people are assigned to them —
+        the role is never reshaped to fit the person. <Link href="/setup/roles" className="underline hover:text-rust">Edit roles</Link>
+      </p>
     </Shell>
   );
 }
