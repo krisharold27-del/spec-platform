@@ -3,7 +3,8 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { Shell } from '@/components/ui';
-import { Interview, type Step } from '@/components/interview';
+import { Interview, type Step, type NextStep } from '@/components/interview';
+import { journeyFor } from '@/lib/journey';
 import diagnostic from '../../../../seed/diagnostic.json';
 
 export const dynamic = 'force-dynamic';
@@ -56,12 +57,18 @@ export default async function Expectations() {
   const sections = (diagnostic.sections as Section[]).filter(s => ['before_day_one', 'week_one'].includes(s.when));
   const steps = toSteps(sections);
 
+  // What the leader is handed when the diagnostic is finished — the real next step of the journey,
+  // not a dead end. The diagnostic's own steps are excluded: they are what was just completed.
+  const journey = await journeyFor(user.tenantId);
+  const upcoming = journey.find(j => j.status !== 'done' && j.id !== 'expectations' && j.id !== 'question_zero');
+  const nextStep: NextStep = upcoming ? { title: upcoming.title, href: upcoming.href, why: upcoming.why } : null;
+
   return (
     <Shell
       title="Business expectations"
       subtitle="Claude walks the leader through these in week one. Record the genuine answers, not the polite version."
     >
-      <Interview steps={steps} initial={initial} />
+      <Interview steps={steps} initial={initial} nextStep={nextStep} />
     </Shell>
   );
 }
