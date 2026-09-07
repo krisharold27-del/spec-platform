@@ -6,21 +6,33 @@ import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 
-/** Save answers for one diagnostic section. Fields are named q:<sectionId>:<questionId>. */
-export async function saveSection(formData: FormData) {
+/**
+ * Save a single diagnostic answer. The interview saves as the leader answers rather than behind a
+ * Save button, so this is called once per question and must be cheap and idempotent.
+ */
+export async function saveAnswer(sectionId: string, questionId: string, value: string): Promise<{ ok: boolean }> {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
-  const sectionId = String(formData.get('sectionId'));
+  const answer = value.trim();
   const now = new Date().toISOString();
-  for (const [key, value] of formData.entries()) {
-    if (!key.startsWith('q:')) continue;
-    const [, sec, qid] = key.split(':');
-    const answer = String(value).trim();
-    const existingRows = await db.select().from(schema.diagnostics)
-      .where(and(eq(schema.diagnostics.tenantId, user.tenantId), eq(schema.diagnostics.sectionId, sec), eq(schema.diagnostics.questionId, qid)));
-    const existing = existingRows[0];
-    if (existing) await db.update(schema.diagnostics).set({ answer, answeredBy: user.email, answeredAt: now }).where(eq(schema.diagnostics.id, existing.id));
-    else if (answer) await db.insert(schema.diagnostics).values({ id: randomUUID(), tenantId: user.tenantId, sectionId: sec, questionId: qid, answer, answeredBy: user.email, answeredAt: now });
+
+  const existing = (await db.select().from(schema.diagnostics).where(and(
+    eq(schema.diagnostics.tenantId, user.tenantId),
+    eq(schema.diagnostics.sectionId, sectionId),
+    eq(schema.diagnostics.questionId, questionId),
+  )))[0];
+
+  if (existing) {
+    await db.update(schema.diagnostics)
+      .set({ answer, answeredBy: user.email, answeredAt: now })
+      .where(eq(schema.diagnostics.id, existing.id));
+  } else if (answer) {
+    await db.insert(schema.diagnostics).values({
+      id: randomUUID(), tenantId: user.tenantId, sectionId, questionId,
+      answer, answeredBy: user.email, answeredAt: now,
+    });
   }
-  revalidatePath('/setup/expectations'); revalidatePath('/journey');
-  redirect(`/setup/expectations#${sectionId}`);
+
+  // The journey page reports diagnostic progress, so it has to see each answer land.
+  revalidatePath('/journey');
+  return { ok: true };
 }
