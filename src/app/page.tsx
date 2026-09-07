@@ -3,7 +3,8 @@ import { Shell, PillarTile, GateBadge, PILLAR_META, pct } from '@/components/ui'
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { saveGates, lockPeriod } from '@/app/period/actions';
-import { getTenantById, getCurrentPeriod, getTeamRollup, getGates, PILLARS } from '@/lib/queries';
+import { getTenantById, getCurrentPeriod, getTeamRollupForRoles, getGates, PILLARS } from '@/lib/queries';
+import { getScope, scoredRolesInScope } from '@/lib/scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,9 @@ export default async function ExecutiveSummary() {
       </Shell>
     );
   }
-  const rollup = await getTeamRollup(tenant.id, period.id);
+  // Scoped to what this viewer may see: their own role and everything beneath it.
+  const scope = await getScope(user);
+  const rollup = await getTeamRollupForRoles(scoredRolesInScope(scope), period.id);
   const g = await getGates(period.id);
   const baseline = rollup.scoredCount === 0;
 
