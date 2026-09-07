@@ -56,14 +56,27 @@ export async function getScorecard(roleId: string, periodId: string): Promise<{ 
   return { rows, score };
 }
 
-export async function getTeamRollup(tenantId: string, periodId: string) {
-  const roles = (await getRoles(tenantId)).filter(r => r.level !== 'staff');
+/**
+ * Roll up a specific set of roles. Callers pass the roles the viewer is allowed to see (see
+ * lib/scope) — this never widens the set itself, so a caller cannot accidentally leak a role
+ * the viewer has no business seeing.
+ */
+export async function getTeamRollupForRoles(roles: RoleView[], periodId: string) {
   const perRole = [];
   for (const r of roles) perRole.push({ role: r, ...(await getScorecard(r.id, periodId)) });
   // Team averages use scored roles only — an unscored role is missing data, not a zero.
   const answered = perRole.filter(p => p.rows.some(r => r.answer !== ''));
   const team = teamScore(answered.map(p => p.score));
   return { roles: perRole, team, scoredCount: answered.length, roleCount: roles.length };
+}
+
+/**
+ * Whole-tenant rollup. Only for genuinely business-wide outputs (the board pack), never for a page
+ * a non-GM can open — those must scope the roles first and use getTeamRollupForRoles.
+ */
+export async function getTeamRollup(tenantId: string, periodId: string) {
+  const roles = (await getRoles(tenantId)).filter(r => r.level !== 'staff');
+  return getTeamRollupForRoles(roles, periodId);
 }
 
 export async function getGates(periodId: string) {
