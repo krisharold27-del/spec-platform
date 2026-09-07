@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { Shell, PillarTile, PILLAR_META, pct } from '@/components/ui';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import { getTenantById, getCurrentPeriod, getTeamRollup, PILLARS } from '@/lib/queries';
+import { getTenantById, getCurrentPeriod, getTeamRollupForRoles, PILLARS } from '@/lib/queries';
+import { getScope, scoredRolesInScope } from '@/lib/scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ export default async function TeamRollup() {
   const period = await getCurrentPeriod(tenant.id);
   if (!period) {
     return (
-      <Shell title="Team rollup" subtitle="No period open yet">
+      <Shell title="My team" subtitle="No period open yet">
         <div className="rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
           <p className="text-ink-light">Nothing to roll up yet — this needs a period open, which starts with SPEC Basic.</p>
           <Link href="/journey" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Back to the journey</Link>
@@ -20,10 +21,12 @@ export default async function TeamRollup() {
       </Shell>
     );
   }
-  const rollup = await getTeamRollup(tenant.id, period.id);
+  // Only this viewer's own role and the roles beneath it — never the whole business.
+  const scope = await getScope(user);
+  const rollup = await getTeamRollupForRoles(scoredRolesInScope(scope), period.id);
   const scoredRoles = rollup.roles.filter(r => r.rows.some(x => x.answer !== ''));
   return (
-    <Shell title="Team rollup" subtitle={`${period.period} · averages across scored roles only (${scoredRoles.length} of ${rollup.roleCount})`}>
+    <Shell title="My team" subtitle={`${period.period} · averages across scored roles only (${scoredRoles.length} of ${rollup.roleCount})`}>
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {PILLARS.map(p => <PillarTile key={p} pillar={p} score={rollup.team.pillars[p]} scored={scoredRoles.length > 0} sub="Target 90%" />)}
       </section>
