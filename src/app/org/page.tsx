@@ -3,6 +3,7 @@ import { Shell } from '@/components/ui';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById, getRoles, type RoleView } from '@/lib/queries';
+import { getScope } from '@/lib/scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,43 +40,53 @@ function Holder({ role }: { role: RoleView }) {
   );
 }
 
-function HeadCard({ role }: { role: RoleView }) {
-  return (
-    <Link
-      href={`/scorecard/${role.id}`}
-      className={`flex items-center gap-3 rounded-lg border bg-white p-3 transition-colors hover:border-rust/40 ${role.holder ? 'border-ink/10' : 'border-dashed border-ink/25'}`}
-    >
+/**
+ * Structure is visible to everyone in the business — the chart is the map. Scores are not: a card
+ * only links through to its scorecard when the viewer is allowed to read it.
+ */
+function HeadCard({ role, open }: { role: RoleView; open: boolean }) {
+  const inner = (
+    <>
       <Avatar role={role} />
       <span className="min-w-0">
         <span className="block truncate text-sm font-semibold text-ink">{role.title}</span>
         <Holder role={role} />
       </span>
-    </Link>
+    </>
   );
+  const base = `flex items-center gap-3 rounded-lg border bg-white p-3 ${role.holder ? 'border-ink/10' : 'border-dashed border-ink/25'}`;
+  if (!open) return <div className={`${base} opacity-70`} title="Scores outside your part of the org chart aren't visible to you">{inner}</div>;
+  return <Link href={`/scorecard/${role.id}`} className={`${base} transition-colors hover:border-rust/40`}>{inner}</Link>;
 }
 
 /** Supervisors and their staff, nested under a stream head with a connector rail. */
-function Reports({ role, all }: { role: RoleView; all: RoleView[] }) {
+function Reports({ role, all, visible }: { role: RoleView; all: RoleView[]; visible: Set<string> }) {
   const reports = all.filter(r => r.reportsToRoleId === role.id);
   if (reports.length === 0) return null;
   return (
     <ul className="mt-2 space-y-2 border-l border-ink/10 pl-4">
-      {reports.map(r => (
-        <li key={r.id} className="relative">
-          <span className="absolute -left-4 top-4 h-px w-3 bg-ink/10" aria-hidden />
-          <Link
-            href={`/scorecard/${r.id}`}
-            className={`flex items-center gap-2.5 rounded-md border bg-white/80 px-3 py-2 transition-colors hover:border-rust/40 ${r.holder ? 'border-ink/10' : 'border-dashed border-ink/20'}`}
-          >
+      {reports.map(r => {
+        const open = visible.has(r.id);
+        const body = (
+          <>
             <Avatar role={r} size="sm" />
             <span className="min-w-0">
               <span className="block truncate text-[13px] font-medium text-ink">{r.title}</span>
               <Holder role={r} />
             </span>
-          </Link>
-          <Reports role={r} all={all} />
-        </li>
-      ))}
+          </>
+        );
+        const base = `flex items-center gap-2.5 rounded-md border bg-white/80 px-3 py-2 ${r.holder ? 'border-ink/10' : 'border-dashed border-ink/20'}`;
+        return (
+          <li key={r.id} className="relative">
+            <span className="absolute -left-4 top-4 h-px w-3 bg-ink/10" aria-hidden />
+            {open
+              ? <Link href={`/scorecard/${r.id}`} className={`${base} transition-colors hover:border-rust/40`}>{body}</Link>
+              : <div className={`${base} opacity-70`}>{body}</div>}
+            <Reports role={r} all={all} visible={visible} />
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -84,6 +95,7 @@ export default async function OrgChart() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
   const roles = await getRoles(tenant.id);
+  const { visible } = await getScope(user);
 
   const board = roles.filter(r => r.stream === 'board');
   const leadership = roles.filter(r => r.stream === 'gm');
@@ -112,7 +124,7 @@ export default async function OrgChart() {
           {board.map(r => (
             <div key={r.id} className="w-full max-w-sm">
               <div className="label-caps mb-1 text-center text-[10px]">Board</div>
-              <HeadCard role={r} />
+              <HeadCard role={r} open={visible.has(r.id)} />
             </div>
           ))}
         </div>
@@ -124,7 +136,7 @@ export default async function OrgChart() {
             {leadership.map(r => (
               <div key={r.id}>
                 <div className="label-caps mb-1 text-center text-[10px]">Leadership</div>
-                <HeadCard role={r} />
+                <HeadCard role={r} open={visible.has(r.id)} />
               </div>
             ))}
           </div>
@@ -153,8 +165,8 @@ export default async function OrgChart() {
                 </div>
               ) : s.heads.map(h => (
                 <div key={h.id}>
-                  <HeadCard role={h} />
-                  <Reports role={h} all={roles} />
+                  <HeadCard role={h} open={visible.has(h.id)} />
+                  <Reports role={h} all={roles} visible={visible} />
                 </div>
               ))}
             </div>
@@ -167,15 +179,16 @@ export default async function OrgChart() {
           <div className="label-caps">Not yet assigned to a stream</div>
           <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {unplaced.map(r => (
-              <li key={r.id}><HeadCard role={r} /></li>
+              <li key={r.id}><HeadCard role={r} open={visible.has(r.id)} /></li>
             ))}
           </ul>
         </div>
       )}
 
       <p className="mt-6 text-xs text-ink-light/70">
-        Every role links to its scorecard. Roles are defined by what the business needs, then people are assigned to them —
-        the role is never reshaped to fit the person. <Link href="/setup/roles" className="underline hover:text-rust">Edit roles</Link>
+        Everyone sees the whole structure; scorecards open only for your own role and the roles beneath it.
+        Roles are defined by what the business needs, then people are assigned to them — the role is never reshaped to
+        fit the person. <Link href="/setup/roles" className="underline hover:text-rust">Edit roles</Link>
       </p>
     </Shell>
   );
