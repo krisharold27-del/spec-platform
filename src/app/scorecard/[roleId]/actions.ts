@@ -1,14 +1,28 @@
 'use server';
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
+import { getCurrentUser } from '@/lib/auth';
+import { getScope } from '@/lib/scope';
 
-/** Save Y/N/NA answers and notes for one role in one period. Refuses locked periods. */
+/**
+ * Save Y/N/NA answers and notes for one role in one period.
+ *
+ * A server action is a public endpoint: the role id arrives from the client and is not to be
+ * trusted. Permission is re-checked here even though the page already hid the form.
+ */
 export async function saveScorecard(formData: FormData) {
+  const user = await getCurrentUser(); if (!user) redirect('/signin');
   const roleId = String(formData.get('roleId'));
   const periodId = String(formData.get('periodId'));
-  const periods = await db.select().from(schema.periods).where(eq(schema.periods.id, periodId));
+
+  const scope = await getScope(user);
+  if (!scope.canEdit(roleId)) throw new Error('You can only score your own role and the roles beneath it.');
+
+  const periods = await db.select().from(schema.periods)
+    .where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId)));
   const period = periods[0];
   if (!period || period.status === 'locked') throw new Error('Period is locked — locked months are never edited.');
 
