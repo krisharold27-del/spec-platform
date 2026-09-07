@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
+import { getScope, isTopOfChart } from '@/lib/scope';
 import { getTeamRollup, getGates, PILLARS } from '@/lib/queries';
 import { generateBoardOutput } from '@/lib/board-output';
 import { sendBoardOutputReadyEmail } from '@/lib/email';
@@ -12,6 +13,8 @@ import { sendBoardOutputReadyEmail } from '@/lib/email';
 /** Enter the two hard gates for the current period. */
 export async function saveGates(formData: FormData) {
   const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
+  // Whole-business action: restricted to the top of the org chart, not to every full-access user.
+  if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   const periodId = String(formData.get('periodId'));
   const lti = Number(formData.get('lti') ?? 0), mti = Number(formData.get('mti') ?? 0), psy = Number(formData.get('psychosocial') ?? 0);
   const training = Number(formData.get('training') ?? 0) / 100;
@@ -31,6 +34,8 @@ export async function saveGates(formData: FormData) {
 /** Lock the period, generate the board output, open the next month. */
 export async function lockPeriod(formData: FormData) {
   const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
+  // Whole-business action: restricted to the top of the org chart, not to every full-access user.
+  if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   const periodId = String(formData.get('periodId'));
   const periodRows = await db.select().from(schema.periods).where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId)));
   const period = periodRows[0];
@@ -57,6 +62,8 @@ export async function lockPeriod(formData: FormData) {
 
 export async function approveBoardOutput(formData: FormData) {
   const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
+  // Whole-business action: restricted to the top of the org chart, not to every full-access user.
+  if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   const periodId = String(formData.get('periodId'));
   await db.update(schema.boardOutputs).set({ approvedBy: user.email }).where(eq(schema.boardOutputs.periodId, periodId));
   revalidatePath(`/board/${periodId}`); revalidatePath('/journey');
