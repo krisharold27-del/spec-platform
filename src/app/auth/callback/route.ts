@@ -12,6 +12,8 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(`${origin}${next}`);
+    console.error('[auth/callback] code exchange failed', { status: error.status, code: error.code, message: error.message });
   }
-  return NextResponse.redirect(`${origin}/signin?error=1`);
+  // Bad, expired or already-used link — say so on the sign-in page rather than failing silently.
+  return NextResponse.redirect(`${origin}/signin?error=link`);
 }
