@@ -43,7 +43,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 /** Sends a magic-link sign-in email. `next` is where the callback route sends them afterwards. */
 export async function sendMagicLink(email: string, next?: string) {
   const supabase = await createClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
   const redirectTo = `${appUrl}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`;
   const { error } = await supabase.auth.signInWithOtp({ email: email.toLowerCase().trim(), options: { emailRedirectTo: redirectTo } });
   if (error) throw error;
