@@ -3,6 +3,7 @@ import { Shell, PillarTile, PILLAR_META, Badge, pct } from '@/components/ui';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById, getCurrentPeriod, getRoles, getScorecard, PILLARS } from '@/lib/queries';
+import { getScope } from '@/lib/scope';
 import { validateWeights } from '@/lib/scoring';
 import { saveScorecard } from './actions';
 
@@ -15,6 +16,19 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
   const period = await getCurrentPeriod(tenant.id);
   const role = (await getRoles(tenant.id)).find(r => r.id === roleId);
   if (!role) return <Shell title="Role not found"><p>No such role in this business.</p></Shell>;
+
+  // You see your own board and everything below it — never above, never sideways.
+  const scope = await getScope(user);
+  if (!scope.canSee(roleId)) {
+    return (
+      <Shell title="Not your scorecard" subtitle="You can see your own SPEC board and those of your team.">
+        <div className="rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm text-ink-light">
+          <p><b className="text-ink">{role.title}</b> sits outside your part of the org chart, so its scores aren&apos;t yours to see.</p>
+          <Link href="/me" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Go to my scorecard</Link>
+        </div>
+      </Shell>
+    );
+  }
   if (!period) {
     return (
       <Shell title={`${role.title} — scorecard`} subtitle="No period open yet">
@@ -28,7 +42,7 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
   const { rows, score } = await getScorecard(roleId, period.id);
   const scored = rows.some(r => r.answer !== '');
   const weightProblems = validateWeights(rows.map(r => ({ id: r.criterionId, pillar: r.pillar, text: r.text, weight: r.weight })));
-  const readonly = user.access !== 'full' || period.status === 'locked';
+  const readonly = !scope.canEdit(roleId) || period.status === 'locked';
 
   return (
     <Shell title={`${role.title} — scorecard`} subtitle={`${role.holder?.name ?? 'Vacant'} · ${period.period} · ${period.status}`}>
