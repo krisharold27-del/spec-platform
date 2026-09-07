@@ -15,60 +15,100 @@ export type Step = {
   agreementText?: string;
 };
 
+export type NextStep = { title: string; href: string; why: string } | null;
+
+const keyOf = (s: Step) => `${s.sectionId}:${s.questionId}`;
+
 /**
- * One question at a time. Answers save as they are given — no Save button — and a choice advances
- * straight to the next question, because this is meant to feel like the leader being interviewed
- * rather than filling in a form. Free text saves on leaving the field or on Next.
+ * One question at a time. Answers save the moment they are given — no Save button.
+ *
+ * The run closes itself: "come back to this" defers a question rather than dropping it, and
+ * reaching the end with anything still open takes you straight to it instead of reporting a
+ * shortfall and leaving you to hunt. The interview only finishes when nothing is open, and it
+ * finishes by handing over to the next step of the journey rather than stopping.
  */
-export function Interview({ steps, initial }: { steps: Step[]; initial: Record<string, string> }) {
-  const firstUnanswered = useMemo(() => {
-    const i = steps.findIndex(s => !initial[`${s.sectionId}:${s.questionId}`]);
-    return i === -1 ? steps.length : i;
+export function Interview({ steps, initial, nextStep = null }: { steps: Step[]; initial: Record<string, string>; nextStep?: NextStep }) {
+  const firstOpen = useMemo(() => {
+    const idx = steps.findIndex(s => !initial[keyOf(s)]);
+    return idx === -1 ? steps.length : idx;
   }, [steps, initial]);
 
   const [answers, setAnswers] = useState<Record<string, string>>(initial);
-  const [i, setI] = useState(firstUnanswered);
+  const [i, setI] = useState(firstOpen);
   const [saving, startSaving] = useTransition();
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
   const done = i >= steps.length;
   const step = done ? null : steps[i];
-  const key = step ? `${step.sectionId}:${step.questionId}` : '';
+  const key = step ? keyOf(step) : '';
   const value = step ? answers[key] ?? '' : '';
-  const answeredCount = steps.filter(s => answers[`${s.sectionId}:${s.questionId}`]).length;
+  const answeredCount = steps.filter(s => answers[keyOf(s)]).length;
   const progress = Math.round((answeredCount / steps.length) * 100);
+  const openCount = steps.length - answeredCount;
+
+  /**
+   * Walk forward one. At the end, loop back to whatever is still open so a deferred question is
+   * always returned to — the run cannot finish with holes in it.
+   */
+  function advance(current: Record<string, string>) {
+    const n = i + 1;
+    if (n < steps.length) { setI(n); return; }
+    const gap = steps.findIndex(s => !current[keyOf(s)]);
+    setI(gap === -1 ? steps.length : gap);
+  }
 
   function persist(k: string, sectionId: string, questionId: string, v: string) {
-    setAnswers(a => ({ ...a, [k]: v }));
+    const updated = { ...answers, [k]: v };
+    setAnswers(updated);
     startSaving(async () => {
       await saveAnswer(sectionId, questionId, v);
       setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     });
+    return updated;
   }
 
   function answerAndAdvance(v: string) {
     if (!step) return;
-    persist(key, step.sectionId, step.questionId, v);
-    setI(n => n + 1);
+    advance(persist(key, step.sectionId, step.questionId, v));
   }
 
   function next() {
-    if (step) persist(key, step.sectionId, step.questionId, value);
-    setI(n => Math.min(n + 1, steps.length));
+    if (!step) return;
+    advance(persist(key, step.sectionId, step.questionId, value));
   }
 
   if (done) {
     return (
       <div className="mx-auto max-w-2xl">
-        <div className="rounded-lg border border-ink/10 bg-white p-8 text-center">
-          <div className="label-caps">Diagnostic complete</div>
-          <h2 className="mt-2 font-serif text-2xl font-bold text-ink">{answeredCount} of {steps.length} answered</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-ink-light">
-            Everything is saved. These answers drive the org chart, the KPIs and the first board pack.
+        <div className="rounded-lg border border-ink/10 bg-white p-8">
+          <div className="label-caps text-center">Diagnostic complete</div>
+          <h2 className="mt-2 text-center font-serif text-2xl font-bold text-ink">
+            All {steps.length} questions answered
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-center text-sm text-ink-light">
+            Saved as you went. These answers tune every KPI proposed from here on.
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link href="/journey" className="btn-primary">Back to the journey</Link>
-            <button onClick={() => setI(0)} className="btn-secondary">Review answers</button>
+
+          {nextStep ? (
+            <div className="callout mt-6 text-left">
+              <div className="label-caps">What happens next</div>
+              <div className="mt-1 text-lg font-medium">{nextStep.title}</div>
+              <p className="mt-1 text-sm text-ink-light">{nextStep.why}</p>
+              <Link href={nextStep.href} className="btn-primary mt-3 inline-block">Start {nextStep.title.toLowerCase()}</Link>
+            </div>
+          ) : (
+            <div className="callout mt-6 text-left">
+              <div className="label-caps">What happens next</div>
+              <p className="mt-1 text-sm text-ink-light">
+                Every setup step is done. From here the rhythm carries it: weekly SOG meeting, monthly scoring,
+                monthly board output.
+              </p>
+              <Link href="/journey" className="btn-primary mt-3 inline-block">Back to the journey</Link>
+            </div>
+          )}
+
+          <div className="mt-4 text-center">
+            <button onClick={() => setI(0)} className="text-sm text-ink-light underline hover:text-rust">Review my answers</button>
           </div>
         </div>
       </div>
@@ -81,7 +121,7 @@ export function Interview({ steps, initial }: { steps: Step[]; initial: Record<s
   return (
     <div className="mx-auto max-w-2xl">
       <div className="flex items-center justify-between text-xs text-ink-light">
-        <span>Question {i + 1} of {steps.length}</span>
+        <span>Question {i + 1} of {steps.length}{openCount > 0 && openCount < steps.length && <span className="text-ink-light/60"> · {openCount} left</span>}</span>
         <span aria-live="polite" className="text-ink-light/70">
           {saving ? 'Saving…' : savedAt ? `Saved ${savedAt}` : 'Answers save automatically'}
         </span>
@@ -118,7 +158,7 @@ export function Interview({ steps, initial }: { steps: Step[]; initial: Record<s
           ) : step!.kind === 'agreement' ? (
             <div className="flex flex-wrap gap-3">
               <button onClick={() => answerAndAdvance('accepted')} className="btn-primary">Accept on behalf of the business</button>
-              <button onClick={() => setI(n => n + 1)} className="btn-secondary">Not yet</button>
+              <button onClick={() => answerAndAdvance('not yet')} className="btn-secondary">Not yet</button>
             </div>
           ) : (
             <div className="grid gap-2">
@@ -150,7 +190,8 @@ export function Interview({ steps, initial }: { steps: Step[]; initial: Record<s
             ← Back
           </button>
           <div className="flex items-center gap-4">
-            <button onClick={() => setI(n => n + 1)} className="text-sm text-ink-light/70 hover:text-rust">Skip</button>
+            {/* Defers rather than drops: the run loops back to anything left open before it ends. */}
+            <button onClick={() => advance(answers)} className="text-sm text-ink-light/70 hover:text-rust">Come back to this</button>
             <button onClick={next} className="btn-primary">Next</button>
           </div>
         </div>
