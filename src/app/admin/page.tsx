@@ -52,25 +52,25 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <div className="min-h-screen">
-      <header className="border-b bg-white">
+      <header className="border-b border-ink/10 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <span className="font-semibold tracking-tight">SPEC — Admin</span>
-          <span className="text-sm text-slate-500">{user.email}</span>
+          <span className="font-serif text-lg font-bold tracking-tight text-ink">SPEC<span className="text-rust">.</span> <span className="label-caps align-middle">Admin</span></span>
+          <span className="text-sm text-ink-light">{user.email}</span>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">
-        <h1 className="text-2xl font-semibold">Admin</h1>
-        <p className="mt-1 text-sm text-slate-500">{tenants.length} businesses · {rows.filter(r => r.tenant.plan === 'basic' || r.tenant.plan === 'program').length} paying · {rows.filter(r => r.stuck).length} stuck 7+ days</p>
+        <h1 className="font-serif text-2xl font-bold text-ink">Admin</h1>
+        <p className="mt-1 text-sm text-ink-light">{tenants.length} businesses · {rows.filter(r => r.tenant.plan === 'basic' || r.tenant.plan === 'program').length} paying · {rows.filter(r => r.stuck).length} stuck 7+ days</p>
         {sp.signin_error && <p className="mt-4 rounded bg-red-50 p-3 text-sm text-red-900">Couldn't generate a sign-in link — check SUPABASE_SERVICE_ROLE_KEY is set.</p>}
 
         {programRequests.length > 0 && (
           <section className="mt-6">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Program requests — call within 48h</h2>
+            <h2 className="label-caps">Program requests — call within 48h</h2>
             <ul className="mt-2 divide-y rounded-lg border bg-white text-sm">
               {programRequests.map(r => (
                 <li key={r.tenant.id} className="flex items-center justify-between p-3">
-                  <span><b>{r.tenant.name}</b> {r.gm && <span className="text-slate-500">· {r.gm.holder?.name} · {r.gm.holder?.email}</span>}</span>
-                  <span className="text-slate-500">requested {r.tenant.programRequestedAt?.slice(0, 10)}</span>
+                  <span><b>{r.tenant.name}</b> {r.gm && <span className="text-ink-light">· {r.gm.holder?.name} · {r.gm.holder?.email}</span>}</span>
+                  <span className="text-ink-light">requested {r.tenant.programRequestedAt?.slice(0, 10)}</span>
                 </li>
               ))}
             </ul>
@@ -79,7 +79,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
 
         {rows.some(r => r.stuck) && (
           <section className="mt-6">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Stuck 7+ days — one email each, template below</h2>
+            <h2 className="label-caps">Stuck 7+ days — one email each, template below</h2>
             <ul className="mt-2 space-y-3">
               {rows.filter(r => r.stuck).map(r => {
                 const name = r.gm?.holder?.name ?? 'there';
@@ -90,9 +90,9 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                   <li key={r.tenant.id} className="rounded-lg border bg-white p-4 text-sm">
                     <div className="flex items-baseline justify-between">
                       <div><b>{r.tenant.name}</b> — stuck on "{r.next!.title}" · {r.stuckDays} days since last activity</div>
-                      {mailto ? <a href={mailto} className="rounded bg-slate-900 px-3 py-1 text-xs text-white hover:bg-slate-700">Open email</a> : <span className="text-xs text-slate-400">no GM email on file</span>}
+                      {mailto ? <a href={mailto} className="rounded bg-rust px-3 py-1 text-xs text-white hover:bg-rust-dark">Open email</a> : <span className="text-xs text-ink-light/60">no GM email on file</span>}
                     </div>
-                    <pre className="mt-2 whitespace-pre-wrap rounded bg-slate-50 p-3 text-xs text-slate-600">{tpl.subject}{'\n\n'}{tpl.body}</pre>
+                    <pre className="mt-2 whitespace-pre-wrap rounded bg-cream/40 p-3 text-xs text-ink-light">{tpl.subject}{'\n\n'}{tpl.body}</pre>
                   </li>
                 );
               })}
@@ -101,10 +101,10 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         )}
 
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">All businesses</h2>
+          <h2 className="label-caps">All businesses</h2>
           <div className="mt-2 overflow-x-auto rounded-lg border bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-slate-100 text-left text-xs uppercase text-slate-500">
+              <thead className="bg-cream text-left text-xs uppercase text-ink-light">
                 <tr><th className="p-3">Business</th><th className="p-3">Plan</th><th className="p-3">Journey</th><th className="p-3">Last activity</th><th className="p-3">GM</th><th className="p-3"></th></tr>
               </thead>
               <tbody>
@@ -112,13 +112,13 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                   <tr key={r.tenant.id} className="border-t align-top">
                     <td className="p-3 font-medium">{r.tenant.name}</td>
                     <td className="p-3">{PLAN_LABEL[r.tenant.plan] ?? r.tenant.plan}</td>
-                    <td className="p-3">{r.done} of {r.total}{r.next && <div className="text-xs text-slate-500">next: {r.next.title}</div>}</td>
-                    <td className="p-3">{r.lastActivity.slice(0, 10)} <span className="text-xs text-slate-400">({r.stuckDays}d ago)</span></td>
-                    <td className="p-3">{r.gm?.holder ? <>{r.gm.holder.name}<div className="text-xs text-slate-500">{r.gm.holder.email}</div></> : <span className="text-slate-400">vacant</span>}</td>
+                    <td className="p-3">{r.done} of {r.total}{r.next && <div className="text-xs text-ink-light">next: {r.next.title}</div>}</td>
+                    <td className="p-3">{r.lastActivity.slice(0, 10)} <span className="text-xs text-ink-light/60">({r.stuckDays}d ago)</span></td>
+                    <td className="p-3">{r.gm?.holder ? <>{r.gm.holder.name}<div className="text-xs text-ink-light">{r.gm.holder.email}</div></> : <span className="text-ink-light/60">vacant</span>}</td>
                     <td className="p-3">
                       {r.gm?.holder && (
                         <form action={signInAs}><input type="hidden" name="email" value={r.gm.holder.email} />
-                          <button className="rounded border px-2 py-1 text-xs hover:bg-slate-100">Sign in as</button></form>
+                          <button className="rounded border px-2 py-1 text-xs hover:bg-cream">Sign in as</button></form>
                       )}
                     </td>
                   </tr>
@@ -127,7 +127,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             </table>
           </div>
         </section>
-        <p className="mt-6 text-xs text-slate-500"><Link href="/journey" className="underline">Back to the app</Link></p>
+        <p className="mt-6 text-xs text-ink-light"><Link href="/journey" className="underline">Back to the app</Link></p>
         <Footer />
       </main>
     </div>

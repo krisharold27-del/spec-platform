@@ -21,12 +21,12 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
       {bo ? (
         <>
           <div
-            className="rounded-lg border bg-white p-6 text-sm leading-6 [&_h1]:mt-0 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-6 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:first:mt-0 [&_p]:mt-3 [&_p]:first:mt-0 [&_strong]:font-semibold [&_em]:text-slate-500 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-1"
+            className="rounded-lg border border-ink/10 bg-white p-6 text-sm leading-6 [&_h1]:mt-0 [&_h1]:font-serif [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-ink [&_h2]:mt-6 [&_h2]:font-serif [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-ink [&_h2]:first:mt-0 [&_p]:mt-3 [&_p]:first:mt-0 [&_strong]:font-semibold [&_strong]:text-ink [&_em]:text-ink-light [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-1"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(bo.markdown) }}
           />
           {!bo.approvedBy && user.access === 'full' && (
             <form action={approveBoardOutput} className="mt-4"><input type="hidden" name="periodId" value={periodId} />
-              <button className="rounded-lg bg-slate-900 px-5 py-2 text-white hover:bg-slate-700">Approve for the board</button></form>
+              <button className="rounded-lg bg-rust px-5 py-2 text-white hover:bg-rust-dark">Approve for the board</button></form>
           )}
         </>
       ) : <p>Lock the period from the executive summary to generate it.</p>}

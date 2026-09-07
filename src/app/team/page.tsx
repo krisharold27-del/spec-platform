@@ -14,8 +14,8 @@ export default async function TeamRollup() {
     return (
       <Shell title="Team rollup" subtitle="No period open yet">
         <div className="rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
-          <p className="text-slate-600">Nothing to roll up yet — this needs a period open, which starts with SPEC Basic.</p>
-          <Link href="/journey" className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700">Back to the journey</Link>
+          <p className="text-ink-light">Nothing to roll up yet — this needs a period open, which starts with SPEC Basic.</p>
+          <Link href="/journey" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Back to the journey</Link>
         </div>
       </Shell>
     );
@@ -27,15 +27,15 @@ export default async function TeamRollup() {
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {PILLARS.map(p => <PillarTile key={p} pillar={p} score={rollup.team.pillars[p]} scored={scoredRoles.length > 0} sub="Target 90%" />)}
       </section>
-      <h2 className="mt-10 text-lg font-medium">By role</h2>
+      <h2 className="mt-10 font-serif text-lg font-bold text-ink">By role</h2>
       <div className="mt-3 grid gap-4 md:grid-cols-2">
         {rollup.roles.map(({ role, rows, score }) => {
           const scored = rows.some(r => r.answer !== '');
           return (
-            <Link key={role.id} href={`/scorecard/${role.id}`} className="rounded-lg border bg-white p-4 hover:border-slate-400">
+            <Link key={role.id} href={`/scorecard/${role.id}`} className="rounded-lg border bg-white p-4 hover:border-rust/40">
               <div className="flex items-baseline justify-between">
                 <div className="font-medium">{role.title}</div>
-                <div className="text-sm text-slate-500">{role.holder?.name ?? 'vacant'}</div>
+                <div className="text-sm text-ink-light">{role.holder?.name ?? 'vacant'}</div>
               </div>
               <div className="mt-3 grid grid-cols-4 gap-2 text-center text-sm">
                 {PILLARS.map(p => (

@@ -23,8 +23,8 @@ export default async function Expectations() {
         {sections.map(s => (
           <form key={s.id} id={s.id} action={saveSection} className="rounded-lg border bg-white p-5">
             <input type="hidden" name="sectionId" value={s.id} />
-            <h2 className="text-lg font-medium">{s.title}</h2>
-            {s.intro && <p className="mt-1 text-sm text-slate-600">{s.intro}</p>}
+            <h2 className="font-serif text-lg font-bold text-ink">{s.title}</h2>
+            {s.intro && <p className="mt-1 text-sm text-ink-light">{s.intro}</p>}
 
             {s.questions?.map(q => (
               <label key={q.id} className="mt-4 block text-sm">
@@ -46,20 +46,20 @@ export default async function Expectations() {
 
             {s.type === 'agreement' && (
               <div className="mt-3 text-sm">
-                <p className="rounded bg-slate-50 p-3 text-slate-700">{s.text}</p>
+                <p className="rounded bg-cream/40 p-3 text-slate-700">{s.text}</p>
                 <label className="mt-3 flex items-start gap-2"><input type="checkbox" name={`q:${s.id}:accepted`} value="accepted" defaultChecked={!!get(s.id, 'accepted')} className="mt-1" /> I accept this covenant on behalf of the business.</label>
               </div>
             )}
 
             {s.patterns && (
               <ul className="mt-3 space-y-2 text-sm">
-                {s.patterns.map(p => <li key={p.name} className="rounded bg-slate-50 p-3"><b>{p.name}.</b> {p.sign} <span className="text-slate-600">Fix: {p.fix}</span></li>)}
+                {s.patterns.map(p => <li key={p.name} className="rounded bg-cream/40 p-3"><b>{p.name}.</b> {p.sign} <span className="text-ink-light">Fix: {p.fix}</span></li>)}
               </ul>
             )}
 
-            {s.type === 'systems_inventory' && <p className="mt-3 text-sm text-slate-500">Systems inventory arrives with the integrations phase; skip for now.</p>}
+            {s.type === 'systems_inventory' && <p className="mt-3 text-sm text-ink-light">Systems inventory arrives with the integrations phase; skip for now.</p>}
 
-            {(s.questions || s.type === 'rating' || s.type === 'agreement') && <button className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700">Save</button>}
+            {(s.questions || s.type === 'rating' || s.type === 'agreement') && <button className="mt-4 rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Save</button>}
           </form>
         ))}
       </div>

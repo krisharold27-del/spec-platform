@@ -16,8 +16,8 @@ export default async function ExecutiveSummary() {
       <Shell title={`${tenant.name} — Executive summary`} subtitle="No period open yet">
         <div className="rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
           <div className="font-medium">Nothing to show yet</div>
-          <p className="mt-1 text-slate-600">Registering Claude, building the org chart and setting KPIs are free. Scoring a month and this executive summary need a period open — that starts with SPEC Basic.</p>
-          <Link href="/journey" className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700">Back to the journey</Link>
+          <p className="mt-1 text-ink-light">Registering Claude, building the org chart and setting KPIs are free. Scoring a month and this executive summary need a period open — that starts with SPEC Basic.</p>
+          <Link href="/journey" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Back to the journey</Link>
         </div>
       </Shell>
     );
@@ -40,16 +40,16 @@ export default async function ExecutiveSummary() {
         ))}
       </section>
 
-      <h2 className="mt-10 text-lg font-medium">Hard gates</h2>
-      <p className="text-sm text-slate-500">Pass or fail, reported separately from scores. No partial credit.</p>
+      <h2 className="mt-10 font-serif text-lg font-bold text-ink">Hard gates</h2>
+      <p className="text-sm text-ink-light">Pass or fail, reported separately from scores. No partial credit.</p>
       <section className="mt-3 grid gap-4 md:grid-cols-2">
         <GateBadge label="Zero Harm" pass={g.zeroHarm ? g.zeroHarm.pass : null} value={g.zeroHarm ? `LTI / MTI / psychosocial: ${g.zeroHarm.value}` : undefined} reason={g.zeroHarm?.reason} />
         <GateBadge label="Clear to Work" pass={g.clearToWork ? g.clearToWork.pass : null} value={g.clearToWork ? `Training compliance ${pct(Number(g.clearToWork.value))} (must be 100%)` : undefined} reason={g.clearToWork?.reason} />
       </section>
 
-      <h2 className="mt-10 text-lg font-medium">Roles this period</h2>
+      <h2 className="mt-10 font-serif text-lg font-bold text-ink">Roles this period</h2>
       <table className="mt-3 w-full overflow-hidden rounded-lg border bg-white text-sm">
-        <thead className="bg-slate-100 text-left text-xs uppercase text-slate-500">
+        <thead className="bg-cream text-left text-xs uppercase text-ink-light">
           <tr><th className="p-3">Role</th><th className="p-3">Holder</th>{PILLARS.map(p => <th key={p} className="p-3">{PILLAR_META[p].name}</th>)}<th className="p-3">Overall</th></tr>
         </thead>
         <tbody>
@@ -57,8 +57,8 @@ export default async function ExecutiveSummary() {
             const scored = rows.some(r => r.answer !== '');
             return (
               <tr key={role.id} className="border-t">
-                <td className="p-3"><Link className="text-blue-700 hover:underline" href={`/scorecard/${role.id}`}>{role.title}</Link></td>
-                <td className="p-3 text-slate-600">{role.holder?.name ?? <span className="italic text-slate-400">vacant</span>}</td>
+                <td className="p-3"><Link className="text-rust hover:underline" href={`/scorecard/${role.id}`}>{role.title}</Link></td>
+                <td className="p-3 text-ink-light">{role.holder?.name ?? <span className="italic text-ink-light/60">vacant</span>}</td>
                 {PILLARS.map(p => <td key={p} className="p-3">{scored ? pct(score.pillars[p]) : '—'}</td>)}
                 <td className="p-3 font-medium">{scored ? pct(score.overall) : 'not scored'}</td>
               </tr>
@@ -66,7 +66,7 @@ export default async function ExecutiveSummary() {
           })}
         </tbody>
       </table>
-      <p className="mt-4 text-xs text-slate-500">The business is SPEC when all four pillars hold at 90%+ for two consecutive months.</p>
+      <p className="mt-4 text-xs text-ink-light">The business is SPEC when all four pillars hold at 90%+ for two consecutive months.</p>
 
       {user.access === 'full' && period.status === 'open' && (
         <section className="mt-10 grid gap-6 md:grid-cols-2">
@@ -81,13 +81,13 @@ export default async function ExecutiveSummary() {
             <label className="mt-3 block">Training compliance %<input name="training" type="number" min={0} max={100} defaultValue={g.clearToWork ? Math.round(Number(g.clearToWork.value) * 100) : 0} className="mt-1 w-full rounded border px-2 py-1" /></label>
             <input name="zhReason" placeholder="Zero Harm note" className="mt-2 w-full rounded border px-2 py-1" />
             <input name="ctwReason" placeholder="Clear to Work note (what's expired, who fixes it, by when)" className="mt-2 w-full rounded border px-2 py-1" />
-            <button className="mt-3 rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-700">Save gates</button>
+            <button className="mt-3 rounded-lg bg-rust px-4 py-2 text-white hover:bg-rust-dark">Save gates</button>
           </form>
           <form action={lockPeriod} className="rounded-lg border bg-white p-4 text-sm">
             <input type="hidden" name="periodId" value={period.id} />
             <div className="font-medium">Close the month</div>
-            <p className="mt-1 text-slate-600">Locks {period.period} (no further edits), generates the board output from the data, and opens the next month. {rollup.scoredCount < rollup.roleCount ? `${rollup.roleCount - rollup.scoredCount} role(s) are still unscored — the output will say so.` : 'Every role is scored.'}</p>
-            <button className="mt-3 rounded-lg border border-slate-900 px-4 py-2 hover:bg-slate-100">Lock {period.period} and generate board output</button>
+            <p className="mt-1 text-ink-light">Locks {period.period} (no further edits), generates the board output from the data, and opens the next month. {rollup.scoredCount < rollup.roleCount ? `${rollup.roleCount - rollup.scoredCount} role(s) are still unscored — the output will say so.` : 'Every role is scored.'}</p>
+            <button className="btn-secondary mt-3">Lock {period.period} and generate board output</button>
           </form>
         </section>
       )}
