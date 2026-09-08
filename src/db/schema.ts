@@ -100,7 +100,13 @@ export const assessments = pgTable('assessments', {
   periodId: text('period_id').notNull().references(() => periods.id),
   roleId: text('role_id').notNull().references(() => roles.id),
   criterionId: text('criterion_id').notNull().references(() => criteria.id),
+  // `answer` stays the scoring value (Y | N | NA | ''); `status` is the label the business
+  // actually uses and is what the person picks. See lib/status.ts for the mapping — Watch and
+  // Not met both score as N, Pending and Not tracked are excluded from scoring entirely.
   answer: text('answer').notNull().default(''), // Y | N | NA | ''
+  status: text('status'),   // confirmed | on_track | met | watch | not_met | pending | not_tracked
+  result: text('result'),   // the actual value, as reported: "$827,172 (94.0%)", "40.24%", "16 invoices"
+  source: text('source'),   // where the number came from: "Xero, plain actual", "Manual - GM confirmation"
   note: text('note'),
   enteredBy: text('entered_by'),
   enteredAt: text('entered_at').notNull(),

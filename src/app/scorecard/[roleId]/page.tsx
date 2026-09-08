@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById, getCurrentPeriod, getRoles, getScorecard, PILLARS } from '@/lib/queries';
 import { getScope } from '@/lib/scope';
+import { STATUSES, STATUS_ORDER, statusFromAnswer, type Status } from '@/lib/status';
 import { validateWeights } from '@/lib/scoring';
 import { saveScorecard } from './actions';
 
@@ -66,34 +67,74 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
               </div>
               <div className="text-sm font-medium text-ink-light">{scored ? pct(score.pillars[p]) : '—'}</div>
             </div>
-            <table className="w-full text-sm">
-              <tbody>
-                {rows.filter(r => r.pillar === p).map(r => (
-                  <tr key={r.criterionId} className="border-t align-top">
-                    <td className="w-14 p-3 text-ink-light">{pct(r.weight)}</td>
-                    <td className="p-3">
-                      <div>{r.text}{r.kpi && <span className="ml-2 rounded bg-cream px-1.5 text-xs">KPI</span>}</div>
-                      {r.target && <div className="text-xs text-ink-light">Target: {r.target}</div>}
-                    </td>
-                    <td className="w-40 p-3">
-                      {(['Y', 'N', 'NA'] as const).map(v => (
-                        <label key={v} className="mr-3 inline-flex items-center gap-1">
-                          <input type="radio" name={`answer:${r.criterionId}`} value={v} defaultChecked={r.answer === v} disabled={readonly} /> {v}
-                        </label>
-                      ))}
-                    </td>
-                    <td className="w-72 p-3">
-                      <input name={`note:${r.criterionId}`} defaultValue={r.note ?? ''} placeholder="Note — a solution, not commentary" disabled={readonly}
-                        className="w-full rounded border px-2 py-1 text-sm" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="divide-y divide-ink/10">
+              {rows.filter(r => r.pillar === p).map(r => {
+                const status = (r.status ?? statusFromAnswer(r.answer)) as Status | null;
+                const meta = status ? STATUSES[status] : null;
+                return (
+                  <div key={r.criterionId} className="p-4">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-ink">
+                          {r.text}
+                          {r.kpi && <span className="ml-2 rounded bg-cream px-1.5 text-xs font-normal">KPI</span>}
+                        </div>
+                        <div className="mt-0.5 text-xs text-ink-light">
+                          {r.target ? <>Target: <b className="font-medium">{r.target}</b></> : <span className="italic">No target set</span>}
+                          <span className="ml-2 text-ink-light/50">{pct(r.weight)} of pillar</span>
+                        </div>
+                      </div>
+                      {meta && (
+                        <span className={`pill ${meta.tone === 'good' ? 'pill-confirmed' : meta.tone === 'bad' ? 'pill-fail' : 'pill-neutral'}`}>
+                          {meta.label}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                      <label className="block text-xs">
+                        <span className="label-caps">Result</span>
+                        <input name={`result:${r.criterionId}`} defaultValue={r.result ?? ''} disabled={readonly}
+                          placeholder="e.g. $827,172 (94.0%)"
+                          className="mt-1 w-full rounded border border-ink/15 px-2 py-1.5 text-sm disabled:bg-ink/5" />
+                      </label>
+                      <label className="block text-xs">
+                        <span className="label-caps">Status</span>
+                        <select name={`status:${r.criterionId}`} defaultValue={status ?? ''} disabled={readonly}
+                          className="mt-1 w-full rounded border border-ink/15 px-2 py-1.5 text-sm disabled:bg-ink/5">
+                          <option value="">— not yet scored —</option>
+                          {STATUS_ORDER.map(k => <option key={k} value={k}>{STATUSES[k].label}</option>)}
+                        </select>
+                      </label>
+                      <label className="block text-xs">
+                        <span className="label-caps">Source</span>
+                        <input name={`source:${r.criterionId}`} defaultValue={r.source ?? ''} disabled={readonly}
+                          placeholder="Xero, Simpro, or how you confirmed it"
+                          className="mt-1 w-full rounded border border-ink/15 px-2 py-1.5 text-sm disabled:bg-ink/5" />
+                      </label>
+                    </div>
+
+                    <label className="mt-3 block text-xs">
+                      <span className="label-caps">Note</span>
+                      <textarea name={`note:${r.criterionId}`} defaultValue={r.note ?? ''} disabled={readonly} rows={2}
+                        placeholder="How it was measured, what changed, what happens next — the reasoning, not just the number."
+                        className="mt-1 w-full rounded border border-ink/15 px-2 py-1.5 text-sm disabled:bg-ink/5" />
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ))}
         {!readonly && <button className="mt-6 rounded-lg bg-rust px-5 py-2 text-white hover:bg-rust-dark">Save scorecard</button>}
         {readonly && <p className="mt-6 text-sm text-ink-light">{period.status === 'locked' ? 'This period is locked.' : 'Read-only view: your role sees its checklist; supervisors and above score.'}</p>}
+        {!readonly && (
+          <p className="mt-3 max-w-2xl text-xs text-ink-light/70">
+            <b className="text-ink-light">Not tracked</b> means no system produces this number yet — it is excluded from the
+            score rather than counted as a failure. <b className="text-ink-light">Watch</b> is close but under target, and
+            scores as not achieved.
+          </p>
+        )}
       </form>
     </Shell>
   );

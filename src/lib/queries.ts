@@ -36,6 +36,12 @@ export async function getRoles(tenantId: string): Promise<RoleView[]> {
 export interface ScorecardRow {
   criterionId: string; pillar: Pillar; text: string; weight: number; kpi: boolean; target: string | null;
   answer: Answer; note: string | null;
+  /** The label the business uses — see lib/status. `answer` remains the scoring value. */
+  status: string | null;
+  /** The actual value as reported: "$827,172 (94.0%)", "40.24%", "16 invoices over 90 days". */
+  result: string | null;
+  /** Where the number came from: a connected system, or a person. */
+  source: string | null;
 }
 
 export async function getScorecard(roleId: string, periodId: string): Promise<{ rows: ScorecardRow[]; score: RoleScore }> {
@@ -48,6 +54,9 @@ export async function getScorecard(roleId: string, periodId: string): Promise<{ 
   const rows: ScorecardRow[] = crit.map(c => ({
     criterionId: c.id, pillar: c.pillar as Pillar, text: c.text, weight: c.weight, kpi: c.kpi, target: c.target,
     answer: (byId.get(c.id)?.answer ?? '') as Answer, note: byId.get(c.id)?.note ?? null,
+    status: byId.get(c.id)?.status ?? null,
+    result: byId.get(c.id)?.result ?? null,
+    source: byId.get(c.id)?.source ?? null,
   }));
   const score = roleScore(
     crit.map(c => ({ id: c.id, pillar: c.pillar as Pillar, text: c.text, weight: c.weight })),

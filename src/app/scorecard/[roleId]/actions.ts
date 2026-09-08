@@ -7,6 +7,7 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
+import { answerFor } from '@/lib/status';
 
 /**
  * Save Y/N/NA answers and notes for one role in one period.
@@ -30,17 +31,21 @@ export async function saveScorecard(formData: FormData) {
 
   const now = new Date().toISOString();
   for (const [key, value] of formData.entries()) {
-    if (!key.startsWith('answer:')) continue;
-    const criterionId = key.slice('answer:'.length);
-    const answer = String(value);
+    if (!key.startsWith('status:')) continue;
+    const criterionId = key.slice('status:'.length);
+    const status = String(value) || null;
+    // The status is what the person chooses; the scoring value is derived from it, never typed.
+    const answer = answerFor(status);
     const note = String(formData.get(`note:${criterionId}`) ?? '') || null;
+    const result = String(formData.get(`result:${criterionId}`) ?? '').trim() || null;
+    const source = String(formData.get(`source:${criterionId}`) ?? '').trim() || null;
     const existingRows = await db.select().from(schema.assessments)
       .where(and(eq(schema.assessments.periodId, periodId), eq(schema.assessments.roleId, roleId), eq(schema.assessments.criterionId, criterionId)));
     const existing = existingRows[0];
     if (existing) {
-      await db.update(schema.assessments).set({ answer, note, enteredAt: now }).where(eq(schema.assessments.id, existing.id));
+      await db.update(schema.assessments).set({ answer, status, result, source, note, enteredBy: user.email, enteredAt: now }).where(eq(schema.assessments.id, existing.id));
     } else {
-      await db.insert(schema.assessments).values({ id: randomUUID(), periodId, roleId, criterionId, answer, note, enteredAt: now });
+      await db.insert(schema.assessments).values({ id: randomUUID(), periodId, roleId, criterionId, answer, status, result, source, note, enteredBy: user.email, enteredAt: now });
     }
   }
   revalidatePath('/'); revalidatePath('/team'); revalidatePath(`/scorecard/${roleId}`);
