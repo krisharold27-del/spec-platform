@@ -5,6 +5,7 @@
 import { eq, and, isNull } from 'drizzle-orm';
 import { db, schema } from '../db';
 import diagnostic from '../../seed/diagnostic.json';
+import { DOSES, doseQuestionKeys } from './doses';
 
 export type StepStatus = 'todo' | 'in_progress' | 'done' | 'blocked';
 
@@ -43,6 +44,21 @@ async function activeRoles(tenantId: string) {
 async function holder(roleId: string) {
   const rows = await db.select().from(schema.roleAssignments).where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
   return rows[0];
+}
+
+
+/**
+ * Progress through one dose of the diagnostic. Doses are checked by the same definition that builds
+ * them, so a step cannot report done while the interview still has questions in it.
+ */
+async function doseCheck(tenantId: string, doseId: string): Promise<{ status: StepStatus; detail: string }> {
+  const keys = doseQuestionKeys(DOSES[doseId], diagnostic.sections as never[]);
+  const rows = await db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, tenantId));
+  const done = keys.filter(([sec, q]) =>
+    rows.some(r => r.sectionId === sec && r.questionId === q && r.answer.trim())).length;
+  if (done === 0) return { status: 'todo', detail: `0 of ${keys.length} answered.` };
+  if (done < keys.length) return { status: 'in_progress', detail: `${done} of ${keys.length} answered.` };
+  return { status: 'done', detail: `${keys.length} answered.` };
 }
 
 export const STEPS: StepDef[] = [
@@ -107,6 +123,16 @@ export const STEPS: StepDef[] = [
     },
   },
   {
+    id: 'commercial', stage: 1, title: 'The cost and revenue base', href: '/setup/expectations?dose=commercial',
+    why: 'A gross profit target is only as good as the cost base underneath it. These questions are asked here, before the numbers are set, because a target built on costs nobody has captured is a number that will be missed and nobody will know why.',
+    check: async t => doseCheck(t, 'commercial'),
+  },
+  {
+    id: 'kpi_inputs', stage: 1, title: 'What you watch, and what clients think', href: '/setup/expectations?dose=kpis',
+    why: 'What the leader already looks at, and what clients already think, are the two most reliable sources of a KPI that means something. They are asked immediately before the KPIs so the answers can go straight into them.',
+    check: async t => doseCheck(t, 'kpis'),
+  },
+  {
     id: 'kpis', stage: 1, title: 'KPIs per role — two per pillar', href: '/setup/kpis',
     why: 'Two KPIs per pillar keeps every role simple enough to hold in your head. Targets are negotiated and recorded, not imposed — an agreed number beats a better one nobody owns.',
     check: async t => {
@@ -138,6 +164,11 @@ export const STEPS: StepDef[] = [
     },
   },
   {
+    id: 'strategy', stage: 2, title: 'Where the business is going', href: '/setup/expectations?dose=strategy',
+    why: 'The year 2 and year 3 ambition, and what stepping back would actually look like. Asked once the structure exists, because the answers are sharper when the leader can see the business laid out in front of them.',
+    check: async t => doseCheck(t, 'strategy'),
+  },
+  {
     id: 'cascade', stage: 2, title: 'Managers build their own teams', href: '/org',
     why: 'Each manager repeats roles → KPIs → people for their reports. They meet their own scorecard first, so they understand it scores the role, not them.',
     check: async t => {
@@ -150,6 +181,11 @@ export const STEPS: StepDef[] = [
       for (const r of subs) if (await holder(r.id)) filled++;
       return { status: filled === subs.length ? 'done' : 'in_progress', detail: `${filled} of ${subs.length} team roles filled · ${accepted} people signed in.` };
     },
+  },
+  {
+    id: 'rhythm', stage: 3, title: 'How we communicate', href: '/setup/expectations?dose=rhythm',
+    why: 'How often the board-style conversation happens, what belongs in it, and what never comes up. Asked while the rhythm is being set, since that is exactly what these answers decide.',
+    check: async t => doseCheck(t, 'rhythm'),
   },
   {
     id: 'covenant', stage: 3, title: "Agree how we'll work together", href: '/setup/expectations#covenant',
