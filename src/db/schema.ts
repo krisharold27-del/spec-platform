@@ -103,13 +103,37 @@ export const roles = pgTable('roles', {
   active: boolean('active').notNull().default(true),
 }, t => [index('roles_tenant').on(t.tenantId)]).enableRLS();
 
+/**
+ * The staff directory — names before they are accounts.
+ *
+ * A leader drafts the business by writing down who is where, and that has to cost nothing and send
+ * nothing. A staff row is just a name: no login, no email, no seat. It becomes a user only when the
+ * leader is confident enough in the structure to send an invite, which is also the moment it bills.
+ */
+export const staff = pgTable('staff', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  name: text('name').notNull(),
+  /** Set once invited. Until then this person has no account and costs nothing. */
+  userId: text('user_id').references(() => users.id),
+  createdAt: text('created_at').notNull(),
+}, t => [index('staff_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * Who holds a role, over time. Assignments are opened and closed, never deleted, so the chart can
+ * always answer "who held this role in March".
+ *
+ * Both userId and staffId are nullable because an assignment has two stages: pencilled in (staffId
+ * only — free, invisible to the person) and live (userId set once they are invited).
+ */
 export const roleAssignments = pgTable('role_assignments', {
   id: text('id').primaryKey(),
   roleId: text('role_id').notNull().references(() => roles.id),
-  userId: text('user_id').notNull().references(() => users.id),
+  userId: text('user_id').references(() => users.id),
+  staffId: text('staff_id').references(() => staff.id),
   fromDate: text('from_date').notNull(),
   toDate: text('to_date'),
-}, t => [index('ra_role').on(t.roleId), index('ra_user').on(t.userId)]).enableRLS();
+}, t => [index('ra_role').on(t.roleId), index('ra_user').on(t.userId), index('ra_staff').on(t.staffId)]).enableRLS();
 
 export const criteria = pgTable('criteria', {
   id: text('id').primaryKey(),

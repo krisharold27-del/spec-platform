@@ -174,17 +174,25 @@ export const STEPS: StepDef[] = [
     },
   },
   {
-    id: 'people', stage: 1, title: 'Assign people to roles', href: '/setup/people',
-    why: 'Access follows the role: supervisor and above score and write notes; staff see their own checklist. Putting a person in a role is the only way a person enters the system.',
+    id: 'people', stage: 1, title: 'Put people in the roles', href: '/setup/people',
     minutes: 5,
     payoff: 'Everyone can sign in and see their own scorecard. This is the point the business starts using it.',
+    why: 'Names go on the chart first, free and private to you. Sending the invite is a separate step, because that is when a colleague hears about it and when the seat starts being charged.',
     check: async t => {
       const roles = (await activeRoles(t)).filter(r => r.level !== 'staff');
-      let filled = 0;
-      for (const r of roles) if (await holder(r.id)) filled++;
-      if (!filled) return { status: 'todo', detail: 'Names against the roles you just drew.' };
-      if (filled < roles.length) return { status: 'in_progress', detail: `${filled} of ${roles.length} manager-level roles have a person.` };
-      return { status: 'done', detail: 'Every manager-level role has a person.' };
+      let placed = 0, invited = 0;
+      for (const r of roles) {
+        const a = await holder(r.id);
+        if (!a) continue;
+        placed++;
+        if (a.userId) invited++;
+      }
+      if (!roles.length) return { status: 'todo', detail: 'No roles yet.' };
+      if (!placed) return { status: 'todo', detail: 'Write the names in — nothing is sent and nothing is charged.' };
+      if (placed < roles.length) return { status: 'in_progress', detail: `${placed} of ${roles.length} roles have someone in them.` };
+      if (!invited) return { status: 'in_progress', detail: 'Everyone is pencilled in. Send the invites when you are happy with the chart.' };
+      if (invited < placed) return { status: 'in_progress', detail: `${invited} of ${placed} invited.` };
+      return { status: 'done', detail: 'Everyone is in and invited.' };
     },
   },
   {

@@ -24,14 +24,20 @@ const initials = (name: string) =>
 
 function Avatar({ role, size = 'md' }: { role: RoleView; size?: 'md' | 'sm' }) {
   const dim = size === 'md' ? 'h-9 w-9 text-xs' : 'h-7 w-7 text-[10px]';
-  if (!role.holder) {
+  const name = role.holder?.name ?? role.pencilled;
+  if (!name) {
     return <span className={`${dim} flex shrink-0 items-center justify-center rounded-full border border-dashed border-ink/25 font-semibold text-ink-light/40`}>—</span>;
   }
-  return <span className={`${dim} flex shrink-0 items-center justify-center rounded-full bg-ink/5 font-semibold text-ink-light`}>{initials(role.holder.name)}</span>;
+  // A pencilled-in name is shown, but softly — the business as drawn, not yet as running.
+  return <span className={`${dim} flex shrink-0 items-center justify-center rounded-full font-semibold ${role.holder ? 'bg-ink/5 text-ink-light' : 'border border-dashed border-ink/25 text-ink-light/60'}`}>{initials(name)}</span>;
 }
 
 function Holder({ role }: { role: RoleView }) {
-  if (!role.holder) return <span className="text-xs italic text-ink-light/60">Vacant — role defined, nobody assigned</span>;
+  if (!role.holder) {
+    return role.pencilled
+      ? <span className="text-xs text-ink-light/70">{role.pencilled} <span className="italic text-ink-light/50">· pencilled in</span></span>
+      : <span className="text-xs italic text-ink-light/60">Open — role defined, nobody in it yet</span>;
+  }
   return (
     <span className="text-xs text-ink-light">
       {role.holder.name}
@@ -54,7 +60,7 @@ function HeadCard({ role, open }: { role: RoleView; open: boolean }) {
       </span>
     </>
   );
-  const base = `flex items-center gap-3 rounded-lg border bg-white p-3 ${role.holder ? 'border-ink/10' : 'border-dashed border-ink/25'}`;
+  const base = `flex items-center gap-3 rounded-lg border bg-white p-3 ${role.holder || role.pencilled ? 'border-ink/10' : 'border-dashed border-ink/25'}`;
   if (!open) return <div className={`${base} opacity-70`} title="Scores outside your part of the org chart aren't visible to you">{inner}</div>;
   return <Link href={`/scorecard/${role.id}`} className={`${base} transition-colors hover:border-rust/40`}>{inner}</Link>;
 }
@@ -76,7 +82,7 @@ function Reports({ role, all, visible }: { role: RoleView; all: RoleView[]; visi
             </span>
           </>
         );
-        const base = `flex items-center gap-2.5 rounded-md border bg-white/80 px-3 py-2 ${r.holder ? 'border-ink/10' : 'border-dashed border-ink/20'}`;
+        const base = `flex items-center gap-2.5 rounded-md border bg-white/80 px-3 py-2 ${r.holder || r.pencilled ? 'border-ink/10' : 'border-dashed border-ink/20'}`;
         return (
           <li key={r.id} className="relative">
             <span className="absolute -left-4 top-4 h-px w-3 bg-ink/10" aria-hidden />
@@ -105,11 +111,11 @@ export default async function OrgChart() {
     const inStream = roles.filter(r => r.stream === s.key);
     const heads = inStream.filter(r => !inStream.some(o => o.id === r.reportsToRoleId));
     inStream.forEach(r => claimed.add(r.id));
-    return { ...s, heads, count: inStream.length, vacant: inStream.filter(r => !r.holder).length };
+    return { ...s, heads, count: inStream.length, vacant: inStream.filter(r => !r.holder && !r.pencilled).length };
   });
 
   const unplaced = roles.filter(r => !claimed.has(r.id));
-  const totalVacant = roles.filter(r => !r.holder).length;
+  const totalVacant = roles.filter(r => !r.holder && !r.pencilled).length;
 
   return (
     <Shell title={`${tenant.name} — org chart`} subtitle="The business by stream of work. A role can exist with nobody in it; a person cannot exist without a role.">
