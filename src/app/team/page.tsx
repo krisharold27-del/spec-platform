@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { Shell, PillarTile, PILLAR_META, pct } from '@/components/ui';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import { getTenantById, getCurrentPeriod, getTeamRollupForRoles, PILLARS } from '@/lib/queries';
+import { getTenantById, getTeamRollupForRoles, PILLARS } from '@/lib/queries';
+import { currentPeriod } from '@/lib/period';
 import { getScope, scoredRolesInScope } from '@/lib/scope';
 
 export const dynamic = 'force-dynamic';
@@ -10,13 +11,17 @@ export const dynamic = 'force-dynamic';
 export default async function TeamRollup() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
-  const period = await getCurrentPeriod(tenant.id);
+  const period = await currentPeriod(tenant.id);
   if (!period) {
     return (
-      <Shell title="My team" subtitle="No period open yet">
-        <div className="rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
-          <p className="text-ink-light">Nothing to roll up yet — this needs a period open, which starts with SPEC Basic.</p>
-          <Link href="/journey" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Back to the journey</Link>
+      <Shell title="My team" subtitle="Not scoring yet">
+        <div className="rounded-lg border-l-4 border-rust bg-white p-5 text-sm">
+          <div className="font-medium text-ink">Your dashboard opens as soon as a role has its KPIs</div>
+          <p className="mt-1 text-ink-light">
+            Every role needs two numbers per pillar — Safety, People, Earnings, Compliance. Set them for
+            one role and this page fills in. Building the business and setting the KPIs is free.
+          </p>
+          <Link href="/setup/kpis" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Set the KPIs</Link>
         </div>
       </Shell>
     );

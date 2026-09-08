@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { Shell, PillarTile, PILLAR_META, Badge, pct } from '@/components/ui';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import { getTenantById, getCurrentPeriod, getRoles, getScorecard, PILLARS } from '@/lib/queries';
+import { getTenantById, getRoles, getScorecard, PILLARS } from '@/lib/queries';
+import { currentPeriod } from '@/lib/period';
 import { getScope } from '@/lib/scope';
 import { STATUSES, STATUS_ORDER, statusFromAnswer, type Status } from '@/lib/status';
 import { validateWeights } from '@/lib/scoring';
@@ -14,7 +15,7 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
   const { roleId } = await params;
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
-  const period = await getCurrentPeriod(tenant.id);
+  const period = await currentPeriod(tenant.id);
   const role = (await getRoles(tenant.id)).find(r => r.id === roleId);
   if (!role) return <Shell title="Role not found"><p>No such role in this business.</p></Shell>;
 
@@ -32,10 +33,14 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
   }
   if (!period) {
     return (
-      <Shell title={`${role.title} — scorecard`} subtitle="No period open yet">
-        <div className="rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
-          <p className="text-ink-light">Nothing to score yet — this needs a period open, which starts with SPEC Basic.</p>
-          <Link href="/journey" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Back to the journey</Link>
+      <Shell title={`${role.title} — scorecard`} subtitle="Not scoring yet">
+        <div className="rounded-lg border-l-4 border-rust bg-white p-5 text-sm">
+          <div className="font-medium text-ink">Your dashboard opens as soon as a role has its KPIs</div>
+          <p className="mt-1 text-ink-light">
+            Every role needs two numbers per pillar — Safety, People, Earnings, Compliance. Set them for
+            one role and this page fills in. Building the business and setting the KPIs is free.
+          </p>
+          <Link href="/setup/kpis" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Set the KPIs</Link>
         </div>
       </Shell>
     );
