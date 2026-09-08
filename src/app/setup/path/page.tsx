@@ -37,7 +37,7 @@ export default async function ChoosePath() {
             <b>Free to build.</b> Draw your whole structure and set the KPIs at no cost — you only pay
             once you invite real people in.
           </div>
-          <a href="/setup/roles" className="btn-primary mt-4 text-center">Start building</a>
+          <a href="/setup/business" className="btn-primary mt-4 text-center">Start building</a>
         </div>
 
         <div className="flex flex-col rounded-lg border border-ink/10 bg-white p-6">

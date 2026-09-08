@@ -20,6 +20,15 @@ export interface StepDef {
   minutes: number;
   /** Optional steps never appear as work owed — they are offered where they pay off. */
   optional?: boolean;
+  /**
+   * Worth doing, but not between a new owner and their first working dashboard.
+   *
+   * These are the consultant's questions — why now, what the business does well, the cost base, the
+   * rhythm, the working agreement. Every one of them makes SPEC sharper, and every one of them asked
+   * on day one is a form standing where a business should be. They move behind the five steps that
+   * actually build something, and are offered once there is something to sharpen.
+   */
+  later?: boolean;
   href: string;
   /** Returns status plus a short "what's missing" line. */
   check: (tenantId: string) => Promise<{ status: StepStatus; detail: string }>;
@@ -70,6 +79,7 @@ async function doseCheck(tenantId: string, doseId: string): Promise<{ status: St
 export const STEPS: StepDef[] = [
   {
     id: 'systems', stage: 2, title: 'Connect the systems you already run', href: '/setup/systems',
+    later: true,
     optional: true, minutes: 10,
     why: 'Everything in SPEC works without this. Connecting the systems you already run — jobs, financials, safety, clients, payroll — is what stops the numbers being typed in by hand each month.',
     payoff: 'Your numbers arrive on their own instead of being re-typed each month.',
@@ -97,20 +107,21 @@ export const STEPS: StepDef[] = [
     },
   },
   {
-    id: 'roles', stage: 1, title: 'Org chart — roles first', href: '/setup/roles',
-    why: 'Roles are defined by what the business needs; people are assigned afterwards. Building the chart empty stops the role being bent around whoever happens to be there.',
+    id: 'roles', stage: 1, title: 'Draw the business and who runs it', href: '/setup/business',
     minutes: 10,
-    payoff: 'The business drawn on one page — what it needs, not who happens to be here.',
+    payoff: 'Your business on one page — what it needs, and who owns each part of it.',
+    why: 'Every scorecard, KPI and board figure hangs off this. Roles come first and people go into them, so the job is defined by what the business needs rather than bent around whoever happens to be there.',
     check: async t => {
       const roles = await activeRoles(t);
       const managers = roles.filter(r => r.level === 'manager');
       if (roles.length <= 1) return { status: 'todo', detail: 'Start with the three heads under you: Commercial, Operations, Growth.' };
-      if (managers.length < 3) return { status: 'in_progress', detail: `${managers.length} of 3 COGS heads (Commercial, Operations, Growth) defined.` };
+      if (managers.length < 3) return { status: 'in_progress', detail: `${managers.length} of 3 stream heads defined.` };
       return { status: 'done', detail: `${roles.length} roles defined.` };
     },
   },
   {
     id: 'question_zero', stage: 1, title: 'Question Zero — why now?', href: '/setup/expectations#question_zero',
+    later: true,
     why: 'If leadership cannot say what number or moment made this worth doing, that is itself information, and the rollout should slow down rather than push on.',
     minutes: 3,
     payoff: 'The reason you started this, written down, for the month you feel like stopping.',
@@ -123,6 +134,7 @@ export const STEPS: StepDef[] = [
   },
   {
     id: 'expectations', stage: 1, title: 'Business expectations', href: '/setup/expectations',
+    later: true,
     why: 'What the business does well, what it wants to do well, and what success looks like to the owner decide how SPEC gets applied here. Every KPI proposed later is tuned to these answers.',
     minutes: 8,
     payoff: 'Every KPI proposed from here on is tuned to your business instead of a template.',
@@ -140,6 +152,7 @@ export const STEPS: StepDef[] = [
   },
   {
     id: 'commercial', stage: 1, title: 'The cost and revenue base', href: '/setup/expectations?dose=commercial',
+    later: true,
     why: 'A gross profit target is only as good as the cost base underneath it. These questions are asked here, before the numbers are set, because a target built on costs nobody has captured is a number that will be missed and nobody will know why.',
     minutes: 15,
     payoff: 'A gross profit target with a real cost base under it, so a miss tells you where it went.',
@@ -147,6 +160,7 @@ export const STEPS: StepDef[] = [
   },
   {
     id: 'kpi_inputs', stage: 1, title: 'What you watch, and what clients think', href: '/setup/expectations?dose=kpis',
+    later: true,
     why: 'What the leader already looks at, and what clients already think, are the two most reliable sources of a KPI that means something. They are asked immediately before the KPIs so the answers can go straight into them.',
     minutes: 5,
     payoff: 'The numbers you already trust become the numbers the system watches.',
@@ -174,7 +188,7 @@ export const STEPS: StepDef[] = [
     },
   },
   {
-    id: 'people', stage: 1, title: 'Put people in the roles', href: '/setup/people',
+    id: 'people', stage: 1, title: 'Write in who does each job', href: '/setup/business',
     minutes: 5,
     payoff: 'Everyone can sign in and see their own scorecard. This is the point the business starts using it.',
     why: 'Names go on the chart first, free and private to you. Sending the invite is a separate step, because that is when a colleague hears about it and when the seat starts being charged.',
@@ -197,6 +211,7 @@ export const STEPS: StepDef[] = [
   },
   {
     id: 'strategy', stage: 2, title: 'Where the business is going', href: '/setup/expectations?dose=strategy',
+    later: true,
     why: 'The year 2 and year 3 ambition, and what stepping back would actually look like. Asked once the structure exists, because the answers are sharper when the leader can see the business laid out in front of them.',
     minutes: 8,
     payoff: 'A year 2 and year 3 that the org chart in front of you can actually reach.',
@@ -220,6 +235,7 @@ export const STEPS: StepDef[] = [
   },
   {
     id: 'rhythm', stage: 3, title: 'How we communicate', href: '/setup/expectations?dose=rhythm',
+    later: true,
     why: 'How often the board-style conversation happens, what belongs in it, and what never comes up. Asked while the rhythm is being set, since that is exactly what these answers decide.',
     minutes: 4,
     payoff: 'A standing conversation that handles the business, so problems stop arriving at your desk at random.',
@@ -227,6 +243,7 @@ export const STEPS: StepDef[] = [
   },
   {
     id: 'covenant', stage: 3, title: "Agree how we'll work together", href: '/setup/expectations#covenant',
+    later: true,
     why: "This names how the arrangement runs — the scorecard drives the board conversation, the GM runs the business, and if trust is ever in question it gets named directly. It sits here rather than on day one because agreeing to it means more once the system has produced something real.",
     minutes: 3,
     payoff: 'Everyone knows how this runs and what happens when something goes wrong.',
@@ -234,6 +251,7 @@ export const STEPS: StepDef[] = [
   },
   {
     id: 'board_setup', stage: 3, title: 'How your board runs', href: '/setup/board',
+    later: true,
     minutes: 4,
     payoff: 'Your board pack reports its own governance — who the directors are and whether the board is actually sitting.',
     why: 'The board is the fourth audience on the same data. Setting the cadence and recording the directors means governance is reported alongside the numbers every period, rather than being remembered once a year.',
@@ -312,14 +330,61 @@ export async function journeyFor(tenantId: string) {
   return out;
 }
 
-/** The one thing to do next. Optional steps are offered, never queued as work owed. */
+/** The one thing to do next. Only the five steps that build the business can be "next". */
 export async function nextStep(tenantId: string) {
   const steps = await journeyFor(tenantId);
-  return steps.find(s => !s.optional && s.status !== 'done');
+  return steps.find(s => isCore(s) && s.status !== 'done');
+}
+
+/** The spine: four questions, the business on a page, the dashboards, the people, the first month. */
+export function isCore(s: { optional?: boolean; later?: boolean }) {
+  return !s.optional && !s.later;
 }
 
 /** Minutes of required work left — the honest answer to "how much more of this is there?". */
-export function minutesLeft(steps: { status: StepStatus; minutes: number; optional?: boolean }[]) {
-  return steps.filter(s => !s.optional && s.status !== 'done')
+export function minutesLeft(steps: { status: StepStatus; minutes: number; optional?: boolean; later?: boolean }[]) {
+  return steps.filter(s => isCore(s) && s.status !== 'done')
     .reduce((n, s) => n + (s.status === 'in_progress' ? Math.ceil(s.minutes / 2) : s.minutes), 0);
+}
+
+/**
+ * What actually exists in this business, in the owner's own terms.
+ *
+ * A step counter cannot tell the truth: an empty business satisfies most checks trivially, so the
+ * journey once read "10 of 15 done" against a chart with one role in it. Counting what is really
+ * there can't overstate — three roles is three roles.
+ */
+export async function businessShape(tenantId: string) {
+  const roles = await activeRoles(tenantId);
+  const staff = await db.select().from(schema.staff).where(eq(schema.staff.tenantId, tenantId));
+  const assignments = await db.select().from(schema.roleAssignments);
+  const roleIds = new Set(roles.map(r => r.id));
+  const open = assignments.filter(a => roleIds.has(a.roleId) && !a.toDate);
+  const scorable = roles.filter(r => r.level !== 'staff');
+
+  let withKpis = 0;
+  for (const r of scorable) {
+    const crit = await db.select().from(schema.criteria).where(and(eq(schema.criteria.roleId, r.id), eq(schema.criteria.active, true)));
+    if (['safety', 'people', 'earnings', 'compliance'].every(p => crit.filter(c => c.pillar === p && c.kpi).length >= 2)) withKpis++;
+  }
+
+  return {
+    roles: roles.length,
+    filled: open.length,
+    people: staff.length,
+    invited: open.filter(a => a.userId).length,
+    rolesWithKpis: withKpis,
+    scorableRoles: scorable.length,
+  };
+}
+
+/** One honest sentence about where the business stands. Never a score, never a percentage. */
+export function shapeSentence(s: Awaited<ReturnType<typeof businessShape>>) {
+  if (s.roles <= 1) return 'Nothing is drawn yet — the business is one role, which is you.';
+  const parts = [`${s.roles} roles`];
+  parts.push(s.filled ? `${s.filled} with someone in them` : 'nobody in them yet');
+  if (s.rolesWithKpis) parts.push(`${s.rolesWithKpis} of ${s.scorableRoles} with KPIs set`);
+  else parts.push('no KPIs set yet');
+  if (s.invited) parts.push(`${s.invited} signed in`);
+  return parts.join(' · ');
 }

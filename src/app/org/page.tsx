@@ -194,7 +194,7 @@ export default async function OrgChart() {
       <p className="mt-6 text-xs text-ink-light/70">
         Everyone sees the whole structure; scorecards open only for your own role and the roles beneath it.
         Roles are defined by what the business needs, then people are assigned to them — the role is never reshaped to
-        fit the person. <Link href="/setup/roles" className="underline hover:text-rust">Edit roles</Link>
+        fit the person. <Link href="/setup/business" className="underline hover:text-rust">Edit the business</Link>
       </p>
     </Shell>
   );

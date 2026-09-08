@@ -30,18 +30,48 @@ async function chartFor(tenantId: string) {
   };
 }
 
-function done(paths = ['/setup/people', '/org', '/journey']) {
+function done(paths = ['/setup/business', '/org', '/journey']) {
   for (const p of paths) revalidatePath(p);
+}
+
+/**
+ * Write a name straight onto a role — the one action the org chart page needs.
+ *
+ * Adding to the directory and then placing from a dropdown is two steps for what is one thought:
+ * "Anthony runs operations." This does both, and reuses an existing directory entry when the name
+ * already exists so the same person in two roles still raises the move-or-merge question.
+ */
+export async function nameRole(formData: FormData) {
+  const user = await requireLeader();
+  const roleId = String(formData.get('roleId') ?? '');
+  const name = String(formData.get('name') ?? '').trim();
+  if (!roleId || !name) redirect('/setup/business');
+
+  const chart = await chartFor(user.tenantId);
+  if (!chart.roles.some(r => r.id === roleId)) redirect('/setup/business');
+
+  const existing = chart.staff.find(s => s.name.toLowerCase() === name.toLowerCase());
+  if (existing) {
+    const change = roleChangeFor(existing.id, roleId, chart.roles, chart.assignments, chart.staff);
+    if (change) redirect(`/setup/business?change=${existing.id}&to=${roleId}`);
+    await openAssignment(roleId, existing.id);
+  } else {
+    const staffId = randomUUID();
+    await db.insert(schema.staff).values({ id: staffId, tenantId: user.tenantId, name, userId: null, createdAt: now() });
+    await openAssignment(roleId, staffId);
+  }
+  done();
+  redirect('/setup/business');
 }
 
 /** Add a name to the directory. No email, no account, no charge — just a name on the chart. */
 export async function addStaff(formData: FormData) {
   const user = await requireLeader();
   const name = String(formData.get('name') ?? '').trim();
-  if (!name) redirect('/setup/people?error=name');
+  if (!name) redirect('/setup/business?error=name');
   await db.insert(schema.staff).values({ id: randomUUID(), tenantId: user.tenantId, name, userId: null, createdAt: now() });
   done();
-  redirect('/setup/people');
+  redirect('/setup/business');
 }
 
 /**
@@ -55,17 +85,17 @@ export async function placeStaff(formData: FormData) {
   const user = await requireLeader();
   const staffId = String(formData.get('staffId') ?? '');
   const roleId = String(formData.get('roleId') ?? '');
-  if (!staffId || !roleId) redirect('/setup/people');
+  if (!staffId || !roleId) redirect('/setup/business');
 
   const chart = await chartFor(user.tenantId);
-  if (!chart.staff.some(s => s.id === staffId) || !chart.roles.some(r => r.id === roleId)) redirect('/setup/people');
+  if (!chart.staff.some(s => s.id === staffId) || !chart.roles.some(r => r.id === roleId)) redirect('/setup/business');
 
   const change = roleChangeFor(staffId, roleId, chart.roles, chart.assignments, chart.staff);
-  if (change) redirect(`/setup/people?change=${staffId}&to=${roleId}`);
+  if (change) redirect(`/setup/business?change=${staffId}&to=${roleId}`);
 
   await openAssignment(roleId, staffId);
   done();
-  redirect('/setup/people');
+  redirect('/setup/business');
 }
 
 /** The leader's answer to the move-or-merge question. */
@@ -77,7 +107,7 @@ export async function resolveRoleChange(formData: FormData) {
   const decision = String(formData.get('decision') ?? '');
 
   const chart = await chartFor(user.tenantId);
-  if (!chart.staff.some(s => s.id === staffId)) redirect('/setup/people');
+  if (!chart.staff.some(s => s.id === staffId)) redirect('/setup/business');
 
   if (decision === 'move') {
     // The old role is vacated and goes back on the board as open, keeping its KPIs for whoever is next.
@@ -87,7 +117,7 @@ export async function resolveRoleChange(formData: FormData) {
   // On a merge the existing assignment is simply left open — they hold both.
   await openAssignment(toRoleId, staffId);
   done();
-  redirect('/setup/people');
+  redirect('/setup/business');
 }
 
 /** Close whoever is on this role and open a new assignment. History is kept, never overwritten. */
@@ -102,11 +132,11 @@ export async function unplaceStaff(formData: FormData) {
   const user = await requireLeader();
   const roleId = String(formData.get('roleId') ?? '');
   const chart = await chartFor(user.tenantId);
-  if (!chart.roles.some(r => r.id === roleId)) redirect('/setup/people');
+  if (!chart.roles.some(r => r.id === roleId)) redirect('/setup/business');
   await db.update(schema.roleAssignments).set({ toDate: now() })
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
   done();
-  redirect('/setup/people');
+  redirect('/setup/business');
 }
 
 /**
@@ -120,13 +150,13 @@ export async function invite(formData: FormData) {
   const user = await requireLeader();
   const staffId = String(formData.get('staffId') ?? '');
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
-  if (!staffId || !email) redirect('/setup/people?error=email');
+  if (!staffId || !email) redirect('/setup/business?error=email');
 
   const chart = await chartFor(user.tenantId);
   const person = chart.staff.find(s => s.id === staffId);
   const assignment = chart.assignments.find(a => !a.toDate && a.staffId === staffId);
-  if (!person || !assignment) redirect('/setup/people');
-  if (person.userId) redirect('/setup/people');   // already has an account; nothing to do
+  if (!person || !assignment) redirect('/setup/business');
+  if (person.userId) redirect('/setup/business');   // already has an account; nothing to do
 
   const role = chart.roles.find(r => r.id === assignment.roleId)!;
   const roleRow = (await db.select().from(schema.roles).where(eq(schema.roles.id, role.id)))[0]!;
@@ -156,6 +186,6 @@ export async function invite(formData: FormData) {
     await sendInviteEmail({ to: email, name: person.name, businessName: tenant.name, roleTitle: roleRow.title });
   }
 
-  done(['/setup/people', '/org', '/journey', '/team']);
-  redirect('/setup/people?invited=1');
+  done(['/setup/business', '/org', '/journey', '/team']);
+  redirect('/setup/business?invited=1');
 }

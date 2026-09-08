@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
-import { journeyFor, minutesLeft, STAGES, MILESTONES, type StepStatus } from '@/lib/journey';
+import { journeyFor, minutesLeft, isCore, businessShape, shapeSentence, STAGES, MILESTONES, type StepStatus } from '@/lib/journey';
 import { Shell } from '@/components/ui';
 import { planStateFor, costLabel, SEAT_PRICE_MONTHLY } from '@/lib/plan';
 import { momentumFor, onDate } from '@/lib/momentum';
@@ -50,19 +50,23 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
   const plan = await planStateFor(user.tenantId);
   const steps = await journeyFor(user.tenantId);
   const momentum = await momentumFor(user.tenantId);
-  const next = steps.find(s => !s.optional && s.status !== 'done');
-  const built = steps.filter(s => s.status === 'done' && !s.optional);
+  const next = steps.find(s => isCore(s) && s.status !== 'done');
+  const core = steps.filter(isCore);
+  const built = core.filter(s => s.status === 'done');
   const done = built.length;
-  const required = steps.filter(s => !s.optional);
+  const required = core;
   const left = minutesLeft(steps);
   const offers = steps.filter(s => s.optional && s.status !== 'done');
+  // Steps that sharpen SPEC but must never stand between an owner and their first dashboard.
+  const deepen = steps.filter(s => s.later && !s.optional && s.status !== 'done');
+  const shape = await businessShape(user.tenantId);
   const four = (await db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, user.tenantId))).filter(d => d.sectionId === 'four_questions');
   const hurting = four.filter(d => d.answer === 'yes').map(d => d.questionId);
 
 
 
   return (
-    <Shell title={tenant.name} subtitle={done === 0 ? `Setting up · ${costLabel(plan)}` : `${done} of ${required.length} done · ${costLabel(plan)}`}>
+    <Shell title={tenant.name} subtitle={`${shapeSentence(shape)} · ${costLabel(plan)}`}>
       {notice && (
         <div className={`mb-4 rounded-lg border-l-4 p-4 text-sm ${notice.tone === 'ok' ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : 'border-amber-400 bg-white text-ink'}`}>
           {notice.text}
@@ -155,6 +159,28 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
               <p className="text-sm text-ink-light">{o.why}</p>
             </div>
           ))}
+        </section>
+      )}
+
+      {/*
+        * The consultant's questions. They make SPEC sharper and they are worth doing — but asked on
+        * day one they are forms standing where a business should be, so they sit here, offered, once
+        * there is something to sharpen.
+        */}
+      {deepen.length > 0 && done > 0 && (
+        <section className="mt-6 rounded-lg border border-ink/10 bg-white p-5">
+          <div className="label-caps">When you want to go deeper</div>
+          <p className="mt-1 text-sm text-ink-light">
+            None of these are needed to run SPEC. Each one makes what it tells you sharper.
+          </p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {deepen.slice(0, 6).map(d => (
+              <li key={d.id} className="text-sm">
+                <Link href={d.href} className="font-medium hover:underline">{d.title}</Link>
+                <span className="text-ink-light"> · {mins(d.minutes)}</span>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
