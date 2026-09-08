@@ -41,7 +41,7 @@ async function main() {
     { id: randomUUID(), periodId, gate: 'clear_to_work', value: '0.86', pass: false, reason: 'Training compliance 86% — three licences expired.' },
   ]);
 
-  await db.insert(schema.claudeRegistrations).values({ tenantId, path: 'own_workspace', workspaceName: 'Acme Electrical', seatsConfirmed: true, confirmedBy: 'alex@acme.example', confirmedAt: new Date().toISOString() });
+  await db.insert(schema.systemConnections).values({ id: randomUUID(), tenantId, name: 'Job management system', category: 'job_management', ownerIsSelf: true, status: 'live', createdAt: new Date().toISOString() });
   console.log('Seeded demo tenant', tenantId, '— sign in as alex@acme.example');
 }
 main();

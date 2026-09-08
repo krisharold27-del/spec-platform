@@ -20,6 +20,7 @@ export const INCENTIVE_MAX: Record<string, number> = {
   manager: 2000,
   supervisor: 1000,
   staff: 500,
+  apprentice: 250,
 };
 
 export const DEDUCTION_PER_FAILED_SECTION = 0.05;

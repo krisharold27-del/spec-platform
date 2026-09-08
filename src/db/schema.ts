@@ -32,15 +32,32 @@ export const users = pgTable('users', {
   acceptedAt: text('accepted_at'),
 }, t => [uniqueIndex('users_tenant_email').on(t.tenantId, t.email), index('users_auth_user').on(t.authUserId)]).enableRLS();
 
-// Claude registration is a hard gate before the journey opens.
-export const claudeRegistrations = pgTable('claude_registrations', {
-  tenantId: text('tenant_id').primaryKey().references(() => tenants.id),
-  path: text('path').notNull(),            // own_workspace | needs_setup
-  workspaceName: text('workspace_name'),
-  seatsConfirmed: boolean('seats_confirmed').notNull().default(false),
-  confirmedBy: text('confirmed_by'),
-  confirmedAt: text('confirmed_at'),
-}).enableRLS();
+/**
+ * The systems a client already runs, so their KPIs can read real numbers instead of being typed in.
+ *
+ * Deliberately not a fixed vendor list: `name` is whatever the client typed — Simpro, MYOB, AroFlo,
+ * a spreadsheet on a shared drive — because every business runs a different stack. `category` is
+ * what the number is FOR, which is the part SPEC actually reasons about.
+ *
+ * `ownerEmail` matters because the person setting SPEC up is usually not the person who administers
+ * the accounting system. When they name someone else, that person is invited for this one job.
+ *
+ * A broken connection is never shown to the wider business: the KPI falls back to a manual
+ * met/not-met toggle and only the owner is told, quietly.
+ */
+export const systemConnections = pgTable('system_connections', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  name: text('name').notNull(),            // free text, exactly as the client named it
+  category: text('category').notNull(),    // job_management | financials | safety | crm | payroll | other
+  ownerName: text('owner_name'),
+  ownerEmail: text('owner_email'),
+  ownerIsSelf: boolean('owner_is_self').notNull().default(true),
+  status: text('status').notNull().default('requested'), // requested | invited | live | broken
+  lastSyncAt: text('last_sync_at'),
+  lastErrorAt: text('last_error_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('system_connections_tenant').on(t.tenantId)]).enableRLS();
 
 // The deployment journey, one row per step per tenant. See docs/SPEC_Deployment_Journey.md.
 export const journeySteps = pgTable('journey_steps', {

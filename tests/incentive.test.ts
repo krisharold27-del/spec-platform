@@ -55,3 +55,30 @@ describe('August 2026, against the real review pack', () => {
     expect(out.final).toBe(3000);
   });
 });
+
+/**
+ * The worked example from the 8 September build brief. The order of operations is the whole
+ * point: the leader's own score reduces the maximum first, and staff failures then come off that
+ * already-reduced figure — never off the original maximum. Taking 10% off $4,000 instead of off
+ * $3,000 overpays by $100 and quietly breaks the accountability mechanic.
+ */
+describe('brief worked example', () => {
+  it('deducts from the adjusted figure, not the maximum', () => {
+    const score = { overall: 0.75, pillars: { safety: 0.75, people: 0.75, earnings: 0.75, compliance: 0.75 } } as never;
+    const failing = { safety: { scored: 2, notMet: 2 }, people: { scored: 2, notMet: 0 }, earnings: { scored: 2, notMet: 0 }, compliance: { scored: 2, notMet: 0 } };
+    const r = incentiveFor('gm', score, [failing, failing]);
+    expect(r.base).toBe(3000);              // 75% of $4,000
+    expect(r.failedSectionCount).toBe(2);   // one section failed per report
+    expect(r.deductionRate).toBeCloseTo(0.10);
+    expect(r.final).toBe(2700);             // 10% off $3,000 — not off $4,000
+  });
+
+  it('caps the leadership deduction at 25%', () => {
+    const score = { overall: 1, pillars: { safety: 1, people: 1, earnings: 1, compliance: 1 } } as never;
+    const allFail = { safety: { scored: 1, notMet: 1 }, people: { scored: 1, notMet: 1 }, earnings: { scored: 1, notMet: 1 }, compliance: { scored: 1, notMet: 1 } };
+    const r = incentiveFor('gm', score, [allFail, allFail, allFail]);
+    expect(r.failedSectionCount).toBe(12);  // 3 reports x 4 quadrants
+    expect(r.deductionRate).toBe(0.25);     // capped, not 60%
+    expect(r.final).toBe(3000);
+  });
+});

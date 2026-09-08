@@ -29,6 +29,6 @@ export async function signUp(formData: FormData) {
       if (v) await db.insert(schema.diagnostics).values({ id: randomUUID(), tenantId, sectionId: 'four_questions', questionId: p, answer: String(v), answeredBy: email, answeredAt: new Date().toISOString() });
     }
   }
-  await sendMagicLink(email, '/setup/claude');
+  await sendMagicLink(email, '/setup/focus');
   redirect('/signin?sent=1');
 }

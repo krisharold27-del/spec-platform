@@ -28,7 +28,7 @@ export default async function Focus() {
   for (const r of rows) if (r.sectionId === 'pillar_drilldown' && r.answer) answered[`pillar_drilldown:${r.questionId}`] = r.answer;
 
   // Nothing hurts, or this was never asked — there is nothing to understand here.
-  if (hurting.length === 0) redirect('/setup/roles');
+  if (hurting.length === 0) redirect('/setup/path');
 
   const section = (diagnostic.sections as Section[]).find(s => s.id === 'pillar_drilldown')!;
   const steps: Step[] = (section.questions ?? [])
@@ -42,9 +42,10 @@ export default async function Focus() {
   const given = steps
     .map(s => ({ pillar: s.questionId, answer: answered[`pillar_drilldown:${s.questionId}`] ?? '' }))
     .filter(a => a.answer);
+  // The fork comes here, straight off the diagnostic — before hours have gone in, per the brief.
   const nextStep: NextStep = {
-    title: 'Org chart — roles first',
-    href: '/setup/roles',
+    title: 'Choose how you want to do this',
+    href: '/setup/path',
     why: readBack(given),
   };
 

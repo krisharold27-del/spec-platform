@@ -69,16 +69,16 @@ async function doseCheck(tenantId: string, doseId: string): Promise<{ status: St
 
 export const STEPS: StepDef[] = [
   {
-    id: 'claude_registration', stage: 2, title: 'Connect Claude and your systems', href: '/setup/claude',
+    id: 'systems', stage: 2, title: 'Connect the systems you already run', href: '/setup/systems',
     optional: true, minutes: 10,
-    why: 'Everything in SPEC works without this. Connecting Claude and the systems you already run — job management, financials, safety, CRM, payroll — is what stops you typing numbers in by hand and lets the scorecard update itself.',
+    why: 'Everything in SPEC works without this. Connecting the systems you already run — jobs, financials, safety, clients, payroll — is what stops the numbers being typed in by hand each month.',
     payoff: 'Your numbers arrive on their own instead of being re-typed each month.',
     check: async t => {
-      const rows = await db.select().from(schema.claudeRegistrations).where(eq(schema.claudeRegistrations.tenantId, t));
-      const r = rows[0];
-      if (!r) return { status: 'todo', detail: 'Not connected yet — everything below still works without it.' };
-      if (!r.seatsConfirmed) return { status: 'in_progress', detail: 'Seats for supervisor level and above not yet confirmed.' };
-      return { status: 'done', detail: r.workspaceName ? `Workspace: ${r.workspaceName}` : 'Confirmed' };
+      const rows = await db.select().from(schema.systemConnections).where(eq(schema.systemConnections.tenantId, t));
+      if (!rows.length) return { status: 'todo', detail: 'Nothing connected yet — everything else still works without it.' };
+      const live = rows.filter(r => r.status === 'live').length;
+      if (live === rows.length) return { status: 'done', detail: `${live} system${live === 1 ? '' : 's'} feeding numbers automatically.` };
+      return { status: 'in_progress', detail: `${rows.length} named, ${live} live.` };
     },
   },
   {
