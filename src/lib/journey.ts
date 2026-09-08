@@ -14,6 +14,12 @@ export interface StepDef {
   stage: 0 | 1 | 2 | 3 | 4;
   title: string;
   why: string;              // Claude's one-paragraph explanation of why the step exists
+  /** What the leader gets the moment this step is finished. Written as a result, not a task. */
+  payoff: string;
+  /** Honest minutes. A stressed person needs to know the size of the thing before they start it. */
+  minutes: number;
+  /** Optional steps never appear as work owed — they are offered where they pay off. */
+  optional?: boolean;
   href: string;
   /** Returns status plus a short "what's missing" line. */
   check: (tenantId: string) => Promise<{ status: StepStatus; detail: string }>;
@@ -56,19 +62,21 @@ async function doseCheck(tenantId: string, doseId: string): Promise<{ status: St
   const rows = await db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, tenantId));
   const done = keys.filter(([sec, q]) =>
     rows.some(r => r.sectionId === sec && r.questionId === q && r.answer.trim())).length;
-  if (done === 0) return { status: 'todo', detail: `0 of ${keys.length} answered.` };
-  if (done < keys.length) return { status: 'in_progress', detail: `${done} of ${keys.length} answered.` };
+  if (done === 0) return { status: 'todo', detail: `${keys.length} short questions.` };
+  if (done < keys.length) return { status: 'in_progress', detail: `${keys.length - done} left of ${keys.length}.` };
   return { status: 'done', detail: `${keys.length} answered.` };
 }
 
 export const STEPS: StepDef[] = [
   {
-    id: 'claude_registration', stage: 0, title: 'Register Claude', href: '/setup/claude',
-    why: 'SPEC is delivered through Claude. Registering it first is the first act of commitment, and it is what lets the rest of the journey run without a consultant in the room.',
+    id: 'claude_registration', stage: 2, title: 'Connect Claude and your systems', href: '/setup/claude',
+    optional: true, minutes: 10,
+    why: 'Everything in SPEC works without this. Connecting Claude and the systems you already run — job management, financials, safety, CRM, payroll — is what stops you typing numbers in by hand and lets the scorecard update itself.',
+    payoff: 'Your numbers arrive on their own instead of being re-typed each month.',
     check: async t => {
       const rows = await db.select().from(schema.claudeRegistrations).where(eq(schema.claudeRegistrations.tenantId, t));
       const r = rows[0];
-      if (!r) return { status: 'blocked', detail: 'Not registered. The journey stays closed until Claude is in place.' };
+      if (!r) return { status: 'todo', detail: 'Not connected yet — everything below still works without it.' };
       if (!r.seatsConfirmed) return { status: 'in_progress', detail: 'Seats for supervisor level and above not yet confirmed.' };
       return { status: 'done', detail: r.workspaceName ? `Workspace: ${r.workspaceName}` : 'Confirmed' };
     },
@@ -76,6 +84,8 @@ export const STEPS: StepDef[] = [
   {
     id: 'pillar_focus', stage: 1, title: "Understand what's driving it", href: '/setup/focus',
     why: "The four questions say where it hurts. This says why — one question for each pillar the business said yes to, so the cause is named before anything is built. It is the shortest step in the journey and the one that decides where the work starts.",
+    minutes: 2,
+    payoff: 'You can name the actual cause, in a sentence, instead of carrying a vague feeling that something is wrong.',
     check: async t => {
       const rows = await db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, t));
       const hurting = rows.filter(r => r.sectionId === 'four_questions' && r.answer === 'yes').map(r => r.questionId);
@@ -89,10 +99,12 @@ export const STEPS: StepDef[] = [
   {
     id: 'roles', stage: 1, title: 'Org chart — roles first', href: '/setup/roles',
     why: 'Roles are defined by what the business needs; people are assigned afterwards. Building the chart empty stops the role being bent around whoever happens to be there.',
+    minutes: 10,
+    payoff: 'The business drawn on one page — what it needs, not who happens to be here.',
     check: async t => {
       const roles = await activeRoles(t);
       const managers = roles.filter(r => r.level === 'manager');
-      if (roles.length <= 1) return { status: 'todo', detail: 'Only the top role exists. Add the roles the business needs.' };
+      if (roles.length <= 1) return { status: 'todo', detail: 'Start with the three heads under you: Commercial, Operations, Growth.' };
       if (managers.length < 3) return { status: 'in_progress', detail: `${managers.length} of 3 COGS heads (Commercial, Operations, Growth) defined.` };
       return { status: 'done', detail: `${roles.length} roles defined.` };
     },
@@ -100,16 +112,20 @@ export const STEPS: StepDef[] = [
   {
     id: 'question_zero', stage: 1, title: 'Question Zero — why now?', href: '/setup/expectations#question_zero',
     why: 'If leadership cannot say what number or moment made this worth doing, that is itself information, and the rollout should slow down rather than push on.',
+    minutes: 3,
+    payoff: 'The reason you started this, written down, for the month you feel like stopping.',
     check: async t => {
       const a = await answered(t, 'question_zero');
-      if (!a.length) return { status: 'todo', detail: 'Unanswered.' };
-      if (a[0].answer.trim().length < 40) return { status: 'in_progress', detail: 'Answer is thin. What was the specific number or moment?' };
+      if (!a.length) return { status: 'todo', detail: 'One question, in your own words.' };
+      if (a[0].answer.trim().length < 40) return { status: 'in_progress', detail: 'Started. Worth adding the specific number or moment — that is the part you will come back to.' };
       return { status: 'done', detail: a[0].answer.slice(0, 80) + (a[0].answer.length > 80 ? '…' : '') };
     },
   },
   {
     id: 'expectations', stage: 1, title: 'Business expectations', href: '/setup/expectations',
     why: 'What the business does well, what it wants to do well, and what success looks like to the owner decide how SPEC gets applied here. Every KPI proposed later is tuned to these answers.',
+    minutes: 8,
+    payoff: 'Every KPI proposed from here on is tuned to your business instead of a template.',
     check: async t => {
       const total = GATE_QUESTIONS.length;
       let done = 0;
@@ -117,24 +133,30 @@ export const STEPS: StepDef[] = [
         const rows = await answered(t, sectionId);
         if (rows.some(a => a.questionId === questionId && a.answer.trim())) done += 1;
       }
-      if (done === 0) return { status: 'todo', detail: `0 of ${total} questions answered.` };
-      if (done < total) return { status: 'in_progress', detail: `${done} of ${total} questions answered.` };
+      if (done === 0) return { status: 'todo', detail: `${total} short questions.` };
+      if (done < total) return { status: 'in_progress', detail: `${total - done} left of ${total}.` };
       return { status: 'done', detail: `${total} questions answered — the rest are asked as they're needed.` };
     },
   },
   {
     id: 'commercial', stage: 1, title: 'The cost and revenue base', href: '/setup/expectations?dose=commercial',
     why: 'A gross profit target is only as good as the cost base underneath it. These questions are asked here, before the numbers are set, because a target built on costs nobody has captured is a number that will be missed and nobody will know why.',
+    minutes: 15,
+    payoff: 'A gross profit target with a real cost base under it, so a miss tells you where it went.',
     check: async t => doseCheck(t, 'commercial'),
   },
   {
     id: 'kpi_inputs', stage: 1, title: 'What you watch, and what clients think', href: '/setup/expectations?dose=kpis',
     why: 'What the leader already looks at, and what clients already think, are the two most reliable sources of a KPI that means something. They are asked immediately before the KPIs so the answers can go straight into them.',
+    minutes: 5,
+    payoff: 'The numbers you already trust become the numbers the system watches.',
     check: async t => doseCheck(t, 'kpis'),
   },
   {
     id: 'kpis', stage: 1, title: 'KPIs per role — two per pillar', href: '/setup/kpis',
     why: 'Two KPIs per pillar keeps every role simple enough to hold in your head. Targets are negotiated and recorded, not imposed — an agreed number beats a better one nobody owns.',
+    minutes: 20,
+    payoff: 'Two numbers per pillar per role — small enough that every manager can hold their own job in their head.',
     check: async t => {
       const roles = (await activeRoles(t)).filter(r => r.level !== 'staff');
       let ok = 0; const problems: string[] = [];
@@ -148,17 +170,19 @@ export const STEPS: StepDef[] = [
       }
       if (!roles.length) return { status: 'todo', detail: 'No roles yet.' };
       if (ok === roles.length) return { status: 'done', detail: `${ok} roles with two KPIs per pillar and weights at 100%.` };
-      return { status: ok ? 'in_progress' : 'todo', detail: `Needs work: ${problems.join(', ')}.` };
+      return { status: ok ? 'in_progress' : 'todo', detail: ok ? `${ok} of ${roles.length} roles set. Still to do: ${problems.join(', ')}.` : `Ready to set: ${problems.join(', ')}.` };
     },
   },
   {
     id: 'people', stage: 1, title: 'Assign people to roles', href: '/setup/people',
     why: 'Access follows the role: supervisor and above score and write notes; staff see their own checklist. Putting a person in a role is the only way a person enters the system.',
+    minutes: 5,
+    payoff: 'Everyone can sign in and see their own scorecard. This is the point the business starts using it.',
     check: async t => {
       const roles = (await activeRoles(t)).filter(r => r.level !== 'staff');
       let filled = 0;
       for (const r of roles) if (await holder(r.id)) filled++;
-      if (!filled) return { status: 'todo', detail: 'No one assigned yet.' };
+      if (!filled) return { status: 'todo', detail: 'Names against the roles you just drew.' };
       if (filled < roles.length) return { status: 'in_progress', detail: `${filled} of ${roles.length} manager-level roles have a person.` };
       return { status: 'done', detail: 'Every manager-level role has a person.' };
     },
@@ -166,17 +190,21 @@ export const STEPS: StepDef[] = [
   {
     id: 'strategy', stage: 2, title: 'Where the business is going', href: '/setup/expectations?dose=strategy',
     why: 'The year 2 and year 3 ambition, and what stepping back would actually look like. Asked once the structure exists, because the answers are sharper when the leader can see the business laid out in front of them.',
+    minutes: 8,
+    payoff: 'A year 2 and year 3 that the org chart in front of you can actually reach.',
     check: async t => doseCheck(t, 'strategy'),
   },
   {
     id: 'cascade', stage: 2, title: 'Managers build their own teams', href: '/org',
     why: 'Each manager repeats roles → KPIs → people for their reports. They meet their own scorecard first, so they understand it scores the role, not them.',
+    minutes: 15,
+    payoff: 'Your managers running their own teams the same way, without you in the middle of it.',
     check: async t => {
       const roles = await activeRoles(t);
       const subs = roles.filter(r => r.level === 'supervisor' || r.level === 'staff');
       const users = await db.select().from(schema.users).where(eq(schema.users.tenantId, t));
       const accepted = users.filter(u => u.acceptedAt).length;
-      if (!subs.length) return { status: 'todo', detail: 'No supervisor or staff roles yet — managers haven\'t started.' };
+      if (!subs.length) return { status: 'todo', detail: 'Your managers do this part — they each build their own team the same way.' };
       let filled = 0;
       for (const r of subs) if (await holder(r.id)) filled++;
       return { status: filled === subs.length ? 'done' : 'in_progress', detail: `${filled} of ${subs.length} team roles filled · ${accepted} people signed in.` };
@@ -185,16 +213,22 @@ export const STEPS: StepDef[] = [
   {
     id: 'rhythm', stage: 3, title: 'How we communicate', href: '/setup/expectations?dose=rhythm',
     why: 'How often the board-style conversation happens, what belongs in it, and what never comes up. Asked while the rhythm is being set, since that is exactly what these answers decide.',
+    minutes: 4,
+    payoff: 'A standing conversation that handles the business, so problems stop arriving at your desk at random.',
     check: async t => doseCheck(t, 'rhythm'),
   },
   {
     id: 'covenant', stage: 3, title: "Agree how we'll work together", href: '/setup/expectations#covenant',
     why: "This names how the arrangement runs — the scorecard drives the board conversation, the GM runs the business, and if trust is ever in question it gets named directly. It sits here rather than on day one because agreeing to it means more once the system has produced something real.",
+    minutes: 3,
+    payoff: 'Everyone knows how this runs and what happens when something goes wrong.',
     check: async t => (await answered(t, 'covenant')).length ? { status: 'done', detail: 'Agreed.' } : { status: 'todo', detail: 'Not yet agreed.' },
   },
   {
     id: 'first_month', stage: 3, title: 'Score the first month', href: '/',
     why: 'Month one is a baseline, not a verdict. What matters is that every role is scored once and both gates report real numbers, so month two has something to compare against.',
+    minutes: 20,
+    payoff: 'A real baseline. Not a verdict — the first honest picture of where the business actually is.',
     check: async t => {
       const periods = await db.select().from(schema.periods).where(eq(schema.periods.tenantId, t));
       const period = periods[0];
@@ -206,7 +240,7 @@ export const STEPS: StepDef[] = [
         if (a.some(x => x.answer)) scored++;
       }
       const g = (await db.select().from(schema.gates).where(eq(schema.gates.periodId, period.id))).length;
-      if (!scored && !g) return { status: 'todo', detail: 'Nothing entered for this period yet.' };
+      if (!scored && !g) return { status: 'todo', detail: 'Ready when the month is. Nothing to do until then.' };
       if (scored < roles.length || g < 2) return { status: 'in_progress', detail: `${scored} of ${roles.length} roles scored · ${g} of 2 gates entered.` };
       return { status: 'done', detail: 'All roles scored and both gates entered.' };
     },
@@ -214,10 +248,12 @@ export const STEPS: StepDef[] = [
   {
     id: 'board_output', stage: 3, title: 'Lock the month and approve the board output', href: '/',
     why: 'The board output is generated from the data, never written from memory. Locking the period is what makes month-on-month comparison honest.',
+    minutes: 10,
+    payoff: 'A board pack generated from your own data, that you did not have to write.',
     check: async t => {
       const periods = await db.select().from(schema.periods).where(eq(schema.periods.tenantId, t));
       const period = periods[0];
-      if (!period || period.status !== 'locked') return { status: 'todo', detail: 'Period still open.' };
+      if (!period || period.status !== 'locked') return { status: 'todo', detail: 'Comes at the end of the month, once everything is scored.' };
       const bos = await db.select().from(schema.boardOutputs).where(eq(schema.boardOutputs.periodId, period.id));
       const bo = bos[0];
       return bo?.approvedBy ? { status: 'done', detail: 'Approved.' } : { status: 'in_progress', detail: 'Locked; board output not yet approved.' };
@@ -225,12 +261,13 @@ export const STEPS: StepDef[] = [
   },
 ];
 
+/** Plain names. Nobody stressed reads "Deploy into the organisation" and feels calmer. */
 export const STAGES: Record<number, string> = {
-  0: 'Sign in and register Claude',
-  1: 'Deploy into the organisation (week 1)',
-  2: 'Cascade (weeks 1–2)',
-  3: 'Run the rhythm (month 1)',
-  4: 'Steps that ensure success (months 2–12)',
+  0: 'Getting started',
+  1: 'Set the business up — about an hour, and it can be split',
+  2: 'Hand it to your managers',
+  3: 'Run the first month',
+  4: 'What good looks like from here',
 };
 
 export const MILESTONES = [
@@ -240,18 +277,26 @@ export const MILESTONES = [
   { when: 'Month 12', what: 'Business is SPEC; supervisors signed off as capable; engagement steps down to board-level only.' },
 ];
 
+/**
+ * Nothing in the journey blocks anything else. An earlier build gated every step behind registering
+ * Claude, which meant a business owner who had just admitted four things were going wrong was met
+ * with fourteen red "Blocked" badges. People arriving here already have enough that is blocked.
+ * The order below is the order that works best; it is not a lock.
+ */
 export async function journeyFor(tenantId: string) {
-  const reg = await STEPS[0].check(tenantId);
   const out = [];
-  for (const s of STEPS) {
-    const r = await s.check(tenantId);
-    // Everything after registration is blocked until registration is done.
-    const status: StepStatus = s.stage > 0 && reg.status !== 'done' && r.status === 'todo' ? 'blocked' : r.status;
-    out.push({ ...s, status, detail: status === 'blocked' && s.stage > 0 ? 'Register Claude first.' : r.detail });
-  }
+  for (const s of STEPS) out.push({ ...s, ...(await s.check(tenantId)) });
   return out;
 }
 
+/** The one thing to do next. Optional steps are offered, never queued as work owed. */
 export async function nextStep(tenantId: string) {
-  return (await journeyFor(tenantId)).find(s => s.status !== 'done');
+  const steps = await journeyFor(tenantId);
+  return steps.find(s => !s.optional && s.status !== 'done');
+}
+
+/** Minutes of required work left — the honest answer to "how much more of this is there?". */
+export function minutesLeft(steps: { status: StepStatus; minutes: number; optional?: boolean }[]) {
+  return steps.filter(s => !s.optional && s.status !== 'done')
+    .reduce((n, s) => n + (s.status === 'in_progress' ? Math.ceil(s.minutes / 2) : s.minutes), 0);
 }
