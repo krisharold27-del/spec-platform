@@ -5,7 +5,7 @@
 import { eq, and, isNull } from 'drizzle-orm';
 import { db, schema } from '../db';
 import diagnostic from '../../seed/diagnostic.json';
-import { DOSES, doseQuestionKeys } from './doses';
+import { DOSES, doseQuestionKeys, type SeedSection } from './doses';
 
 export type StepStatus = 'todo' | 'in_progress' | 'done' | 'blocked';
 
@@ -52,7 +52,7 @@ async function holder(roleId: string) {
  * them, so a step cannot report done while the interview still has questions in it.
  */
 async function doseCheck(tenantId: string, doseId: string): Promise<{ status: StepStatus; detail: string }> {
-  const keys = doseQuestionKeys(DOSES[doseId], diagnostic.sections as never[]);
+  const keys = doseQuestionKeys(DOSES[doseId], diagnostic.sections as unknown as SeedSection[]);
   const rows = await db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, tenantId));
   const done = keys.filter(([sec, q]) =>
     rows.some(r => r.sectionId === sec && r.questionId === q && r.answer.trim())).length;

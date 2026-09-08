@@ -4,58 +4,13 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { Shell } from '@/components/ui';
-import { Interview, type Step, type NextStep } from '@/components/interview';
+import { Interview, type NextStep } from '@/components/interview';
 import { journeyFor } from '@/lib/journey';
-import { doseFor, DOSES, type Dose } from '@/lib/doses';
+import { doseFor, DOSES } from '@/lib/doses';
+import { stepsForDose, type Section } from '@/lib/interview-steps';
 import diagnostic from '../../../../seed/diagnostic.json';
 
 export const dynamic = 'force-dynamic';
-
-type Q = { id: string; text: string; type?: string; options?: string[] };
-type Section = {
-  id: string; title: string; when: string; intro?: string; type?: string;
-  questions?: Q[]; items?: string[]; scale?: string[]; text?: string;
-};
-
-/** Flatten one dose of the diagnostic into an ordered run of questions. */
-export function stepsForDose(sections: Section[], dose: Dose): Step[] {
-  const steps: Step[] = [];
-  const wanted = (id: string) =>
-    (!dose.only || dose.only.includes(id)) && (!dose.except || !dose.except.includes(id));
-
-  for (const s of sections) {
-    if (!dose.sections.includes(s.id)) continue;
-
-    for (const q of s.questions ?? []) {
-      if (!wanted(q.id)) continue;
-      steps.push({
-        sectionId: s.id, questionId: q.id, sectionTitle: s.title, intro: s.intro,
-        text: q.text,
-        kind: q.type === 'choice' ? 'choice' : 'text',
-        options: q.options,
-      });
-    }
-
-    if (dose.includeRatings && s.type === 'rating' && s.items) {
-      s.items.forEach((item, idx) => {
-        steps.push({
-          sectionId: s.id, questionId: `item${idx}`, sectionTitle: s.title, intro: s.intro,
-          text: `How well is this understood — ${item}?`,
-          kind: 'rating', options: s.scale ?? [],
-        });
-      });
-    }
-
-    if (dose.includeAgreement && s.type === 'agreement' && s.text) {
-      steps.push({
-        sectionId: s.id, questionId: 'accepted', sectionTitle: s.title, intro: s.intro,
-        text: 'Do you agree to work this way, on behalf of the business?',
-        kind: 'agreement', agreementText: s.text,
-      });
-    }
-  }
-  return steps;
-}
 
 export default async function Expectations({ searchParams }: { searchParams: Promise<{ dose?: string; all?: string }> }) {
   const user = await getCurrentUser(); if (!user) redirect('/signin');

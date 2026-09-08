@@ -78,8 +78,8 @@ export function doseFor(id: string | undefined): Dose {
   return DOSES[id ?? 'core'] ?? DOSES.core;
 }
 
-interface SeedQuestion { id: string; type?: string }
-interface SeedSection {
+export interface SeedQuestion { id: string; type?: string }
+export interface SeedSection {
   id: string; type?: string; questions?: SeedQuestion[]; items?: string[]; text?: string;
 }
 
