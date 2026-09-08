@@ -12,7 +12,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
-import { stripe } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
 import { openFirstPeriod } from '@/lib/provision';
 
 export const runtime = 'nodejs';
@@ -34,8 +34,9 @@ async function markLapsed(subscriptionId: string | null) {
 }
 
 export async function POST(request: Request) {
+  const stripe = getStripe();
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) return NextResponse.json({ error: 'STRIPE_WEBHOOK_SECRET is not set' }, { status: 500 });
+  if (!stripe || !secret) return NextResponse.json({ error: 'Stripe is not configured on this deployment' }, { status: 503 });
 
   const sig = request.headers.get('stripe-signature');
   const body = await request.text();

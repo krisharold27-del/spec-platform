@@ -18,8 +18,21 @@ const STATUS: Record<StepStatus, { label: string; cls: string }> = {
   blocked: { label: 'Blocked', cls: 'bg-red-100 text-red-900' },
 };
 
-export default async function Journey() {
+/**
+ * Anything that can go wrong on the way back from Stripe lands here as a query string. Every one of
+ * them gets a plain sentence and a way forward — a leader who clicks "subscribe" and silently lands
+ * back on the same page assumes the product is broken, and they are already dealing with enough.
+ */
+const BILLING_NOTICE: Record<string, { tone: 'ok' | 'warn'; text: string }> = {
+  upgraded: { tone: 'ok', text: 'Payment received — you are on SPEC Basic. Nothing you set up during the trial has changed.' },
+  upgrade_cancelled: { tone: 'warn', text: 'Checkout was cancelled, so nothing has been charged. Your trial is untouched and you can subscribe whenever you are ready.' },
+  billing_error: { tone: 'warn', text: "We couldn't open the payment page just then. Nothing has been charged. Try again, and if it happens twice email hello@specbizhq.com and we'll sort it at our end." },
+};
+
+export default async function Journey({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
+  const sp = await searchParams;
+  const notice = BILLING_NOTICE[Object.keys(BILLING_NOTICE).find(k => sp[k]) ?? ''];
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
   const plan = planState({ id: tenant.id, plan: tenant.plan, startDate: tenant.startDate });
   const steps = await journeyFor(user.tenantId);
@@ -33,6 +46,11 @@ export default async function Journey() {
 
   return (
     <Shell title={`${tenant.name} — deployment journey`} subtitle={`${done} of ${steps.length} steps done · ${PLAN_LABEL[tenant.plan] ?? tenant.plan}`}>
+      {notice && (
+        <div className={`mb-4 rounded-lg border-l-4 p-4 text-sm ${notice.tone === 'ok' ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : 'border-amber-400 bg-white text-ink'}`}>
+          {notice.text}
+        </div>
+      )}
       {plan.lapsed && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900">
           <span>Your subscription has lapsed — the business is read-only until it's renewed. Nothing has been deleted.</span>

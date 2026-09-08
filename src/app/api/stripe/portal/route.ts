@@ -6,11 +6,14 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
-import { stripe, appUrl } from '@/lib/stripe';
+import { getStripe, appUrl } from '@/lib/stripe';
 
 export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.redirect(`${appUrl()}/signin`, 303);
+
+  const stripe = getStripe();
+  if (!stripe) return NextResponse.redirect(`${appUrl()}/journey?billing_error=1`, 303);
 
   const tenantRows = await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
   const tenant = tenantRows[0];
