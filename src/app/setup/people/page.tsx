@@ -118,7 +118,7 @@ export default async function People({ searchParams }: { searchParams: Promise<R
                 <li key={s.id} className="rounded-full border border-ink/15 px-3 py-1 text-sm">
                   {s.name}
                   <span className="ml-1.5 text-xs text-ink-light">
-                    {s.userId ? 'invited' : held.length ? `${held.length} role${held.length > 1 ? 's' : ''}` : 'not placed'}
+                    {s.userId ? 'has an account' : held.length ? `${held.length} role${held.length > 1 ? 's' : ''}` : 'not placed'}
                   </span>
                 </li>
               );

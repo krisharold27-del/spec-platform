@@ -26,13 +26,13 @@ export interface TenantPlan {
 }
 
 export interface PlanState {
-  /** People invited in — this is what is billed. */
+  /** People with a way into the business — this is what is billed. */
   seats: number;
   /** seats × the seat price. */
   monthlyCost: number;
-  /** The meter has started: at least one person has been invited. */
+  /** The meter has started: at least one person can get in. */
   billing: boolean;
-  /** Still free: structure only, nobody invited yet. */
+  /** Still free: structure only, nobody with an account yet. */
   free: boolean;
   /** On the consulting engagement rather than self-serve. */
   program: boolean;
@@ -62,7 +62,7 @@ export function planState(tenant: TenantPlan, seats: number): PlanState {
 /** "$130 a month · 5 people" — the two numbers a leader actually wants to see together. */
 export function costLabel(state: PlanState): string {
   if (state.program) return 'SPEC Program';
-  if (state.free) return 'Free — no one invited yet';
+  if (state.free) return 'Free — nobody in it yet';
   return `$${state.monthlyCost} a month · ${state.seats} ${state.seats === 1 ? 'person' : 'people'}`;
 }
 
@@ -72,16 +72,22 @@ export function nextSeatLabel(): string {
 }
 
 /**
- * Billable seats: people who have been invited into the business. An invite is the trigger, not
- * acceptance — the seat is doing work from the moment the email goes out, and billing on acceptance
- * would let a business use the system indefinitely by never clicking the link.
+ * Billable seats: people who can actually get into the business.
+ *
+ * Counting only invitations was wrong in one important case — the leader who signs themselves up.
+ * They were never invited by anyone, so they were never counted, and a one-person business showed
+ * as free while using the whole system. A seat is anyone with a way in: invited, accepted, or
+ * signed up directly.
+ *
+ * An invite counts from the moment it is sent rather than when it is accepted, because the seat is
+ * doing work from that point — and billing on acceptance would let a business use SPEC indefinitely
+ * by simply never clicking the link.
  */
 export async function countSeats(tenantId: string): Promise<number> {
   const { db, schema } = await import('../db');
-  const { eq, and, isNotNull } = await import('drizzle-orm');
-  const rows = await db.select().from(schema.users)
-    .where(and(eq(schema.users.tenantId, tenantId), isNotNull(schema.users.invitedAt)));
-  return rows.length;
+  const { eq } = await import('drizzle-orm');
+  const rows = await db.select().from(schema.users).where(eq(schema.users.tenantId, tenantId));
+  return rows.filter(u => u.invitedAt || u.acceptedAt || u.authUserId).length;
 }
 
 export async function planStateFor(tenantId: string): Promise<PlanState> {

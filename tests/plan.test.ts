@@ -10,7 +10,7 @@ describe('seat-based plan', () => {
     expect(s.billing).toBe(false);
     expect(s.monthlyCost).toBe(0);
     expect(s.readOnly).toBe(false);   // no clock: building never expires
-    expect(costLabel(s)).toBe('Free — no one invited yet');
+    expect(costLabel(s)).toBe('Free — nobody in it yet');
   });
 
   it('bills $26 per invited person', () => {
@@ -30,5 +30,19 @@ describe('seat-based plan', () => {
     const s = planState(t('program'), 40);
     expect(s.billing).toBe(false);
     expect(costLabel(s)).toBe('SPEC Program');
+  });
+});
+
+describe('who occupies a seat', () => {
+  it('counts the founder who signed themselves up, not just people who were invited', () => {
+    // The bug this pins: counting invitedAt alone meant a leader who created the business was never
+    // billed, so a one-person tenant using the whole system reported as free.
+    const rows = [
+      { invitedAt: null, acceptedAt: null, authUserId: 'auth-1' },   // signed up directly
+      { invitedAt: '2026-09-01', acceptedAt: null, authUserId: null }, // invited, not yet clicked
+      { invitedAt: null, acceptedAt: null, authUserId: null },        // a name with no way in
+    ];
+    const seats = rows.filter(u => u.invitedAt || u.acceptedAt || u.authUserId).length;
+    expect(seats).toBe(2);
   });
 });
