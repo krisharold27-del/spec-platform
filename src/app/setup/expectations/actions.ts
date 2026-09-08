@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
+import { assertWritable } from '@/lib/plan';
 
 /**
  * Save a single diagnostic answer. The interview saves as the leader answers rather than behind a
@@ -12,6 +13,7 @@ import { getCurrentUser } from '@/lib/auth';
  */
 export async function saveAnswer(sectionId: string, questionId: string, value: string): Promise<{ ok: boolean }> {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
   const answer = value.trim();
   const now = new Date().toISOString();
 

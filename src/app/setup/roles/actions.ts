@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
+import { assertWritable } from '@/lib/plan';
 import templates from '../../../../seed/criteria_templates.json';
 
 type TC = { text: string; weight: number; kpi?: boolean; target?: string };
@@ -22,6 +23,7 @@ function criteriaFor(t: TR) {
 /** Add a role from a template (Claude's proposal) or a custom one. Roles are created empty. */
 export async function addRole(formData: FormData) {
   const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
+  await assertWritable(user.tenantId);
   const templateId = String(formData.get('template') ?? '');
   const reportsTo = String(formData.get('reportsTo') ?? '') || null;
   const customTitle = String(formData.get('title') ?? '').trim();
@@ -49,6 +51,7 @@ export async function addRole(formData: FormData) {
 
 export async function removeRole(formData: FormData) {
   const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
+  await assertWritable(user.tenantId);
   const id = String(formData.get('roleId'));
   const roleRows = await db.select().from(schema.roles).where(and(eq(schema.roles.id, id), eq(schema.roles.tenantId, user.tenantId)));
   const role = roleRows[0];

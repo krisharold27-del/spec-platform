@@ -5,6 +5,7 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { journeyFor, STAGES, MILESTONES, type StepStatus } from '@/lib/journey';
 import { Shell } from '@/components/ui';
+import { planState, trialLabel, TRIAL_DAYS } from '@/lib/plan';
 import { requestProgram } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,7 @@ const STATUS: Record<StepStatus, { label: string; cls: string }> = {
 export default async function Journey() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
+  const plan = planState({ id: tenant.id, plan: tenant.plan, startDate: tenant.startDate });
   const steps = await journeyFor(user.tenantId);
   const next = steps.find(s => s.status !== 'done');
   const done = steps.filter(s => s.status === 'done').length;
@@ -29,20 +31,30 @@ export default async function Journey() {
 
   return (
     <Shell title={`${tenant.name} — deployment journey`} subtitle={`${done} of ${steps.length} steps done · ${PLAN_LABEL[tenant.plan] ?? tenant.plan}`}>
-      {tenant.plan === 'lapsed' && (
+      {plan.lapsed && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900">
           <span>Your subscription has lapsed — the business is read-only until it's renewed. Nothing has been deleted.</span>
           <form action="/api/stripe/checkout" method="post"><button className="ml-4 shrink-0 rounded-lg bg-red-900 px-4 py-2 text-sm font-medium text-white hover:bg-red-800">Renew — $100/year</button></form>
         </div>
       )}
-      {tenant.plan === 'trial' && (
-        <div className="mb-4 rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
-          <div className="font-medium">You're on a trial</div>
-          <p className="mt-1 text-ink-light">Registering Claude, building the org chart and setting KPIs are all free. Scoring a month and generating the board output need a period open, which starts with <b>SPEC Basic — $100/year</b>.</p>
-          <form action="/api/stripe/checkout" method="post" className="mt-3"><button className="rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Start Basic — $100/year</button></form>
+      {plan.onTrial && (
+        <div className="mb-4 rounded-lg border-l-4 border-emerald-500 bg-white p-4 text-sm">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="font-medium">Free trial — {trialLabel(plan)}</div>
+            <span className="label-caps text-[10px]">No card needed</span>
+          </div>
+          <p className="mt-1 text-ink-light">Everything is unlocked: build the org chart, set the KPIs, score a month, generate the board output. Try the whole thing, then decide.</p>
+          <form action="/api/stripe/checkout" method="post" className="mt-3"><button className="btn-primary">Continue after the trial — $100/year</button></form>
         </div>
       )}
-      {(tenant.plan === 'basic' || tenant.plan === 'program') && (
+      {plan.trialExpired && (
+        <div className="mb-4 rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
+          <div className="font-medium">Your {TRIAL_DAYS}-day free trial has ended</div>
+          <p className="mt-1 text-ink-light">Everything you set up is still here and nothing has been deleted — the business is read-only until you subscribe.</p>
+          <form action="/api/stripe/checkout" method="post" className="mt-3"><button className="btn-primary">Subscribe — $100/year</button></form>
+        </div>
+      )}
+      {plan.paid && (
         <form action="/api/stripe/portal" method="post" className="mb-4 text-right"><button className="text-sm text-ink-light underline hover:text-rust">Billing</button></form>
       )}
       {four.length > 0 && (

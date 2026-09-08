@@ -39,10 +39,11 @@ export interface ProvisionOptions {
 }
 
 /**
- * Opens the first (or next unopened) period for a tenant. Gated on plan — trial tenants get the
- * full deployment journey (Stage 0–1: register Claude, roles, KPIs, people) but no period to score
- * against, so scoring and the board output stay out of reach until they pay (see docs/
- * SPEC_GoLive_and_Operations.md §6 and the Stripe webhook at src/app/api/stripe/webhook/route.ts).
+ * Opens the first (or next unopened) period for a tenant.
+ *
+ * Called at signup, not on payment: the three-day trial is the whole system, scoring included, so a
+ * business can try it properly before deciding. Access after the trial is enforced by
+ * lib/plan.assertWritable, not by withholding the period.
  * Idempotent — safe to call again for a tenant that already has an open period.
  */
 export async function openFirstPeriod(tenantId: string, period?: string) {
@@ -95,8 +96,10 @@ export async function provisionTenant(opts: ProvisionOptions) {
     await db.insert(schema.rulebookRules).values({ ...r, version: rulebook.version }).onConflictDoNothing();
   }
 
-  // No period is opened here — trial tenants get the full journey (Stage 0–1) but nothing to
-  // score until they pay. See openFirstPeriod, called from the Stripe webhook on checkout success.
+  // Open the first period straight away. The three-day trial is the full system — a business that
+  // cannot score a month has not actually tried SPEC, it has only looked at the setup screens.
+  await openFirstPeriod(tenantId);
+
   return { tenantId, roleIds: Object.fromEntries(roleIds) };
 }
 

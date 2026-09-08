@@ -4,11 +4,13 @@ import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
+import { assertWritable } from '@/lib/plan';
 import { assignPerson } from '@/lib/provision';
 import { sendInviteEmail } from '@/lib/email';
 
 export async function assign(formData: FormData) {
   const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
+  await assertWritable(user.tenantId);
   const roleId = String(formData.get('roleId'));
   const name = String(formData.get('name') ?? '').trim();
   const email = String(formData.get('email') ?? '').trim().toLowerCase();

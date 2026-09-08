@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getScope } from '@/lib/scope';
+import { assertWritable } from '@/lib/plan';
 
 /**
  * Save Y/N/NA answers and notes for one role in one period.
@@ -18,6 +19,7 @@ export async function saveScorecard(formData: FormData) {
   const roleId = String(formData.get('roleId'));
   const periodId = String(formData.get('periodId'));
 
+  await assertWritable(user.tenantId);
   const scope = await getScope(user);
   if (!scope.canEdit(roleId)) throw new Error('You can only score your own role and the roles beneath it.');
 
