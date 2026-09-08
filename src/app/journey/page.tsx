@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { journeyFor, STAGES, MILESTONES, type StepStatus } from '@/lib/journey';
 import { Shell } from '@/components/ui';
 import { planState, trialLabel, TRIAL_DAYS } from '@/lib/plan';
+import { momentumFor, onDate } from '@/lib/momentum';
 import { requestProgram } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,7 @@ export default async function Journey() {
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
   const plan = planState({ id: tenant.id, plan: tenant.plan, startDate: tenant.startDate });
   const steps = await journeyFor(user.tenantId);
+  const momentum = await momentumFor(user.tenantId);
   const next = steps.find(s => s.status !== 'done');
   const done = steps.filter(s => s.status === 'done').length;
   const four = (await db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, user.tenantId))).filter(d => d.sectionId === 'four_questions');
@@ -61,6 +63,15 @@ export default async function Journey() {
         <div className="mb-4 rounded-lg bg-white p-4 text-sm">
           <span className="font-medium">Where it hurts, in your words:</span> {hurting.length ? hurting.map(h => h[0].toUpperCase() + h.slice(1)).join(', ') : 'nowhere yet'}.
           <span className="text-ink-light"> The journey below is how you learn why — and every KPI Claude proposes leans on those pillars first.</span>
+        </div>
+      )}
+      {momentum.quiet && next && momentum.lastChangeAt && (
+        <div className="mb-4 rounded-lg border border-ink/15 bg-white p-4 text-sm">
+          <div className="label-caps">Where this stands</div>
+          <p className="mt-1 text-ink-light">
+            Nothing has changed in {tenant.name} since {onDate(momentum.lastChangeAt)}. {done} of {steps.length} steps
+            are done and the next one is <b className="text-ink">{next.title}</b>. Both ways of finishing it are below.
+          </p>
         </div>
       )}
       {next && (
