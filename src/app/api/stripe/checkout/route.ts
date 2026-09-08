@@ -1,20 +1,23 @@
 /**
- * Starts a Stripe Checkout session for SPEC Basic — $100/year. Posted to from a plain HTML form
- * on the journey page (no client JS needed); redirects the browser straight to Stripe's hosted
- * Checkout page. See docs/SPEC_GoLive_and_Operations.md §6.
+ * Starts a Stripe Checkout session for SPEC self-serve — $26 per named seat per month.
+ *
+ * Quantity is the number of people actually invited into the business, counted at checkout rather
+ * than typed in, so a leader can never be billed for seats they did not create. Posted to from a
+ * plain HTML form (no client JS needed). See docs/SPEC_GoLive_and_Operations.md §6.
  */
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getStripe, appUrl } from '@/lib/stripe';
+import { countSeats } from '@/lib/plan';
 
 export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.redirect(`${appUrl()}/signin`, 303);
 
   const stripe = getStripe();
-  const priceId = process.env.STRIPE_PRICE_BASIC_ANNUAL;
+  const priceId = process.env.STRIPE_PRICE_SEAT_MONTHLY;
   // Billing not configured yet — say so on the journey page rather than throwing at the user.
   if (!stripe || !priceId) return NextResponse.redirect(`${appUrl()}/journey?billing_error=1`, 303);
 
@@ -22,9 +25,13 @@ export async function POST() {
   const tenant = tenantRows[0];
   if (!tenant) return NextResponse.redirect(`${appUrl()}/journey`, 303);
 
+  // Nobody invited yet means nothing to bill — the structure is free and stays free.
+  const seats = await countSeats(user.tenantId);
+  if (seats === 0) return NextResponse.redirect(`${appUrl()}/journey?nothing_to_bill=1`, 303);
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
-    line_items: [{ price: priceId, quantity: 1 }],
+    line_items: [{ price: priceId, quantity: seats }],
     // client_reference_id is how the webhook maps the completed session back to a tenant —
     // more reliable than matching on customer email, which can differ from the app user's email.
     client_reference_id: tenant.id,

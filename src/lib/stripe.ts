@@ -18,7 +18,7 @@ export function getStripe(): Stripe | null {
 }
 
 export function billingConfigured() {
-  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_BASIC_ANNUAL);
+  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_SEAT_MONTHLY);
 }
 
 export function appUrl() {

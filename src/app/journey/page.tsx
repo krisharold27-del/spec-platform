@@ -5,7 +5,7 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { journeyFor, minutesLeft, STAGES, MILESTONES, type StepStatus } from '@/lib/journey';
 import { Shell } from '@/components/ui';
-import { planState, trialLabel, TRIAL_DAYS } from '@/lib/plan';
+import { planStateFor, costLabel, SEAT_PRICE_MONTHLY } from '@/lib/plan';
 import { momentumFor, onDate } from '@/lib/momentum';
 import { requestProgram } from './actions';
 
@@ -38,6 +38,7 @@ function mins(n: number) {
 const BILLING_NOTICE: Record<string, { tone: 'ok' | 'warn'; text: string }> = {
   upgraded: { tone: 'ok', text: 'Payment received — you are on SPEC Basic. Nothing you set up during the trial has changed.' },
   upgrade_cancelled: { tone: 'warn', text: 'Checkout was cancelled, so nothing has been charged. Your trial is untouched and you can subscribe whenever you are ready.' },
+  nothing_to_bill: { tone: 'ok', text: 'Nothing to pay — you have not invited anyone in yet, and the structure you are building is free.' },
   billing_error: { tone: 'warn', text: "We couldn't open the payment page just then. Nothing has been charged. Try again, and if it happens twice email hello@specbizhq.com and we'll sort it at our end." },
 };
 
@@ -46,7 +47,7 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
   const sp = await searchParams;
   const notice = BILLING_NOTICE[Object.keys(BILLING_NOTICE).find(k => sp[k]) ?? ''];
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
-  const plan = planState({ id: tenant.id, plan: tenant.plan, startDate: tenant.startDate });
+  const plan = await planStateFor(user.tenantId);
   const steps = await journeyFor(user.tenantId);
   const momentum = await momentumFor(user.tenantId);
   const next = steps.find(s => !s.optional && s.status !== 'done');
@@ -58,10 +59,10 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
   const four = (await db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, user.tenantId))).filter(d => d.sectionId === 'four_questions');
   const hurting = four.filter(d => d.answer === 'yes').map(d => d.questionId);
 
-  const PLAN_LABEL: Record<string, string> = { trial: 'Trial', basic: 'Basic (self-serve)', program: 'SPEC Program', lapsed: 'Lapsed' };
+
 
   return (
-    <Shell title={tenant.name} subtitle={done === 0 ? `Setting up · ${PLAN_LABEL[tenant.plan] ?? tenant.plan}` : `${done} of ${required.length} done · ${PLAN_LABEL[tenant.plan] ?? tenant.plan}`}>
+    <Shell title={tenant.name} subtitle={done === 0 ? `Setting up · ${costLabel(plan)}` : `${done} of ${required.length} done · ${costLabel(plan)}`}>
       {notice && (
         <div className={`mb-4 rounded-lg border-l-4 p-4 text-sm ${notice.tone === 'ok' ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : 'border-amber-400 bg-white text-ink'}`}>
           {notice.text}
@@ -69,29 +70,32 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
       )}
       {plan.lapsed && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900">
-          <span>Your subscription has lapsed — the business is read-only until it's renewed. Nothing has been deleted.</span>
-          <form action="/api/stripe/checkout" method="post"><button className="ml-4 shrink-0 rounded-lg bg-red-900 px-4 py-2 text-sm font-medium text-white hover:bg-red-800">Renew — $100/year</button></form>
+          <span>A payment didn&apos;t go through, so the business is read-only until it&apos;s sorted. Nothing has been deleted.</span>
+          <form action="/api/stripe/checkout" method="post"><button className="ml-4 shrink-0 rounded-lg bg-red-900 px-4 py-2 text-sm font-medium text-white hover:bg-red-800">Fix payment</button></form>
         </div>
       )}
-      {plan.onTrial && (
+      {/*
+        * No trial and no countdown. Building the business costs nothing and never expires; the meter
+        * starts only when a real person is invited in. A clock on someone who has just admitted four
+        * things are going wrong is the last thing they need.
+        */}
+      {plan.free && (
         <div className="mb-4 rounded-lg border-l-4 border-emerald-500 bg-white p-4 text-sm">
           <div className="flex items-baseline justify-between gap-3">
-            <div className="font-medium">Free trial — {trialLabel(plan)}</div>
+            <div className="font-medium">Free — nothing to pay yet</div>
             <span className="label-caps text-[10px]">No card needed</span>
           </div>
-          <p className="mt-1 text-ink-light">Everything is unlocked: build the org chart, set the KPIs, score a month, generate the board output. Try the whole thing, then decide.</p>
-          <form action="/api/stripe/checkout" method="post" className="mt-3"><button className="btn-primary">Continue after the trial — $100/year</button></form>
+          <p className="mt-1 text-ink-light">
+            Draw the whole business, set every KPI, take as long as you like. It only costs anything once
+            you invite a real person in — ${SEAT_PRICE_MONTHLY} a month each. Roles with nobody in them are always free.
+          </p>
         </div>
       )}
-      {plan.trialExpired && (
-        <div className="mb-4 rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
-          <div className="font-medium">Your {TRIAL_DAYS}-day free trial has ended</div>
-          <p className="mt-1 text-ink-light">Everything you set up is still here and nothing has been deleted — the business is read-only until you subscribe.</p>
-          <form action="/api/stripe/checkout" method="post" className="mt-3"><button className="btn-primary">Subscribe — $100/year</button></form>
+      {plan.billing && (
+        <div className="mb-4 flex items-baseline justify-between gap-3 rounded-lg bg-white p-4 text-sm">
+          <span><b>{costLabel(plan)}</b> <span className="text-ink-light">· each extra person is ${SEAT_PRICE_MONTHLY} a month</span></span>
+          <form action="/api/stripe/portal" method="post"><button className="text-sm text-ink-light underline hover:text-rust">Billing</button></form>
         </div>
-      )}
-      {plan.paid && (
-        <form action="/api/stripe/portal" method="post" className="mb-4 text-right"><button className="text-sm text-ink-light underline hover:text-rust">Billing</button></form>
       )}
       {four.length > 0 && (
         <div className="mb-4 rounded-lg bg-white p-4 text-sm">
@@ -197,48 +201,12 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
         * only outcome that costs a business anything is stopping — and a leader who feels sold to
         * at the point of difficulty stops.
         */}
-      {tenant.plan !== 'program' && (
-        <section className="mt-10">
-          <h2 className="label-caps">Two ways to do this</h2>
-          <p className="mt-1 max-w-2xl text-sm text-ink-light">
-            Both end in the same place: a business that runs well, visibly, without you in every decision.
-            The only choice that doesn&apos;t get you there is stopping.
-          </p>
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            <div className="flex flex-col rounded-lg border border-ink/10 bg-white p-5">
-              <div className="label-caps">On your own</div>
-              <div className="mt-1 font-serif text-lg font-bold text-ink">You work through it</div>
-              <p className="mt-2 flex-1 text-sm text-ink-light">
-                The system leads each step and Claude explains why each one exists, so you are never guessing what
-                comes next. You set the pace. Most businesses can do this — it asks for honesty and a few hours a month,
-                not expertise.
-              </p>
-              <div className="mt-3 text-sm font-medium text-ink">$100 a year</div>
-              {!plan.paid && (
-                <form action="/api/stripe/checkout" method="post" className="mt-3">
-                  <button className="btn-secondary w-full">Keep going on my own</button>
-                </form>
-              )}
-            </div>
-
-            <div className="flex flex-col rounded-lg border border-ink/10 bg-white p-5">
-              <div className="label-caps">With someone alongside you</div>
-              <div className="mt-1 font-serif text-lg font-bold text-ink">We walk it with you</div>
-              <p className="mt-2 flex-1 text-sm text-ink-light">
-                SPEC Business Solutions runs the rollout with you: on site, manager and supervisor training with SPEC
-                certification, and a principal at your board meeting each month. For when the problems are big enough
-                that you would rather not do this alone.
-              </p>
-              <div className="mt-3 text-sm font-medium text-ink">Quoted per business</div>
-              <form action={requestProgram} className="mt-3">
-                {tenant.programRequestedAt
-                  ? <span className="text-sm text-emerald-800">Requested — SPEC Business Solutions will be in touch.</span>
-                  : <button className="btn-primary w-full">Ask about doing it together</button>}
-              </form>
-            </div>
-          </div>
-        </section>
+      {!plan.program && (
+        <p className="mt-8 text-sm text-ink-light">
+          Would you rather not do this alone? <a href="/setup/path" className="underline hover:text-rust">SPEC Business Solutions can run the rollout with you</a> — on site, managers and supervisors trained and certified, and a principal at your board meeting each month.
+        </p>
       )}
+
     </Shell>
   );
 }
