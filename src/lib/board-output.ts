@@ -5,11 +5,90 @@
  */
 import type { getTeamRollup, getGates } from './queries';
 import type { Pillar } from './scoring';
+import type { GovernanceCheck } from './governance';
 
 type Rollup = Awaited<ReturnType<typeof getTeamRollup>>;
 type Gates = Awaited<ReturnType<typeof getGates>>;
 
-export interface BoardInputs { tenantName: string; period: string; rollup: Rollup; gates: Gates; pillars: Pillar[] }
+export interface BoardInputs {
+  tenantName: string;
+  period: string;
+  rollup: Rollup;
+  gates: Gates;
+  pillars: Pillar[];
+  /** Governance sits inside Compliance — see src/lib/governance.ts. */
+  governance?: GovernanceCheck[];
+}
+
+/**
+ * The front page: four pillars, the gates, and anything that could bite — sized for a two-minute
+ * read before the meeting starts. A director who reads only this should still know whether the
+ * business made its money, did it safely, whether people are staying, and whether anything is
+ * about to land on them. The detail behind it is for the ones who want to dig.
+ */
+export interface Snapshot {
+  headline: string;
+  pillars: { pillar: Pillar; name: string; value: number | null; status: 'on_target' | 'below' | 'not_scored'; driver: string | null }[];
+  gates: { name: string; status: 'pass' | 'fail' | 'not_reporting'; detail: string }[];
+  risks: string[];
+  integrity: string | null;
+}
+
+export function snapshotFor(i: BoardInputs): Snapshot {
+  const f = factsFor(i);
+  const gov = i.governance ?? [];
+
+  const pillars = i.pillars.map(p => {
+    const v = i.rollup.team.pillars[p];
+    const driver = f.misses.filter(m => m.pillar === p)[0];
+    return {
+      pillar: p,
+      name: NAME[p],
+      value: f.baseline ? null : v,
+      status: (f.baseline ? 'not_scored' : v >= 0.9 ? 'on_target' : 'below') as 'on_target' | 'below' | 'not_scored',
+      driver: driver ? `${driver.role}: ${driver.text}` : null,
+    };
+  });
+
+  const gates: Snapshot['gates'] = [
+    {
+      name: 'Zero Harm',
+      status: i.gates.zeroHarm ? (i.gates.zeroHarm.pass ? 'pass' : 'fail') : 'not_reporting',
+      detail: i.gates.zeroHarm ? String(i.gates.zeroHarm.value) : 'Nothing entered — this is a blank, not a clean month',
+    },
+    {
+      name: 'Clear to Work',
+      status: i.gates.clearToWork ? (i.gates.clearToWork.pass ? 'pass' : 'fail') : 'not_reporting',
+      detail: i.gates.clearToWork ? `Training compliance ${pct(Number(i.gates.clearToWork.value))}, must be 100%` : 'No training records entered',
+    },
+  ];
+
+  // Anything a director would want raised before they have to ask.
+  const risks: string[] = [];
+  for (const g of gates) if (g.status === 'fail') risks.push(`${g.name} failed — ${g.detail}.`);
+  for (const g of gates) if (g.status === 'not_reporting') risks.push(`${g.name} is not reporting. ${g.detail}.`);
+  for (const p of pillars) if (p.status === 'below' && p.driver) risks.push(`${p.name} below target — ${p.driver}.`);
+  for (const c of gov) if (c.status !== 'pass') risks.push(`Governance: ${c.detail}${c.fix ? ` Fix: ${c.fix}` : ''}`);
+  const noFix = f.misses.filter(m => !m.note).length;
+  if (noFix) risks.push(`${noFix} missed criteria have no proposed fix against them.`);
+
+  const onTarget = pillars.filter(p => p.status === 'on_target').length;
+  const headline = f.baseline
+    ? 'Baseline month. Nothing has been scored yet, so nothing below is a result — this is the starting position.'
+    : onTarget === 4
+      ? 'All four pillars are at or above 90%. The business made the money it expected, did it safely, and its people are staying.'
+      : `${onTarget} of 4 pillars at target. ${risks.length} item${risks.length === 1 ? '' : 's'} for the board's attention.`;
+
+  return {
+    headline,
+    pillars,
+    gates,
+    risks,
+    integrity: f.unscored.length || !i.gates.entered
+      ? `Read with care: ${f.unscored.length} role(s) unscored, gates ${i.gates.entered ? 'entered' : 'not entered'}.`
+      : null,
+  };
+}
 
 const NAME: Record<Pillar, string> = { safety: 'Safety', people: 'People', earnings: 'Earnings', compliance: 'Compliance' };
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -44,6 +123,16 @@ export function deterministicBoardOutput(i: BoardInputs): string {
     if (driver.length) L.push(`Headline driver: ${driver.map(d => `${d.role}: ${d.text}${d.note ? ` — fix proposed: ${d.note}` : ' — no fix proposed yet'}`).join('; ')}.`);
     L.push('');
   }
+  // Governance belongs inside Compliance — a business can breach nothing and still be ungoverned.
+  if (i.governance?.length) {
+    L.push('## Compliance — governance');
+    L.push('');
+    for (const c of i.governance) {
+      const label = c.status === 'pass' ? 'OK' : c.status === 'attention' ? 'NEEDS ATTENTION' : 'NOT REPORTING';
+      L.push(`**${c.question}** — ${label}. ${c.detail}${c.fix ? ` Fix: ${c.fix}` : ''}`);
+    }
+    L.push('');
+  }
   L.push('## Hard gates');
   L.push('');
   L.push(`Zero Harm — ${i.gates.zeroHarm ? (i.gates.zeroHarm.pass ? 'PASS' : 'FAIL') + ` (${i.gates.zeroHarm.value})` : 'NOT REPORTING — nothing entered; this is a baseline state, not a clean month'}.`);
@@ -62,6 +151,8 @@ export function deterministicBoardOutput(i: BoardInputs): string {
   L.push(f.unscored.length || !i.gates.entered ? `Incomplete: ${f.unscored.length} role(s) unscored; gates ${i.gates.entered ? 'entered' : 'not entered'}.` : 'Complete: every role scored and both gates entered.');
   L.push('');
   L.push('_The business is SPEC when all four pillars hold at 90%+ for two consecutive months._');
+  L.push('');
+  L.push('_The simplest read of this pack: did the business make the money it expected, did it do that safely, and does everyone want to come to work? If all three are yes, the job is done._');
   return L.join('\n');
 }
 

@@ -225,6 +225,21 @@ export const STEPS: StepDef[] = [
     check: async t => (await answered(t, 'covenant')).length ? { status: 'done', detail: 'Agreed.' } : { status: 'todo', detail: 'Not yet agreed.' },
   },
   {
+    id: 'board_setup', stage: 3, title: 'How your board runs', href: '/setup/board',
+    minutes: 4,
+    payoff: 'Your board pack reports its own governance — who the directors are and whether the board is actually sitting.',
+    why: 'The board is the fourth audience on the same data. Setting the cadence and recording the directors means governance is reported alongside the numbers every period, rather than being remembered once a year.',
+    check: async t => {
+      const dirs = await db.select().from(schema.directors).where(eq(schema.directors.tenantId, t));
+      const active = dirs.filter(d => d.active).length;
+      const board = (await db.select().from(schema.meetings).where(eq(schema.meetings.tenantId, t))).filter(m => m.type === 'board');
+      if (!active && !board.length) return { status: 'todo', detail: 'Cadence, directors, and when the board last met.' };
+      if (!active) return { status: 'in_progress', detail: 'Meetings recorded, no directors yet.' };
+      if (!board.length) return { status: 'in_progress', detail: `${active} director(s) recorded, no board meeting yet.` };
+      return { status: 'done', detail: `${active} director(s) · last met ${board.map(m => m.date).sort().reverse()[0]}.` };
+    },
+  },
+  {
     id: 'first_month', stage: 3, title: 'Score the first month', href: '/',
     why: 'Month one is a baseline, not a verdict. What matters is that every role is scored once and both gates report real numbers, so month two has something to compare against.',
     minutes: 20,

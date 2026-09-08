@@ -17,7 +17,27 @@ export const tenants = pgTable('tenants', {
   programRequestedAt: text('program_requested_at'),
   stripeCustomerId: text('stripe_customer_id'),        // set on first Checkout Session; reused for the billing portal
   stripeSubscriptionId: text('stripe_subscription_id'), // set on checkout.session.completed; used to match invoice/subscription webhooks back to a tenant
+  /**
+   * How often the board actually sits. Monthly is what SPEC recommends and what the rhythm is built
+   * around; quarterly is the outer limit, offered because a board that meets quarterly and reports
+   * honestly beats one that agrees to monthly and then doesn't sit.
+   */
+  boardCadence: text('board_cadence').notNull().default('monthly'), // monthly | quarterly
 }).enableRLS();
+
+/**
+ * Who sits on the board. Governance is part of Compliance, not an administrative afterthought: a
+ * board that cannot say who its directors are, or when it last met, has a compliance gap whatever
+ * the safety numbers say.
+ */
+export const directors = pgTable('directors', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  name: text('name').notNull(),
+  title: text('title'),                    // Chair, Non-executive director, Owner...
+  appointedAt: text('appointed_at'),
+  active: boolean('active').notNull().default(true),
+}, t => [index('directors_tenant').on(t.tenantId)]).enableRLS();
 
 // One row per app user, linked to a Supabase Auth identity via authUserId (auth.users.id).
 // A person may hold roles in more than one tenant (e.g. a consultant); one row per tenant+email.

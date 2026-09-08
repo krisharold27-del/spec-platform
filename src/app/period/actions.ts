@@ -8,6 +8,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { getTeamRollup, getGates, PILLARS } from '@/lib/queries';
+import { governanceChecks, cadenceOf } from '@/lib/governance';
 import { generateBoardOutput } from '@/lib/board-output';
 import { sendBoardOutputReadyEmail } from '@/lib/email';
 
@@ -46,7 +47,12 @@ export async function lockPeriod(formData: FormData) {
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
   const rollup = await getTeamRollup(user.tenantId, periodId);
   const gates = await getGates(periodId);
-  const md = await generateBoardOutput({ tenantName: tenant.name, period: period.period, rollup, gates, pillars: PILLARS });
+  // Governance is part of the pack, not a separate report — it lives inside Compliance.
+  const boardMeetings = (await db.select().from(schema.meetings).where(eq(schema.meetings.tenantId, tenant.id))).filter(m => m.type === 'board');
+  const directorRows = await db.select().from(schema.directors).where(eq(schema.directors.tenantId, tenant.id));
+  const governance = governanceChecks(cadenceOf(tenant.boardCadence), boardMeetings, directorRows);
+
+  const md = await generateBoardOutput({ tenantName: tenant.name, period: period.period, rollup, gates, pillars: PILLARS, governance });
   await db.insert(schema.boardOutputs).values({ id: randomUUID(), periodId, markdown: md, generatedBy: 'claude', createdAt: new Date().toISOString() });
   await db.update(schema.periods).set({ status: 'locked' }).where(eq(schema.periods.id, periodId));
   const [y, m] = period.period.split('-').map(Number);
