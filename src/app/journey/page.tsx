@@ -98,16 +98,52 @@ export default async function Journey() {
         </ol>
       </section>
 
+      {/*
+        * Two journeys, not a pricing table. The destination is identical; what differs is whether
+        * the leader walks it alone. Presented with equal weight and named honestly, because the
+        * only outcome that costs a business anything is stopping — and a leader who feels sold to
+        * at the point of difficulty stops.
+        */}
       {tenant.plan !== 'program' && (
-        <section className="mt-10 rounded-lg border-t-4 border-rust bg-ink p-5 text-white">
-          <div className="text-xs font-semibold uppercase tracking-wider text-rust-light">Option</div>
-          <div className="mt-1 font-serif text-lg font-bold">Run this as a SPEC Program</div>
-          <p className="mt-1 text-sm text-slate-300">Basic gives you the system. A Program adds the consulting arm of SPEC Business Solutions: rollout led on site, supervisor and manager training with SPEC certification, and a principal at your board meeting each month. Businesses in the record that finish the year on a Program end up with an operation that runs without the owner in every decision.</p>
-          <form action={requestProgram} className="mt-3">
-            {tenant.programRequestedAt
-              ? <span className="text-sm text-emerald-300">Requested — SPEC Business Solutions will be in touch.</span>
-              : <button className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-slate-200">Ask about a Program</button>}
-          </form>
+        <section className="mt-10">
+          <h2 className="label-caps">Two ways to do this</h2>
+          <p className="mt-1 max-w-2xl text-sm text-ink-light">
+            Both end in the same place: a business that runs well, visibly, without you in every decision.
+            The only choice that doesn&apos;t get you there is stopping.
+          </p>
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <div className="flex flex-col rounded-lg border border-ink/10 bg-white p-5">
+              <div className="label-caps">On your own</div>
+              <div className="mt-1 font-serif text-lg font-bold text-ink">You work through it</div>
+              <p className="mt-2 flex-1 text-sm text-ink-light">
+                The system leads each step and Claude explains why each one exists, so you are never guessing what
+                comes next. You set the pace. Most businesses can do this — it asks for honesty and a few hours a month,
+                not expertise.
+              </p>
+              <div className="mt-3 text-sm font-medium text-ink">$100 a year</div>
+              {!plan.paid && (
+                <form action="/api/stripe/checkout" method="post" className="mt-3">
+                  <button className="btn-secondary w-full">Keep going on my own</button>
+                </form>
+              )}
+            </div>
+
+            <div className="flex flex-col rounded-lg border border-ink/10 bg-white p-5">
+              <div className="label-caps">With someone alongside you</div>
+              <div className="mt-1 font-serif text-lg font-bold text-ink">We walk it with you</div>
+              <p className="mt-2 flex-1 text-sm text-ink-light">
+                SPEC Business Solutions runs the rollout with you: on site, manager and supervisor training with SPEC
+                certification, and a principal at your board meeting each month. For when the problems are big enough
+                that you would rather not do this alone.
+              </p>
+              <div className="mt-3 text-sm font-medium text-ink">Quoted per business</div>
+              <form action={requestProgram} className="mt-3">
+                {tenant.programRequestedAt
+                  ? <span className="text-sm text-emerald-800">Requested — SPEC Business Solutions will be in touch.</span>
+                  : <button className="btn-primary w-full">Ask about doing it together</button>}
+              </form>
+            </div>
+          </div>
         </section>
       )}
     </Shell>
