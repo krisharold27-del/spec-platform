@@ -20,13 +20,13 @@ Design constraints: the leader does this without a consultant in the room; Claud
 Claude runs these as a conversation; the app records the answers.
 
 4. **Question Zero.** Why now — what number or moment made this worth doing. If the answer is vague, Claude says so and slows down rather than pushing on.
-5. **Business expectations.** The organisational diagnostic (what we do well, what we want to do well in years 1–3, same or different), the Financial Truth Matrix, and the First Meeting questions (success, commercial reality, coverage checklist, timeline, confidence, trust, communication, systems, NPS baseline).
-6. **Covenant.** The leader reads and accepts the leadership covenant and the three early-warning signs. This is a click, but it's the click that matters.
+5. **Business expectations.** Eight questions gate the next step: what the business does well today, the year 1 ambition, whether that ambition matches the core competence, the two Financial Truth Matrix axes and the numbers-vs-reporting split, and the one indicator the leader would need to know about immediately. The rest of the diagnostic — commercial reality, the coverage checklist, timeline, confidence, trust, communication, systems, NPS baseline — is asked at the step that uses it, not as homework on day one.
+6. **How we'll work together.** The leader reads and agrees how the arrangement runs and the three early-warning signs. This is a click, but it's the click that matters.
 7. **Org chart — roles first.** Claude proposes the roles the business needs (GM; Commercial, Operations, Growth heads; supervisors under Operations) and the leader confirms or edits. No names yet. Roles exist before people.
 8. **KPIs per role.** Claude proposes two per pillar from the templates, tuned to the sector and the expectations from step 5. Targets are negotiated, not imposed — the app records proposed vs agreed. Weights must sum to 100%.
 9. **Assign people.** The leader puts a person into each role by email. Access follows the role (supervisor and above full, staff read-only). Invites go out.
 
-**Gate to Stage 2:** every manager role has a person, every role has eight KPIs, the covenant is accepted.
+**Gate to Stage 2:** every manager role has a person, every role has eight KPIs, how we'll work together is agreed.
 
 ## Stage 2 — Cascade (weeks 1–2)
 

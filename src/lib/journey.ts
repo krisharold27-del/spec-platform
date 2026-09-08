@@ -18,14 +18,24 @@ export interface StepDef {
   check: (tenantId: string) => Promise<{ status: StepStatus; detail: string }>;
 }
 
-const WEEK1_SECTIONS = ['org_diagnostic', 'financial_truth_matrix', 'success', 'commercial_reality', 'timeline', 'confidence', 'trust', 'communication', 'nps'];
+/**
+ * The diagnostic questions that genuinely gate progress — everything else is asked later, at the
+ * step that uses it. Question Zero has its own journey step, so it is not repeated here.
+ * Marked `"gate": true` in seed/diagnostic.json; this list is the same set, kept explicit so the
+ * gate cannot drift silently when the seed file is edited.
+ */
+const GATE_QUESTIONS: [string, string][] = [
+  ['org_diagnostic', 'od1'],            // what the business does well today
+  ['org_diagnostic', 'od3'],            // year 1 ambition
+  ['org_diagnostic', 'od6'],            // same as core competence, or different
+  ['financial_truth_matrix', 'ftm1'],   // is the business functioning
+  ['financial_truth_matrix', 'ftm2'],   // are the financials functioning
+  ['financial_truth_matrix', 'ftm3'],   // numbers bad, or the reading of them
+  ['confidence', 'c3'],                 // the one indicator you'd need to know about immediately
+];
 
 async function answered(tenantId: string, sectionId: string) {
   return db.select().from(schema.diagnostics).where(and(eq(schema.diagnostics.tenantId, tenantId), eq(schema.diagnostics.sectionId, sectionId)));
-}
-function questionCount(sectionId: string) {
-  const s = (diagnostic.sections as { id: string; questions?: unknown[] }[]).find(x => x.id === sectionId);
-  return s?.questions?.length ?? 0;
 }
 async function activeRoles(tenantId: string) {
   return db.select().from(schema.roles).where(and(eq(schema.roles.tenantId, tenantId), eq(schema.roles.active, true)));
@@ -61,18 +71,16 @@ export const STEPS: StepDef[] = [
     id: 'expectations', stage: 1, title: 'Business expectations', href: '/setup/expectations',
     why: 'What the business does well, what it wants to do well, and what success looks like to the owner decide how SPEC gets applied here. Every KPI proposed later is tuned to these answers.',
     check: async t => {
-      const total = WEEK1_SECTIONS.reduce((s, id) => s + questionCount(id), 0);
+      const total = GATE_QUESTIONS.length;
       let done = 0;
-      for (const id of WEEK1_SECTIONS) done += (await answered(t, id)).filter(a => a.answer.trim()).length;
+      for (const [sectionId, questionId] of GATE_QUESTIONS) {
+        const rows = await answered(t, sectionId);
+        if (rows.some(a => a.questionId === questionId && a.answer.trim())) done += 1;
+      }
       if (done === 0) return { status: 'todo', detail: `0 of ${total} questions answered.` };
       if (done < total) return { status: 'in_progress', detail: `${done} of ${total} questions answered.` };
-      return { status: 'done', detail: `${total} questions answered.` };
+      return { status: 'done', detail: `${total} questions answered — the rest are asked as they're needed.` };
     },
-  },
-  {
-    id: 'covenant', stage: 1, title: 'Accept the leadership covenant', href: '/setup/expectations#covenant',
-    why: 'The covenant names how this arrangement works and the three ways it typically breaks down. Naming them now means they are recognised as known patterns later, not personal conflicts.',
-    check: async t => (await answered(t, 'covenant')).length ? { status: 'done', detail: 'Accepted.' } : { status: 'todo', detail: 'Not yet accepted.' },
   },
   {
     id: 'roles', stage: 1, title: 'Org chart — roles first', href: '/setup/roles',
@@ -129,6 +137,11 @@ export const STEPS: StepDef[] = [
       for (const r of subs) if (await holder(r.id)) filled++;
       return { status: filled === subs.length ? 'done' : 'in_progress', detail: `${filled} of ${subs.length} team roles filled · ${accepted} people signed in.` };
     },
+  },
+  {
+    id: 'covenant', stage: 3, title: "Agree how we'll work together", href: '/setup/expectations#covenant',
+    why: "This names how the arrangement runs — the scorecard drives the board conversation, the GM runs the business, and if trust is ever in question it gets named directly. It sits here rather than on day one because agreeing to it means more once the system has produced something real.",
+    check: async t => (await answered(t, 'covenant')).length ? { status: 'done', detail: 'Agreed.' } : { status: 'todo', detail: 'Not yet agreed.' },
   },
   {
     id: 'first_month', stage: 3, title: 'Score the first month', href: '/',
