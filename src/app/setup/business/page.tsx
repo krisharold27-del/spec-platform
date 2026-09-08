@@ -11,6 +11,11 @@ import { nameRole, unplaceStaff, resolveRoleChange, invite } from '../people/act
 
 export const dynamic = 'force-dynamic';
 
+const ERROR: Record<string, string> = {
+  duplicate_head: 'That stream already has a head. A stream has one owner — that is what makes "who owns the numbers" answerable. Add a supervisor or team member under them instead.',
+  duplicate_title: 'There is already a role with that name in this stream. Give this one a name that tells them apart — "Supervisor, north crew" rather than a second "Supervisor".',
+};
+
 type TemplateRole = { template_id: string; title: string; stream: string; level: string };
 
 const STREAMS = [
@@ -32,6 +37,7 @@ const STREAMS = [
 export default async function Business({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   const sp = await searchParams;
+  const error = ERROR[String(sp.error ?? '')];
 
   const roleRows = await db.select().from(schema.roles)
     .where(and(eq(schema.roles.tenantId, user.tenantId), eq(schema.roles.active, true)))
@@ -117,6 +123,16 @@ export default async function Business({ searchParams }: { searchParams: Promise
       title="Your business on one page"
       subtitle="Add the roles the business needs, then write in who does each one. Nothing is emailed and nothing is charged until you send invites, which is the last section."
     >
+      {error && <div className="mb-4 rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">{error}</div>}
+
+      {/* Same title twice is legitimate below manager level, but the owner has to be able to tell them apart. */}
+      {roleRows.some((r, i) => roleRows.findIndex(x => x.title === r.title && x.stream === r.stream) !== i) && (
+        <div className="mb-4 rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
+          Two roles here share a name, so neither you nor anyone you invite can tell which is which.
+          Rename one, or delete it if it was added twice by accident.
+        </div>
+      )}
+
       {change && (
         <section className="mb-6 rounded-lg border-l-4 border-rust bg-white p-5">
           <div className="label-caps">One question first</div>

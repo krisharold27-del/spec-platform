@@ -30,10 +30,30 @@ export async function addRole(formData: FormData) {
   const t = (templates.roles as TR[]).find(r => r.template_id === templateId);
   const level = t?.level ?? String(formData.get('level') ?? 'staff');
   const stream = t?.stream ?? String(formData.get('stream') ?? 'operations');
-  const count = (await db.select().from(schema.roles).where(eq(schema.roles.tenantId, user.tenantId))).length;
+  const existing = await db.select().from(schema.roles)
+    .where(and(eq(schema.roles.tenantId, user.tenantId), eq(schema.roles.active, true)));
+
+  /*
+   * One head per stream. Commercial, Operations and Growth each have a single owner — that is the
+   * whole point of the model, since "who owns the numbers" has to have one answer. Without this
+   * guard a second click on Add produced a silent twin, and a chart with three identical Heads of
+   * Commercial tells the owner nothing about their business.
+   *
+   * Supervisors and team members below them are a different matter: a business genuinely has several,
+   * so duplicates there are allowed and only need distinguishing titles.
+   */
+  if (level === 'manager' && existing.some(r => r.level === 'manager' && r.stream === stream)) {
+    redirect('/setup/business?error=duplicate_head');
+  }
+  const title = customTitle || t?.title || 'New role';
+  if (existing.some(r => r.title.toLowerCase() === title.toLowerCase() && r.stream === stream)) {
+    redirect('/setup/business?error=duplicate_title');
+  }
+
+  const count = existing.length;
   const rid = randomUUID();
   await db.insert(schema.roles).values({
-    id: rid, tenantId: user.tenantId, title: customTitle || t?.title || 'New role', stream, level,
+    id: rid, tenantId: user.tenantId, title, stream, level,
     defaultAccess: level === 'staff' ? 'readonly' : 'full', reportsToRoleId: reportsTo, pnlView: t?.pnl_view ?? null, sortOrder: count,
   });
   if (t) {
@@ -46,7 +66,7 @@ export async function addRole(formData: FormData) {
       });
     }
   }
-  revalidatePath('/setup/roles'); revalidatePath('/org'); revalidatePath('/journey');
+  revalidatePath('/setup/business'); revalidatePath('/org'); revalidatePath('/journey');
 }
 
 export async function removeRole(formData: FormData) {
@@ -57,5 +77,5 @@ export async function removeRole(formData: FormData) {
   const role = roleRows[0];
   if (!role || role.level === 'gm') return;
   await db.update(schema.roles).set({ active: false }).where(eq(schema.roles.id, id));
-  revalidatePath('/setup/roles'); revalidatePath('/org'); revalidatePath('/journey');
+  revalidatePath('/setup/business'); revalidatePath('/org'); revalidatePath('/journey');
 }
