@@ -58,6 +58,30 @@ export const STEPS: StepDef[] = [
     },
   },
   {
+    id: 'pillar_focus', stage: 1, title: "Understand what's driving it", href: '/setup/focus',
+    why: "The four questions say where it hurts. This says why — one question for each pillar the business said yes to, so the cause is named before anything is built. It is the shortest step in the journey and the one that decides where the work starts.",
+    check: async t => {
+      const rows = await db.select().from(schema.diagnostics).where(eq(schema.diagnostics.tenantId, t));
+      const hurting = rows.filter(r => r.sectionId === 'four_questions' && r.answer === 'yes').map(r => r.questionId);
+      if (!hurting.length) return { status: 'done', detail: 'Nothing flagged in the four questions.' };
+      const done = hurting.filter(p => rows.some(r => r.sectionId === 'pillar_drilldown' && r.questionId === p && r.answer.trim()));
+      if (!done.length) return { status: 'todo', detail: `${hurting.length} pillar(s) flagged: ${hurting.join(', ')}.` };
+      if (done.length < hurting.length) return { status: 'in_progress', detail: `${done.length} of ${hurting.length} understood.` };
+      return { status: 'done', detail: `Cause named for ${done.join(', ')}.` };
+    },
+  },
+  {
+    id: 'roles', stage: 1, title: 'Org chart — roles first', href: '/setup/roles',
+    why: 'Roles are defined by what the business needs; people are assigned afterwards. Building the chart empty stops the role being bent around whoever happens to be there.',
+    check: async t => {
+      const roles = await activeRoles(t);
+      const managers = roles.filter(r => r.level === 'manager');
+      if (roles.length <= 1) return { status: 'todo', detail: 'Only the top role exists. Add the roles the business needs.' };
+      if (managers.length < 3) return { status: 'in_progress', detail: `${managers.length} of 3 COGS heads (Commercial, Operations, Growth) defined.` };
+      return { status: 'done', detail: `${roles.length} roles defined.` };
+    },
+  },
+  {
     id: 'question_zero', stage: 1, title: 'Question Zero — why now?', href: '/setup/expectations#question_zero',
     why: 'If leadership cannot say what number or moment made this worth doing, that is itself information, and the rollout should slow down rather than push on.',
     check: async t => {
@@ -80,17 +104,6 @@ export const STEPS: StepDef[] = [
       if (done === 0) return { status: 'todo', detail: `0 of ${total} questions answered.` };
       if (done < total) return { status: 'in_progress', detail: `${done} of ${total} questions answered.` };
       return { status: 'done', detail: `${total} questions answered — the rest are asked as they're needed.` };
-    },
-  },
-  {
-    id: 'roles', stage: 1, title: 'Org chart — roles first', href: '/setup/roles',
-    why: 'Roles are defined by what the business needs; people are assigned afterwards. Building the chart empty stops the role being bent around whoever happens to be there.',
-    check: async t => {
-      const roles = await activeRoles(t);
-      const managers = roles.filter(r => r.level === 'manager');
-      if (roles.length <= 1) return { status: 'todo', detail: 'Only the top role exists. Add the roles the business needs.' };
-      if (managers.length < 3) return { status: 'in_progress', detail: `${managers.length} of 3 COGS heads (Commercial, Operations, Growth) defined.` };
-      return { status: 'done', detail: `${roles.length} roles defined.` };
     },
   },
   {

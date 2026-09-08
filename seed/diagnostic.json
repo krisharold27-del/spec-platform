@@ -3,6 +3,62 @@
   "source": "SPEC_Workbook_Full — First Meeting - Alignment tab; Command Center (Question Zero)",
   "sections": [
     {
+      "id": "pillar_drilldown",
+      "title": "What's actually driving it",
+      "when": "before_day_one",
+      "intro": "You said this is hurting. One question each — the point is to find the cause, not to catalogue the symptom.",
+      "questions": [
+        {
+          "id": "safety",
+          "pillar": "safety",
+          "type": "choice",
+          "text": "Safety — what's actually driving it?",
+          "options": [
+            "Incidents keep happening",
+            "The paperwork and records don't keep up",
+            "Supervisors aren't confident running it",
+            "Clients or auditors keep raising it"
+          ]
+        },
+        {
+          "id": "people",
+          "pillar": "people",
+          "type": "choice",
+          "text": "People — what's actually driving it?",
+          "options": [
+            "Losing good people",
+            "Can't hire the ones we need",
+            "Nobody's clear what their job actually is",
+            "Managers aren't managing"
+          ]
+        },
+        {
+          "id": "earnings",
+          "pillar": "earnings",
+          "type": "choice",
+          "text": "Earnings — what's actually driving it?",
+          "options": [
+            "Margin is thinner than it should be",
+            "Numbers arrive too late to act on",
+            "I don't trust the numbers I get",
+            "Busy but the cash isn't there"
+          ]
+        },
+        {
+          "id": "compliance",
+          "pillar": "compliance",
+          "type": "choice",
+          "text": "Compliance — what's actually driving it?",
+          "options": [
+            "Tickets and licences expire without warning",
+            "Contract obligations slipping",
+            "Records exist but can't be produced",
+            "Nobody owns it"
+          ]
+        }
+      ]
+    },
+    {
       "id": "question_zero",
       "title": "Question Zero",
       "when": "before_day_one",
