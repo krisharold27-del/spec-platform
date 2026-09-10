@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { safeNext } from '@/lib/auth-redirect';
+import { markEmailProven } from '@/lib/auth';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -12,8 +13,12 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      // A link sent to the address was used — the address is proven theirs.
+      if (data?.user) await markEmailProven(data.user.id);
+      return NextResponse.redirect(`${origin}${next}`);
+    }
     console.error('[auth/callback] code exchange failed', { status: error.status, code: error.code, message: error.message });
   }
   // Bad, expired or already-used link — say so on the sign-in page rather than failing silently.

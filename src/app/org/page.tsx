@@ -97,8 +97,9 @@ function Reports({ role, all, visible }: { role: RoleView; all: RoleView[]; visi
   );
 }
 
-export default async function OrgChart() {
+export default async function OrgChart({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
+  const { welcome } = await searchParams;
   const tenant = (await getTenantById(user.tenantId))!;
   const roles = await getRoles(tenant.id);
   const { visible } = await getScope(user);
@@ -119,6 +120,14 @@ export default async function OrgChart() {
 
   return (
     <Shell title={`${tenant.name} — org chart`} subtitle="The business by stream of work. A role can exist with nobody in it; a person cannot exist without a role.">
+      {/* The table, set. One greeting, one gentle next step — nothing to fill in to be here. */}
+      {welcome && (
+        <div className="mb-6 rounded-lg bg-white p-5">
+          <div className="font-serif text-xl font-bold text-ink">Welcome, {user.name.split(' ')[0]}. This is {tenant.name}.</div>
+          <p className="mt-1 text-sm text-ink-light">We&apos;ve sketched it to start. Put names in when you&apos;re ready.</p>
+          <Link href="/setup/business" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Put names in</Link>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-ink-light">
         <span><b className="font-semibold text-ink">{roles.length}</b> roles defined</span>
         <span><b className="font-semibold text-ink">{roles.length - totalVacant}</b> filled</span>

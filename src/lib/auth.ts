@@ -42,6 +42,47 @@ export const BUSINESS_COOKIE = 'spec_business';
 
 type UserRow = typeof schema.users.$inferSelect;
 
+/** Set on a sign-in identity once it has signed in through a link sent to its address. */
+const PROVEN = 'spec_email_proven';
+/** Proving needs the service key. Without it (a fresh local copy) every sign-in is by link anyway. */
+const provingEnabled = () => Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+/** Record that this identity has proven its address — called whenever a sign-in link is used. */
+export async function markEmailProven(authUserId: string): Promise<void> {
+  if (!provingEnabled()) return;
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin.auth.admin.getUserById(authUserId);
+    if (data?.user && data.user.app_metadata?.[PROVEN] !== true) {
+      await admin.auth.admin.updateUserById(authUserId, { app_metadata: { ...(data.user.app_metadata ?? {}), [PROVEN]: true } });
+    }
+  } catch (err) {
+    console.error('[auth] could not record a proven address', (err as Error).message);
+  }
+}
+
+/**
+ * Signs a brand-new business's first person straight in — no email step. Links only the one seat
+ * just created in that business; the address is NOT marked proven, so nothing else ever attaches
+ * to it until they sign in through a link. Returns false when it cannot (no service key).
+ */
+export async function signInNewBusiness(email: string, tenantId: string): Promise<boolean> {
+  if (!provingEnabled()) return false;
+  const admin = createAdminClient();
+  let { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
+  if (error) ({ data, error } = await admin.auth.admin.generateLink({ type: 'invite', email }));
+  const props = data?.properties;
+  if (error || !props?.hashed_token) return false;
+  const supabase = await createClient();
+  const { data: session, error: verifyError } = await supabase.auth.verifyOtp({
+    token_hash: props.hashed_token, type: emailOtpType(props.verification_type) ?? 'magiclink',
+  });
+  if (verifyError || !session?.user) return false;
+  await db.update(schema.users).set({ authUserId: session.user.id, acceptedAt: now() })
+    .where(and(eq(schema.users.tenantId, tenantId), eq(schema.users.email, email), isNull(schema.users.authUserId)));
+  return true;
+}
+
 /**
  * Every seat the signed-in person holds — one per business. One email can belong to several
  * businesses (a group owner, a consultant, a founder with a sandbox); each is its own row.
@@ -53,9 +94,14 @@ const mySeats = cache(async (): Promise<UserRow[]> => {
   const email = authUser.email.toLowerCase().trim();
 
   const linked = await db.select().from(schema.users).where(eq(schema.users.authUserId, authUser.id));
-  // First sign-in, or a business added under this address since: link every seat held under the
-  // verified address to this identity — the link in the email is what proved the address is theirs.
-  const unlinked = await db.select().from(schema.users).where(and(eq(schema.users.email, email), isNull(schema.users.authUserId)));
+  // A seat added under this address — an invite, a second business — is linked only once the
+  // address is PROVEN: signed into through a link sent to it. A business created at sign-up is
+  // entered without an email, which proves nothing; without this, someone who signed up using
+  // another person's address would inherit every seat later given to that address.
+  const proven = !provingEnabled() || authUser.app_metadata?.[PROVEN] === true;
+  const unlinked = proven
+    ? await db.select().from(schema.users).where(and(eq(schema.users.email, email), isNull(schema.users.authUserId)))
+    : [];
   for (const r of unlinked) {
     await db.update(schema.users).set({ authUserId: authUser.id, acceptedAt: r.acceptedAt ?? now() }).where(eq(schema.users.id, r.id));
   }
