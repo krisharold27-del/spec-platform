@@ -1,7 +1,7 @@
 import { Footer } from '@/components/ui';
 import { signIn } from './actions';
 
-const BAD_LINK = "That sign-in link didn't work — it may have expired or already been used. Request a fresh one below.";
+const BAD_LINK = "That sign-in link didn't work. Only the newest link works, for one hour. Request a fresh one below and use the email that arrives next.";
 
 const SIGNIN_ERRORS: Record<string, string> = {
   ratelimited: "Too many sign-in emails just went out to that address. Wait a minute, then try again.",

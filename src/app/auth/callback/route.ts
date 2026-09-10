@@ -2,11 +2,13 @@
  * person on to wherever they were headed (default: /journey). */
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { safeNext } from '@/lib/auth-redirect';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/journey';
+  // Only ever a path inside SPEC — joining an unchecked value onto the origin is an open redirect.
+  const next = safeNext(searchParams.get('next'));
 
   if (code) {
     const supabase = await createClient();
