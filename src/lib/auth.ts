@@ -74,8 +74,18 @@ export async function sendMagicLink(email: string, next?: string) {
 
   if (process.env.SUPABASE_SERVICE_ROLE_KEY && canSendEmail()) {
     // Supabase's own send limit no longer applies on this path, so SPEC keeps one of its own.
-    if (!signInEmails.allow(address)) throw Object.assign(new Error('Sign-in email sent within the last minute.'), { status: 429 });
+    const tooSoon = () => Object.assign(new Error('Sign-in email sent within the last minute.'), { status: 429 });
+    if (!signInEmails.allow(address)) throw tooSoon();
     const admin = createAdminClient();
+    // Across servers too: the last send is kept on the person's sign-in identity. Checked BEFORE a
+    // new token is made, because making one would cancel the link already in their inbox.
+    const knownId = (await db.select({ authUserId: schema.users.authUserId }).from(schema.users)
+      .where(eq(schema.users.email, address)))[0]?.authUserId;
+    if (knownId) {
+      const { data: found } = await admin.auth.admin.getUserById(knownId);
+      const last = Date.parse(String(found?.user?.app_metadata?.spec_link_sent_at ?? ''));
+      if (Number.isFinite(last) && Date.now() - last < 60_000) throw tooSoon();
+    }
     // Only asks for a token — generateLink never sends anything itself.
     let { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email: address });
     if (error) {
@@ -87,6 +97,15 @@ export async function sendMagicLink(email: string, next?: string) {
     if (!props?.hashed_token) throw new Error('No sign-in token was issued.');
     const type = emailOtpType(props.verification_type) ?? 'magiclink';
     await sendSignInEmail({ to: address, url: signInUrl(appUrl, props.hashed_token, type, next) });
+    const u = data.user;
+    if (u?.id) {
+      // Best effort: the email has already gone, so a failure here must not look like a failed send.
+      try {
+        await admin.auth.admin.updateUserById(u.id, { app_metadata: { ...(u.app_metadata ?? {}), spec_link_sent_at: new Date().toISOString() } });
+      } catch (err) {
+        console.error('[signin] could not record the send time', (err as Error).message);
+      }
+    }
     return;
   }
 

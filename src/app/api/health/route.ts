@@ -30,6 +30,8 @@ const OPTIONAL = [
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
   'ADMIN_EMAILS',
+  'NEXT_PUBLIC_TURNSTILE_SITE_KEY',
+  'TURNSTILE_SECRET_KEY',
 ] as const;
 
 const present = (k: string) => Boolean(process.env[k]?.trim());
