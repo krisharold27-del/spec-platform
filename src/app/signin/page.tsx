@@ -1,40 +1,40 @@
 import { Footer } from '@/components/ui';
 import { signIn } from './actions';
 
-const BAD_LINK = "That sign-in link didn't work. Only the newest link works, for one hour. Request a fresh one below and use the email that arrives next.";
+const BAD_LINK = 'That link has expired. Send yourself a new one.';
 
-const SIGNIN_ERRORS: Record<string, string> = {
-  ratelimited: "Too many sign-in emails just went out to that address. Wait a minute, then try again.",
-  failed: "We couldn't send the sign-in email just now. Try again in a moment — if it keeps happening, email manager@specbizhq.com.",
+const MESSAGES: Record<string, string> = {
+  ratelimited: 'A link was sent a moment ago. Check your email, or try again in a minute.',
+  failed: "The email didn't send. Try again.",
   link: BAD_LINK,
-  signup_email: "Your business is set up, but the sign-in email didn't go. Enter your email below to get one.",
-  // Older callback links still redirect with ?error=1.
-  "1": BAD_LINK,
+  signup_email: "Your business is set up. Send yourself a link to get in.",
+  '1': BAD_LINK,
 };
 
 export default async function SignIn({ searchParams }: { searchParams: Promise<{ unknown?: string; exists?: string; sent?: string; known?: string; error?: string }> }) {
   const sp = await searchParams;
-  const signInError = sp.error ? SIGNIN_ERRORS[sp.error] ?? BAD_LINK : null;
+  const note = sp.unknown
+    ? 'No account for that email.'
+    : sp.error ? MESSAGES[sp.error] ?? BAD_LINK : null;
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
+    <main className="mx-auto max-w-sm px-6 py-20">
       <div className="label-caps">SPEC</div>
-      <h1 className="mt-1 font-serif text-2xl font-bold text-ink">Sign in</h1>
-      {sp.unknown && <p className="mt-3 rounded bg-amber-50 p-3 text-sm text-amber-900">No account for that email. Ask your manager to assign you to a role, or <a className="underline" href="/signup">start a business</a>.</p>}
-      {sp.exists && <p className="mt-3 rounded bg-amber-50 p-3 text-sm text-amber-900">That email already has a role. Sign in instead.</p>}
-      {signInError && <p className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-900">{signInError}</p>}
       {sp.sent ? (
-        <p className="mt-8 rounded-lg border bg-emerald-50 p-4 text-sm text-emerald-900">
-          {sp.known
-            ? <>That email is already on SPEC, so there&apos;s nothing to set up. We&apos;ve sent it a sign-in link — press the button in that email and you&apos;re in.</>
-            : <>Check your email — we&apos;ve sent a sign-in link. Press the button in it and you&apos;re in.</>}
-          <span className="mt-2 block text-emerald-900/70">You only do this once on each browser; after that you stay signed in.</span>
-        </p>
+        <>
+          <h1 className="mt-1 font-serif text-2xl font-bold text-ink">Check your email</h1>
+          <p className="mt-3 text-sm text-ink-light">Click the link in it and you&apos;re in.</p>
+        </>
       ) : (
-        <form action={signIn} className="mt-8 space-y-4">
-          <label className="block text-sm">Work email<input name="email" type="email" required className="mt-1 w-full rounded border px-3 py-2" /></label>
-          <button className="btn-primary w-full py-2.5">Email me a sign-in link</button>
-          <p className="text-center text-xs text-ink-light">No password needed — we&apos;ll email you a secure link. New here? <a href="/signup" className="underline">Start a business</a></p>
-        </form>
+        <>
+          <h1 className="mt-1 font-serif text-2xl font-bold text-ink">Sign in</h1>
+          {note && <p className="mt-4 text-sm text-rust-dark">{note}</p>}
+          <form action={signIn} className="mt-6 space-y-3">
+            <input name="email" type="email" required autoComplete="email" placeholder="Your email" aria-label="Your email"
+              className="w-full rounded border px-3 py-2.5" />
+            <button className="btn-primary w-full py-2.5">Send me a link</button>
+          </form>
+          <p className="mt-6 text-sm text-ink-light">New? <a href="/signup" className="underline">Start a business</a></p>
+        </>
       )}
       <Footer />
     </main>
