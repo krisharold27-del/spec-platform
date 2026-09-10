@@ -16,8 +16,10 @@
  * what the system will do — before spending a cent or entering a card.
  */
 
-/** Per active named seat, per month, in AUD. */
-export const SEAT_PRICE_MONTHLY = 26;
+import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, type Currency } from './pricing';
+
+/** Per active named seat, per month, in the home currency (AUD). Other regions: see lib/pricing. */
+export const SEAT_PRICE_MONTHLY = SEAT_PRICES[HOME_CURRENCY].seat;
 
 export interface TenantPlan {
   id: string;
@@ -28,7 +30,9 @@ export interface TenantPlan {
 export interface PlanState {
   /** People with a way into the business — this is what is billed. */
   seats: number;
-  /** seats × the seat price. */
+  /** The business's own currency — prices are decided per region, never converted. */
+  currency: Currency;
+  /** seats × the seat price in that currency. */
   monthlyCost: number;
   /** The meter has started: at least one person can get in. */
   billing: boolean;
@@ -45,12 +49,13 @@ export interface PlanState {
   readOnly: boolean;
 }
 
-export function planState(tenant: TenantPlan, seats: number): PlanState {
+export function planState(tenant: TenantPlan, seats: number, currency: Currency = HOME_CURRENCY): PlanState {
   const program = tenant.plan === 'program';
   const lapsed = tenant.plan === 'lapsed';
   return {
     seats,
-    monthlyCost: seats * SEAT_PRICE_MONTHLY,
+    currency,
+    monthlyCost: seats * SEAT_PRICES[currency].seat,
     billing: seats > 0 && !program,
     free: seats === 0,
     program,
@@ -59,16 +64,16 @@ export function planState(tenant: TenantPlan, seats: number): PlanState {
   };
 }
 
-/** "$130 a month · 5 people" — the two numbers a leader actually wants to see together. */
+/** "A$130 a month · 5 people" — the two numbers a leader actually wants to see together. */
 export function costLabel(state: PlanState): string {
   if (state.program) return 'SPEC Program';
   if (state.free) return 'Free — nobody in it yet';
-  return `$${state.monthlyCost} a month · ${state.seats} ${state.seats === 1 ? 'person' : 'people'}`;
+  return `${moneyLabel(state.currency, state.monthlyCost)} a month · ${state.seats} ${state.seats === 1 ? 'person' : 'people'}`;
 }
 
 /** What inviting one more person adds, for the line shown next to an invite button. */
-export function nextSeatLabel(): string {
-  return `Inviting someone adds $${SEAT_PRICE_MONTHLY} a month. Roles with no one in them are always free.`;
+export function nextSeatLabel(currency: Currency = HOME_CURRENCY): string {
+  return `Inviting someone adds ${seatLabel(currency)} a month. Roles with no one in them are always free.`;
 }
 
 /**
@@ -90,12 +95,12 @@ export async function countSeats(tenantId: string): Promise<number> {
   return rows.filter(u => u.invitedAt || u.acceptedAt || u.authUserId).length;
 }
 
-export async function planStateFor(tenantId: string): Promise<PlanState> {
+export async function planStateFor(tenantId: string, currency: Currency = HOME_CURRENCY): Promise<PlanState> {
   const { db, schema } = await import('../db');
   const { eq } = await import('drizzle-orm');
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, tenantId)))[0];
   if (!tenant) throw new Error('Business not found.');
-  return planState({ id: tenant.id, plan: tenant.plan, startDate: tenant.startDate }, await countSeats(tenantId));
+  return planState({ id: tenant.id, plan: tenant.plan, startDate: tenant.startDate }, await countSeats(tenantId), currency);
 }
 
 /**

@@ -1,11 +1,30 @@
 /**
- * Starts a Stripe Checkout session for SPEC self-serve — $26 per named seat per month.
+ * Starts a Stripe Checkout session for SPEC self-serve — a seat per named person per month, at the
+ * regional price for where the business is (lib/pricing).
  *
  * Quantity is the number of people actually invited into the business, counted at checkout rather
  * than typed in, so a leader can never be billed for seats they did not create. Posted to from a
  * plain HTML form (no client JS needed). See docs/SPEC_GoLive_and_Operations.md §6.
  */
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import type Stripe from 'stripe';
+import { currencyForCountry, SEAT_PRICES, type Currency } from '@/lib/pricing';
+
+/**
+ * The seat price in the business's own currency. Found on the same product as the configured
+ * price, by currency AND by the exact amount in BUILD_SPEC §8.1 — so a price in Stripe that has
+ * drifted from the published table is never charged. Falls back to the configured (home) price.
+ */
+async function seatPriceFor(stripe: Stripe, configuredPriceId: string, currency: Currency): Promise<string> {
+  const base = await stripe.prices.retrieve(configuredPriceId);
+  const product = typeof base.product === 'string' ? base.product : base.product.id;
+  const want = SEAT_PRICES[currency].seat * 100;
+  const prices = await stripe.prices.list({ product, currency, active: true, type: 'recurring', limit: 100 });
+  const match = prices.data.find(p => p.unit_amount === want && p.recurring?.interval === 'month');
+  if (!match) console.error('[checkout] no published seat price in Stripe for', currency, '- charging the configured price');
+  return match?.id ?? configuredPriceId;
+}
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -35,9 +54,13 @@ export async function POST() {
   const seats = await countSeats(user.tenantId);
   if (seats === 0) return NextResponse.redirect(`${appUrl()}/journey?nothing_to_bill=1`, 303);
 
+  // Billed in the business's own currency, set by where it is (BUILD_SPEC §8.2).
+  const currency = currencyForCountry((await headers()).get('x-vercel-ip-country'));
+  const price = await seatPriceFor(stripe, priceId, currency);
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
-    line_items: [{ price: priceId, quantity: seats }],
+    line_items: [{ price, quantity: seats }],
     // client_reference_id is how the webhook maps the completed session back to a tenant —
     // more reliable than matching on customer email, which can differ from the app user's email.
     client_reference_id: tenant.id,

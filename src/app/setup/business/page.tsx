@@ -3,7 +3,9 @@ import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { Shell, PILLAR_META } from '@/components/ui';
-import { planStateFor, SEAT_PRICE_MONTHLY } from '@/lib/plan';
+import { planStateFor } from '@/lib/plan';
+import { seatLabel, moneyLabel } from '@/lib/pricing';
+import { requestCurrency } from '@/lib/request-currency';
 import { pencilled, roleChangeFor, type AssignmentRow, type RoleRow, type StaffRow } from '@/lib/staff';
 import templates from '../../../../seed/criteria_templates.json';
 import { addRole, removeRole } from '../roles/actions';
@@ -37,6 +39,7 @@ const STREAMS = [
 export default async function Business({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   const sp = await searchParams;
+  const currency = await requestCurrency();
   const error = ERROR[String(sp.error ?? '')];
 
   const roleRows = await db.select().from(schema.roles)
@@ -51,7 +54,7 @@ export default async function Business({ searchParams }: { searchParams: Promise
   const staff = staffRows as unknown as StaffRow[];
   const assignments = allAssignments.filter(a => roleIds.has(a.roleId)) as unknown as AssignmentRow[];
 
-  const plan = await planStateFor(user.tenantId);
+  const plan = await planStateFor(user.tenantId, currency);
   const gm = roleRows.find(r => r.level === 'gm');
   const waiting = pencilled(assignments, staff);
 
@@ -238,8 +241,8 @@ export default async function Business({ searchParams }: { searchParams: Promise
         </summary>
         <div className="border-t border-ink/10 p-5">
           <p className="text-sm text-ink-light">
-            An invite emails a login link and starts that person&apos;s seat at ${SEAT_PRICE_MONTHLY} a month.
-            {plan.free ? ' You have not been charged anything yet.' : ` You are currently at $${plan.monthlyCost} a month for ${plan.seats} ${plan.seats === 1 ? 'person' : 'people'}.`}
+            An invite emails a login link and starts that person&apos;s seat at {seatLabel(currency)} a month.
+            {plan.free ? ' You have not been charged anything yet.' : ` You are currently at ${moneyLabel(plan.currency, plan.monthlyCost)} a month for ${plan.seats} ${plan.seats === 1 ? 'person' : 'people'}.`}
           </p>
           {waiting.length === 0 ? (
             <p className="mt-3 text-sm text-ink">Everyone on the chart already has an account.</p>

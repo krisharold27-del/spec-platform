@@ -13,11 +13,17 @@ describe('seat-based plan', () => {
     expect(costLabel(s)).toBe('Free — nobody in it yet');
   });
 
-  it('bills $26 per invited person', () => {
+  it('bills A$26 per invited person', () => {
     const s = planState(t('basic'), 5);
     expect(s.monthlyCost).toBe(5 * SEAT_PRICE_MONTHLY);
     expect(s.monthlyCost).toBe(130);   // the brief's worked example
-    expect(costLabel(s)).toBe('$130 a month · 5 people');
+    expect(costLabel(s)).toBe('A$130 a month · 5 people');
+  });
+
+  it('bills in the business’s own currency, at the regional price — never converted', () => {
+    const s = planState(t('basic'), 5, 'gbp');
+    expect(s.monthlyCost).toBe(85);    // 5 × £17
+    expect(costLabel(s)).toBe('£85 a month · 5 people');
   });
 
   it('only goes read-only when a payment has actually failed', () => {

@@ -5,7 +5,9 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { journeyFor, minutesLeft, isCore, businessShape, shapeSentence, STAGES, MILESTONES, type StepStatus } from '@/lib/journey';
 import { Shell } from '@/components/ui';
-import { planStateFor, costLabel, SEAT_PRICE_MONTHLY } from '@/lib/plan';
+import { planStateFor, costLabel } from '@/lib/plan';
+import { seatLabel } from '@/lib/pricing';
+import { requestCurrency } from '@/lib/request-currency';
 import { momentumFor, onDate } from '@/lib/momentum';
 import { requestProgram } from './actions';
 
@@ -47,7 +49,8 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
   const sp = await searchParams;
   const notice = BILLING_NOTICE[Object.keys(BILLING_NOTICE).find(k => sp[k]) ?? ''];
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
-  const plan = await planStateFor(user.tenantId);
+  const currency = await requestCurrency();
+  const plan = await planStateFor(user.tenantId, currency);
   const steps = await journeyFor(user.tenantId);
   const momentum = await momentumFor(user.tenantId);
   const next = steps.find(s => isCore(s) && s.status !== 'done');
@@ -91,13 +94,13 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
           </div>
           <p className="mt-1 text-ink-light">
             Draw the whole business, set every KPI, take as long as you like. It only costs anything once
-            you invite a real person in — ${SEAT_PRICE_MONTHLY} a month each. Roles with nobody in them are always free.
+            you invite a real person in — {seatLabel(currency)} a month each. Roles with nobody in them are always free.
           </p>
         </div>
       )}
       {plan.billing && (
         <div className="mb-4 flex items-baseline justify-between gap-3 rounded-lg bg-white p-4 text-sm">
-          <span><b>{costLabel(plan)}</b> <span className="text-ink-light">· each extra person is ${SEAT_PRICE_MONTHLY} a month</span></span>
+          <span><b>{costLabel(plan)}</b> <span className="text-ink-light">· each extra person is {seatLabel(currency)} a month</span></span>
           <form action="/api/stripe/portal" method="post"><button className="text-sm text-ink-light underline hover:text-rust">Billing</button></form>
         </div>
       )}
