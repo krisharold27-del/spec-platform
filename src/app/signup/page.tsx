@@ -1,12 +1,15 @@
 import Script from 'next/script';
 import { Footer } from '@/components/ui';
+import { SubmitButton } from '@/components/submit-button';
 import { formSecret, issueFormToken, turnstileSiteKey } from '@/lib/bot-check';
 import { signUp } from './actions';
 
 export const dynamic = 'force-dynamic';
 
 const ERRORS: Record<string, string> = {
-  missing: 'Fill in all three.',
+  missing: 'Fill in every box.',
+  short: 'Choose a password of at least 8 characters.',
+  failed: "That didn't work. Try again.",
   too_fast: 'Press Create again.',
   expired: 'Press Create again.',
   check: 'Press Create again.',
@@ -32,8 +35,9 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<R
         <input name="name" required maxLength={200} autoComplete="name" placeholder="Your name" aria-label="Your name" className="w-full rounded border px-3 py-2.5" />
         <input name="business" required maxLength={200} autoComplete="organization" placeholder="Business name" aria-label="Business name" className="w-full rounded border px-3 py-2.5" />
         <input name="email" type="email" required maxLength={320} autoComplete="email" placeholder="Your email" aria-label="Your email" className="w-full rounded border px-3 py-2.5" />
+        <input name="password" type="password" required minLength={8} autoComplete="new-password" placeholder="Choose a password (8+ characters)" aria-label="Choose a password" className="w-full rounded border px-3 py-2.5" />
         {siteKey && <div className="cf-turnstile" data-sitekey={siteKey} data-appearance="interaction-only" />}
-        <button className="btn-primary w-full py-2.5">Create my business</button>
+        <SubmitButton pending="Setting up your business…">Create my business</SubmitButton>
       </form>
       <p className="mt-4 text-sm text-ink-light">Free until you invite someone. No card.</p>
       <p className="mt-6 text-sm text-ink-light">Already on SPEC? <a href="/signin" className="underline">Sign in</a></p>

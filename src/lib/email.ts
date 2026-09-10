@@ -37,14 +37,15 @@ export const canSendEmail = () => resend !== null;
  * for it, and "check your email" for an email that never went is worse than an error.
  * No business content — the link and nothing else.
  */
-export async function sendSignInEmail(opts: { to: string; url: string }) {
+export async function sendSignInEmail(opts: { to: string; url: string; subject?: string; button?: string }) {
   if (!resend) throw new Error('Email is not configured.');
+  const button = opts.button ?? 'Sign in to SPEC';
   const { error } = await resend.emails.send({
     from: FROM,
     to: opts.to,
-    subject: 'Your SPEC sign-in link',
-    html: wrap(`<p><a href="${opts.url}" style="display:inline-block;background:#B5502F;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Sign in to SPEC</a></p><p style="color:#64748b;font-size:13px">The link works once, for one hour. If you did not ask for it, ignore this email.</p>`),
-    text: `Sign in to SPEC: ${opts.url}\n\nThe link works once, for one hour. If you did not ask for it, ignore this email.`,
+    subject: opts.subject ?? 'Your SPEC sign-in link',
+    html: wrap(`<p><a href="${opts.url}" style="display:inline-block;background:#B5502F;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">${button}</a></p><p style="color:#64748b;font-size:13px">The link works once, for one hour. If you did not ask for it, ignore this email.</p>`),
+    text: `${button}: ${opts.url}\n\nThe link works once, for one hour. If you did not ask for it, ignore this email.`,
   });
   if (error) throw Object.assign(new Error(error.message), { code: error.name });
 }

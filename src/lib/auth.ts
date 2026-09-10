@@ -1,7 +1,8 @@
 /**
- * Sign-in via Supabase Auth (magic-link email). No passwords are handled here — Supabase sends
- * the link, the user clicks it, src/app/auth/callback/route.ts exchanges the code for a session.
- * getCurrentUser() resolves that Supabase identity to our own app-level user row (by tenant).
+ * Sign-in: email and password, straight in. No email step to get started — the beginning has to be
+ * smooth. Email is used for exactly two things: "Forgot password?", and confirming the address the
+ * first time someone adds a seat (security arrives when it matters, not at the door).
+ * getCurrentUser() resolves the Supabase identity to our app-level user row (by business).
  */
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { cookies } from 'next/headers';
@@ -10,12 +11,13 @@ import { db, schema } from '../db';
 import { createClient } from './supabase/server';
 import { createAdminClient } from './supabase/admin';
 import { canSendEmail, sendSignInEmail } from './email';
-import { emailOtpType, signInUrl } from './auth-redirect';
+import { signInUrl } from './auth-redirect';
 import { createThrottle } from './throttle';
 
-const signInEmails = createThrottle(60_000);
+const emailLinks = createThrottle(60_000);
 
 const now = () => new Date().toISOString();
+const appUrl = () => process.env.APP_URL ?? 'http://localhost:3000';
 
 /** See db/schema.ts users.access for what each level may do. */
 export type AccessLevel = 'administrator' | 'full' | 'readonly';
@@ -32,22 +34,17 @@ export interface CurrentUser {
   id: string; tenantId: string; email: string; name: string; access: AccessLevel;
 }
 
-/**
- * Resolves the signed-in Supabase Auth identity to our app-level user row.
- * Uses supabase.auth.getUser() (validates against the Supabase Auth server) rather than trusting
- * a local session cookie. Backfills users.authUserId by email the first time someone signs in.
- */
 /** Which of their businesses a person with more than one is looking at. Only ever one they hold a seat in. */
 export const BUSINESS_COOKIE = 'spec_business';
 
 type UserRow = typeof schema.users.$inferSelect;
 
-/** Set on a sign-in identity once it has signed in through a link sent to its address. */
+/** Set on a sign-in identity once it has used a link sent to its address — the only proof it is theirs. */
 const PROVEN = 'spec_email_proven';
 /** Proving needs the service key. Without it (a fresh local copy) every sign-in is by link anyway. */
 const provingEnabled = () => Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-/** Record that this identity has proven its address — called whenever a sign-in link is used. */
+/** Record that this identity has proven its address — called whenever a link sent to it is used. */
 export async function markEmailProven(authUserId: string): Promise<void> {
   if (!provingEnabled()) return;
   try {
@@ -61,26 +58,50 @@ export async function markEmailProven(authUserId: string): Promise<void> {
   }
 }
 
-/**
- * Signs a brand-new business's first person straight in — no email step. Links only the one seat
- * just created in that business; the address is NOT marked proven, so nothing else ever attaches
- * to it until they sign in through a link. Returns false when it cannot (no service key).
- */
-export async function signInNewBusiness(email: string, tenantId: string): Promise<boolean> {
-  if (!provingEnabled()) return false;
-  const admin = createAdminClient();
-  let { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
-  if (error) ({ data, error } = await admin.auth.admin.generateLink({ type: 'invite', email }));
-  const props = data?.properties;
-  if (error || !props?.hashed_token) return false;
+/** Has the signed-in person confirmed their email? Asked only when they first add a seat. */
+export async function emailConfirmed(): Promise<boolean> {
+  if (!provingEnabled()) return true;
   const supabase = await createClient();
-  const { data: session, error: verifyError } = await supabase.auth.verifyOtp({
-    token_hash: props.hashed_token, type: emailOtpType(props.verification_type) ?? 'magiclink',
-  });
-  if (verifyError || !session?.user) return false;
-  await db.update(schema.users).set({ authUserId: session.user.id, acceptedAt: now() })
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.app_metadata?.[PROVEN] === true;
+}
+
+export type NewSignIn = { ok: true; authUserId: string } | { ok: false; reason: 'exists' | 'failed' };
+
+/**
+ * Creates the sign-in for a brand-new business's first person. Done BEFORE the business is set up,
+ * so an address that already has a sign-in is refused before anything is created. The address is
+ * not proven by this, so nothing is ever attached to it by email until it is confirmed.
+ */
+export async function createSignIn(email: string, password: string): Promise<NewSignIn> {
+  if (provingEnabled()) {
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
+    if (error || !data?.user) {
+      const exists = error?.status === 422 || /already/i.test(error?.message ?? '');
+      if (!exists) console.error('[auth] could not create a sign-in', { status: error?.status, code: error?.code });
+      return { ok: false, reason: exists ? 'exists' : 'failed' };
+    }
+    return { ok: true, authUserId: data.user.id };
+  }
+  // A fresh local copy with no service key: the provider's own sign-up.
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error || !data.user) return { ok: false, reason: /already/i.test(error?.message ?? '') ? 'exists' : 'failed' };
+  return { ok: true, authUserId: data.user.id };
+}
+
+/** Links the one seat just created in a new business to its sign-in. Nothing else. */
+export async function linkNewSeat(authUserId: string, tenantId: string, email: string): Promise<void> {
+  await db.update(schema.users).set({ authUserId, acceptedAt: now() })
     .where(and(eq(schema.users.tenantId, tenantId), eq(schema.users.email, email), isNull(schema.users.authUserId)));
-  return true;
+}
+
+/** Email and password. Sets the session cookie; returns false if they do not match. */
+export async function signInWithPassword(email: string, password: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase().trim(), password });
+  return !error && Boolean(data.user);
 }
 
 /**
@@ -95,9 +116,9 @@ const mySeats = cache(async (): Promise<UserRow[]> => {
 
   const linked = await db.select().from(schema.users).where(eq(schema.users.authUserId, authUser.id));
   // A seat added under this address — an invite, a second business — is linked only once the
-  // address is PROVEN: signed into through a link sent to it. A business created at sign-up is
-  // entered without an email, which proves nothing; without this, someone who signed up using
-  // another person's address would inherit every seat later given to that address.
+  // address is PROVEN: a link sent to it was used. Signing up proves nothing about the address;
+  // without this, someone who signed up using another person's address would inherit every seat
+  // later given to it.
   const proven = !provingEnabled() || authUser.app_metadata?.[PROVEN] === true;
   const unlinked = proven
     ? await db.select().from(schema.users).where(and(eq(schema.users.email, email), isNull(schema.users.authUserId)))
@@ -111,9 +132,8 @@ const mySeats = cache(async (): Promise<UserRow[]> => {
 }); // cache(): looked up once per request, however many places ask
 
 /**
- * Resolves the signed-in Supabase Auth identity to our app-level user row — the seat in the business
- * they chose, or the first one they joined. Uses supabase.auth.getUser() (validated against the
- * Supabase Auth server) rather than trusting a local session cookie.
+ * The signed-in person's seat in the business they chose, or the first one they joined. Uses
+ * supabase.auth.getUser() (validated against the Supabase Auth server), not a local cookie alone.
  */
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const seats = await mySeats();
@@ -135,69 +155,51 @@ export async function myBusinesses(): Promise<{ tenantId: string; name: string; 
 }
 
 /**
- * Sends the sign-in email. `next` is where they land afterwards.
- *
- * SPEC makes the one-time token and sends the email itself, linking to its own one-press page
- * (/auth/confirm). A link straight to the auth provider is spent by the first thing that opens it —
- * and email security scanners open every link — so people arrived at "Email link is invalid or has
- * expired". The one-press page spends nothing until a person presses it, and works on any device.
- *
- * Without the service-role key or Resend (a fresh local checkout) it falls back to the auth
- * provider's own email — degrade, don't break.
+ * Emails a one-time link to the address. Two uses only:
+ *   'password' — forgot password, or never had one: lands on /account/password to set it.
+ *   'confirm'  — confirm the address, asked the first time someone adds a seat.
+ * Using either link proves the address is theirs (see /auth/confirm). At most one per minute.
  */
-export async function sendMagicLink(email: string, next?: string) {
+export async function sendEmailLink(email: string, purpose: 'password' | 'confirm', next?: string) {
   const address = email.toLowerCase().trim();
-  const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+  if (!emailLinks.allow(address)) throw Object.assign(new Error('A link was sent within the last minute.'), { status: 429 });
+  const landing = next ?? (purpose === 'password' ? '/account/password' : '/journey');
 
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY && canSendEmail()) {
-    // Supabase's own send limit no longer applies on this path, so SPEC keeps one of its own.
-    const tooSoon = () => Object.assign(new Error('Sign-in email sent within the last minute.'), { status: 429 });
-    if (!signInEmails.allow(address)) throw tooSoon();
+  if (provingEnabled() && canSendEmail()) {
     const admin = createAdminClient();
-    // Across servers too: the last send is kept on the person's sign-in identity. Checked BEFORE a
-    // new token is made, because making one would cancel the link already in their inbox.
-    const knownId = (await db.select({ authUserId: schema.users.authUserId }).from(schema.users)
-      .where(eq(schema.users.email, address)))[0]?.authUserId;
-    if (knownId) {
-      const { data: found } = await admin.auth.admin.getUserById(knownId);
-      const last = Date.parse(String(found?.user?.app_metadata?.spec_link_sent_at ?? ''));
-      if (Number.isFinite(last) && Date.now() - last < 60_000) throw tooSoon();
-    }
     // Only asks for a token — generateLink never sends anything itself.
-    let { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email: address });
-    if (error) {
-      // No sign-in identity yet (the first sign-in straight after sign-up): an invite token creates it.
-      ({ data, error } = await admin.auth.admin.generateLink({ type: 'invite', email: address }));
-    }
+    let { data, error } = await admin.auth.admin.generateLink({ type: purpose === 'password' ? 'recovery' : 'magiclink', email: address });
+    // No sign-in yet (someone invited who has never been in): an invite token creates it.
+    if (error) ({ data, error } = await admin.auth.admin.generateLink({ type: 'invite', email: address }));
     if (error) throw error;
     const props = data.properties;
-    if (!props?.hashed_token) throw new Error('No sign-in token was issued.');
-    const type = emailOtpType(props.verification_type) ?? 'magiclink';
-    await sendSignInEmail({ to: address, url: signInUrl(appUrl, props.hashed_token, type, next) });
-    const u = data.user;
-    if (u?.id) {
-      // Best effort: the email has already gone, so a failure here must not look like a failed send.
-      try {
-        await admin.auth.admin.updateUserById(u.id, { app_metadata: { ...(u.app_metadata ?? {}), spec_link_sent_at: new Date().toISOString() } });
-      } catch (err) {
-        console.error('[signin] could not record the send time', (err as Error).message);
-      }
-    }
+    if (!props?.hashed_token) throw new Error('No token was issued.');
+    const type = props.verification_type === 'invite' ? 'invite' : purpose === 'password' ? 'recovery' : 'magiclink';
+    await sendSignInEmail({
+      to: address, url: signInUrl(appUrl(), props.hashed_token, type, landing),
+      subject: purpose === 'password' ? 'Set your SPEC password' : 'Confirm your email for SPEC',
+      button: purpose === 'password' ? 'Set my password' : 'Confirm my email',
+    });
     return;
   }
-
+  // A fresh local copy: the provider's own email.
   const supabase = await createClient();
-  const redirectTo = `${appUrl}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`;
-  const { error } = await supabase.auth.signInWithOtp({ email: email.toLowerCase().trim(), options: { emailRedirectTo: redirectTo } });
+  const redirectTo = `${appUrl()}/auth/callback?next=${encodeURIComponent(landing)}`;
+  const { error } = purpose === 'password'
+    ? await supabase.auth.resetPasswordForEmail(address, { redirectTo })
+    : await supabase.auth.signInWithOtp({ email: address, options: { emailRedirectTo: redirectTo } });
   if (error) throw error;
 }
+
+/** Forgot password, or never had one. */
+export const sendSetPasswordLink = (email: string) => sendEmailLink(email, 'password');
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
 }
 
-/** Find a user by email across tenants (used to check invitation status before sending a link). */
+/** Find a user by email across businesses. */
 export async function findUserByEmail(email: string) {
   const rows = await db.select().from(schema.users).where(eq(schema.users.email, email.toLowerCase().trim()));
   return rows[0];

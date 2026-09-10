@@ -85,18 +85,18 @@ export async function provisionTenant(opts: ProvisionOptions) {
     const problems = validateWeights(check);
     if (problems.length) throw new Error(`Template ${t.template_id}: weights do not sum to 100% in ${problems.map(p => p.pillar).join(', ')}`);
 
-    for (let j = 0; j < resolved.length; j++) {
-      const r = resolved[j];
-      await db.insert(schema.criteria).values({
+    // One write per role, not one per KPI — sign-up has to feel instant.
+    if (resolved.length) {
+      await db.insert(schema.criteria).values(resolved.map((r, j) => ({
         id: id(), roleId: rid, pillar: r.pillar, text: r.c.text, weight: r.c.weight,
         kpi: !!r.c.kpi, target: r.c.target ?? null, sortOrder: j,
-      });
+      })));
     }
   }
 
-  // Rule book is global, loaded once.
-  for (const r of rulebook.rules) {
-    await db.insert(schema.rulebookRules).values({ ...r, version: rulebook.version }).onConflictDoNothing();
+  // Rule book is global, loaded once, in one write.
+  if (rulebook.rules.length) {
+    await db.insert(schema.rulebookRules).values(rulebook.rules.map(r => ({ ...r, version: rulebook.version }))).onConflictDoNothing();
   }
 
   // Open the first period straight away. The three-day trial is the full system — a business that

@@ -1,25 +1,23 @@
 'use server';
 import { redirect } from 'next/navigation';
-import { findUserByEmail, sendMagicLink, signOut } from '@/lib/auth';
+import { headers } from 'next/headers';
+import { signInWithPassword, signOut } from '@/lib/auth';
+import { createThrottle } from '@/lib/throttle';
+
+// Ten tries per address per network in fifteen minutes — plenty for a person, useless for guessing.
+const attempts = createThrottle(15 * 60_000, 10_000, 10);
 
 export async function signIn(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
-  const user = await findUserByEmail(email);
-  if (!user) redirect('/signin?unknown=1');
+  const password = String(formData.get('password') ?? '');
+  if (!email || !password) redirect('/signin?error=wrong');
 
-  // Supabase throws when the auth email can't be sent (bad SMTP credentials, provider
-  // outage, rate limit). Never let that escape the server action — an uncaught throw here
-  // renders Next's generic error page instead of telling the user what happened.
-  let outcome: 'sent' | 'ratelimited' | 'failed' = 'sent';
-  try {
-    await sendMagicLink(email, '/journey');
-  } catch (err) {
-    const { status, code, message } = (err ?? {}) as { status?: number; code?: string; message?: string };
-    outcome = status === 429 || code === 'over_email_send_rate_limit' ? 'ratelimited' : 'failed';
-    console.error('[signin] magic-link send failed', { email, status, code, message });
-  }
+  const h = await headers();
+  const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || h.get('x-real-ip') || 'unknown';
+  if (!attempts.allow(`${ip}|${email}`)) redirect('/signin?error=wait');
 
-  redirect(outcome === 'sent' ? '/signin?sent=1' : `/signin?error=${outcome}`);
+  if (!(await signInWithPassword(email, password))) redirect('/signin?error=wrong');
+  redirect('/journey');
 }
 
 export async function doSignOut() { await signOut(); redirect('/signin'); }

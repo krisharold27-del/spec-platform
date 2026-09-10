@@ -18,6 +18,9 @@ export async function confirmSignIn(formData: FormData) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
   if (error || !data?.user) {
+    // Pressed twice, or opened twice: the first press already signed them in. Carry on, not an error.
+    const { data: { user: already } } = await supabase.auth.getUser();
+    if (already) redirect(next);
     console.error('[auth/confirm] verify failed', { status: error?.status, code: error?.code });
     redirect('/signin?error=link');
   }

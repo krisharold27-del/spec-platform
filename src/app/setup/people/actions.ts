@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { randomUUID } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
-import { getCurrentUser, canManage } from '@/lib/auth';
+import { getCurrentUser, canManage, emailConfirmed } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
 import { sendInviteEmail } from '@/lib/email';
 import { roleChangeFor, type AssignmentRow, type RoleRow, type StaffRow } from '@/lib/staff';
@@ -152,6 +152,8 @@ export async function unplaceStaff(formData: FormData) {
  */
 export async function invite(formData: FormData) {
   const user = await requireLeader();
+  // Security arrives when it matters: the first seat given out needs the giver's email confirmed.
+  if (!(await emailConfirmed())) redirect('/account/verify?next=/setup/business');
   const staffId = String(formData.get('staffId') ?? '');
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   if (!staffId || !email) redirect('/setup/business?error=email');
