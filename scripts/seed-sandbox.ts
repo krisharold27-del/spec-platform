@@ -7,8 +7,8 @@
  * already there. Sends no email: the example people have .invalid addresses, which can never
  * receive mail, and none of them has a seat. Stays on the free plan, so it is never billed.
  *
- * Default email uses Gmail's +tag: it reaches the same inbox as the plain address, but SPEC treats
- * it as a separate person, so the founder's real business account is untouched.
+ * One email can hold more than one business, so the sandbox sits beside the founder's real
+ * business under the same address, reached from "Switch business". The real business is untouched.
  */
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
@@ -16,7 +16,7 @@ import { db, schema } from '../src/db';
 import { provisionTenant, assignPerson } from '../src/lib/provision';
 import { answerFor, type Status } from '../src/lib/status';
 
-const EMAIL = (process.argv[2] ?? 'kris.harold27+sandbox@gmail.com').toLowerCase().trim();
+const EMAIL = (process.argv[2] ?? 'kris.harold27@gmail.com').toLowerCase().trim();
 const NAME = 'Sandbox — Northside Electrical (example)';
 const now = () => new Date().toISOString();
 
@@ -30,8 +30,8 @@ const MARKS: Record<string, Status[]> = {
 };
 
 async function main() {
-  const taken = (await db.select().from(schema.users).where(eq(schema.users.email, EMAIL)))[0];
-  if (taken) { console.log(`Nothing done: ${EMAIL} already has a business. Sign in with it at /signin.`); return; }
+  // One email can hold several businesses, so an address that already has one is fine — the
+  // sandbox appears beside it under "Switch business".
   if ((await db.select().from(schema.tenants).where(eq(schema.tenants.name, NAME)))[0]) {
     console.log('Nothing done: the sandbox business already exists.'); return;
   }

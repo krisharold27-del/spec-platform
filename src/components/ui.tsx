@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { band, type Pillar, type Score } from '@/lib/scoring';
+import { myBusinesses } from '@/lib/auth';
 
 export const PILLAR_META: Record<Pillar, { name: string; letter: string; colour: string; question: string }> = {
   safety:     { name: 'Safety',     letter: 'S', colour: '#C1440E', question: 'Are we going well in Safety?' },
@@ -11,7 +12,9 @@ export const PILLAR_META: Record<Pillar, { name: string; letter: string; colour:
 /** No score renders as a dash, never as 0%. */
 export const pct = (n: number | null) => (n === null ? '—' : `${Math.round(n * 100)}%`);
 
-export function Shell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+export async function Shell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+  // Only someone with more than one business ever sees a way to switch.
+  const businesses = await myBusinesses().catch(() => []);
   return (
     <div className="min-h-screen">
       <header className="border-b border-ink/10 bg-white">
@@ -25,6 +28,7 @@ export function Shell({ title, subtitle, children }: { title: string; subtitle?:
             <Link href="/org" className="hover:text-rust">Org chart</Link>
             <Link href="/team" className="hover:text-rust">Team rollup</Link>
             <Link href="/me" className="hover:text-rust">My scorecard</Link>
+            {businesses.length > 1 && <Link href="/businesses" className="hover:text-rust">Switch business</Link>}
             <Link href="/signout" className="normal-case tracking-normal text-ink-light/70 hover:text-rust">Sign out</Link>
           </nav>
         </div>

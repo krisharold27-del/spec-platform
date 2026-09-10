@@ -32,7 +32,17 @@ export async function signUp(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().toLowerCase().slice(0, 320);
   const topRole = String(formData.get('topRole') ?? 'gm');
   if (!business || !name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) back('missing');
-  if (await findUserByEmail(email)) redirect('/signin?exists=1');
+  // Already on SPEC: nothing to set up. Send the sign-in link now rather than making them type the
+  // address again on another form. Only the owner of the inbox can use the link.
+  if (await findUserByEmail(email)) {
+    let outcome: 'known' | 'ratelimited' | 'failed' = 'known';
+    try {
+      await sendMagicLink(email, '/journey');
+    } catch (err) {
+      outcome = (err as { status?: number })?.status === 429 ? 'ratelimited' : 'failed';
+    }
+    redirect(outcome === 'known' ? '/signin?sent=1&known=1' : `/signin?error=${outcome}`);
+  }
   if (!signupsByAddress.allow(ip)) back('busy');
 
   const { tenantId, roleIds } = await provisionTenant({ name: business, sector, roleTemplates: ['gm'] });

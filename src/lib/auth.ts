@@ -3,7 +3,9 @@
  * the link, the user clicks it, src/app/auth/callback/route.ts exchanges the code for a session.
  * getCurrentUser() resolves that Supabase identity to our own app-level user row (by tenant).
  */
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { cookies } from 'next/headers';
+import { cache } from 'react';
 import { db, schema } from '../db';
 import { createClient } from './supabase/server';
 import { createAdminClient } from './supabase/admin';
@@ -35,26 +37,55 @@ export interface CurrentUser {
  * Uses supabase.auth.getUser() (validates against the Supabase Auth server) rather than trusting
  * a local session cookie. Backfills users.authUserId by email the first time someone signs in.
  */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+/** Which of their businesses a person with more than one is looking at. Only ever one they hold a seat in. */
+export const BUSINESS_COOKIE = 'spec_business';
+
+type UserRow = typeof schema.users.$inferSelect;
+
+/**
+ * Every seat the signed-in person holds — one per business. One email can belong to several
+ * businesses (a group owner, a consultant, a founder with a sandbox); each is its own row.
+ */
+const mySeats = cache(async (): Promise<UserRow[]> => {
   const supabase = await createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
-  if (!authUser?.email) return null;
+  if (!authUser?.email) return [];
+  const email = authUser.email.toLowerCase().trim();
 
-  const byAuthId = await db.select().from(schema.users).where(eq(schema.users.authUserId, authUser.id));
-  let row = byAuthId[0];
-
-  if (!row) {
-    // First sign-in for this identity — link it to the app user by email.
-    const byEmail = await db.select().from(schema.users).where(eq(schema.users.email, authUser.email.toLowerCase().trim()));
-    row = byEmail[0];
-    if (row) {
-      await db.update(schema.users).set({ authUserId: authUser.id, acceptedAt: row.acceptedAt ?? now() }).where(eq(schema.users.id, row.id));
-      row = { ...row, authUserId: authUser.id };
-    }
+  const linked = await db.select().from(schema.users).where(eq(schema.users.authUserId, authUser.id));
+  // First sign-in, or a business added under this address since: link every seat held under the
+  // verified address to this identity — the link in the email is what proved the address is theirs.
+  const unlinked = await db.select().from(schema.users).where(and(eq(schema.users.email, email), isNull(schema.users.authUserId)));
+  for (const r of unlinked) {
+    await db.update(schema.users).set({ authUserId: authUser.id, acceptedAt: r.acceptedAt ?? now() }).where(eq(schema.users.id, r.id));
   }
+  const all = [...linked, ...unlinked.map(r => ({ ...r, authUserId: authUser.id, acceptedAt: r.acceptedAt ?? now() }))];
+  // Stable order: the business they joined first comes first.
+  return all.sort((a, b) => (a.acceptedAt ?? '').localeCompare(b.acceptedAt ?? '') || a.id.localeCompare(b.id));
+}); // cache(): looked up once per request, however many places ask
 
-  if (!row) return null;
+/**
+ * Resolves the signed-in Supabase Auth identity to our app-level user row — the seat in the business
+ * they chose, or the first one they joined. Uses supabase.auth.getUser() (validated against the
+ * Supabase Auth server) rather than trusting a local session cookie.
+ */
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  const seats = await mySeats();
+  if (!seats.length) return null;
+  const chosen = (await cookies()).get(BUSINESS_COOKIE)?.value;
+  const row = seats.find(s => s.tenantId === chosen) ?? seats[0];
   return { id: row.id, tenantId: row.tenantId, email: row.email, name: row.name, access: row.access as AccessLevel };
+}
+
+/** The businesses the signed-in person can open, for the switcher. */
+export async function myBusinesses(): Promise<{ tenantId: string; name: string; current: boolean }[]> {
+  const seats = await mySeats();
+  if (!seats.length) return [];
+  const chosen = (await cookies()).get(BUSINESS_COOKIE)?.value;
+  const current = (seats.find(s => s.tenantId === chosen) ?? seats[0]).tenantId;
+  const tenants = await db.select({ id: schema.tenants.id, name: schema.tenants.name }).from(schema.tenants)
+    .where(inArray(schema.tenants.id, seats.map(s => s.tenantId)));
+  return seats.map(s => ({ tenantId: s.tenantId, name: tenants.find(t => t.id === s.tenantId)?.name ?? 'Business', current: s.tenantId === current }));
 }
 
 /**
