@@ -8,7 +8,12 @@ import { isAdminEmail } from '@/lib/admin';
 import { journeyFor } from '@/lib/journey';
 import { getRoles } from '@/lib/queries';
 import { stuckOnStepNudgeTemplate } from '@/lib/email';
-import { signInAs } from './actions';
+
+/*
+ * There is deliberately no "sign in as". SPEC as a company has no access to a customer's business:
+ * no support tool renders it and there is no break-glass (BUILD_SPEC §9.1). What support would do
+ * inside a business is owed to the customer's own administrator screen instead.
+ */
 
 export const dynamic = 'force-dynamic';
 
@@ -28,10 +33,9 @@ async function lastActivityFor(tenantId: string, fallback: string) {
   return dates.sort().at(-1) ?? fallback;
 }
 
-export default async function Admin({ searchParams }: { searchParams: Promise<{ signin_error?: string }> }) {
+export default async function Admin() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   if (!isAdminEmail(user.email)) redirect('/journey');
-  const sp = await searchParams;
 
   const tenants = await db.select().from(schema.tenants);
 
@@ -61,7 +65,6 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       <main className="mx-auto max-w-6xl px-6 py-8">
         <h1 className="font-serif text-2xl font-bold text-ink">Admin</h1>
         <p className="mt-1 text-sm text-ink-light">{tenants.length} businesses · {rows.filter(r => r.tenant.plan === 'basic' || r.tenant.plan === 'program').length} paying · {rows.filter(r => r.stuck).length} stuck 7+ days</p>
-        {sp.signin_error && <p className="mt-4 rounded bg-red-50 p-3 text-sm text-red-900">Couldn't generate a sign-in link — check SUPABASE_SERVICE_ROLE_KEY is set.</p>}
 
         {programRequests.length > 0 && (
           <section className="mt-6">
@@ -105,7 +108,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           <div className="mt-2 overflow-x-auto rounded-lg border bg-white">
             <table className="w-full text-sm">
               <thead className="bg-cream text-left text-xs uppercase text-ink-light">
-                <tr><th className="p-3">Business</th><th className="p-3">Plan</th><th className="p-3">Journey</th><th className="p-3">Last activity</th><th className="p-3">GM</th><th className="p-3"></th></tr>
+                <tr><th className="p-3">Business</th><th className="p-3">Plan</th><th className="p-3">Journey</th><th className="p-3">Last activity</th><th className="p-3">GM</th></tr>
               </thead>
               <tbody>
                 {rows.map(r => (
@@ -115,12 +118,6 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                     <td className="p-3">{r.done} of {r.total}{r.next && <div className="text-xs text-ink-light">next: {r.next.title}</div>}</td>
                     <td className="p-3">{r.lastActivity.slice(0, 10)} <span className="text-xs text-ink-light/60">({r.stuckDays}d ago)</span></td>
                     <td className="p-3">{r.gm?.holder ? <>{r.gm.holder.name}<div className="text-xs text-ink-light">{r.gm.holder.email}</div></> : <span className="text-ink-light/60">vacant</span>}</td>
-                    <td className="p-3">
-                      {r.gm?.holder && (
-                        <form action={signInAs}><input type="hidden" name="email" value={r.gm.holder.email} />
-                          <button className="rounded border px-2 py-1 text-xs hover:bg-cream">Sign in as</button></form>
-                      )}
-                    </td>
                   </tr>
                 ))}
               </tbody>
