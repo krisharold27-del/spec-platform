@@ -29,6 +29,14 @@ export async function signUp(formData: FormData) {
       if (v) await db.insert(schema.diagnostics).values({ id: randomUUID(), tenantId, sectionId: 'four_questions', questionId: p, answer: String(v), answeredBy: email, answeredAt: new Date().toISOString() });
     }
   }
-  await sendMagicLink(email, '/setup/focus');
+  // The business exists from here, so a failed email must not become an error page: signing up
+  // again would only say "that email already has a role". Send them to sign in instead.
+  try {
+    await sendMagicLink(email, '/setup/focus');
+  } catch (err) {
+    const { status, code, message } = (err ?? {}) as { status?: number; code?: string; message?: string };
+    console.error('[signup] sign-in email failed after provisioning', { status, code, message });
+    redirect('/signin?error=signup_email');
+  }
   redirect('/signin?sent=1');
 }

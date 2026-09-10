@@ -20,3 +20,9 @@ const EMAIL_OTP_TYPES: readonly EmailOtpType[] = ['email', 'magiclink', 'signup'
 export function emailOtpType(type: string | null | undefined): EmailOtpType | null {
   return EMAIL_OTP_TYPES.includes(type as EmailOtpType) ? (type as EmailOtpType) : null;
 }
+
+/** The link in the sign-in email: SPEC's own one-press page, carrying the one-time token. */
+export function signInUrl(appUrl: string, tokenHash: string, type: EmailOtpType, next?: string | null): string {
+  const q = new URLSearchParams({ token_hash: tokenHash, type, next: safeNext(next) });
+  return `${appUrl.replace(/\/+$/, '')}/auth/confirm?${q.toString()}`;
+}

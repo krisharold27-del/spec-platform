@@ -7,6 +7,7 @@ const SIGNIN_ERRORS: Record<string, string> = {
   ratelimited: "Too many sign-in emails just went out to that address. Wait a minute, then try again.",
   failed: "We couldn't send the sign-in email just now. Try again in a moment — if it keeps happening, email manager@specbizhq.com.",
   link: BAD_LINK,
+  signup_email: "Your business is set up, but the sign-in email didn't go. Enter your email below to get one.",
   // Older callback links still redirect with ?error=1.
   "1": BAD_LINK,
 };

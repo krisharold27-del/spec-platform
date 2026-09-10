@@ -1,5 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { safeNext, emailOtpType, DEFAULT_AFTER_SIGN_IN } from '../src/lib/auth-redirect';
+import { safeNext, emailOtpType, signInUrl, DEFAULT_AFTER_SIGN_IN } from '../src/lib/auth-redirect';
+
+describe('the link in the sign-in email', () => {
+  it('goes to SPEC’s own one-press page, never straight to the auth provider', () => {
+    const u = new URL(signInUrl('https://app.specbizhq.com/', 'abc123', 'magiclink', '/setup/focus'));
+    expect(u.origin + u.pathname).toBe('https://app.specbizhq.com/auth/confirm');
+    expect(u.searchParams.get('token_hash')).toBe('abc123');
+    expect(u.searchParams.get('type')).toBe('magiclink');
+    expect(u.searchParams.get('next')).toBe('/setup/focus');
+  });
+
+  it('never carries a way off the site', () => {
+    const u = new URL(signInUrl('https://app.specbizhq.com', 't', 'email', '@evil.com'));
+    expect(u.searchParams.get('next')).toBe(DEFAULT_AFTER_SIGN_IN);
+  });
+});
 
 describe('after sign-in, only ever a page inside SPEC', () => {
   it('keeps an ordinary path', () => {

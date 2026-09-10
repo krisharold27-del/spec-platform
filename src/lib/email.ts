@@ -2,10 +2,9 @@
  * Transactional email via Resend — invites, "board output ready", and (from /admin) the copy for a
  * stuck-on-a-step nudge. See docs/SPEC_GoLive_and_Operations.md §6.
  *
- * Magic-link sign-in emails are NOT sent from here — Supabase Auth sends those itself
- * (supabase.auth.signInWithOtp, wired up in src/lib/auth.ts back in B4 step 1). Sending a second,
- * competing "sign in" email from Resend would just confuse people about which link to click, so
- * that item from the original build prompt is deliberately not duplicated here.
+ * The sign-in email IS sent from here (sendSignInEmail) whenever the service-role key and Resend are
+ * both configured — see sendMagicLink in src/lib/auth.ts. Supabase is then asked only for a token,
+ * never to send, so there is still exactly one sign-in email per request.
  *
  * Without RESEND_API_KEY set (e.g. a fresh local checkout), sends are logged and skipped rather
  * than failing the action that triggered them — the same "degrade, don't break" pattern as
@@ -29,6 +28,25 @@ async function send(to: string, subject: string, html: string, text: string) {
     // Never let a notification failure break the action that triggered it.
     console.error('Resend send failed:', err);
   }
+}
+
+export const canSendEmail = () => resend !== null;
+
+/**
+ * The sign-in email. Unlike every other send, this one throws on failure: the person is waiting
+ * for it, and "check your email" for an email that never went is worse than an error.
+ * No business content — the link and nothing else.
+ */
+export async function sendSignInEmail(opts: { to: string; url: string }) {
+  if (!resend) throw new Error('Email is not configured.');
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: opts.to,
+    subject: 'Your SPEC sign-in link',
+    html: wrap(`<p><a href="${opts.url}" style="display:inline-block;background:#B5502F;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Sign in to SPEC</a></p><p style="color:#64748b;font-size:13px">The link works once, for one hour. If you did not ask for it, ignore this email.</p>`),
+    text: `Sign in to SPEC: ${opts.url}\n\nThe link works once, for one hour. If you did not ask for it, ignore this email.`,
+  });
+  if (error) throw Object.assign(new Error(error.message), { code: error.name });
 }
 
 const wrap = (body: string) => `<div style="font-family:sans-serif;font-size:15px;line-height:1.5;color:#0f172a;max-width:520px">${body}</div>`;

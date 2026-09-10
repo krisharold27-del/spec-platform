@@ -6,6 +6,12 @@
 import { eq } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { createClient } from './supabase/server';
+import { createAdminClient } from './supabase/admin';
+import { canSendEmail, sendSignInEmail } from './email';
+import { emailOtpType, signInUrl } from './auth-redirect';
+import { createThrottle } from './throttle';
+
+const signInEmails = createThrottle(60_000);
 
 const now = () => new Date().toISOString();
 
@@ -51,10 +57,40 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   return { id: row.id, tenantId: row.tenantId, email: row.email, name: row.name, access: row.access as AccessLevel };
 }
 
-/** Sends a magic-link sign-in email. `next` is where the callback route sends them afterwards. */
+/**
+ * Sends the sign-in email. `next` is where they land afterwards.
+ *
+ * SPEC makes the one-time token and sends the email itself, linking to its own one-press page
+ * (/auth/confirm). A link straight to the auth provider is spent by the first thing that opens it —
+ * and email security scanners open every link — so people arrived at "Email link is invalid or has
+ * expired". The one-press page spends nothing until a person presses it, and works on any device.
+ *
+ * Without the service-role key or Resend (a fresh local checkout) it falls back to the auth
+ * provider's own email — degrade, don't break.
+ */
 export async function sendMagicLink(email: string, next?: string) {
-  const supabase = await createClient();
+  const address = email.toLowerCase().trim();
   const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY && canSendEmail()) {
+    // Supabase's own send limit no longer applies on this path, so SPEC keeps one of its own.
+    if (!signInEmails.allow(address)) throw Object.assign(new Error('Sign-in email sent within the last minute.'), { status: 429 });
+    const admin = createAdminClient();
+    // Only asks for a token — generateLink never sends anything itself.
+    let { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email: address });
+    if (error) {
+      // No sign-in identity yet (the first sign-in straight after sign-up): an invite token creates it.
+      ({ data, error } = await admin.auth.admin.generateLink({ type: 'invite', email: address }));
+    }
+    if (error) throw error;
+    const props = data.properties;
+    if (!props?.hashed_token) throw new Error('No sign-in token was issued.');
+    const type = emailOtpType(props.verification_type) ?? 'magiclink';
+    await sendSignInEmail({ to: address, url: signInUrl(appUrl, props.hashed_token, type, next) });
+    return;
+  }
+
+  const supabase = await createClient();
   const redirectTo = `${appUrl}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`;
   const { error } = await supabase.auth.signInWithOtp({ email: email.toLowerCase().trim(), options: { emailRedirectTo: redirectTo } });
   if (error) throw error;
