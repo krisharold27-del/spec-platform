@@ -7,10 +7,16 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getStripe, appUrl } from '@/lib/stripe';
+import { getScope, isTopOfChart } from '@/lib/scope';
 
 export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.redirect(`${appUrl()}/signin`, 303);
+  // The portal can change the card and cancel the subscription — administration, never any seat.
+  // isTopOfChart keeps GMs created before the administrator level existed (stored as 'full') in.
+  if (!(user.access === 'administrator' || isTopOfChart(await getScope(user)))) {
+    return NextResponse.redirect(`${appUrl()}/journey`, 303);
+  }
 
   const stripe = getStripe();
   if (!stripe) return NextResponse.redirect(`${appUrl()}/journey?billing_error=1`, 303);

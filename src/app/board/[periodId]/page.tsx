@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser, canManage } from '@/lib/auth';
+import { getScope, isTopOfChart } from '@/lib/scope';
 import { Shell, PILLAR_META, pct } from '@/components/ui';
 import { renderMarkdown } from '@/lib/markdown';
 import { getTeamRollup, getGates, PILLARS } from '@/lib/queries';
@@ -40,6 +41,13 @@ const GOV_STATUS = {
 export default async function Board({ params }: { params: Promise<{ periodId: string }> }) {
   const { periodId } = await params;
   const user = await getCurrentUser(); if (!user) redirect('/signin');
+
+  // The pack is the whole business, so it is the one lawful exception to "only me and above" — and
+  // it reaches only the people it is addressed to. Until board seats exist (BUILD_SPEC §1.6), that
+  // is an administrator or the top of the chart; never any seat.
+  if (!(user.access === 'administrator' || isTopOfChart(await getScope(user)))) {
+    return <Shell title="Board pack"><p className="text-sm text-ink-light">The board pack is read by the board and the top of the business. Your own card is on <a className="text-rust underline" href="/me">My scorecard</a>.</p></Shell>;
+  }
 
   const period = (await db.select().from(schema.periods)
     .where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId))))[0];

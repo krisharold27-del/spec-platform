@@ -11,10 +11,16 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getStripe, appUrl } from '@/lib/stripe';
 import { countSeats } from '@/lib/plan';
+import { getScope, isTopOfChart } from '@/lib/scope';
 
 export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.redirect(`${appUrl()}/signin`, 303);
+  // Paying for the business is administration. isTopOfChart keeps GMs created before the
+  // administrator level existed (stored as 'full') able to pay.
+  if (!(user.access === 'administrator' || isTopOfChart(await getScope(user)))) {
+    return NextResponse.redirect(`${appUrl()}/journey`, 303);
+  }
 
   const stripe = getStripe();
   const priceId = process.env.STRIPE_PRICE_SEAT_MONTHLY;
