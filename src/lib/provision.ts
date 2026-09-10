@@ -72,7 +72,10 @@ export async function provisionTenant(opts: ProvisionOptions) {
     if (t.level === 'gm') gmId = rid;
     await db.insert(schema.roles).values({
       id: rid, tenantId, title: t.title, stream: t.stream, level: t.level,
-      defaultAccess: t.level === 'staff' ? 'readonly' : 'full',
+      // A GM is the business's first administrator — someone has to be able to add seats and
+      // grants on day one, and requiring a separate step there would block setup entirely.
+      // Everyone else manages within their scope; staff read their own card.
+      defaultAccess: t.level === 'gm' ? 'administrator' : t.level === 'staff' ? 'readonly' : 'full',
       reportsToRoleId: t.level === 'gm' ? null : gmId ?? null,
       pnlView: t.pnl_view ?? null, sortOrder: i,
     });

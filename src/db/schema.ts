@@ -47,7 +47,15 @@ export const users = pgTable('users', {
   authUserId: text('auth_user_id'), // set on first sign-in via the Supabase Auth callback; null until then
   email: text('email').notNull(),
   name: text('name').notNull(),
-  access: text('access').notNull().default('readonly'), // full | readonly
+  /**
+   * administrator | full | readonly
+   *  - administrator: seats, grants, region/currency/financial year, entities, chart confirmation,
+   *    the recovery contact. Administration, not management — scope still limits what they manage.
+   *  - full: manages KPIs and marks within their own scope (own role and everything beneath it).
+   *  - readonly: sees their own card in full, including the working, and comments on their month.
+   * Stored value stays 'readonly' (not 'read_only') so no data migration is needed.
+   */
+  access: text('access').notNull().default('readonly'),
   invitedAt: text('invited_at'),
   acceptedAt: text('accepted_at'),
 }, t => [uniqueIndex('users_tenant_email').on(t.tenantId, t.email), index('users_auth_user').on(t.authUserId)]).enableRLS();
@@ -96,7 +104,7 @@ export const roles = pgTable('roles', {
   title: text('title').notNull(),
   stream: text('stream').notNull(),          // gm | commercial | operations | growth | board
   level: text('level').notNull(),            // gm | manager | supervisor | staff
-  defaultAccess: text('default_access').notNull().default('readonly'),
+  defaultAccess: text('default_access').notNull().default('readonly'), // administrator | full | readonly
   reportsToRoleId: text('reports_to_role_id'), // org chart: roles report to roles
   pnlView: text('pnl_view'),                 // operational_ebitda | controllable_net_profit | full_statutory
   sortOrder: integer('sort_order').notNull().default(0),

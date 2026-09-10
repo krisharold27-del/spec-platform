@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Shell, PillarTile, GateBadge, PILLAR_META, pct } from '@/components/ui';
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, canManage } from '@/lib/auth';
 import { saveGates, lockPeriod } from '@/app/period/actions';
 import { getTenantById, getTeamRollupForRoles, getGates, PILLARS } from '@/lib/queries';
 import { currentPeriod } from '@/lib/period';
@@ -75,7 +75,7 @@ export default async function ExecutiveSummary() {
       </table>
       <p className="mt-4 text-xs text-ink-light">The business is SPEC when all four pillars hold at 90%+ for two consecutive months.</p>
 
-      {user.access === 'full' && period.status === 'open' && (
+      {canManage(user.access) && period.status === 'open' && (
         <section className="mt-10 grid gap-6 md:grid-cols-2">
           <form action={saveGates} className="rounded-lg border bg-white p-4 text-sm">
             <input type="hidden" name="periodId" value={period.id} />

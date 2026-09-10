@@ -1,10 +1,10 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, canManage, MANAGING_ACCESS } from '@/lib/auth';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { getTeamRollup, getGates, PILLARS } from '@/lib/queries';
@@ -14,7 +14,7 @@ import { sendBoardOutputReadyEmail } from '@/lib/email';
 
 /** Enter the two hard gates for the current period. */
 export async function saveGates(formData: FormData) {
-  const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
+  const user = await getCurrentUser(); if (!user || !canManage(user.access)) redirect('/signin');
   // Whole-business action: restricted to the top of the org chart, not to every full-access user.
   if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
@@ -36,7 +36,7 @@ export async function saveGates(formData: FormData) {
 
 /** Lock the period, generate the board output, open the next month. */
 export async function lockPeriod(formData: FormData) {
-  const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
+  const user = await getCurrentUser(); if (!user || !canManage(user.access)) redirect('/signin');
   // Whole-business action: restricted to the top of the org chart, not to every full-access user.
   if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
@@ -60,7 +60,7 @@ export async function lockPeriod(formData: FormData) {
   await db.insert(schema.periods).values({ id: randomUUID(), tenantId: user.tenantId, period: next }).onConflictDoNothing();
 
   const notify = await db.select({ email: schema.users.email }).from(schema.users)
-    .where(and(eq(schema.users.tenantId, user.tenantId), eq(schema.users.access, 'full')));
+    .where(and(eq(schema.users.tenantId, user.tenantId), inArray(schema.users.access, [...MANAGING_ACCESS])));
   for (const { email } of notify) {
     await sendBoardOutputReadyEmail({ to: email, businessName: tenant.name, period: period.period, periodId });
   }
@@ -70,7 +70,7 @@ export async function lockPeriod(formData: FormData) {
 }
 
 export async function approveBoardOutput(formData: FormData) {
-  const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
+  const user = await getCurrentUser(); if (!user || !canManage(user.access)) redirect('/signin');
   // Whole-business action: restricted to the top of the org chart, not to every full-access user.
   if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, canManage } from '@/lib/auth';
 import { Shell, PILLAR_META, pct } from '@/components/ui';
 import { renderMarkdown } from '@/lib/markdown';
 import { getTeamRollup, getGates, PILLARS } from '@/lib/queries';
@@ -152,7 +152,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
         </p>
       )}
 
-      {bo && !bo.approvedBy && user.access === 'full' && (
+      {bo && !bo.approvedBy && canManage(user.access) && (
         <form action={approveBoardOutput} className="mt-4">
           <input type="hidden" name="periodId" value={periodId} />
           <button className="rounded-lg bg-rust px-5 py-2 text-white hover:bg-rust-dark">Approve for the board</button>

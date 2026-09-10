@@ -9,8 +9,19 @@ import { createClient } from './supabase/server';
 
 const now = () => new Date().toISOString();
 
+/** See db/schema.ts users.access for what each level may do. */
+export type AccessLevel = 'administrator' | 'full' | 'readonly';
+
+/**
+ * May this person manage — KPIs, marks, the chart — within their own scope? An administrator
+ * manages exactly like `full`; administration is added on top, never instead. Checking for 'full'
+ * alone locks the GM, who is the tenant's first administrator, out of their own business.
+ */
+export const canManage = (access: string) => access === 'full' || access === 'administrator';
+export const MANAGING_ACCESS = ['full', 'administrator'] as const;
+
 export interface CurrentUser {
-  id: string; tenantId: string; email: string; name: string; access: 'full' | 'readonly';
+  id: string; tenantId: string; email: string; name: string; access: AccessLevel;
 }
 
 /**
@@ -37,7 +48,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 
   if (!row) return null;
-  return { id: row.id, tenantId: row.tenantId, email: row.email, name: row.name, access: row.access as 'full' | 'readonly' };
+  return { id: row.id, tenantId: row.tenantId, email: row.email, name: row.name, access: row.access as AccessLevel };
 }
 
 /** Sends a magic-link sign-in email. `next` is where the callback route sends them afterwards. */

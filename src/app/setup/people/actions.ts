@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { randomUUID } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, canManage } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
 import { sendInviteEmail } from '@/lib/email';
 import { roleChangeFor, type AssignmentRow, type RoleRow, type StaffRow } from '@/lib/staff';
@@ -13,7 +13,7 @@ const now = () => new Date().toISOString();
 
 async function requireLeader() {
   const user = await getCurrentUser();
-  if (!user || user.access !== 'full') redirect('/signin');
+  if (!user || !canManage(user.access)) redirect('/signin');
   await assertWritable(user.tenantId);
   return user;
 }

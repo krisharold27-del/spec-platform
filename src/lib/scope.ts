@@ -22,6 +22,12 @@ export interface Scope {
   visible: Set<string>;
   canSee(roleId: string): boolean;
   canEdit(roleId: string): boolean;
+  /**
+   * Administration, not management: seats, grants, region/currency/financial year, entities,
+   * chart confirmation, the recovery contact. Deliberately separate from canEdit — being an
+   * administrator never widens what you can SEE, and scope still limits what you can manage.
+   */
+  canAdminister: boolean;
 }
 
 export async function getScope(user: CurrentUser): Promise<Scope> {
@@ -50,7 +56,10 @@ export async function getScope(user: CurrentUser): Promise<Scope> {
     visible,
     canSee: (roleId: string) => visible.has(roleId),
     // Read scope plus write permission. Both are required; neither implies the other.
-    canEdit: (roleId: string) => user.access === 'full' && visible.has(roleId),
+    // An administrator manages within their own scope like anyone else — the level grants
+    // administration on top, never sight of, or authority over, anybody outside their chain.
+    canEdit: (roleId: string) => (user.access === 'full' || user.access === 'administrator') && visible.has(roleId),
+    canAdminister: user.access === 'administrator',
   };
 }
 
@@ -68,4 +77,12 @@ export function isTopOfChart(scope: Scope): boolean {
   const mine = scope.roles.find(r => r.id === scope.myRoleId);
   if (!mine) return false;
   return mine.level === 'gm' || mine.reportsToRoleId === null;
+}
+
+/**
+ * Guard for anything only an administrator may do. Throws rather than returning false: these are
+ * write paths, and a silent no-op is how a permission bug becomes a data bug.
+ */
+export function assertAdministrator(scope: Scope): void {
+  if (!scope.canAdminister) throw new Error('That action needs an administrator.');
 }

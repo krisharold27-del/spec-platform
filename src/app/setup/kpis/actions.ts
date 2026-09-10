@@ -4,13 +4,13 @@ import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, canManage } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
 import { validateWeights, type Pillar } from '@/lib/scoring';
 
 /** Save edited criteria for one role. Refuses to save if any pillar's weights don't sum to 100%. */
 export async function saveCriteria(formData: FormData) {
-  const user = await getCurrentUser(); if (!user || user.access !== 'full') redirect('/signin');
+  const user = await getCurrentUser(); if (!user || !canManage(user.access)) redirect('/signin');
   await assertWritable(user.tenantId);
   const roleId = String(formData.get('roleId'));
   const roleRows = await db.select().from(schema.roles).where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
