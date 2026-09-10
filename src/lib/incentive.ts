@@ -72,7 +72,8 @@ export function incentiveFor(
   directReports: Record<Pillar, PillarTally>[] = [],
 ): IncentiveResult {
   const max = INCENTIVE_MAX[level] ?? 0;
-  const base = Math.round(max * displayedRate(score.overall));
+  // No score means nothing has been earned yet — it is not a zero-percent month.
+  const base = score.overall === null ? 0 : Math.round(max * displayedRate(score.overall));
 
   const failedSectionCount = directReports.reduce((n, r) => n + failedSections(r).length, 0);
   const deductionRate = Math.min(failedSectionCount * DEDUCTION_PER_FAILED_SECTION, DEDUCTION_CAP);

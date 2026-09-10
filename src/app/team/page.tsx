@@ -29,7 +29,8 @@ export default async function TeamRollup() {
   // Only this viewer's own role and the roles beneath it — never the whole business.
   const scope = await getScope(user);
   const rollup = await getTeamRollupForRoles(scoredRolesInScope(scope), period.id);
-  const scoredRoles = rollup.roles.filter(r => r.rows.some(x => x.answer !== ''));
+  // Scored means the engine produced a number — a card marked only Pending or Watch is not scored.
+  const scoredRoles = rollup.roles.filter(r => r.score.overall !== null);
   return (
     <Shell title="My team" subtitle={`${period.period} · averages across scored roles only (${scoredRoles.length} of ${rollup.roleCount})`}>
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -46,12 +47,15 @@ export default async function TeamRollup() {
                 <div className="text-sm text-ink-light">{role.holder?.name ?? 'vacant'}</div>
               </div>
               <div className="mt-3 grid grid-cols-4 gap-2 text-center text-sm">
-                {PILLARS.map(p => (
-                  <div key={p}>
-                    <div className="h-1.5 rounded" style={{ background: PILLAR_META[p].colour, opacity: scored ? 0.2 + 0.8 * score.pillars[p] : 0.15 }} />
-                    <div className="mt-1">{scored ? pct(score.pillars[p]) : '—'}</div>
-                  </div>
-                ))}
+                {PILLARS.map(p => {
+                  const v = scored ? score.pillars[p] : null;
+                  return (
+                    <div key={p}>
+                      <div className="h-1.5 rounded" style={{ background: PILLAR_META[p].colour, opacity: v === null ? 0.15 : 0.2 + 0.8 * v }} />
+                      <div className="mt-1">{pct(v)}</div>
+                    </div>
+                  );
+                })}
               </div>
             </Link>
           );

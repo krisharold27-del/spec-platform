@@ -45,7 +45,7 @@ export function snapshotFor(i: BoardInputs): Snapshot {
       pillar: p,
       name: NAME[p],
       value: f.baseline ? null : v,
-      status: (f.baseline ? 'not_scored' : v >= 0.9 ? 'on_target' : 'below') as 'on_target' | 'below' | 'not_scored',
+      status: (f.baseline || v === null ? 'not_scored' : v >= 0.9 ? 'on_target' : 'below') as 'on_target' | 'below' | 'not_scored',
       driver: driver ? `${driver.role}: ${driver.text}` : null,
     };
   });
@@ -94,8 +94,9 @@ const NAME: Record<Pillar, string> = { safety: 'Safety', people: 'People', earni
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
 export function factsFor(i: BoardInputs) {
-  const scored = i.rollup.roles.filter(r => r.rows.some(x => x.answer !== ''));
-  const unscored = i.rollup.roles.filter(r => !r.rows.some(x => x.answer !== ''));
+  // Scored means the engine produced a number — a card marked only Pending or Watch is not scored.
+  const scored = i.rollup.roles.filter(r => r.score.overall !== null);
+  const unscored = i.rollup.roles.filter(r => r.score.overall === null);
   const misses = scored.flatMap(r => r.rows.filter(x => x.answer === 'N').map(x => ({ role: r.role.title, pillar: x.pillar as Pillar, text: x.text, note: x.note })));
   return { scored, unscored, misses, baseline: scored.length === 0 };
 }
@@ -116,10 +117,10 @@ export function deterministicBoardOutput(i: BoardInputs): string {
   L.push('## Four pillars vs the 90% target');
   L.push('');
   for (const p of i.pillars) {
-    const v = i.rollup.team.pillars[p];
-    const status = f.baseline ? 'NOT YET SCORED' : v >= 0.9 ? 'ON TARGET' : 'BELOW TARGET';
+    const v = f.baseline ? null : i.rollup.team.pillars[p];
+    const status = v === null ? 'NOT YET SCORED' : v >= 0.9 ? 'ON TARGET' : 'BELOW TARGET';
     const driver = f.misses.filter(m => m.pillar === p);
-    L.push(`**${NAME[p]}** — ${f.baseline ? '—' : pct(v)} · ${status}${!f.baseline && v < 0.9 ? ` · gap ${Math.round((0.9 - v) * 100)} points` : ''}`);
+    L.push(`**${NAME[p]}** — ${v === null ? '—' : pct(v)} · ${status}${v !== null && v < 0.9 ? ` · gap ${Math.round((0.9 - v) * 100)} points` : ''}`);
     if (driver.length) L.push(`Headline driver: ${driver.map(d => `${d.role}: ${d.text}${d.note ? ` — fix proposed: ${d.note}` : ' — no fix proposed yet'}`).join('; ')}.`);
     L.push('');
   }
@@ -140,7 +141,7 @@ export function deterministicBoardOutput(i: BoardInputs): string {
   L.push('');
   L.push('## In plain terms');
   L.push('');
-  L.push(`**What's going well:** ${f.scored.length ? f.scored.filter(r => r.score.overall >= 0.9).map(r => r.role.title).join(', ') || 'No role is at 90% yet.' : 'The measurement system is set up.'}`);
+  L.push(`**What's going well:** ${f.scored.length ? f.scored.filter(r => (r.score.overall ?? 0) >= 0.9).map(r => r.role.title).join(', ') || 'No role is at 90% yet.' : 'The measurement system is set up.'}`);
   L.push('');
   L.push(`**What needs attention:** ${f.misses.length ? `${f.misses.length} criteria missed, ${f.misses.filter(m => !m.note).length} without a proposed fix.` : f.baseline ? 'Nothing has been scored.' : 'No misses recorded.'}${f.unscored.length ? ` Unscored roles: ${f.unscored.map(r => r.role.title).join(', ')}.` : ''}`);
   L.push('');

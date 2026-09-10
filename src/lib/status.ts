@@ -1,14 +1,13 @@
 /**
- * The status labels a business actually uses on a scorecard, and how they score.
+ * The seven statuses a KPI can carry, and how each scores. docs/BUILD_SPEC.md §3.1 is
+ * authoritative. The vocabulary is fixed — a business cannot add an eighth.
  *
- * A tick-box cannot say the difference between a target that was missed and a target nobody can
- * measure yet. "Not tracked" means there is no system producing the number — that is a gap in the
- * business's instrumentation, not a failure by the person, and it must not be scored as one.
+ *   Y  — confirmed, met, on_track
+ *   N  — not_met
+ *   NA — watch, pending, not_tracked: excluded from both sides of the pillar fraction
  *
- * Scoring is unchanged underneath: every status maps onto the existing Y/N/NA engine.
- *   Y  — achieved
- *   N  — not achieved (Watch included: close is still not met)
- *   NA — excluded from the denominator entirely
+ * Watch is neutral, not a soft fail: started, not finished, outcome not yet known. The guard
+ * against abuse is resolveWatchAtLock — Watch two closed months running becomes Not met.
  */
 import type { Answer } from './scoring';
 
@@ -24,12 +23,12 @@ export interface StatusMeta {
 }
 
 export const STATUSES: Record<Status, StatusMeta> = {
-  confirmed:   { label: 'Confirmed',   answer: 'Y',  tone: 'good',    help: 'Verified against the source. Nothing outstanding.' },
-  on_track:    { label: 'On track',    answer: 'Y',  tone: 'good',    help: 'Meeting the target this period.' },
-  met:         { label: 'Met',         answer: 'Y',  tone: 'good',    help: 'Target achieved.' },
-  watch:       { label: 'Watch',       answer: 'N',  tone: 'bad',     help: 'Close, but under target — scores as not achieved.' },
+  confirmed:   { label: 'Confirmed',   answer: 'Y',  tone: 'good',    help: 'A non-negotiable that held.' },
+  on_track:    { label: 'On track',    answer: 'Y',  tone: 'good',    help: 'Inside target, ongoing measure.' },
+  met:         { label: 'Met',         answer: 'Y',  tone: 'good',    help: 'Target reached.' },
+  watch:       { label: 'Watch',       answer: 'NA', tone: 'neutral', help: 'Started, not finished — the outcome is not known yet. Excluded from the score. Watch two closed months running becomes Not met.' },
   not_met:     { label: 'Not met',     answer: 'N',  tone: 'bad',     help: 'Target missed.' },
-  pending:     { label: 'Pending',     answer: 'NA', tone: 'neutral', help: 'Agreed but not yet in force. Excluded from the score.' },
+  pending:     { label: 'Pending',     answer: 'NA', tone: 'neutral', help: 'Not yet marked this period. Excluded from the score.' },
   not_tracked: { label: 'Not tracked', answer: 'NA', tone: 'neutral', help: 'No system produces this number yet. Excluded from the score — a gap in the business, not a failure by the person.' },
 };
 
@@ -46,4 +45,13 @@ export function statusFromAnswer(answer: Answer): Status | null {
   if (answer === 'N') return 'not_met';
   if (answer === 'NA') return 'pending';
   return null;
+}
+
+/**
+ * The Watch guard, applied when a month is locked. `previous` is the same KPI's status in the
+ * previous closed month. Something started and still not finished after two months has failed —
+ * without this rule, Watch becomes the way a business never fails at anything.
+ */
+export function resolveWatchAtLock(previous: Status | null, current: Status | null): Status | null {
+  return previous === 'watch' && current === 'watch' ? 'not_met' : current;
 }

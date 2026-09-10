@@ -136,8 +136,8 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
         {!readonly && (
           <p className="mt-3 max-w-2xl text-xs text-ink-light/70">
             <b className="text-ink-light">Not tracked</b> means no system produces this number yet — it is excluded from the
-            score rather than counted as a failure. <b className="text-ink-light">Watch</b> is close but under target, and
-            scores as not achieved.
+            score rather than counted as a failure. <b className="text-ink-light">Watch</b> means started, not finished — it is
+            also excluded, and Watch two closed months running becomes Not met.
           </p>
         )}
       </form>

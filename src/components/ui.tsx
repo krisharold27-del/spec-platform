@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Pillar } from '@/lib/scoring';
+import { band, type Pillar, type Score } from '@/lib/scoring';
 
 export const PILLAR_META: Record<Pillar, { name: string; letter: string; colour: string; question: string }> = {
   safety:     { name: 'Safety',     letter: 'S', colour: '#C1440E', question: 'Are we going well in Safety?' },
@@ -8,7 +8,8 @@ export const PILLAR_META: Record<Pillar, { name: string; letter: string; colour:
   compliance: { name: 'Compliance', letter: 'C', colour: '#8064A2', question: 'Are we clear to work?' },
 };
 
-export const pct = (n: number) => `${Math.round(n * 100)}%`;
+/** No score renders as a dash, never as 0%. */
+export const pct = (n: number | null) => (n === null ? '—' : `${Math.round(n * 100)}%`);
 
 export function Shell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
@@ -75,10 +76,14 @@ export function Callout({ eyebrow, children }: { eyebrow?: string; children: Rea
   );
 }
 
-/** Score tile. `scored=false` renders a baseline state instead of a misleading 0%. */
-export function PillarTile({ pillar, score, scored, sub }: { pillar: Pillar; score: number; scored: boolean; sub?: string }) {
+const BAND_LABEL = { on_track: 'On track', watch: 'Watch', behind: 'Behind', pending: 'Pending' } as const;
+
+/** Score tile. No score renders as Pending — grey, never a misleading 0% and never red. */
+export function PillarTile({ pillar, score: raw, scored: anyScored, sub }: { pillar: Pillar; score: Score; scored: boolean; sub?: string }) {
   const m = PILLAR_META[pillar];
-  const status = !scored ? 'Not yet scored' : score >= 0.9 ? 'On target' : score >= 0.75 ? 'Attention' : 'Below target';
+  const score = anyScored ? raw : null;
+  const scored = score !== null;
+  const status = BAND_LABEL[band(score)];
   return (
     <div className="card" style={{ borderTopColor: m.colour, borderTopWidth: 4 }}>
       <div className="flex items-center gap-2">
@@ -86,7 +91,7 @@ export function PillarTile({ pillar, score, scored, sub }: { pillar: Pillar; sco
         <div className="label-caps">{m.name}</div>
       </div>
       <div className="mt-2 font-serif text-3xl font-bold text-ink">{scored ? pct(score) : '—'}</div>
-      <div className="mt-1 text-sm font-medium" style={{ color: scored && score >= 0.9 ? m.colour : undefined }}>{status}</div>
+      <div className="mt-1 text-sm font-medium" style={{ color: band(score) === 'on_track' ? m.colour : undefined }}>{status}</div>
       {sub && <div className="mt-2 text-xs text-ink-light">{sub}</div>}
     </div>
   );

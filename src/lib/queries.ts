@@ -2,6 +2,7 @@
 import { eq, and, isNull, desc } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { roleScore, teamScore, gates as gateCalc, PILLARS, type Pillar, type RoleScore, type Answer } from './scoring';
+import { answerFor } from './status';
 
 export async function getTenantById(id: string) {
   const rows = await db.select().from(schema.tenants).where(eq(schema.tenants.id, id));
@@ -65,9 +66,15 @@ export async function getScorecard(roleId: string, periodId: string): Promise<{ 
   const ans = await db.select().from(schema.assessments)
     .where(and(eq(schema.assessments.roleId, roleId), eq(schema.assessments.periodId, periodId)));
   const byId = new Map(ans.map(a => [a.criterionId, a]));
+  // A locked month keeps the answers it was locked with — nothing recalculates history (Watch was
+  // stored as N before BUILD_SPEC §3.1 made it NA). An open month scores from the status itself.
+  const [period] = await db.select({ status: schema.periods.status }).from(schema.periods).where(eq(schema.periods.id, periodId));
+  const locked = period?.status === 'locked';
+  const answerOf = (a: (typeof ans)[number] | undefined): Answer =>
+    !a ? '' : !locked && a.status ? answerFor(a.status) : (a.answer as Answer);
   const rows: ScorecardRow[] = crit.map(c => ({
     criterionId: c.id, pillar: c.pillar as Pillar, text: c.text, weight: c.weight, kpi: c.kpi, target: c.target,
-    answer: (byId.get(c.id)?.answer ?? '') as Answer, note: byId.get(c.id)?.note ?? null,
+    answer: answerOf(byId.get(c.id)), note: byId.get(c.id)?.note ?? null,
     status: byId.get(c.id)?.status ?? null,
     result: byId.get(c.id)?.result ?? null,
     source: byId.get(c.id)?.source ?? null,
@@ -88,9 +95,10 @@ export async function getTeamRollupForRoles(roles: RoleView[], periodId: string)
   const perRole = [];
   for (const r of roles) perRole.push({ role: r, ...(await getScorecard(r.id, periodId)) });
   // Team averages use scored roles only — an unscored role is missing data, not a zero.
-  const answered = perRole.filter(p => p.rows.some(r => r.answer !== ''));
-  const team = teamScore(answered.map(p => p.score));
-  return { roles: perRole, team, scoredCount: answered.length, roleCount: roles.length };
+  // teamScore drops unscored roles itself; scoredCount must agree with it.
+  const team = teamScore(perRole.map(p => p.score));
+  const scoredCount = perRole.filter(p => p.score.overall !== null).length;
+  return { roles: perRole, team, scoredCount, roleCount: roles.length };
 }
 
 /**

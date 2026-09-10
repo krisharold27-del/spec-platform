@@ -1,12 +1,14 @@
 /**
- * These tests reproduce the numbers in SPEC_Master_Scorecard_Professional (snapshot 2025-03-05).
- * If the engine ever disagrees with the workbook, the engine is wrong.
+ * The engine against docs/BUILD_SPEC.md §3 and the worked examples in The Rules.
+ * The workbook cases (SPEC_Master_Scorecard_Professional, snapshot 2025-03-05) are kept because
+ * every KPI in them is Y or N, so they must still reproduce exactly.
  */
 import { describe, it, expect } from 'vitest';
 import {
-  pillarScore, roleScore, teamScore, isSpec, gates, validateWeights,
-  type Criterion, type Assessment, type RoleScore,
+  pillarScore, roleScore, teamScore, isSpec, band, gates, validateWeights,
+  type Criterion, type Assessment, type RoleScore, type Answer,
 } from '../src/lib/scoring';
+import { answerFor } from '../src/lib/status';
 
 // ---- Rob (workbook: Safety 100%, People 65%, Earnings 70%, Compliance 65%, Overall 75%)
 const robCriteria: Criterion[] = [
@@ -81,58 +83,161 @@ const janiceAnswers: Assessment[] = [
   ...['E1','E2','E3','E4','E5','C1','C2','C3','C4','C5','C6'].map(id => ({ criterionId: id, answer: 'Y' as const })),
 ];
 
-describe('pillar and role scores reproduce the Master Scorecard', () => {
+/** Equal-weight KPIs in one pillar, marked with the given answers. */
+const pillarOf = (answers: Answer[]) => {
+  const crit: Criterion[] = answers.map((_, i) => ({ id: `k${i}`, pillar: 'safety', text: '', weight: 1 }));
+  const ans: Assessment[] = answers.map((a, i) => ({ criterionId: `k${i}`, answer: a }));
+  return pillarScore(crit, ans, 'safety');
+};
+const rs = (safety: number | null, people: number | null, earnings: number | null, compliance: number | null): RoleScore => {
+  const vals = [safety, people, earnings, compliance].filter((v): v is number => v !== null);
+  return { pillars: { safety, people, earnings, compliance }, overall: vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null };
+};
+
+describe('workbook cases (every KPI Y or N) still reproduce the Master Scorecard', () => {
   it('Rob', () => {
     const r = roleScore(robCriteria, robAnswers);
-    expect(r.pillars.safety).toBe(1.0);
-    expect(r.pillars.people).toBe(0.65);
-    expect(r.pillars.earnings).toBe(0.70);
+    expect(r.pillars.safety).toBeCloseTo(1.0, 10);
+    expect(r.pillars.people).toBeCloseTo(0.65, 10);
+    expect(r.pillars.earnings).toBeCloseTo(0.70, 10);
     // Source sheet shows 65% — its Compliance weights only sum to 85%, so 55/85 = 64.7%, displayed rounded.
-    expect(Math.round(r.pillars.compliance * 100)).toBe(65);
-    expect(Math.round(r.overall * 100)).toBe(75);
+    expect(Math.round(r.pillars.compliance! * 100)).toBe(65);
+    expect(Math.round(r.overall! * 100)).toBe(75);
   });
 
   it('Janice', () => {
     const r = roleScore(janiceCriteria, janiceAnswers);
-    expect(r.pillars.safety).toBe(0.75);
-    expect(r.pillars.people).toBe(0.80);
-    expect(r.pillars.earnings).toBe(1.0);
-    expect(r.pillars.compliance).toBe(1.0);
-    expect(Math.round(r.overall * 100)).toBe(89);
-  });
-
-  it('unanswered template scores 0, not an error (August 2026 board output case)', () => {
-    const r = roleScore(robCriteria, []);
-    expect(r.overall).toBe(0);
-  });
-
-  it('NA drops out of the denominator', () => {
-    const crit: Criterion[] = [
-      { id: 'a', pillar: 'safety', text: '', weight: 0.5 },
-      { id: 'b', pillar: 'safety', text: '', weight: 0.5 },
-    ];
-    expect(pillarScore(crit, [{ criterionId: 'a', answer: 'Y' }, { criterionId: 'b', answer: 'NA' }], 'safety')).toBe(1);
+    expect(r.pillars.safety).toBeCloseTo(0.75, 10);
+    expect(r.pillars.people).toBeCloseTo(0.80, 10);
+    expect(r.pillars.earnings).toBeCloseTo(1.0, 10);
+    expect(r.pillars.compliance).toBeCloseTo(1.0, 10);
+    expect(Math.round(r.overall! * 100)).toBe(89);
   });
 });
 
-describe('team rollup', () => {
+describe('NA rows are absences, not zeros (§3.2)', () => {
+  it('NA drops out of both sides', () => {
+    expect(pillarOf(['Y', 'NA'])).toBe(1);
+  });
+
+  it('a blank — nothing marked yet — is Pending, so it drops out too', () => {
+    // The old rule kept blanks in the denominator and this scored 50%. An unmarked KPI must never drag a score down.
+    expect(pillarOf(['Y', ''])).toBe(1);
+  });
+
+  it('Watch, Pending and Not tracked all score NA; only Not met scores N', () => {
+    expect(['watch', 'pending', 'not_tracked'].map(answerFor)).toEqual(['NA', 'NA', 'NA']);
+    expect(['confirmed', 'met', 'on_track'].map(answerFor)).toEqual(['Y', 'Y', 'Y']);
+    expect(answerFor('not_met')).toBe('N');
+  });
+
+  it('worked example — Head of Operations, Earnings: Met, Not met, Met, Not tracked = 66.7%', () => {
+    const v = pillarOf(['Y', 'N', 'Y', answerFor('not_tracked')]);
+    expect(Math.round(v! * 1000) / 10).toBe(66.7);
+  });
+
+  it('a pillar where everything is NA has no score — null, not 0', () => {
+    expect(pillarOf(['NA', '', 'NA'])).toBeNull();
+    expect(pillarOf([])).toBeNull();
+  });
+
+  it('a template nobody has marked has no score anywhere', () => {
+    const r = roleScore(robCriteria, []);
+    expect(r.overall).toBeNull();
+    expect(Object.values(r.pillars)).toEqual([null, null, null, null]);
+  });
+});
+
+describe('role overall (§3.3)', () => {
+  it('worked example — Head of Operations, September: (100 + 66.7 + 66.7 + 100) ÷ 4 = 83.3%', () => {
+    const crit: Criterion[] = [
+      ...['s1', 's2'].map(id => ({ id, pillar: 'safety' as const, text: '', weight: 1 })),
+      ...['p1', 'p2', 'p3'].map(id => ({ id, pillar: 'people' as const, text: '', weight: 1 })),
+      ...['e1', 'e2', 'e3'].map(id => ({ id, pillar: 'earnings' as const, text: '', weight: 1 })),
+      ...['c1', 'c2'].map(id => ({ id, pillar: 'compliance' as const, text: '', weight: 1 })),
+    ];
+    const ans: Assessment[] = [
+      { criterionId: 's1', answer: 'Y' }, { criterionId: 's2', answer: 'Y' },
+      { criterionId: 'p1', answer: 'Y' }, { criterionId: 'p2', answer: 'Y' }, { criterionId: 'p3', answer: 'N' },
+      { criterionId: 'e1', answer: 'Y' }, { criterionId: 'e2', answer: 'Y' }, { criterionId: 'e3', answer: 'N' },
+      { criterionId: 'c1', answer: 'Y' }, { criterionId: 'c2', answer: 'Y' },
+    ];
+    expect(Math.round(roleScore(crit, ans).overall! * 1000) / 10).toBe(83.3);
+  });
+
+  it('an unscored pillar is left out of the mean, not counted as zero', () => {
+    const crit: Criterion[] = [
+      { id: 's', pillar: 'safety', text: '', weight: 1 },
+      { id: 'p', pillar: 'people', text: '', weight: 1 },
+      { id: 'e', pillar: 'earnings', text: '', weight: 1 },
+      { id: 'c', pillar: 'compliance', text: '', weight: 1 },
+    ];
+    const r = roleScore(crit, [
+      { criterionId: 's', answer: 'NA' }, { criterionId: 'p', answer: 'Y' },
+      { criterionId: 'e', answer: 'Y' }, { criterionId: 'c', answer: 'N' },
+    ]);
+    expect(r.pillars.safety).toBeNull();
+    expect(r.overall).toBeCloseTo(2 / 3, 10); // divided by three, not four
+  });
+});
+
+describe('team roll-up (§3.4)', () => {
   it('averages Rob and Janice per pillar', () => {
     const t = teamScore([roleScore(robCriteria, robAnswers), roleScore(janiceCriteria, janiceAnswers)]);
-    expect(t.pillars.safety).toBe(0.875);
-    expect(t.pillars.people).toBe(0.725);
-    expect(t.pillars.earnings).toBe(0.85);
-    expect(Math.round(t.pillars.compliance * 1000) / 10).toBe(82.4); // (64.7 + 100) / 2
+    expect(t.pillars.safety).toBeCloseTo(0.875, 10);
+    expect(t.pillars.people).toBeCloseTo(0.725, 10);
+    expect(t.pillars.earnings).toBeCloseTo(0.85, 10);
+    expect(Math.round(t.pillars.compliance! * 1000) / 10).toBe(82.4); // (64.7 + 100) / 2
+  });
+
+  it('team % is the mean of role %, not the mean of the pillar means', () => {
+    const t = teamScore([rs(1, 1, 1, 1), rs(null, 0.4, 0.4, 0.4)]);
+    expect(t.overall).toBeCloseTo(0.7, 10);  // (100 + 40) / 2
+    expect(t.pillars.safety).toBe(1);        // only the person scored in Safety counts
+  });
+
+  it('people with no score are left out, not counted as zero', () => {
+    const t = teamScore([rs(0.8, 0.8, 0.8, 0.8), rs(null, null, null, null)]);
+    expect(t.overall).toBeCloseTo(0.8, 10);
+  });
+
+  it('a team where nobody is scored has no light at all', () => {
+    const t = teamScore([rs(null, null, null, null)]);
+    expect(t.overall).toBeNull();
+    expect(band(t.overall)).toBe('pending');
+    expect(teamScore([]).overall).toBeNull();
   });
 });
 
-describe('the 90% rule', () => {
-  const good: RoleScore = { pillars: { safety: 0.95, people: 0.92, earnings: 0.9, compliance: 0.91 }, overall: 0.92 };
-  const bad: RoleScore = { pillars: { safety: 0.95, people: 0.92, earnings: 0.89, compliance: 0.91 }, overall: 0.92 };
-  it('needs two consecutive months', () => {
+describe('bands (§3.4)', () => {
+  it('On track 100% · Watch 50–99.9% · Behind under 50% · Pending no score', () => {
+    expect(band(1)).toBe('on_track');
+    expect(band(0.999)).toBe('watch');
+    expect(band(0.5)).toBe('watch');
+    expect(band(0.4999)).toBe('behind');
+    expect(band(0)).toBe('behind');
+    expect(band(null)).toBe('pending'); // pending is never red
+  });
+});
+
+describe('the 90% rule (§3.5)', () => {
+  const good = rs(0.95, 0.92, 0.9, 0.91);
+  const bad = rs(0.95, 0.92, 0.89, 0.91);
+  it('needs every pillar at 90%+ for two consecutive closed months', () => {
     expect(isSpec([good])).toBe(false);
     expect(isSpec([bad, good])).toBe(false);
     expect(isSpec([good, good])).toBe(true);
     expect(isSpec([good, good, bad])).toBe(false);
+  });
+
+  it('an unscored month breaks the run rather than pausing it', () => {
+    expect(isSpec([good, null, good])).toBe(false);
+    expect(isSpec([good, rs(null, null, null, null), good])).toBe(false);
+  });
+
+  it('a pillar with no score does not qualify', () => {
+    const noSafety = rs(null, 0.95, 0.95, 0.95);
+    expect(isSpec([noSafety, noSafety])).toBe(false);
   });
 });
 
@@ -149,7 +254,7 @@ describe('hard gates', () => {
 describe('weight validation', () => {
   it('flags source-sheet pillars whose weights do not sum to 100%', () => {
     // Real finding from the Master Scorecard: Rob's Compliance sums to 85%, Janice's Earnings to 91%.
-    // The engine normalises by applicable weight so scores still match the sheet, but the product must enforce 100%.
+    // The engine normalises by decided weight so scores still match the sheet, but the product must enforce 100%.
     expect(validateWeights(robCriteria)).toEqual([{ pillar: 'compliance', total: 0.85 }]);
     expect(validateWeights(janiceCriteria)).toEqual([{ pillar: 'earnings', total: 0.91 }]);
   });
