@@ -114,7 +114,7 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
                       <label className="block text-xs">
                         <span className="label-caps">Source</span>
                         <input name={`source:${r.criterionId}`} defaultValue={r.source ?? ''} disabled={readonly}
-                          placeholder="Xero, Simpro, or how you confirmed it"
+                          placeholder="The system or report it came from, or who confirmed it"
                           className="mt-1 w-full rounded border border-ink/15 px-2 py-1.5 text-sm disabled:bg-ink/5" />
                       </label>
                     </div>

@@ -61,13 +61,17 @@ export async function sendInviteEmail(opts: { to: string; name: string; business
   );
 }
 
-export async function sendBoardOutputReadyEmail(opts: { to: string; businessName: string; period: string; periodId: string }) {
-  const url = `${appUrl()}/board/${opts.periodId}`;
+/**
+ * "Your board pack is ready" — BUILD_SPEC §10: no attachment, no link, no content. Not even the
+ * business name or the month: an email is forwarded, and anything in it has left SPEC. The pack is
+ * read in SPEC, by signing in.
+ */
+export async function sendBoardOutputReadyEmail(opts: { to: string }) {
   await send(
     opts.to,
-    `${opts.businessName}: ${opts.period} board output is ready`,
-    wrap(`<p>The board output for <b>${opts.period}</b> has been generated from this month's scorecards and gates.</p><p><a href="${url}">Read it</a> and approve it for the board.</p>`),
-    `The board output for ${opts.period} has been generated from this month's scorecards and gates.\n\nRead it and approve it for the board: ${url}`,
+    'Your board pack is ready',
+    wrap('<p>Your board pack is ready to read in SPEC.</p>'),
+    'Your board pack is ready to read in SPEC.',
   );
 }
 

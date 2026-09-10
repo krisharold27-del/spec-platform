@@ -63,7 +63,7 @@ export const users = pgTable('users', {
 /**
  * The systems a client already runs, so their KPIs can read real numbers instead of being typed in.
  *
- * Deliberately not a fixed vendor list: `name` is whatever the client typed — Simpro, MYOB, AroFlo,
+ * Deliberately not a fixed vendor list: `name` is whatever the client typed — their job system, their accounts package,
  * a spreadsheet on a shared drive — because every business runs a different stack. `category` is
  * what the number is FOR, which is the part SPEC actually reasons about.
  *
@@ -175,7 +175,7 @@ export const assessments = pgTable('assessments', {
   answer: text('answer').notNull().default(''), // Y | N | NA | ''
   status: text('status'),   // confirmed | on_track | met | watch | not_met | pending | not_tracked
   result: text('result'),   // the actual value, as reported: "$827,172 (94.0%)", "40.24%", "16 invoices"
-  source: text('source'),   // where the number came from: "Xero, plain actual", "Manual - GM confirmation"
+  source: text('source'),   // where the number came from: "Accounts package, plain actual", "Manual - GM confirmation"
   note: text('note'),
   enteredBy: text('entered_by'),
   enteredAt: text('entered_at').notNull(),

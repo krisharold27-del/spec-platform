@@ -66,7 +66,7 @@ export async function lockPeriod(formData: FormData) {
   const notify = await db.select({ email: schema.users.email }).from(schema.users)
     .where(and(eq(schema.users.tenantId, user.tenantId), inArray(schema.users.access, [...MANAGING_ACCESS])));
   for (const { email } of notify) {
-    await sendBoardOutputReadyEmail({ to: email, businessName: tenant.name, period: period.period, periodId });
+    await sendBoardOutputReadyEmail({ to: email });
   }
 
   revalidatePath('/'); revalidatePath('/journey');
