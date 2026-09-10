@@ -29,10 +29,15 @@ export async function saveScorecard(formData: FormData) {
   const period = periods[0];
   if (!period || period.status === 'locked') throw new Error('Period is locked — locked months are never edited.');
 
+  // Only this role's own KPIs. The ids arrive as form field names, which anybody can edit.
+  const ownCriteria = new Set((await db.select({ id: schema.criteria.id }).from(schema.criteria)
+    .where(eq(schema.criteria.roleId, roleId))).map(c => c.id));
+
   const now = new Date().toISOString();
   for (const [key, value] of formData.entries()) {
     if (!key.startsWith('status:')) continue;
     const criterionId = key.slice('status:'.length);
+    if (!ownCriteria.has(criterionId)) continue;
     const status = String(value) || null;
     // The status is what the person chooses; the scoring value is derived from it, never typed.
     const answer = answerFor(status);

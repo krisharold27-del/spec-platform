@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { getCurrentUser, canManage } from '@/lib/auth';
+import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { validateWeights, type Pillar } from '@/lib/scoring';
 
@@ -16,6 +17,8 @@ export async function saveCriteria(formData: FormData) {
   const roleRows = await db.select().from(schema.roles).where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
   const role = roleRows[0];
   if (!role) redirect('/setup/kpis');
+  // KPIs belong to the leader of the section: your own role and those beneath it, never a peer's or your leader's.
+  if (!(await getScope(user)).canEdit(roleId)) throw new Error('You can only set KPIs for your own role and the roles beneath it.');
 
   const rows: { id: string; pillar: Pillar; text: string; weight: number; kpi: boolean; target: string | null }[] = [];
   const ids = new Set<string>();

@@ -19,6 +19,10 @@ export async function saveGates(formData: FormData) {
   if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
   const periodId = String(formData.get('periodId'));
+  // The id comes from a form anybody can edit: it must be this business's own month, and still open.
+  const [period] = await db.select().from(schema.periods)
+    .where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId)));
+  if (!period || period.status === 'locked') redirect('/');
   const lti = Number(formData.get('lti') ?? 0), mti = Number(formData.get('mti') ?? 0), psy = Number(formData.get('psychosocial') ?? 0);
   const training = Number(formData.get('training') ?? 0) / 100;
   const rows = [
@@ -75,6 +79,10 @@ export async function approveBoardOutput(formData: FormData) {
   if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
   const periodId = String(formData.get('periodId'));
-  await db.update(schema.boardOutputs).set({ approvedBy: user.email }).where(eq(schema.boardOutputs.periodId, periodId));
+  // Only this business's own pack — the id comes from a form anybody can edit.
+  const [period] = await db.select().from(schema.periods)
+    .where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId)));
+  if (!period) redirect('/');
+  await db.update(schema.boardOutputs).set({ approvedBy: user.email }).where(eq(schema.boardOutputs.periodId, period.id));
   revalidatePath(`/board/${periodId}`); revalidatePath('/journey');
 }

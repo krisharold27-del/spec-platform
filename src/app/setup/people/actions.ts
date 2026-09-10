@@ -107,7 +107,11 @@ export async function resolveRoleChange(formData: FormData) {
   const decision = String(formData.get('decision') ?? '');
 
   const chart = await chartFor(user.tenantId);
-  if (!chart.staff.some(s => s.id === staffId)) redirect('/setup/business');
+  // Every id must be this business's own — they come from a form anybody can edit.
+  const ours = (roleId: string) => chart.roles.some(r => r.id === roleId);
+  if (!chart.staff.some(s => s.id === staffId) || !ours(toRoleId) || (decision === 'move' && !ours(fromRoleId))) {
+    redirect('/setup/business');
+  }
 
   if (decision === 'move') {
     // The old role is vacated and goes back on the board as open, keeping its KPIs for whoever is next.

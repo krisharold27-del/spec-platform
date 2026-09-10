@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, canManage } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
 
 /**
@@ -12,9 +12,9 @@ import { assertWritable } from '@/lib/plan';
  * Save button, so this is called once per question and must be cheap and idempotent.
  */
 export async function saveAnswer(sectionId: string, questionId: string, value: string): Promise<{ ok: boolean }> {
-  const user = await getCurrentUser(); if (!user) redirect('/signin');
+  const user = await getCurrentUser(); if (!user || !canManage(user.access)) redirect('/signin');
   await assertWritable(user.tenantId);
-  const answer = value.trim();
+  const answer = String(value ?? '').trim().slice(0, 4000);
   const now = new Date().toISOString();
 
   const existing = (await db.select().from(schema.diagnostics).where(and(
