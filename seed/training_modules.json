@@ -1,0 +1,76 @@
+{
+  "version": "2026-09-11",
+  "note": "SPEC's own training. Every module moves a number somebody is already accountable for; none of it explains the software for its own sake. `levels` is which role levels get the module by default — a manager edits the path afterwards. `core` modules cannot be removed.",
+  "modules": [
+    {
+      "key": "how_spec_works",
+      "title": "How SPEC works",
+      "summary": "The four questions, the 90% rule, the two hard gates, and what a locked month means.",
+      "pillar": "all",
+      "minutes": 25,
+      "core": true,
+      "dueDays": 14,
+      "levels": ["director", "gm", "manager", "supervisor", "specialist", "technician", "apprentice", "staff"]
+    },
+    {
+      "key": "scoring_the_pillars",
+      "title": "Scoring the four pillars",
+      "summary": "Scoring the role and not the person, confirming a number that arrived by hand, and when to flag rather than score.",
+      "pillar": "all",
+      "minutes": 40,
+      "core": true,
+      "dueDays": 30,
+      "levels": ["director", "gm", "manager", "supervisor", "specialist"]
+    },
+    {
+      "key": "leading_the_weekly_meeting",
+      "title": "Leading the weekly meeting",
+      "summary": "Running it in twenty minutes: what gets logged, what gets escalated, and what is left alone.",
+      "pillar": "people",
+      "minutes": 30,
+      "core": false,
+      "dueDays": 60,
+      "levels": ["gm", "manager", "supervisor"]
+    },
+    {
+      "key": "psychosocial_safety",
+      "title": "Psychosocial safety basics",
+      "summary": "What counts as a psychosocial hazard, how it is reported, and why it sits inside the Zero Harm gate.",
+      "pillar": "people",
+      "minutes": 35,
+      "core": false,
+      "dueDays": 90,
+      "levels": ["gm", "manager", "supervisor"]
+    },
+    {
+      "key": "margin_against_quote",
+      "title": "Margin against quote",
+      "summary": "Reading job costing against the quote, spotting rework early, and what to bring to the weekly meeting.",
+      "pillar": "earnings",
+      "minutes": 30,
+      "core": false,
+      "dueDays": 90,
+      "levels": ["gm", "manager", "supervisor"]
+    },
+    {
+      "key": "running_a_toolbox_talk",
+      "title": "Running a toolbox talk",
+      "summary": "Holding a talk people actually take something from, and recording it so it stands up later.",
+      "pillar": "safety",
+      "minutes": 20,
+      "core": false,
+      "dueDays": 60,
+      "levels": ["supervisor", "specialist", "technician"]
+    },
+    {
+      "key": "clear_to_work",
+      "title": "Clear to Work, end to end",
+      "summary": "Tickets, expiries, and what to do the moment somebody is not clear. The gate is pass or fail.",
+      "pillar": "compliance",
+      "minutes": 25,
+      "core": false,
+      "dueDays": 60,
+      "levels": ["gm", "manager", "supervisor", "specialist"]
+    }
+  ]
+}

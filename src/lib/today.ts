@@ -92,6 +92,8 @@ export interface TodoInputs {
   meetingLogged: boolean;
   /** Connections the business expected to be feeding numbers and that currently are not. */
   brokenConnections: { id: string; category: string }[];
+  /** Modules on the path of the role this person holds whose due date has passed. */
+  overdueTraining: { moduleId: string; title: string; minutes: number }[];
   /** Whether this person may mark and manage within their scope. A readonly seat gets a shorter list. */
   canManage: boolean;
 }
@@ -157,6 +159,20 @@ export function whatNeedsMe(input: TodoInputs): TodoItem[] {
         href: `/scorecard/${rep.roleId}`,
       });
     }
+  }
+
+  // Overdue training reaches the board pack whatever the scores say, so it belongs on the list
+  // rather than only in the training block further down the page.
+  for (const m of input.overdueTraining) {
+    items.push({
+      id: `training:${m.moduleId}`,
+      // A module title is the name of a thing, so it keeps its own capitals — unlike a KPI, whose
+      // wording is a descriptive phrase that has to read inside a sentence.
+      label: `Finish ${m.title}`,
+      meta: `Compliance · overdue, and about ${m.minutes} minutes`,
+      pillar: 'compliance',
+      href: '/today',
+    });
   }
 
   for (const c of input.brokenConnections) {

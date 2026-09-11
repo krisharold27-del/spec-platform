@@ -6,7 +6,9 @@ import { answerFor, ASK_PROMPTS, type Answer, type TodoItem } from '@/lib/today'
 import { SubmitButton } from '@/components/submit-button';
 import type { RoleScore } from '@/lib/scoring';
 import type { ScorecardRow } from '@/lib/queries';
-import { logWeeklyMeeting } from '@/app/today/actions';
+import { LIGHT_COLOUR } from '@/lib/today';
+import type { PathLine, PathProgress, Signoff } from '@/lib/training';
+import { logWeeklyMeeting, continueModule } from '@/app/today/actions';
 
 /**
  * The three parts of Today that respond to a press.
@@ -147,6 +149,85 @@ export function ChangeList({ items }: { items: { id: string; kind: string; title
         );
       })}
     </div>
+  );
+}
+
+/**
+ * The training path for the role this person holds.
+ *
+ * The path belongs to the role, so the modules are the job's rather than the person's, and the
+ * sign-off at the bottom is a manager's decision — the bar reaching the end makes somebody ready
+ * to be signed off, never signed off.
+ */
+export function TrainingPath({ path, progress, signoff }: { path: PathLine[]; progress: PathProgress; signoff: Signoff }) {
+  if (!path.length) {
+    return (
+      <p className="mt-3 text-sm text-ink-light">
+        Nothing is assigned to this role yet. Training hangs off the job rather than the person, so
+        whoever holds this role inherits the path once it is set.
+      </p>
+    );
+  }
+
+  const overall = Math.round((progress.pct ?? 0) * 100);
+  return (
+    <>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface">
+        <div
+          className="h-full rounded-full transition-[width] duration-200"
+          style={{ width: `${Math.max(overall, 2)}%`, background: progress.pathComplete ? LIGHT_COLOUR.green : LIGHT_COLOUR.amber }}
+        />
+      </div>
+      <div className="mt-1.5 text-xs text-ink-light">{overall}% of the path</div>
+
+      <ul className="mt-4 grid gap-3">
+        {path.map(m => {
+          const tone = m.state === 'complete' ? LIGHT_COLOUR.green
+            : m.due === 'overdue' ? LIGHT_COLOUR.red
+            : m.state === 'in_progress' ? LIGHT_COLOUR.amber
+            : LIGHT_COLOUR.pending;
+          return (
+            <li key={m.moduleId} className="rounded-lg bg-surface p-3" style={{ borderLeft: `4px solid ${tone}` }}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-serif text-base text-ink">{m.title}</span>
+                <span className="label-caps" style={{ color: m.state === 'not_started' ? undefined : tone }}>
+                  {m.state === 'complete' ? 'Complete' : m.state === 'in_progress' ? 'In progress' : 'Not started'}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-ink-light">{m.summary}</p>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-cream">
+                <div className="h-full rounded-full transition-[width] duration-200" style={{ width: `${Math.max(m.progress, 2)}%`, background: tone }} />
+              </div>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-ink-light">
+                  {m.core && <span className="pill pill-neutral mr-2">Core</span>}
+                  {m.note}
+                </span>
+                {m.state !== 'complete' && (
+                  <form action={continueModule}>
+                    <input type="hidden" name="moduleId" value={m.moduleId} />
+                    <SubmitButton className="btn-primary px-3 py-1.5 text-xs" pending="…">{m.action}</SubmitButton>
+                  </form>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="mt-4 border-t border-ink/10 pt-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <span className="label-caps">Sign-off</span>
+          <span
+            className="font-serif text-sm"
+            style={{ color: signoff.state === 'signed' ? LIGHT_COLOUR.green : signoff.state === 'ready' ? LIGHT_COLOUR.amber : undefined }}
+          >
+            {signoff.label}
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-ink-light">{signoff.note}</p>
+      </div>
+    </>
   );
 }
 

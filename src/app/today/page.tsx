@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Shell, PILLAR_META, pct } from '@/components/ui';
-import { TodoList, AskPanel, ChangeList, MeetingLog } from '@/components/today-blocks';
+import { TodoList, AskPanel, ChangeList, MeetingLog, TrainingPath } from '@/components/today-blocks';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById, PILLARS } from '@/lib/queries';
 import { getToday } from '@/lib/today-data';
@@ -49,7 +49,7 @@ export default async function Today() {
     );
   }
 
-  const { myRows, myScore, team, reportsTo, feeds, todos, changes, meetingLogged } = data;
+  const { myRows, myScore, team, reportsTo, feeds, todos, changes, meetingLogged, training } = data;
   const compliance = clearToWork(myRows);
   const live = feeds.filter(f => f.status === 'live');
 
@@ -216,6 +216,14 @@ export default async function Today() {
 
           <section className="rounded-lg bg-rust-100 p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-serif text-xl text-ink">My training</h2>
+              <span className="text-sm text-ink-light">{trainingLine(training.progress)}</span>
+            </div>
+            <TrainingPath path={training.path} progress={training.progress} signoff={training.signoff} />
+          </section>
+
+          <section className="card">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-serif text-xl text-ink">Clear to work</h2>
               <span className="text-sm text-ink-light">
                 {compliance.filter(c => c.light === 'green').length} of {compliance.length} confirmed
@@ -231,12 +239,6 @@ export default async function Today() {
                         {c.status}
                       </span>
                     </div>
-                    <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: c.light === 'green' ? '100%' : c.light === 'red' ? '100%' : '8%', background: LIGHT_COLOUR[c.light] }}
-                      />
-                    </div>
                     <div className="mt-1 text-xs text-ink-light">{c.note}</div>
                   </li>
                 ))}
@@ -248,8 +250,7 @@ export default async function Today() {
               </p>
             )}
             <p className="mt-4 text-xs text-ink-light">
-              Training records live against the role, not the person. Clear to Work is pass or fail and is
-              reported separately from every score.
+              Clear to Work is pass or fail, and is reported separately from every score.
             </p>
           </section>
         </div>
@@ -292,6 +293,13 @@ function standing(outstanding: number, score: RoleScore): string {
 }
 
 const capital = (p: string) => p.charAt(0).toUpperCase() + p.slice(1);
+
+/** The count beside "My training". A role with no path has none, rather than nought of nought. */
+function trainingLine(p: { total: number; complete: number; overdue: number }): string {
+  if (p.total === 0) return 'No path set';
+  const base = `${p.complete} of ${p.total} complete`;
+  return p.overdue ? `${base} · ${p.overdue} overdue` : base;
+}
 
 /** The short verdict beside a team member's dots. Never a rank, never a comparison. */
 function teamFlag(score: RoleScore): string {

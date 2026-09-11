@@ -18,7 +18,8 @@ const score = (p: Partial<Record<Pillar, number | null>>, overall: number | null
 });
 
 const todo = (over: Partial<TodoInputs> = {}): TodoInputs => ({
-  myRoleId: 'r1', myRows: [], reports: [], meetingLogged: true, brokenConnections: [], canManage: true, ...over,
+  myRoleId: 'r1', myRows: [], reports: [], meetingLogged: true, brokenConnections: [],
+  overdueTraining: [], canManage: true, ...over,
 });
 
 describe('light — the 90% rule as a traffic light', () => {
@@ -126,13 +127,26 @@ describe('whatNeedsMe', () => {
     ]);
   });
 
+  // Overdue training reaches the board pack whatever the scores say, so it belongs on the list.
+  it('raises overdue training, and stays quiet while it is merely due', () => {
+    const items = whatNeedsMe(todo({
+      overdueTraining: [{ moduleId: 'm1', title: 'Clear to Work, end to end', minutes: 25 }],
+    }));
+    expect(items).toHaveLength(1);
+    expect(items[0].label).toBe('Finish Clear to Work, end to end');
+    expect(items[0].meta).toContain('about 25 minutes');
+    expect(items[0].pillar).toBe('compliance');
+    expect(whatNeedsMe(todo())).toEqual([]);
+  });
+
   it('always points somewhere the work is actually done', () => {
     const items = whatNeedsMe(todo({
       meetingLogged: false,
       myRows: [row({ pillar: 'compliance', text: 'Tickets current', answer: 'N' })],
       brokenConnections: [{ id: 'c1', category: 'Financials' }],
+      overdueTraining: [{ moduleId: 'm1', title: 'How SPEC works', minutes: 25 }],
     }));
-    expect(items.length).toBe(3);
+    expect(items.length).toBe(4);
     for (const i of items) expect(i.href).toMatch(/^\//);
   });
 });

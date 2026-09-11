@@ -42,6 +42,22 @@ async function main() {
   ]);
 
   await db.insert(schema.systemConnections).values({ id: randomUUID(), tenantId, name: 'Job management system', category: 'job_management', ownerIsSelf: true, status: 'live', createdAt: new Date().toISOString() });
+
+  // The Operations role is part-way through its training path, so Today has a live one to show:
+  // two modules passed, one started, the rest waiting. provisionTenant installed the path itself.
+  const [ops] = await db.select().from(schema.roleAssignments).where(eq(schema.roleAssignments.roleId, roleIds.operations_manager));
+  const opsPath = await db.select().from(schema.roleCurriculum)
+    .where(eq(schema.roleCurriculum.roleId, roleIds.operations_manager)).orderBy(schema.roleCurriculum.sortOrder);
+  if (ops?.userId && opsPath.length >= 3) {
+    const at = new Date().toISOString();
+    await db.insert(schema.trainingRecords).values([
+      { id: randomUUID(), tenantId, moduleId: opsPath[0].moduleId, userId: ops.userId, progress: 100, resultPct: 94, startedAt: at, completedAt: at },
+      { id: randomUUID(), tenantId, moduleId: opsPath[1].moduleId, userId: ops.userId, progress: 100, resultPct: 88, startedAt: at, completedAt: at },
+      { id: randomUUID(), tenantId, moduleId: opsPath[2].moduleId, userId: ops.userId, progress: 50, startedAt: at },
+    ]);
+  }
+
   console.log('Seeded demo tenant', tenantId, '— sign in as alex@acme.example');
+  process.exit(0);
 }
 main();

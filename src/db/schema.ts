@@ -141,7 +141,72 @@ export const roleAssignments = pgTable('role_assignments', {
   staffId: text('staff_id').references(() => staff.id),
   fromDate: text('from_date').notNull(),
   toDate: text('to_date'),
+  /**
+   * The training path signed off by this person's manager: trained on the job and confirmed
+   * capable in THIS role. It hangs off the placement rather than the person, so moving somebody to
+   * a different role correctly does not carry their sign-off across — which is the whole point of
+   * "trained on the role, not the software".
+   */
+  trainedAt: text('trained_at'),
+  trainedBy: text('trained_by'),
 }, t => [index('ra_role').on(t.roleId), index('ra_user').on(t.userId), index('ra_staff').on(t.staffId)]).enableRLS();
+
+/**
+ * SPEC's own training — the catalogue a business draws its role paths from.
+ *
+ * Every module is tied to a pillar, and through it to the KPIs a role is already scored on: the
+ * training exists to move a number somebody is accountable for, not to explain the software. A
+ * `core` module is one every role starts with and no manager can remove.
+ */
+export const trainingModules = pgTable('training_modules', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  title: text('title').notNull(),
+  summary: text('summary').notNull(),
+  /** safety | people | earnings | compliance | all — 'all' is a module that serves every pillar. */
+  pillar: text('pillar').notNull(),
+  minutes: integer('minutes').notNull().default(30),
+  core: boolean('core').notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
+  active: boolean('active').notNull().default(true),
+}, t => [index('training_modules_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * Which modules a role requires. Role first, person second: the path belongs to the job, and
+ * whoever holds the job inherits it. Reassigning a person never edits the path.
+ */
+export const roleCurriculum = pgTable('role_curriculum', {
+  id: text('id').primaryKey(),
+  roleId: text('role_id').notNull().references(() => roles.id),
+  moduleId: text('module_id').notNull().references(() => trainingModules.id),
+  /** Days from taking the role to when this module is due. Null means no deadline. */
+  dueDays: integer('due_days'),
+  sortOrder: integer('sort_order').notNull().default(0),
+}, t => [uniqueIndex('role_curriculum_unique').on(t.roleId, t.moduleId), index('role_curriculum_role').on(t.roleId)]).enableRLS();
+
+/**
+ * One person's progress through one module.
+ *
+ * Progress is the person's — somebody learns a thing once — while WHICH modules count is the
+ * role's, resolved through the path above. That split is what lets a path be reported by role
+ * without making a person re-sit the same module every time the chart changes.
+ */
+export const trainingRecords = pgTable('training_records', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  moduleId: text('module_id').notNull().references(() => trainingModules.id),
+  userId: text('user_id').references(() => users.id),
+  staffId: text('staff_id').references(() => staff.id),
+  /** 0–100. 100 is complete; anything between is started and not finished. */
+  progress: integer('progress').notNull().default(0),
+  /** The mark, where the module carries one. Null is "no mark", never zero. */
+  resultPct: integer('result_pct'),
+  startedAt: text('started_at'),
+  completedAt: text('completed_at'),
+}, t => [
+  uniqueIndex('training_records_user_module').on(t.userId, t.moduleId),
+  index('training_records_tenant').on(t.tenantId),
+]).enableRLS();
 
 export const criteria = pgTable('criteria', {
   id: text('id').primaryKey(),

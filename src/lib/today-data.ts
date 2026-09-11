@@ -5,8 +5,9 @@
  * in one readable block — the scope is resolved once, at the top, and nothing below it can widen
  * what comes back — and it keeps the page a layout rather than a data layer.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull, inArray } from 'drizzle-orm';
 import { db, schema } from '../db';
+import { pathFor, pathProgress, signoffFor, type PathLine, type PathProgress, type Signoff, type TrainingModule } from './training';
 import { getScorecard, getRoles, type RoleView, type ScorecardRow } from './queries';
 import { currentPeriod } from './period';
 import { getScope } from './scope';
@@ -46,6 +47,12 @@ export interface FeedLine {
   feeds: string[];
 }
 
+export interface TrainingView {
+  path: PathLine[];
+  progress: PathProgress;
+  signoff: Signoff;
+}
+
 export interface TodayData {
   period: { id: string; period: string; status: string } | null;
   myRole: RoleView | null;
@@ -57,7 +64,64 @@ export interface TodayData {
   todos: TodoItem[];
   changes: ChangeItem[];
   meetingLogged: boolean;
+  training: TrainingView;
   canManage: boolean;
+}
+
+const NO_TRAINING: TrainingView = {
+  path: [],
+  progress: { total: 0, complete: 0, pct: null, pathComplete: false, overdue: 0 },
+  signoff: { state: 'no_path', label: 'No path set', note: 'Nothing is assigned to this role yet.', trainedAt: null, trainedBy: null },
+};
+
+/**
+ * The training path for the role this person holds, and how far through it they are.
+ *
+ * The path is the role's, the progress is the person's, and the sign-off sits on the placement —
+ * so somebody moving to a new job inherits that job's path and starts its sign-off fresh.
+ */
+async function trainingFor(
+  tenantId: string,
+  roleId: string,
+  userId: string,
+  managerTitle: string | null,
+): Promise<TrainingView> {
+  const curriculum = await db.select().from(schema.roleCurriculum)
+    .where(eq(schema.roleCurriculum.roleId, roleId))
+    .orderBy(schema.roleCurriculum.sortOrder);
+  if (!curriculum.length) return NO_TRAINING;
+
+  const moduleRows = await db.select().from(schema.trainingModules)
+    .where(and(
+      eq(schema.trainingModules.tenantId, tenantId),
+      inArray(schema.trainingModules.id, curriculum.map(c => c.moduleId)),
+    ));
+  const modules: TrainingModule[] = moduleRows
+    .filter(m => m.active)
+    .map(m => ({ id: m.id, title: m.title, summary: m.summary, pillar: m.pillar as TrainingModule['pillar'], minutes: m.minutes, core: m.core }));
+
+  const records = await db.select().from(schema.trainingRecords)
+    .where(and(eq(schema.trainingRecords.tenantId, tenantId), eq(schema.trainingRecords.userId, userId)));
+
+  const [assignment] = await db.select().from(schema.roleAssignments)
+    .where(and(
+      eq(schema.roleAssignments.roleId, roleId),
+      eq(schema.roleAssignments.userId, userId),
+      isNull(schema.roleAssignments.toDate),
+    ));
+
+  const path = pathFor(
+    curriculum.map(c => ({ moduleId: c.moduleId, dueDays: c.dueDays, sortOrder: c.sortOrder })),
+    modules,
+    records.map(r => ({ moduleId: r.moduleId, progress: r.progress, resultPct: r.resultPct, completedAt: r.completedAt })),
+    assignment?.fromDate ?? null,
+  );
+  const progress = pathProgress(path);
+  return {
+    path,
+    progress,
+    signoff: signoffFor(progress, { trainedAt: assignment?.trainedAt ?? null, trainedBy: assignment?.trainedBy ?? null }, managerTitle),
+  };
 }
 
 export async function getToday(user: CurrentUser): Promise<TodayData> {
@@ -75,7 +139,7 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
   if (!period || !myRole) {
     return {
       period: period ?? null, myRole, myRows: [], myScore: empty, team: [], reportsTo,
-      feeds: [], todos: [], changes: [], meetingLogged: false, canManage: manage,
+      feeds: [], todos: [], changes: [], meetingLogged: false, training: NO_TRAINING, canManage: manage,
     };
   }
 
@@ -108,12 +172,17 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
     .filter(m => m.type === 'sog');
   const meetingLogged = meetings.some(m => m.date >= weekStart(new Date()));
 
+  const training = await trainingFor(user.tenantId, myRole.id, user.id, reportsTo?.title ?? null);
+
   const todos = whatNeedsMe({
     myRoleId: myRole.id,
     myRows: mine.rows,
     reports: team.map(t => ({ roleId: t.roleId, title: t.title, holder: t.holder ?? t.pencilled, rows: t.rows, score: t.score })),
     meetingLogged,
     brokenConnections: connections.filter(c => c.status === 'broken').map(c => ({ id: c.id, category: categoryName(c.category) })),
+    overdueTraining: training.path
+      .filter(m => m.due === 'overdue')
+      .map(m => ({ moduleId: m.moduleId, title: m.title, minutes: m.minutes })),
     canManage: manage,
   });
 
@@ -134,7 +203,7 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
 
   return {
     period, myRole, myRows: mine.rows, myScore: mine.score, team, reportsTo,
-    feeds, todos, changes, meetingLogged, canManage: manage,
+    feeds, todos, changes, meetingLogged, training, canManage: manage,
   };
 }
 

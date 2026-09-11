@@ -8,6 +8,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { db, schema } from '../db';
 import templates from '../../seed/criteria_templates.json';
 import rulebook from '../../seed/rulebook.json';
+import trainingCatalogue from '../../seed/training_modules.json';
 import { validateWeights, type Criterion as ScoringCriterion, type Pillar } from './scoring';
 
 type TemplateCriterion = { text: string; weight: number; kpi?: boolean; target?: string };
@@ -54,6 +55,49 @@ export async function openFirstPeriod(tenantId: string, period?: string) {
   return { id: periodId, tenantId, period: period ?? now().slice(0, 7), status: 'open' as const };
 }
 
+type CatalogueModule = {
+  key: string; title: string; summary: string; pillar: string;
+  minutes: number; core: boolean; dueDays: number | null; levels: string[];
+};
+
+/**
+ * Install SPEC's own training catalogue for a business, and give each role the path its level
+ * starts with. Idempotent: called again for a role added later, it adds what is missing and
+ * touches nothing a manager has already changed.
+ */
+export async function installTraining(tenantId: string, roles: { roleId: string; level: string }[]) {
+  const catalogue = trainingCatalogue.modules as CatalogueModule[];
+
+  const existing = await db.select().from(schema.trainingModules)
+    .where(eq(schema.trainingModules.tenantId, tenantId));
+  const byTitle = new Map(existing.map(m => [m.title, m.id]));
+
+  const missing = catalogue.filter(m => !byTitle.has(m.title));
+  if (missing.length) {
+    const rows = missing.map((m, i) => ({
+      id: id(), tenantId, title: m.title, summary: m.summary, pillar: m.pillar,
+      minutes: m.minutes, core: m.core, sortOrder: existing.length + i,
+    }));
+    await db.insert(schema.trainingModules).values(rows);
+    for (const r of rows) byTitle.set(r.title, r.id);
+  }
+
+  const paths = [];
+  for (const { roleId, level } of roles) {
+    const already = await db.select().from(schema.roleCurriculum)
+      .where(eq(schema.roleCurriculum.roleId, roleId));
+    const held = new Set(already.map(r => r.moduleId));
+    const wanted = catalogue.filter(m => m.levels.includes(level));
+    for (let i = 0; i < wanted.length; i++) {
+      const moduleId = byTitle.get(wanted[i].title);
+      if (!moduleId || held.has(moduleId)) continue;
+      paths.push({ id: id(), roleId, moduleId, dueDays: wanted[i].dueDays, sortOrder: i });
+    }
+  }
+  // One write for every role's path, not one per module — provisioning has to feel instant.
+  if (paths.length) await db.insert(schema.roleCurriculum).values(paths).onConflictDoNothing();
+}
+
 export async function provisionTenant(opts: ProvisionOptions) {
   const tenantId = id();
   const wanted = opts.roleTemplates ?? ['gm', 'commercial_manager', 'operations_manager', 'growth_manager'];
@@ -98,6 +142,13 @@ export async function provisionTenant(opts: ProvisionOptions) {
   if (rulebook.rules.length) {
     await db.insert(schema.rulebookRules).values(rulebook.rules.map(r => ({ ...r, version: rulebook.version }))).onConflictDoNothing();
   }
+
+  // SPEC's own training, and a starting path against every role. The business edits it from there —
+  // SPEC proposes, the leader decides — but nobody should face a blank curriculum screen.
+  await installTraining(tenantId, [...roleIds.entries()].map(([templateId, rid]) => ({
+    roleId: rid,
+    level: roleTemplates.find(t => t.template_id === templateId)?.level ?? 'staff',
+  })));
 
   // Open the first period straight away. The three-day trial is the full system — a business that
   // cannot score a month has not actually tried SPEC, it has only looked at the setup screens.
