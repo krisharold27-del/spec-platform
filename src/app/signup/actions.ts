@@ -61,12 +61,13 @@ export async function signUp(formData: FormData) {
   if (signIn.ok) {
     authUserId = signIn.authUserId;
   } else if (signIn.reason === 'exists') {
-    if (!(await signInWithPassword(email, password))) redirect('/signin?known=1');
+    if ((await signInWithPassword(email, password)) !== 'ok') redirect('/signin?known=1');
     const resumed = await currentAuthUserId();
     if (!resumed) redirect('/signin?known=1');
     authUserId = resumed;
   } else {
-    back('failed');
+    // Our end is down, not theirs. Say so, and do not make them wonder what they typed wrong.
+    back(signIn.reason === 'unavailable' ? 'down' : 'failed');
   }
 
   /*
@@ -98,6 +99,6 @@ export async function signUp(formData: FormData) {
   await assignPerson(tenantId, gmRoleId, { name, email });
   await linkNewSeat(authUserId, tenantId, email);
 
-  if (!(await signInWithPassword(email, password))) redirect('/signin');
+  if ((await signInWithPassword(email, password)) !== 'ok') redirect('/signin');
   redirect(look ? '/org?kept=1' : '/org?welcome=1');
 }

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { Footer } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
+import { PasswordField } from '@/components/password-field';
 import { getCurrentUser, signedInWithoutSeat } from '@/lib/auth';
 import { DEFAULT_AFTER_SIGN_IN } from '@/lib/auth-redirect';
 import { signIn } from './actions';
@@ -12,6 +13,8 @@ const MESSAGES: Record<string, string> = {
   wait: 'Too many tries. Wait a few minutes.',
   link: 'That link has expired. Ask for a new one.',
   '1': 'That link has expired. Ask for a new one.',
+  // Our outage, said as ours. Never let somebody conclude they have forgotten their own password.
+  down: 'Signing in is temporarily unavailable — that is our end, not yours. Nothing is wrong with your details. Try again in a few minutes.',
 };
 
 export default async function SignIn({ searchParams }: { searchParams: Promise<{ known?: string; error?: string }> }) {
@@ -36,8 +39,8 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
       <h1 className="mt-1 font-serif text-2xl text-ink">Sign in</h1>
       {note && <p className="mt-4 text-sm text-rust-dark">{note}</p>}
       <form action={signIn} className="mt-6 space-y-3">
-        <input name="email" type="email" required autoComplete="email" placeholder="Your email" aria-label="Your email" className="w-full rounded border px-3 py-2.5" />
-        <input name="password" type="password" required autoComplete="current-password" placeholder="Password" aria-label="Password" className="w-full rounded border px-3 py-2.5" />
+        <input name="email" type="email" required autoFocus autoComplete="email" inputMode="email" placeholder="Your email" aria-label="Your email" className="w-full rounded border px-3 py-2.5" />
+        <PasswordField name="password" autoComplete="current-password" placeholder="Password" />
         <SubmitButton pending="Signing in…">Sign in</SubmitButton>
       </form>
       <div className="mt-6 flex justify-between text-sm text-ink-light">

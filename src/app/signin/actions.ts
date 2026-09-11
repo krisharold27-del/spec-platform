@@ -17,7 +17,14 @@ export async function signIn(formData: FormData) {
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || h.get('x-real-ip') || 'unknown';
   if (!attempts.allow(`${ip}|${email}`)) redirect('/signin?error=wait');
 
-  if (!(await signInWithPassword(email, password))) redirect('/signin?error=wrong');
+  /*
+    Three outcomes, not two. A truthiness check here would be a silent always-true bug, and more
+    importantly "we cannot reach the authentication service" must never be reported as "your
+    password is wrong" — that makes somebody retype a correct password until they give up.
+  */
+  const result = await signInWithPassword(email, password);
+  if (result === 'unavailable') redirect('/signin?error=down');
+  if (result === 'wrong') redirect('/signin?error=wrong');
   redirect(DEFAULT_AFTER_SIGN_IN);
 }
 

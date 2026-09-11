@@ -20,7 +20,7 @@ describe('a half-finished sign-up can always be finished', () => {
     const src = read('src/app/signup/actions.ts');
     expect(src).toContain("signIn.reason === 'exists'");
     // Resuming requires proving the password: an address is never claimable by filling in a form.
-    expect(src).toMatch(/exists'\s*\)\s*\{\s*if \(!\(await signInWithPassword/);
+    expect(src).toMatch(/exists'\s*\)\s*\{\s*if \(\(await signInWithPassword\([^)]*\)\) !== 'ok'\)/);
     expect(src).toContain('currentAuthUserId');
   });
 

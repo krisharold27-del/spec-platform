@@ -67,7 +67,17 @@ export async function emailConfirmed(): Promise<boolean> {
   return user?.app_metadata?.[PROVEN] === true;
 }
 
-export type NewSignIn = { ok: true; authUserId: string } | { ok: false; reason: 'exists' | 'failed' };
+/**
+ * `unavailable` is separated from `failed` deliberately.
+ *
+ * When the authentication service cannot be reached, the honest answer is "our end is down" — and
+ * the old code told the customer their details were wrong instead. Blaming somebody for an outage
+ * we caused is the worst error a product can produce: they retype a correct password, it fails
+ * again, and they conclude the product is broken and they are stupid.
+ */
+export type NewSignIn =
+  | { ok: true; authUserId: string }
+  | { ok: false; reason: 'exists' | 'failed' | 'unavailable' };
 
 /**
  * Creates the sign-in for a brand-new business's first person. Done BEFORE the business is set up,
@@ -87,7 +97,7 @@ export async function createSignIn(email: string, password: string): Promise<New
   }
   // A fresh local copy with no service key: the provider's own sign-up.
   const supabase = await createClient();
-  if (!supabase) return { ok: false, reason: 'failed' };
+  if (!supabase) return { ok: false, reason: 'unavailable' };
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error || !data.user) return { ok: false, reason: /already/i.test(error?.message ?? '') ? 'exists' : 'failed' };
   return { ok: true, authUserId: data.user.id };
@@ -126,12 +136,29 @@ export async function signedInWithoutSeat(): Promise<boolean> {
   return (await mySeats()).length === 0;
 }
 
-/** Email and password. Sets the session cookie; returns false if they do not match. */
-export async function signInWithPassword(email: string, password: string): Promise<boolean> {
+export type SignInResult = 'ok' | 'wrong' | 'unavailable';
+
+/**
+ * Email and password.
+ *
+ * Three outcomes, not two. "Unavailable" exists because telling somebody their password is wrong
+ * when the authentication service is simply unreachable is the cruellest error in any product —
+ * they retype a correct password, it fails again, and they blame themselves for our outage.
+ */
+export async function signInWithPassword(email: string, password: string): Promise<SignInResult> {
   const supabase = await createClient();
-  if (!supabase) return false;
-  const { data, error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase().trim(), password });
-  return !error && Boolean(data.user);
+  if (!supabase) return 'unavailable';
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase().trim(), password });
+    if (error) {
+      // Anything that is not a refusal of these credentials is our problem, not theirs.
+      const credentials = error.status === 400 || /invalid login|credentials/i.test(error.message ?? '');
+      return credentials ? 'wrong' : 'unavailable';
+    }
+    return data.user ? 'ok' : 'wrong';
+  } catch {
+    return 'unavailable';
+  }
 }
 
 /**

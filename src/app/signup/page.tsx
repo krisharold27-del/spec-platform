@@ -1,6 +1,7 @@
 import Script from 'next/script';
 import { Footer } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
+import { PasswordField } from '@/components/password-field';
 import { formSecret, issueFormToken, turnstileSiteKey } from '@/lib/bot-check';
 import { signUp } from './actions';
 
@@ -14,6 +15,7 @@ const ERRORS: Record<string, string> = {
   expired: 'Press Create again.',
   check: 'Press Create again.',
   busy: 'Too many new businesses from this network just now. Try again in an hour.',
+  down: 'Setting up is temporarily unavailable — that is our end, not yours. Nothing you typed is wrong. Try again in a few minutes.',
 };
 
 /** Three fields and straight in. Everything else is asked inside, once, when it matters. */
@@ -42,10 +44,10 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<R
         <div aria-hidden="true" className="absolute -left-[9999px] top-0 h-px w-px overflow-hidden">
           <label>Website<input name="website" tabIndex={-1} autoComplete="off" defaultValue="" /></label>
         </div>
-        <input name="name" required maxLength={200} autoComplete="name" placeholder="Your name" aria-label="Your name" className="w-full rounded border px-3 py-2.5" />
+        <input name="name" required autoFocus maxLength={200} autoComplete="name" placeholder="Your name" aria-label="Your name" className="w-full rounded border px-3 py-2.5" />
         <input name="business" required maxLength={200} autoComplete="organization" placeholder="Business name" aria-label="Business name" className="w-full rounded border px-3 py-2.5" />
-        <input name="email" type="email" required maxLength={320} autoComplete="email" placeholder="Your email" aria-label="Your email" className="w-full rounded border px-3 py-2.5" />
-        <input name="password" type="password" required minLength={8} autoComplete="new-password" placeholder="Choose a password (8+ characters)" aria-label="Choose a password" className="w-full rounded border px-3 py-2.5" />
+        <input name="email" type="email" required maxLength={320} autoComplete="email" inputMode="email" placeholder="Your email" aria-label="Your email" className="w-full rounded border px-3 py-2.5" />
+        <PasswordField name="password" autoComplete="new-password" placeholder="Choose a password (8+ characters)" minLength={8} />
         {siteKey && <div className="cf-turnstile" data-sitekey={siteKey} data-appearance="interaction-only" />}
         <SubmitButton pending="Setting up your business…">Create my business</SubmitButton>
       </form>
