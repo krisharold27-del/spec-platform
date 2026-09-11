@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "tsx scripts/deploy-migrate.ts && next build",
     "start": "next start",
     "test": "vitest run",
     "db:push": "drizzle-kit push",
-    "db:seed": "tsx scripts/seed-demo.ts"
+    "db:seed": "tsx scripts/seed-demo.ts",
+    "db:migrate": "tsx scripts/deploy-migrate.ts"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
