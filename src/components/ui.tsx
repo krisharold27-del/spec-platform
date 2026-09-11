@@ -28,6 +28,7 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
             SPEC<span className="text-rust">.</span>
           </Link>
           <nav className="flex items-center gap-5 label-caps">
+            <Link href="/today" className="hover:text-rust">Today</Link>
             <Link href="/journey" className="hover:text-rust">Journey</Link>
             <Link href="/" className="hover:text-rust">Executive summary</Link>
             <Link href="/org" className="hover:text-rust">Org chart</Link>
