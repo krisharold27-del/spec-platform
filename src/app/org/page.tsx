@@ -60,7 +60,7 @@ function HeadCard({ role, open }: { role: RoleView; open: boolean }) {
       </span>
     </>
   );
-  const base = `flex items-center gap-3 rounded-lg border bg-white p-3 ${role.holder || role.pencilled ? 'border-ink/10' : 'border-dashed border-ink/25'}`;
+  const base = `flex items-center gap-3 rounded-lg border bg-surface p-3 ${role.holder || role.pencilled ? 'border-ink/10' : 'border-dashed border-ink/25'}`;
   if (!open) return <div className={`${base} opacity-70`} title="Scores outside your part of the org chart aren't visible to you">{inner}</div>;
   return <Link href={`/scorecard/${role.id}`} className={`${base} transition-colors hover:border-rust/40`}>{inner}</Link>;
 }
@@ -82,7 +82,7 @@ function Reports({ role, all, visible }: { role: RoleView; all: RoleView[]; visi
             </span>
           </>
         );
-        const base = `flex items-center gap-2.5 rounded-md border bg-white/80 px-3 py-2 ${r.holder || r.pencilled ? 'border-ink/10' : 'border-dashed border-ink/20'}`;
+        const base = `flex items-center gap-2.5 rounded-md border bg-surface/80 px-3 py-2 ${r.holder || r.pencilled ? 'border-ink/10' : 'border-dashed border-ink/20'}`;
         return (
           <li key={r.id} className="relative">
             <span className="absolute -left-4 top-4 h-px w-3 bg-ink/10" aria-hidden />
@@ -122,10 +122,10 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
     <Shell title={`${tenant.name} — org chart`} subtitle="The business by stream of work. A role can exist with nobody in it; a person cannot exist without a role.">
       {/* The table, set. One greeting, one gentle next step — nothing to fill in to be here. */}
       {welcome && (
-        <div className="mb-6 rounded-lg bg-white p-5">
-          <div className="font-serif text-xl font-bold text-ink">Welcome, {user.name.split(' ')[0]}. This is {tenant.name}.</div>
+        <div className="mb-6 rounded-lg bg-surface p-5">
+          <div className="font-serif text-xl text-ink">Welcome, {user.name.split(' ')[0]}. This is {tenant.name}.</div>
           <p className="mt-1 text-sm text-ink-light">We&apos;ve sketched it to start. Put names in when you&apos;re ready.</p>
-          <Link href="/setup/business" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Put names in</Link>
+          <Link href="/setup/business" className="mt-3 inline-block rounded-full bg-rust px-4 py-2 text-sm text-cream hover:bg-rust-600">Put names in</Link>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-ink-light">
@@ -162,11 +162,11 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
 
       <div className="mt-px grid gap-4 lg:grid-cols-3">
         {groups.map(s => (
-          <section key={s.key} className="overflow-hidden rounded-lg border border-ink/10 bg-white">
+          <section key={s.key} className="overflow-hidden rounded-lg border border-ink/10 bg-surface">
             <div className="h-1 w-full" style={{ backgroundColor: s.colour }} aria-hidden />
             <div className="border-b border-ink/10 bg-cream/40 px-4 py-3">
               <div className="flex items-baseline justify-between gap-2">
-                <h2 className="font-serif text-base font-bold text-ink">{s.name}</h2>
+                <h2 className="font-serif text-base text-ink">{s.name}</h2>
                 <span className="shrink-0 text-[11px] text-ink-light">
                   {s.count} {s.count === 1 ? 'role' : 'roles'}{s.vacant > 0 && <span className="text-rust-dark"> · {s.vacant} vacant</span>}
                 </span>

@@ -6,14 +6,14 @@ import { Footer } from '@/components/ui';
  */
 export default function Welcome() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-surface">
       <div className="mx-auto max-w-xl px-6 py-24">
         <div className="label-caps">SPEC</div>
-        <h1 className="mt-3 font-serif text-4xl font-bold leading-tight tracking-tight text-ink">
+        <h1 className="mt-3 font-serif text-4xl leading-tight tracking-tight text-ink">
           Safety. People. Earnings. Compliance.
         </h1>
         <p className="mt-4 text-lg text-ink-light">Your whole business on one page.</p>
-        <a href="/signup" className="mt-10 inline-block rounded-lg bg-rust px-8 py-3 text-base font-medium text-white hover:bg-rust-dark">
+        <a href="/signup" className="mt-10 inline-block rounded-full bg-rust px-8 py-3 text-base font-medium text-cream hover:bg-rust-600">
           Start free
         </a>
         <p className="mt-6 text-sm text-ink-light">Already on SPEC? <a href="/signin" className="underline">Sign in</a></p>

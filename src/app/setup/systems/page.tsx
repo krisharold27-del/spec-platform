@@ -33,15 +33,15 @@ export default async function Systems({ searchParams }: { searchParams: Promise<
       title="Connect the systems you already run"
       subtitle="Optional. Everything in SPEC works without this — connecting simply means the numbers arrive on their own instead of being typed in each month."
     >
-      {error && <div className="mb-4 rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">{error}</div>}
+      {error && <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">{error}</div>}
       {sp.added && (
-        <div className="mb-4 rounded-lg border-l-4 border-emerald-500 bg-emerald-50 p-4 text-sm text-emerald-900">
+        <div className="mb-4 rounded-lg border-l-4 border-sage-600 bg-sage-100 p-4 text-sm text-sage-900">
           Added. Nothing breaks while it&apos;s being set up — any KPI it feeds stays on manual entry until the connection is live.
         </div>
       )}
 
       {connections.length > 0 && (
-        <section className="mb-6 rounded-lg border border-ink/10 bg-white">
+        <section className="mb-6 rounded-lg border border-ink/10 bg-surface">
           <div className="border-b border-ink/10 p-4 label-caps">Your systems</div>
           <ul className="divide-y divide-ink/10">
             {connections.map(c => (
@@ -63,7 +63,7 @@ export default async function Systems({ searchParams }: { searchParams: Promise<
         </section>
       )}
 
-      <form action={addConnection} className="rounded-lg border border-ink/10 bg-white p-5">
+      <form action={addConnection} className="rounded-lg border border-ink/10 bg-surface p-5">
         <label className="label-caps" htmlFor="name">What system do you use?</label>
         <input
           id="name" name="name" required autoComplete="off"

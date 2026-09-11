@@ -80,9 +80,9 @@ export function Interview({ steps, initial, nextStep = null }: { steps: Step[]; 
   if (done) {
     return (
       <div className="mx-auto max-w-2xl">
-        <div className="rounded-lg border border-ink/10 bg-white p-8">
+        <div className="rounded-lg border border-ink/10 bg-surface p-8">
           <div className="label-caps text-center">Diagnostic complete</div>
-          <h2 className="mt-2 text-center font-serif text-2xl font-bold text-ink">
+          <h2 className="mt-2 text-center font-serif text-2xl text-ink">
             All {steps.length} questions answered
           </h2>
           <p className="mx-auto mt-2 max-w-md text-center text-sm text-ink-light">
@@ -130,11 +130,11 @@ export function Interview({ steps, initial, nextStep = null }: { steps: Step[]; 
         <div className="h-full rounded-full bg-rust transition-all duration-300" style={{ width: `${progress}%` }} />
       </div>
 
-      <div className="mt-6 rounded-lg border border-ink/10 bg-white p-6 sm:p-8">
+      <div className="mt-6 rounded-lg border border-ink/10 bg-surface p-6 sm:p-8">
         <div className="label-caps">{step!.sectionTitle}</div>
         {newSection && step!.intro && <p className="mt-2 text-sm text-ink-light">{step!.intro}</p>}
 
-        <h2 className="mt-3 font-serif text-xl font-bold leading-snug text-ink">{step!.text}</h2>
+        <h2 className="mt-3 font-serif text-xl leading-snug text-ink">{step!.text}</h2>
 
         {step!.kind === 'agreement' && step!.agreementText && (
           <p className="mt-4 rounded-lg bg-cream/50 p-4 text-sm text-ink-light">{step!.agreementText}</p>
@@ -170,7 +170,7 @@ export function Interview({ steps, initial, nextStep = null }: { steps: Step[]; 
                     key={o}
                     onClick={() => answerAndAdvance(o)}
                     className={`rounded-lg border px-4 py-3 text-left text-sm transition-colors ${
-                      chosen ? 'border-rust bg-rust/5 font-medium text-ink' : 'border-ink/15 bg-white hover:border-rust/50 hover:bg-cream/40'
+                      chosen ? 'border-rust bg-rust/5 font-medium text-ink' : 'border-ink/15 bg-surface hover:border-rust/50 hover:bg-cream/40'
                     }`}
                   >
                     <span className="first-letter:uppercase">{label}</span>

@@ -10,12 +10,12 @@ export default async function Reset({ searchParams }: { searchParams: Promise<{ 
       <div className="label-caps">SPEC</div>
       {sp.sent ? (
         <>
-          <h1 className="mt-1 font-serif text-2xl font-bold text-ink">Check your email</h1>
+          <h1 className="mt-1 font-serif text-2xl text-ink">Check your email</h1>
           <p className="mt-3 text-sm text-ink-light">Click the link to set a new password.</p>
         </>
       ) : (
         <>
-          <h1 className="mt-1 font-serif text-2xl font-bold text-ink">Set a new password</h1>
+          <h1 className="mt-1 font-serif text-2xl text-ink">Set a new password</h1>
           {sp.error && <p className="mt-4 text-sm text-rust-dark">{sp.error === 'ratelimited' ? 'One was sent a moment ago. Check your email.' : "That didn't send. Try again."}</p>}
           <form action={requestPasswordReset} className="mt-6 space-y-3">
             <input name="email" type="email" required autoComplete="email" placeholder="Your email" aria-label="Your email" className="w-full rounded border px-3 py-2.5" />

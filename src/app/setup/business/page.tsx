@@ -91,7 +91,7 @@ export default async function Business({ searchParams }: { searchParams: Promise
         {holder ? (
           <div className="flex flex-1 items-center gap-3">
             <span className="text-ink">{holder.name}</span>
-            <span className={`rounded px-2 py-0.5 text-xs font-medium ${holder.hasAccount ? 'bg-emerald-100 text-emerald-900' : 'bg-cream text-ink-light'}`}>
+            <span className={`rounded px-2 py-0.5 text-xs font-medium ${holder.hasAccount ? 'bg-sage-200 text-sage-900' : 'bg-cream text-ink-light'}`}>
               {holder.hasAccount ? 'Has an account' : 'Pencilled in'}
             </span>
             <form action={unplaceStaff} className="ml-auto">
@@ -114,7 +114,7 @@ export default async function Business({ searchParams }: { searchParams: Promise
         {r.level !== 'gm' && (
           <form action={removeRole}>
             <input type="hidden" name="roleId" value={r.id} />
-            <button className="text-xs text-ink-light/60 hover:text-red-700">delete role</button>
+            <button className="text-xs text-ink-light/60 hover:text-rust-700">delete role</button>
           </form>
         )}
       </li>
@@ -126,18 +126,18 @@ export default async function Business({ searchParams }: { searchParams: Promise
       title="Your business on one page"
       subtitle="Add the roles the business needs, then write in who does each one. Nothing is emailed and nothing is charged until you send invites, which is the last section."
     >
-      {error && <div className="mb-4 rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">{error}</div>}
+      {error && <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">{error}</div>}
 
       {/* Same title twice is legitimate below manager level, but the owner has to be able to tell them apart. */}
       {roleRows.some((r, i) => roleRows.findIndex(x => x.title === r.title && x.stream === r.stream) !== i) && (
-        <div className="mb-4 rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">
+        <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">
           Two roles here share a name, so neither you nor anyone you invite can tell which is which.
           Rename one, or delete it if it was added twice by accident.
         </div>
       )}
 
       {change && (
-        <section className="mb-6 rounded-lg border-l-4 border-rust bg-white p-5">
+        <section className="mb-6 rounded-lg border-l-4 border-rust bg-surface p-5">
           <div className="label-caps">One question first</div>
           <p className="mt-1 text-ink">
             <b>{change.personName}</b> already holds <b>{change.fromRoleTitle}</b>. Putting them into{' '}
@@ -166,7 +166,7 @@ export default async function Business({ searchParams }: { searchParams: Promise
 
       {/* ---------- Leadership ---------- */}
       {gm && (
-        <section className="rounded-lg border border-ink/10 bg-white">
+        <section className="rounded-lg border border-ink/10 bg-surface">
           <div className="border-b border-ink/10 p-4 label-caps">Leadership</div>
           <ul className="divide-y divide-ink/10"><RoleRowItem r={gm} /></ul>
         </section>
@@ -177,7 +177,7 @@ export default async function Business({ searchParams }: { searchParams: Promise
         const inStream = roleRows.filter(r => r.stream === stream.id && r.level !== 'gm');
         const proposal = missingHeads.find(t => t.stream === stream.id);
         return (
-          <section key={stream.id} className="mt-6 rounded-lg border border-ink/10 bg-white">
+          <section key={stream.id} className="mt-6 rounded-lg border border-ink/10 bg-surface">
             <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink/10 p-4">
               <div>
                 <div className="label-caps">{stream.name}</div>
@@ -219,7 +219,7 @@ export default async function Business({ searchParams }: { searchParams: Promise
       })}
 
       {/* ---------- What the four pillars will measure ---------- */}
-      <section className="mt-6 rounded-lg border border-ink/10 bg-white p-5">
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-5">
         <div className="label-caps">What every role here will be measured on</div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {(['safety', 'people', 'earnings', 'compliance'] as const).map(p => (
@@ -232,7 +232,7 @@ export default async function Business({ searchParams }: { searchParams: Promise
       </section>
 
       {/* ---------- Invites: last, deliberate, priced ---------- */}
-      <details className="mt-6 rounded-lg border border-ink/10 bg-white" open={waiting.length > 0 && named >= roleRows.length}>
+      <details className="mt-6 rounded-lg border border-ink/10 bg-surface" open={waiting.length > 0 && named >= roleRows.length}>
         <summary className="cursor-pointer list-none p-4 text-sm font-medium text-ink hover:text-rust">
           Invite them in
           <span className="ml-2 font-normal text-ink-light">

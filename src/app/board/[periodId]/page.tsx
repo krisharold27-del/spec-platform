@@ -13,21 +13,21 @@ import { approveBoardOutput } from '@/app/period/actions';
 export const dynamic = 'force-dynamic';
 
 const PILLAR_STATUS = {
-  on_target: { label: 'At target', cls: 'text-emerald-800' },
-  below: { label: 'Below target', cls: 'text-red-800' },
+  on_target: { label: 'At target', cls: 'text-sage-800' },
+  below: { label: 'Below target', cls: 'text-rust-800' },
   not_scored: { label: 'Not scored', cls: 'text-ink-light' },
 } as const;
 
 const GATE_STATUS = {
-  pass: { label: 'Pass', cls: 'bg-emerald-100 text-emerald-900' },
-  fail: { label: 'Fail', cls: 'bg-red-100 text-red-900' },
-  not_reporting: { label: 'Not reporting', cls: 'bg-amber-100 text-amber-900' },
+  pass: { label: 'Pass', cls: 'bg-sage-200 text-sage-900' },
+  fail: { label: 'Fail', cls: 'bg-rust-200 text-rust-800' },
+  not_reporting: { label: 'Not reporting', cls: 'bg-rust-200 text-rust-800' },
 } as const;
 
 const GOV_STATUS = {
-  pass: { label: 'OK', cls: 'text-emerald-800' },
-  attention: { label: 'Needs attention', cls: 'text-red-800' },
-  not_reporting: { label: 'Not reporting', cls: 'text-amber-800' },
+  pass: { label: 'OK', cls: 'text-sage-800' },
+  attention: { label: 'Needs attention', cls: 'text-rust-800' },
+  not_reporting: { label: 'Not reporting', cls: 'text-rust-800' },
 } as const;
 
 /**
@@ -72,15 +72,15 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
       subtitle={`${tenant.name} · ${CADENCE[cadence].label} board · ${bo ? (bo.approvedBy ? `approved by ${bo.approvedBy}` : 'awaiting approval') : 'not yet generated'}`}
     >
       {/* ---------- Layer one: the two-minute read ---------- */}
-      <section className="rounded-lg border border-ink/10 bg-white p-6">
+      <section className="rounded-lg border border-ink/10 bg-surface p-6">
         <div className="label-caps">At a glance</div>
-        <p className="mt-2 font-serif text-xl font-bold leading-snug text-ink">{snap.headline}</p>
+        <p className="mt-2 font-serif text-xl leading-snug text-ink">{snap.headline}</p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {snap.pillars.map(p => (
             <div key={p.pillar} className="rounded-lg border border-ink/10 p-4" style={{ borderLeftColor: PILLAR_META[p.pillar].colour, borderLeftWidth: 6 }}>
               <div className="label-caps">{p.name}</div>
-              <div className="mt-1 font-serif text-3xl font-bold text-ink">{p.value === null ? '—' : pct(p.value)}</div>
+              <div className="mt-1 font-serif text-3xl text-ink">{p.value === null ? '—' : pct(p.value)}</div>
               <div className={`text-xs font-medium ${PILLAR_STATUS[p.status].cls}`}>{PILLAR_STATUS[p.status].label}</div>
               {p.driver && <div className="mt-2 text-xs leading-snug text-ink-light">{p.driver}</div>}
             </div>
@@ -96,7 +96,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
             </div>
           ))}
           <div className="flex items-center gap-2 rounded-lg border border-ink/10 px-3 py-2 text-sm">
-            <span className={`rounded px-2 py-0.5 text-xs font-medium ${govStatus === 'pass' ? 'bg-emerald-100 text-emerald-900' : govStatus === 'attention' ? 'bg-red-100 text-red-900' : 'bg-amber-100 text-amber-900'}`}>
+            <span className={`rounded px-2 py-0.5 text-xs font-medium ${govStatus === 'pass' ? 'bg-sage-200 text-sage-900' : govStatus === 'attention' ? 'bg-rust-200 text-rust-800' : 'bg-rust-200 text-rust-800'}`}>
               {GOV_STATUS[govStatus].label}
             </span>
             <span className="font-medium text-ink">Governance</span>
@@ -122,7 +122,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
       </section>
 
       {/* ---------- Governance detail, inside Compliance ---------- */}
-      <section className="mt-6 rounded-lg border border-ink/10 bg-white p-6">
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-6">
         <div className="label-caps">Compliance — governance</div>
         <p className="mt-1 text-sm text-ink-light">
           {CADENCE[cadence].label} board. {CADENCE[cadence].note}
@@ -143,7 +143,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
 
       {/* ---------- Layer two: the full pack ---------- */}
       {bo ? (
-        <details className="mt-6 rounded-lg border border-ink/10 bg-white" open={false}>
+        <details className="mt-6 rounded-lg border border-ink/10 bg-surface" open={false}>
           <summary className="cursor-pointer list-none p-4 text-sm font-medium text-ink hover:text-rust">
             Read the full pack
             <span className="ml-2 font-normal text-ink-light">— every pillar in detail, with the reasoning</span>
@@ -154,7 +154,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
           />
         </details>
       ) : (
-        <p className="mt-6 rounded-lg border border-ink/10 bg-white p-4 text-sm text-ink-light">
+        <p className="mt-6 rounded-lg border border-ink/10 bg-surface p-4 text-sm text-ink-light">
           The figures above are live. Lock the period from the executive summary to generate the written
           pack that goes with them.
         </p>
@@ -163,7 +163,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
       {bo && !bo.approvedBy && canManage(user.access) && (
         <form action={approveBoardOutput} className="mt-4">
           <input type="hidden" name="periodId" value={periodId} />
-          <button className="rounded-lg bg-rust px-5 py-2 text-white hover:bg-rust-dark">Approve for the board</button>
+          <button className="rounded-full bg-rust px-5 py-2 text-cream hover:bg-rust-600">Approve for the board</button>
         </form>
       )}
     </Shell>

@@ -24,9 +24,9 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
   if (!scope.canSee(roleId)) {
     return (
       <Shell title="Not your scorecard" subtitle="You can see your own SPEC board and those of your team.">
-        <div className="rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm text-ink-light">
+        <div className="rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm text-ink-light">
           <p><b className="text-ink">{role.title}</b> sits outside your part of the org chart, so its scores aren&apos;t yours to see.</p>
-          <Link href="/me" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Go to my scorecard</Link>
+          <Link href="/me" className="mt-3 inline-block rounded-full bg-rust px-4 py-2 text-sm text-cream hover:bg-rust-600">Go to my scorecard</Link>
         </div>
       </Shell>
     );
@@ -34,13 +34,13 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
   if (!period) {
     return (
       <Shell title={`${role.title} — scorecard`} subtitle="Not scoring yet">
-        <div className="rounded-lg border-l-4 border-rust bg-white p-5 text-sm">
+        <div className="rounded-lg border-l-4 border-rust bg-surface p-5 text-sm">
           <div className="font-medium text-ink">Your dashboard opens as soon as a role has its KPIs</div>
           <p className="mt-1 text-ink-light">
             Every role needs two numbers per pillar — Safety, People, Earnings, Compliance. Set them for
             one role and this page fills in. Building the business and setting the KPIs is free.
           </p>
-          <Link href="/setup/kpis" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Set the KPIs</Link>
+          <Link href="/setup/kpis" className="mt-3 inline-block rounded-full bg-rust px-4 py-2 text-sm text-cream hover:bg-rust-600">Set the KPIs</Link>
         </div>
       </Shell>
     );
@@ -56,7 +56,7 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
         {PILLARS.map(p => <PillarTile key={p} pillar={p} score={score.pillars[p]} scored={scored} />)}
       </section>
       {weightProblems.length > 0 && (
-        <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+        <div className="mt-4 rounded-lg border border-rust-300 bg-rust-100 p-3 text-sm text-rust-800">
           Weights must sum to 100% in every pillar. Problem: {weightProblems.map(w => `${PILLAR_META[w.pillar].name} = ${pct(w.total)}`).join(', ')}.
         </div>
       )}
@@ -64,11 +64,11 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
         <input type="hidden" name="roleId" value={roleId} />
         <input type="hidden" name="periodId" value={period.id} />
         {PILLARS.map(p => (
-          <div key={p} className="mt-6 overflow-hidden rounded-lg border border-ink/10 bg-white">
+          <div key={p} className="mt-6 overflow-hidden rounded-lg border border-ink/10 bg-surface">
             <div className="flex items-center justify-between border-b border-ink/10 bg-cream/50 px-4 py-2.5">
               <div className="flex items-center gap-2">
                 <Badge pillar={p} />
-                <div className="font-serif text-base font-bold text-ink">{PILLAR_META[p].name}</div>
+                <div className="font-serif text-base text-ink">{PILLAR_META[p].name}</div>
               </div>
               <div className="text-sm font-medium text-ink-light">{scored ? pct(score.pillars[p]) : '—'}</div>
             </div>
@@ -131,7 +131,7 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
             </div>
           </div>
         ))}
-        {!readonly && <button className="mt-6 rounded-lg bg-rust px-5 py-2 text-white hover:bg-rust-dark">Save scorecard</button>}
+        {!readonly && <button className="mt-6 rounded-full bg-rust px-5 py-2 text-cream hover:bg-rust-600">Save scorecard</button>}
         {readonly && <p className="mt-6 text-sm text-ink-light">{period.status === 'locked' ? 'This period is locked.' : 'Read-only view: your role sees its checklist; supervisors and above score.'}</p>}
         {!readonly && (
           <p className="mt-3 max-w-2xl text-xs text-ink-light/70">

@@ -2,11 +2,16 @@ import Link from 'next/link';
 import { band, type Pillar, type Score } from '@/lib/scoring';
 import { myBusinesses } from '@/lib/auth';
 
+/**
+ * Colours match the `safety` / `people` / `earnings` / `compliance` tokens in tailwind.config.ts —
+ * repeated as hex here only because these are used in inline styles, which Tailwind cannot generate
+ * from a dynamic value. Change them in both places or in neither.
+ */
 export const PILLAR_META: Record<Pillar, { name: string; letter: string; colour: string; question: string }> = {
-  safety:     { name: 'Safety',     letter: 'S', colour: '#C1440E', question: 'Are we going well in Safety?' },
-  people:     { name: 'People',     letter: 'P', colour: '#5B9E3F', question: 'Does everyone love coming to work?' },
-  earnings:   { name: 'Earnings',   letter: 'E', colour: '#169BD5', question: 'Are we making money?' },
-  compliance: { name: 'Compliance', letter: 'C', colour: '#8064A2', question: 'Are we clear to work?' },
+  safety:     { name: 'Safety',     letter: 'S', colour: '#b2622d', question: 'Are we going well in Safety?' },
+  people:     { name: 'People',     letter: 'P', colour: '#728157', question: 'Does everyone love coming to work?' },
+  earnings:   { name: 'Earnings',   letter: 'E', colour: '#a67c1a', question: 'Are we making money?' },
+  compliance: { name: 'Compliance', letter: 'C', colour: '#7d5068', question: 'Are we clear to work?' },
 };
 
 /** No score renders as a dash, never as 0%. */
@@ -17,9 +22,9 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
   const businesses = await myBusinesses().catch(() => []);
   return (
     <div className="min-h-screen">
-      <header className="border-b border-ink/10 bg-white">
+      <header className="border-b border-ink/10 bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Link href="/" className="font-serif text-lg font-bold tracking-tight text-ink">
+          <Link href="/" className="font-serif text-lg tracking-tight text-ink">
             SPEC<span className="text-rust">.</span>
           </Link>
           <nav className="flex items-center gap-5 label-caps">
@@ -34,7 +39,7 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">
-        <h1 className="font-serif text-2xl font-bold tracking-tight text-ink">{title}</h1>
+        <h1 className="font-serif text-2xl tracking-tight text-ink">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-ink-light">{subtitle}</p>}
         <div className="mt-6">{children}</div>
         <Footer />
@@ -94,7 +99,7 @@ export function PillarTile({ pillar, score: raw, scored: anyScored, sub }: { pil
         <span className="badge-letter h-6 w-6 text-xs" style={{ borderColor: m.colour, color: m.colour, backgroundColor: `${m.colour}14` }}>{m.letter}</span>
         <div className="label-caps">{m.name}</div>
       </div>
-      <div className="mt-2 font-serif text-3xl font-bold text-ink">{scored ? pct(score) : '—'}</div>
+      <div className="mt-2 font-serif text-3xl text-ink">{scored ? pct(score) : '—'}</div>
       <div className="mt-1 text-sm font-medium" style={{ color: band(score) === 'on_track' ? m.colour : undefined }}>{status}</div>
       {sub && <div className="mt-2 text-xs text-ink-light">{sub}</div>}
     </div>
