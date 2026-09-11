@@ -49,7 +49,8 @@ export default async function Today() {
     );
   }
 
-  const { myRows, myScore, team, reportsTo, feeds, todos, changes, meetingLogged, training, ace, scored } = data;
+  const { myRows, myScore, team, reportsTo, feeds, todos, changes, meetingLogged, training, ace, scored, tier } = data;
+  const advanced = tier === 'advanced';
   // A supervisor's reports are on the tools, not running scorecards of their own. Calling that
   // "my team" is the language of an office; "my crew" is what they actually say.
   const crew = team.length > 0 && team.every(m => !m.scored);
@@ -153,12 +154,27 @@ export default async function Today() {
 
           <section className="card">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-serif text-xl text-ink">Numbers arriving on their own</h2>
+              <h2 className="font-serif text-xl text-ink">
+                {advanced ? 'Numbers arriving on their own' : 'Where your numbers come from'}
+              </h2>
               <span className="text-sm text-ink-light">
-                {live.length} of {feeds.length} {feeds.length === 1 ? 'system' : 'systems'} connected
+                {advanced
+                  ? `${live.length} of ${feeds.length} ${feeds.length === 1 ? 'system' : 'systems'} connected`
+                  : 'SPEC Basic'}
               </span>
             </div>
-            {feeds.length ? (
+            {!advanced ? (
+              <>
+                <p className="mt-3 text-sm text-ink-light">
+                  You are on SPEC Basic, so every number on your card is entered by hand and carries the
+                  name of whoever confirmed it. That is a complete way to run SPEC — no feature anywhere
+                  needs a connector — and it is the only honest option while a number has no system behind it.
+                </p>
+                <Link href="/pricing" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+                  What SPEC Advanced adds →
+                </Link>
+              </>
+            ) : feeds.length ? (
               <ul className="mt-4 grid gap-2">
                 {feeds.map(f => (
                   <li key={f.id} className="card-inset">
@@ -184,9 +200,11 @@ export default async function Today() {
                 to run SPEC — a connector is never required for any of it.
               </p>
             )}
-            <Link href="/setup/systems" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
-              Manage what SPEC reads →
-            </Link>
+            {advanced && (
+              <Link href="/setup/systems" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+                Manage what SPEC reads →
+              </Link>
+            )}
           </section>
         </div>
 
@@ -235,7 +253,19 @@ export default async function Today() {
 
           <section className="rounded-lg bg-sage-100 p-4">
             <h2 className="font-serif text-xl text-ink">Ask anything</h2>
-            <AskPanel rows={myRows} score={myScore} meetingLogged={meetingLogged} />
+            {advanced ? (
+              <AskPanel rows={myRows} score={myScore} meetingLogged={meetingLogged} />
+            ) : (
+              <>
+                <p className="mt-2 text-sm text-ink-light">
+                  Asking comes with SPEC Advanced. On Basic the page still tells you everything it knows —
+                  every light above carries the reason underneath it — there is just nothing here to ask.
+                </p>
+                <Link href="/pricing" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+                  See what Advanced adds →
+                </Link>
+              </>
+            )}
           </section>
 
           <section className="card">
@@ -260,7 +290,9 @@ export default async function Today() {
 
           <section className="card">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-serif text-xl text-ink">Weekly meeting</h2>
+              <h2 className="font-serif text-xl text-ink">
+                <Link href="/meeting" className="hover:text-rust">Weekly meeting</Link>
+              </h2>
               <span className="text-sm text-ink-light">{meetingLogged ? 'Logged for this week' : 'Not logged yet'}</span>
             </div>
             <p className="mt-2 text-sm text-ink-light">

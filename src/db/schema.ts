@@ -23,6 +23,16 @@ export const tenants = pgTable('tenants', {
    * honestly beats one that agrees to monthly and then doesn't sit.
    */
   boardCadence: text('board_cadence').notNull().default('monthly'), // monthly | quarterly
+  /**
+   * basic | advanced — decided by one question to the leader: "Do you want the power of AI?"
+   *
+   *   basic    — no connectors, no assistant. Every number is typed in and confirmed by a name.
+   *   advanced — systems feed the KPIs, every figure is traceable, and Claude is on every page.
+   *
+   * Defaults to `basic` because manual is a complete and permanent way to run SPEC, not a lesser
+   * one: nothing should switch itself on for a business that has not asked for it.
+   */
+  tier: text('tier').notNull().default('basic'),
 }).enableRLS();
 
 /**
@@ -271,7 +281,18 @@ export const meetings = pgTable('meetings', {
   type: text('type').notNull(),              // sog | board
   date: text('date').notNull(),
   minutes: text('minutes'),
-  actions: text('actions'),                  // JSON [{text, owner, due, done}]
+  actions: text('actions'),                  // JSON [{id, text, owner, due, done, pillar}]
+  /**
+   * Who was in the room, as JSON names. Attendance is part of whether the meeting happened at all:
+   * a senior meeting the senior group did not attend is a note, not a meeting.
+   */
+  attendees: text('attendees'),              // JSON [name]
+  /**
+   * What was decided, as JSON [{text, who, at}]. Kept separately from the minutes because a
+   * decision outlives the week it was made in — "decisions nobody remembers" is the thing the
+   * rhythm exists to fix.
+   */
+  decisions: text('decisions'),
 }).enableRLS();
 
 export const boardOutputs = pgTable('board_outputs', {
