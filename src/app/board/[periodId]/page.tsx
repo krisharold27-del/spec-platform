@@ -66,6 +66,29 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
 
   const snap = snapshotFor({ tenantName: tenant.name, period: period.period, rollup, gates, pillars: PILLARS, governance });
 
+  // What only the board can unblock. Read from the approvals queue rather than typed by hand: a
+  // pack listing asks somebody remembered to write is a pack that quietly drops the ones they forgot.
+  const boardAsks = (await db.select().from(schema.approvals)
+    .where(eq(schema.approvals.tenantId, user.tenantId)))
+    .filter(a => a.state === 'waiting' && a.decidedByLevel === 'board')
+    .sort((a, b) => a.requestedAt.localeCompare(b.requestedAt));
+
+  // Numbers the business cannot produce. Flags, never scores.
+  const unsupported = rollup.roles.flatMap(({ role, rows }) =>
+    rows.filter(r => r.status === 'not_tracked')
+      .map(r => ({ role: role.title, text: r.text, source: r.source })));
+
+  // The run behind the figure: the closed months, oldest first. A month is a point, not a trend.
+  const closed = (await db.select().from(schema.periods).where(eq(schema.periods.tenantId, user.tenantId)))
+    .filter(p => p.status === 'locked' || p.id === periodId)
+    .sort((a, b) => a.period.localeCompare(b.period))
+    .slice(-6);
+  const trend = [];
+  for (const p of closed) {
+    const r = p.id === periodId ? rollup : await getTeamRollup(user.tenantId, p.id);
+    trend.push({ period: p.period, pillars: r.team.pillars });
+  }
+
   return (
     <Shell
       title={`Board pack — ${period.period}`}
@@ -139,6 +162,80 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-6">
+        <div className="label-caps">What the board is asked to do</div>
+        {boardAsks.length ? (
+          <ul className="mt-3 grid gap-3">
+            {boardAsks.map(a => (
+              <li key={a.id} className="rounded-lg bg-cream p-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm text-ink">{a.title}</span>
+                  <span className="text-xs text-ink-light">waiting since {a.requestedAt.slice(0, 10)}</span>
+                </div>
+                <p className="mt-1 text-xs text-ink-light">{a.detail}</p>
+                {a.blocks && <p className="mt-1 text-xs text-rust-800">{a.blocks}</p>}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-ink-light">Nothing. Every decision this month sat inside the business.</p>
+        )}
+        <p className="mt-3 text-xs text-ink-light">
+          Decided in <a href="/inbox" className="text-rust-700 underline">approvals</a>, where each one keeps the
+          name and the date — approvals and declines alike.
+        </p>
+      </section>
+
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-6">
+        <div className="label-caps">What the data cannot support</div>
+        {unsupported.length ? (
+          <>
+            <ul className="mt-3 grid gap-2">
+              {unsupported.map(u => (
+                <li key={`${u.role}:${u.text}`} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink/10 pb-2 last:border-0">
+                  <span className="text-sm text-ink">{u.text}</span>
+                  <span className="text-xs text-ink-light">{u.role}{u.source ? ` · ${u.source}` : ''}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-ink-light">
+              Excluded from the fraction on both sides rather than counted as zeros. These are flags, not
+              scores — a gap in what the business can measure, not a failure by whoever holds the card.
+            </p>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-ink-light">
+            Nothing. Every measure on every card has either a system or a named person behind it.
+          </p>
+        )}
+      </section>
+
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-6">
+        <div className="label-caps">The last six months</div>
+        {trend.length > 1 ? (
+          <div className="mt-3 overflow-x-auto">
+            <table className="table-clean min-w-[520px]">
+              <thead>
+                <tr><th>Month</th>{PILLARS.map(p => <th key={p}>{PILLAR_META[p].name}</th>)}</tr>
+              </thead>
+              <tbody>
+                {trend.map(t => (
+                  <tr key={t.period}>
+                    <td className="text-ink">{t.period}</td>
+                    {PILLARS.map(p => <td key={p} className="font-mono">{pct(t.pillars[p])}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-ink-light">
+            Only one month has closed. The 90% rule needs two consecutive ones, so there is a run to build
+            rather than a trend to read.
+          </p>
+        )}
       </section>
 
       {/* ---------- Layer two: the full pack ---------- */}
