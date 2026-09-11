@@ -4,7 +4,7 @@ import { PublicNav } from '@/components/public-nav';
 import { CHARTER } from '@/lib/charter';
 import { MAX_STRETCH, MIN_MONTHS_TO_JUDGE, FULL_HISTORY_MONTHS, soundness } from '@/lib/targets';
 import { HAND_BUILT_DISCOVERY_DAYS } from '@/lib/jcurve';
-import { PILLAR_META } from '@/lib/pillars';
+import { PILLAR_META, BRAND_COLOUR } from '@/lib/pillars';
 import { LIGHT_COLOUR } from '@/lib/today';
 
 export const metadata = { title: 'SPEC — how it works' };
@@ -74,10 +74,10 @@ export default function How() {
               <div
                 key={c.pillar}
                 className="card"
-                style={{ borderTopColor: PILLAR_META[c.pillar].colour, borderTopWidth: 4 }}
+                style={{ borderTopColor: BRAND_COLOUR[c.pillar], borderTopWidth: 4 }}
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="label-caps" style={{ color: PILLAR_META[c.pillar].colour }}>
+                  <span className="label-caps" style={{ color: BRAND_COLOUR[c.pillar] }}>
                     {PILLAR_META[c.pillar].name}
                   </span>
                   <span className="label-caps">

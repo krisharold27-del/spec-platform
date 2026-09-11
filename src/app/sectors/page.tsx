@@ -3,7 +3,7 @@ import { Footer } from '@/components/ui';
 import { PublicNav } from '@/components/public-nav';
 import { SECTORS, sectorByKey, QUESTIONS } from '@/lib/sectors';
 import { PILLARS } from '@/lib/scoring';
-import { PILLAR_META } from '@/lib/pillars';
+import { PILLAR_META, BRAND_COLOUR } from '@/lib/pillars';
 import { CHARTER } from '@/lib/charter';
 
 export const metadata = { title: 'SPEC — by sector' };
@@ -59,7 +59,7 @@ export default async function Sectors({ searchParams }: { searchParams: Promise<
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2">
           {PILLARS.map(p => (
-            <div key={p} className="card" style={{ borderTopColor: PILLAR_META[p].colour, borderTopWidth: 4 }}>
+            <div key={p} className="card" style={{ borderTopColor: BRAND_COLOUR[p], borderTopWidth: 4 }}>
               <div className="label-caps">{PILLAR_META[p].name}</div>
               <h3 className="mt-1 font-serif text-lg text-ink">{QUESTIONS[p]}</h3>
               <ul className="mt-3 grid gap-1.5 text-sm text-ink-light">
@@ -110,7 +110,7 @@ export default async function Sectors({ searchParams }: { searchParams: Promise<
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {CHARTER.map(c => (
               <div key={c.pillar} className="card-inset">
-                <span className="label-caps" style={{ color: PILLAR_META[c.pillar].colour }}>
+                <span className="label-caps" style={{ color: BRAND_COLOUR[c.pillar] }}>
                   {PILLAR_META[c.pillar].name}
                 </span>
                 <span className="mt-1 block text-ink">{c.says}</span>

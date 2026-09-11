@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { SpecLockup } from './spec-mark';
 import { band, type Pillar, type Score } from '@/lib/scoring';
 import { myBusinesses } from '@/lib/auth';
-import { PILLAR_META, pct } from '@/lib/pillars';
+import { PILLAR_META, SCORE_COLOUR, scoreColour, pct } from '@/lib/pillars';
 
 // Re-exported so existing pages keep importing them from here; they live in lib/pillars because a
 // client component must be able to reach them without pulling the server's request context in too.
-export { PILLAR_META, pct };
+export { PILLAR_META, SCORE_COLOUR, scoreColour, pct };
 
 
 export async function Shell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
@@ -94,11 +94,22 @@ export function StatusPill({ tone, children }: { tone: 'confirmed' | 'pending' |
   return <span className={`pill ${cls}`}>{children}</span>;
 }
 
-/** Section letter badge — the coloured S / P / E / C square used next to a pillar's section heading. */
-export function Badge({ pillar }: { pillar: Pillar }) {
+/**
+ * The S / P / E / C letter badge.
+ *
+ * Coloured by the SCORE, never by the pillar — see the note in lib/pillars. Given no score it is
+ * ink on sand: during setup there is nothing to be going well or badly yet, and colouring it then
+ * would be colour with no meaning behind it, which is the habit Option D exists to break.
+ */
+export function Badge({ pillar, score = null, scored = false }: { pillar: Pillar; score?: Score; scored?: boolean }) {
   const m = PILLAR_META[pillar];
+  const tone = scored ? scoreColour(score) : null;
   return (
-    <span className="badge-letter" style={{ borderColor: m.colour, color: m.colour, backgroundColor: `${m.colour}14` }}>
+    <span
+      className="badge-letter"
+      title={m.name}
+      style={tone ? { borderColor: tone, color: tone, backgroundColor: `${tone}14` } : undefined}
+    >
       {m.letter}
     </span>
   );
@@ -122,14 +133,19 @@ export function PillarTile({ pillar, score: raw, scored: anyScored, sub }: { pil
   const score = anyScored ? raw : null;
   const scored = score !== null;
   const status = BAND_LABEL[band(score)];
+  // One colour on the card, and it is the score. The letter says which pillar.
+  const tone = scoreColour(score);
   return (
-    <div className="card" style={{ borderTopColor: m.colour, borderTopWidth: 4 }}>
+    <div className="card" style={{ borderTopColor: tone, borderTopWidth: 4 }}>
       <div className="flex items-center gap-2">
-        <span className="badge-letter h-6 w-6 text-xs" style={{ borderColor: m.colour, color: m.colour, backgroundColor: `${m.colour}14` }}>{m.letter}</span>
+        <span
+          className="badge-letter h-6 w-6 text-xs"
+          style={{ borderColor: tone, color: tone, backgroundColor: `${tone}14` }}
+        >{m.letter}</span>
         <div className="label-caps">{m.name}</div>
       </div>
       <div className="mt-2 font-serif text-3xl text-ink">{scored ? pct(score) : '—'}</div>
-      <div className="mt-1 text-sm font-medium" style={{ color: band(score) === 'on_track' ? m.colour : undefined }}>{status}</div>
+      <div className="mt-1 text-sm font-medium" style={{ color: tone }}>{status}</div>
       {sub && <div className="mt-2 text-xs text-ink-light">{sub}</div>}
     </div>
   );

@@ -61,7 +61,7 @@ export default async function Charter() {
             >
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <div className="flex items-baseline gap-3">
-                  <span className="label-caps" style={{ color: meta.colour }}>{meta.name}</span>
+                  <span className="label-caps">{meta.letter} · {meta.name}</span>
                   <span className="pill" style={{ background: `color-mix(in srgb, ${HELD_COLOUR[held]} 14%, transparent)`, color: HELD_COLOUR[held] }}>
                     {HELD_LABEL[held]}
                   </span>

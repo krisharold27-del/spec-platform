@@ -1,3 +1,4 @@
+import { BRAND_COLOUR } from '@/lib/pillars';
 import { redirect } from 'next/navigation';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
@@ -101,7 +102,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {snap.pillars.map(p => (
-            <div key={p.pillar} className="rounded-lg border border-ink/10 p-4" style={{ borderLeftColor: PILLAR_META[p.pillar].colour, borderLeftWidth: 6 }}>
+            <div key={p.pillar} className="rounded-lg border border-ink/10 p-4" style={{ borderLeftColor: BRAND_COLOUR[p.pillar], borderLeftWidth: 6 }}>
               <div className="label-caps">{p.name}</div>
               <div className="mt-1 font-serif text-3xl text-ink">{p.value === null ? '—' : pct(p.value)}</div>
               <div className={`text-xs font-medium ${PILLAR_STATUS[p.status].cls}`}>{PILLAR_STATUS[p.status].label}</div>
