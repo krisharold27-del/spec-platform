@@ -241,6 +241,19 @@ export interface AceStep {
 }
 
 /**
+ * The run: how many closed months in a row, most recent last, held every pillar at the standard.
+ *
+ * A month that did not hold breaks the run rather than pausing it, and a month with no score is not
+ * a qualifying month — it is an absence, which cannot be counted either way. Only closed months
+ * count, because an open month is not a result yet.
+ */
+export function monthsAtStandard(closed: { allPillarsAtStandard: boolean }[]): number {
+  let run = 0;
+  for (const m of closed) run = m.allPillarsAtStandard ? run + 1 : 0;
+  return run;
+}
+
+/**
  * Ace — Sales Ace on the growth side, Ops Ace on operations. Trained on the job, signed off, and
  * holding at least 90% on the KPI board three months running.
  *
@@ -253,7 +266,20 @@ export function aceSteps(
   signoff: Signoff,
   monthsAtStandard: number,
   required = 3,
+  /**
+   * Ace is for roles carrying an individual KPI scorecard. A checklist role is not behind — there
+   * is simply nothing to hold at 90%, and saying so is kinder and truer than showing three
+   * unticked boxes somebody can never tick.
+   */
+  scored = true,
 ): AceStep[] {
+  if (!scored) {
+    return [{
+      label: 'Not a scored role',
+      done: false,
+      note: 'Ace is for roles with an individual KPI scorecard. This one is a checklist role — if you move into a scored role, the run can start then.',
+    }];
+  }
   return [
     {
       label: 'Path complete',
@@ -277,4 +303,4 @@ export function aceSteps(
   ];
 }
 
-export const holdsAce = (steps: AceStep[]): boolean => steps.every(s => s.done);
+export const holdsAce = (steps: AceStep[]): boolean => steps.length > 1 && steps.every(s => s.done);

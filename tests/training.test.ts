@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   daysUntil, dueDateFor, dueState, stateOf, pathFor, pathProgress, signoffFor, aceSteps, holdsAce,
+  monthsAtStandard,
   type TrainingModule, type CurriculumEntry, type TrainingRecord,
 } from '../src/lib/training';
 
@@ -211,5 +212,36 @@ describe('aceSteps', () => {
     const empty = pathProgress([]);
     const steps = aceSteps(empty, signoffFor(empty, { trainedAt: null, trainedBy: null }, null), 0);
     expect(steps[0].note).toBe('No path is assigned to this role yet.');
+  });
+
+  // A checklist role is not behind. Three boxes it can never tick would say it was.
+  it('explains ineligibility for a checklist role instead of showing unmet steps', () => {
+    const steps = aceSteps(done, signed, 3, 3, false);
+    expect(steps).toHaveLength(1);
+    expect(steps[0].label).toBe('Not a scored role');
+    expect(steps[0].note).toContain('individual KPI scorecard');
+    expect(holdsAce(steps)).toBe(false);
+  });
+});
+
+describe('monthsAtStandard', () => {
+  const m = (allPillarsAtStandard: boolean) => ({ allPillarsAtStandard });
+
+  it('counts nothing before any month has closed', () => {
+    expect(monthsAtStandard([])).toBe(0);
+  });
+
+  it('counts a run of closed months that held', () => {
+    expect(monthsAtStandard([m(true), m(true), m(true)])).toBe(3);
+  });
+
+  // A month under the standard breaks the run rather than pausing it.
+  it('starts again after a month that did not hold', () => {
+    expect(monthsAtStandard([m(true), m(true), m(false)])).toBe(0);
+    expect(monthsAtStandard([m(false), m(true), m(true)])).toBe(2);
+  });
+
+  it('counts only the run ending at the most recent month', () => {
+    expect(monthsAtStandard([m(true), m(true), m(true), m(false), m(true)])).toBe(1);
   });
 });

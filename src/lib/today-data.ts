@@ -7,13 +7,16 @@
  */
 import { and, eq, isNull, inArray } from 'drizzle-orm';
 import { db, schema } from '../db';
-import { pathFor, pathProgress, signoffFor, type PathLine, type PathProgress, type Signoff, type TrainingModule } from './training';
+import {
+  pathFor, pathProgress, signoffFor, aceSteps, monthsAtStandard, holdsAce,
+  type AceStep, type PathLine, type PathProgress, type Signoff, type TrainingModule,
+} from './training';
 import { getScorecard, getRoles, type RoleView, type ScorecardRow } from './queries';
 import { currentPeriod } from './period';
 import { getScope } from './scope';
 import { categoryName, STATUS_LABEL } from './systems';
 import { canManage, type CurrentUser } from './auth';
-import { roleScore, type RoleScore } from './scoring';
+import { roleScore, PILLARS, type RoleScore } from './scoring';
 import { whatNeedsMe, changesToKnowAbout, type TodoItem, type ChangeItem } from './today';
 
 /** Monday of the week containing `at`, as YYYY-MM-DD. The week a meeting is logged against. */
@@ -32,7 +35,18 @@ export interface TeamMember {
   pencilled: string | null;
   rows: ScorecardRow[];
   score: RoleScore;
+  /** False for a checklist role: no individual scorecard, so no lights and no Ace. */
+  scored: boolean;
 }
+
+/**
+ * Does this role carry an individual KPI scorecard?
+ *
+ * A checklist role — an apprentice, most people on the tools — is measured through the role above
+ * it. It is not behind, and it is never shown as though it were: no lights, no Ace, no score.
+ */
+export const isScored = (level: string, criteriaCount: number): boolean =>
+  level !== 'staff' && criteriaCount > 0;
 
 export interface FeedLine {
   id: string;
@@ -53,6 +67,15 @@ export interface TrainingView {
   signoff: Signoff;
 }
 
+export interface AceView {
+  steps: AceStep[];
+  holds: boolean;
+  /** The closed months behind the run, oldest first, for the Jul ✓ / Aug ✓ / Sep — strip. */
+  run: { period: string; held: boolean }[];
+  months: number;
+  required: number;
+}
+
 export interface TodayData {
   period: { id: string; period: string; status: string } | null;
   myRole: RoleView | null;
@@ -65,7 +88,50 @@ export interface TodayData {
   changes: ChangeItem[];
   meetingLogged: boolean;
   training: TrainingView;
+  ace: AceView;
+  /**
+   * Whether this role carries an individual KPI scorecard. A checklist role is not behind — it is
+   * simply not scored, and the page says so rather than drawing four empty lights.
+   */
+  scored: boolean;
   canManage: boolean;
+}
+
+/** Every pillar that has a score sits at or above the standard, and at least one of them does. */
+const heldTheStandard = (score: RoleScore, threshold = 0.9): boolean => {
+  const scored = PILLARS.map(p => score.pillars[p]).filter((v): v is number => v !== null);
+  return scored.length === PILLARS.length && scored.every(v => v >= threshold);
+};
+
+/**
+ * The Ace run: the closed months behind this role, oldest first, and how many in a row held every
+ * pillar at the standard. Only closed months count — an open month is not a result yet.
+ */
+async function aceFor(
+  tenantId: string,
+  roleId: string,
+  training: TrainingView,
+  scored: boolean,
+): Promise<AceView> {
+  const required = 3;
+  if (!scored) {
+    return { steps: aceSteps(training.progress, training.signoff, 0, required, false), holds: false, run: [], months: 0, required };
+  }
+
+  const closed = (await db.select().from(schema.periods).where(eq(schema.periods.tenantId, tenantId)))
+    .filter(p => p.status === 'locked')
+    .sort((a, b) => a.period.localeCompare(b.period))
+    .slice(-required);
+
+  const run: { period: string; held: boolean }[] = [];
+  for (const p of closed) {
+    const { score } = await getScorecard(roleId, p.id);
+    run.push({ period: p.period, held: heldTheStandard(score) });
+  }
+
+  const months = monthsAtStandard(run.map(m => ({ allPillarsAtStandard: m.held })));
+  const steps = aceSteps(training.progress, training.signoff, months, required, true);
+  return { steps, holds: holdsAce(steps), run, months, required };
 }
 
 const NO_TRAINING: TrainingView = {
@@ -73,6 +139,8 @@ const NO_TRAINING: TrainingView = {
   progress: { total: 0, complete: 0, pct: null, pathComplete: false, overdue: 0 },
   signoff: { state: 'no_path', label: 'No path set', note: 'Nothing is assigned to this role yet.', trainedAt: null, trainedBy: null },
 };
+
+const NO_ACE: AceView = { steps: [], holds: false, run: [], months: 0, required: 3 };
 
 /**
  * The training path for the role this person holds, and how far through it they are.
@@ -139,7 +207,8 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
   if (!period || !myRole) {
     return {
       period: period ?? null, myRole, myRows: [], myScore: empty, team: [], reportsTo,
-      feeds: [], todos: [], changes: [], meetingLogged: false, training: NO_TRAINING, canManage: manage,
+      feeds: [], todos: [], changes: [], meetingLogged: false, training: NO_TRAINING,
+      ace: NO_ACE, scored: false, canManage: manage,
     };
   }
 
@@ -147,11 +216,18 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
 
   // Direct reports only. The chart beneath them is visible on the org chart and the team rollup;
   // Today is about the people this person actually holds a one-to-one with.
-  const directs = roles.filter(r => r.reportsToRoleId === myRole.id && r.level !== 'staff' && scope.canSee(r.id));
+  //
+  // Checklist roles are included: a supervisor's crew is mostly apprentices and tradespeople, and
+  // leaving them off would be drawing somebody a team they do not have. They carry no lights,
+  // because they carry no scorecard — which the row says rather than showing four empty dots.
+  const directs = roles.filter(r => r.reportsToRoleId === myRole.id && scope.canSee(r.id));
   const team: TeamMember[] = [];
   for (const r of directs) {
     const { rows, score } = await getScorecard(r.id, period.id);
-    team.push({ roleId: r.id, title: r.title, holder: r.holder?.name ?? null, pencilled: r.pencilled, rows, score });
+    team.push({
+      roleId: r.id, title: r.title, holder: r.holder?.name ?? null, pencilled: r.pencilled,
+      rows, score, scored: isScored(r.level, rows.length),
+    });
   }
 
   const connections = await db.select().from(schema.systemConnections)
@@ -201,9 +277,12 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
       .map(c => ({ id: c.id, category: categoryName(c.category), status: c.status })),
   });
 
+  const scored = isScored(myRole.level, mine.rows.length);
+  const ace = await aceFor(user.tenantId, myRole.id, training, scored);
+
   return {
     period, myRole, myRows: mine.rows, myScore: mine.score, team, reportsTo,
-    feeds, todos, changes, meetingLogged, training, canManage: manage,
+    feeds, todos, changes, meetingLogged, training, ace, scored, canManage: manage,
   };
 }
 

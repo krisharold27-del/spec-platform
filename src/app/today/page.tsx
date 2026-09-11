@@ -49,7 +49,10 @@ export default async function Today() {
     );
   }
 
-  const { myRows, myScore, team, reportsTo, feeds, todos, changes, meetingLogged, training } = data;
+  const { myRows, myScore, team, reportsTo, feeds, todos, changes, meetingLogged, training, ace, scored } = data;
+  // A supervisor's reports are on the tools, not running scorecards of their own. Calling that
+  // "my team" is the language of an office; "my crew" is what they actually say.
+  const crew = team.length > 0 && team.every(m => !m.scored);
   const compliance = clearToWork(myRows);
   const live = feeds.filter(f => f.status === 'live');
 
@@ -58,9 +61,14 @@ export default async function Today() {
       title={`Good morning, ${firstName}.`}
       subtitle={`${today} · your SPEC sheet for the day · ${data.myRole.title} at ${tenant.name}`}
     >
-      <p className="-mt-4 mb-8 max-w-2xl text-sm text-ink-light">{standing(todos.length, myScore)}</p>
+      <p className="-mt-4 mb-8 max-w-2xl text-sm text-ink-light">
+        {scored
+          ? standing(todos.length, myScore)
+          : 'Checklist view · this role is not individually scored. You keep people safe, log your hours and finish your training; the numbers are carried by the role above you.'}
+      </p>
 
       {/* The four lights lead the page: the first thing anybody wants is where they stand. */}
+      {scored && (
       <section aria-label="My four pillars" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {PILLARS.map(p => {
           const v = myScore.pillars[p];
@@ -86,6 +94,7 @@ export default async function Today() {
           );
         })}
       </section>
+      )}
 
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
         <div className="grid gap-6">
@@ -96,14 +105,16 @@ export default async function Today() {
 
           <section className="card">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-serif text-xl text-ink">My team</h2>
+              <h2 className="font-serif text-xl text-ink">{crew ? 'My crew' : 'My team'}</h2>
               <Link href="/org" className="text-sm text-rust-700 hover:underline">Open the org chart</Link>
             </div>
             {team.length ? (
               <>
                 <p className="mt-1 text-sm text-ink-light">
-                  {team.length} {team.length === 1 ? 'role reports' : 'roles report'} to you. The four dots are Safety,
-                  People, Earnings and Compliance.
+                  {team.length} {team.length === 1 ? 'role reports' : 'roles report'} to you.{' '}
+                  {crew
+                    ? 'They are not scored individually — their numbers are carried by your card.'
+                    : 'The four dots are Safety, People, Earnings and Compliance.'}
                 </p>
                 <ul className="mt-4 grid gap-2">
                   {team.map(m => (
@@ -115,10 +126,14 @@ export default async function Today() {
                         </div>
                       </Link>
                       <div className="flex items-center gap-3">
-                        <span className="flex gap-1.5">
-                          {PILLARS.map(p => <Dot key={p} light={light(m.score.pillars[p])} size={11} title={`${PILLAR_META[p].name} ${pct(m.score.pillars[p])}`} />)}
+                        {m.scored && (
+                          <span className="flex gap-1.5">
+                            {PILLARS.map(p => <Dot key={p} light={light(m.score.pillars[p])} size={11} title={`${PILLAR_META[p].name} ${pct(m.score.pillars[p])}`} />)}
+                          </span>
+                        )}
+                        <span className="min-w-[9ch] text-right text-xs text-ink-light">
+                          {m.scored ? teamFlag(m.score) : 'Checklist role'}
                         </span>
-                        <span className="min-w-[9ch] text-right text-xs text-ink-light">{teamFlag(m.score)}</span>
                       </div>
                     </li>
                   ))}
@@ -176,6 +191,48 @@ export default async function Today() {
         </div>
 
         <div className="grid gap-6">
+          <section className="card">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-serif text-xl text-ink">{scored ? `${aceName(data.myRole.stream)} run` : 'Ace'}</h2>
+              {scored && (
+                <span className="text-sm text-ink-light">{ace.months} of {ace.required} months</span>
+              )}
+            </div>
+            {scored && ace.run.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {ace.run.map(m => (
+                  <span
+                    key={m.period}
+                    className="pill"
+                    style={{
+                      background: `color-mix(in srgb, ${m.held ? LIGHT_COLOUR.green : LIGHT_COLOUR.pending} 14%, transparent)`,
+                      color: m.held ? LIGHT_COLOUR.green : LIGHT_COLOUR.pending,
+                    }}
+                  >
+                    {m.period} {m.held ? '✓' : '—'}
+                  </span>
+                ))}
+              </div>
+            )}
+            <ul className="mt-4 grid gap-3">
+              {ace.steps.map(s => (
+                <li key={s.label} className="flex items-start gap-3">
+                  <Dot light={s.done ? 'green' : 'pending'} size={11} />
+                  <span className="min-w-0">
+                    <span className={`block text-sm ${s.done ? 'text-ink' : 'text-ink-light'}`}>{s.label}</span>
+                    <span className="mt-0.5 block text-xs text-ink-light">{s.note}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {scored && ace.run.length === 0 && (
+              <p className="mt-3 text-xs text-ink-light">
+                No month has closed yet, so the run has not started. Only closed months count — an open
+                month is not a result.
+              </p>
+            )}
+          </section>
+
           <section className="rounded-lg bg-sage-100 p-4">
             <h2 className="font-serif text-xl text-ink">Ask anything</h2>
             <AskPanel rows={myRows} score={myScore} meetingLogged={meetingLogged} />
@@ -293,6 +350,13 @@ function standing(outstanding: number, score: RoleScore): string {
 }
 
 const capital = (p: string) => p.charAt(0).toUpperCase() + p.slice(1);
+
+/**
+ * Sales Ace on the growth side, Ops Ace on operations, and plain Ace anywhere else — the standing
+ * is the same test wherever it is held, and only the name changes with the stream.
+ */
+const aceName = (stream: string) =>
+  stream === 'growth' ? 'Sales Ace' : stream === 'operations' ? 'Ops Ace' : 'Ace';
 
 /** The count beside "My training". A role with no path has none, rather than nought of nought. */
 function trainingLine(p: { total: number; complete: number; overdue: number }): string {

@@ -62,7 +62,7 @@ export default {
          * lights on Today and the team dots beside them. Green and amber sit on the Organic axis;
          * `pending` is deliberately a warm neutral, never red — not-measured-yet is not doing-badly.
          */
-        light: { green: '#4f7a3f', amber: '#c67139', red: '#a63b26', pending: '#a19786' },
+        light: { green: '#4f7a3f', amber: '#c67139', red: '#a63b26', pending: '#8c8681' },
       },
       fontFamily: {
         /** `serif` is the display face throughout the app; the name predates Caprasimo. */

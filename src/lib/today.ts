@@ -40,7 +40,8 @@ export const LIGHT_COLOUR: Record<Light, string> = {
   green: '#4f7a3f',
   amber: '#c67139',
   red: '#a63b26',
-  pending: '#a19786',
+  // The design system's grey for not-applicable, not-tracked and excluded. Warm, and never red.
+  pending: '#8c8681',
 };
 
 export const LIGHT_LABEL: Record<Light, string> = {
