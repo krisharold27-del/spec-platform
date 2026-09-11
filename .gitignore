@@ -1,5 +1,8 @@
 node_modules/
 .next/
+# Every env file. A tracked .env is where a real secret eventually gets committed by
+# accident — .env.example documents the keys instead, with no values in it.
+.env
 .env.local
 .env*.local
 .vercel
