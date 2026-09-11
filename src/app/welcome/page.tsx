@@ -17,6 +17,15 @@ export default function Welcome() {
           Start free
         </a>
         <p className="mt-6 text-sm text-ink-light">Already on SPEC? <a href="/signin" className="underline">Sign in</a></p>
+        {/*
+          Two links, not a brochure. The front door stays one line and one button — the founder's
+          instruction of 10 September, recorded in DECISIONS.md — so anybody who wants the argument
+          before the product can go and read it, and anybody who does not is one press from starting.
+        */}
+        <p className="mt-10 flex flex-wrap gap-4 text-sm">
+          <a href="/pricing" className="text-rust-700 underline">What it costs, at your numbers</a>
+          <a href="/sectors" className="text-rust-700 underline">What it looks like in your industry</a>
+        </p>
         <Footer />
       </div>
     </main>
