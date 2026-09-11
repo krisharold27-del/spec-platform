@@ -18,20 +18,45 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
           <Link href="/" className="font-serif text-lg tracking-tight text-ink">
             SPEC<span className="text-rust">.</span>
           </Link>
+          {/*
+            Five links, then everything else behind one word.
+            The five are the rhythm — the day, the week, the month, what is waiting, and the chart
+            every score rolls up. Putting fourteen across the top would mean a leader scanning a
+            menu to find the thing they open every morning.
+            `<details>` rather than a scripted dropdown: it works with the keyboard, it works before
+            hydration, and it needs nothing shipped to the browser.
+          */}
           <nav className="flex items-center gap-5 label-caps">
             <Link href="/today" className="hover:text-rust">Today</Link>
-            <Link href="/meeting" className="hover:text-rust">Weekly meeting</Link>
+            <Link href="/meeting" className="hidden hover:text-rust sm:inline">This week</Link>
+            <Link href="/scoring" className="hidden hover:text-rust sm:inline">The month</Link>
             <Link href="/inbox" className="hover:text-rust">Approvals</Link>
-            <Link href="/scoring" className="hover:text-rust">Monthly scoring</Link>
-            <Link href="/connections" className="hover:text-rust">Connections</Link>
-            <Link href="/training" className="hover:text-rust">Training</Link>
-            <Link href="/settings" className="hover:text-rust">Admin</Link>
-            <Link href="/journey" className="hover:text-rust">Journey</Link>
-            <Link href="/" className="hover:text-rust">Executive summary</Link>
-            <Link href="/org" className="hover:text-rust">Org chart</Link>
-            <Link href="/team" className="hover:text-rust">Team rollup</Link>
-            <Link href="/me" className="hover:text-rust">My scorecard</Link>
-            {businesses.length > 1 && <Link href="/businesses" className="hover:text-rust">Switch business</Link>}
+            <Link href="/org" className="hidden hover:text-rust sm:inline">Org chart</Link>
+
+            <details className="relative">
+              <summary className="cursor-pointer list-none hover:text-rust">Everything else</summary>
+              <div className="absolute right-0 z-10 mt-2 grid w-56 gap-1 rounded-lg border border-ink/10 bg-surface p-2 shadow-md">
+                {[
+                  { href: '/', label: 'Executive summary' },
+                  { href: '/me', label: 'My scorecard' },
+                  { href: '/team', label: 'Team roll-up' },
+                  { href: '/people', label: 'People' },
+                  { href: '/training', label: 'Training' },
+                  { href: '/connections', label: 'Connections' },
+                  { href: '/setup', label: 'Setting up' },
+                  { href: '/journey', label: 'Journey' },
+                  { href: '/settings', label: 'Administration' },
+                  ...(businesses.length > 1
+                    ? [{ href: '/group', label: 'Group' }, { href: '/businesses', label: 'Switch business' }]
+                    : []),
+                ].map(l => (
+                  <Link key={l.href} href={l.href} className="rounded-full px-3 py-1.5 hover:bg-cream hover:text-rust">
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </details>
+
             <Link href="/signout" className="normal-case tracking-normal text-ink-light/70 hover:text-rust">Sign out</Link>
           </nav>
         </div>

@@ -326,6 +326,31 @@ export const approvals = pgTable('approvals', {
   refId: text('ref_id'),
 }, t => [index('approvals_tenant_state').on(t.tenantId, t.state)]).enableRLS();
 
+/**
+ * Somebody being considered for a role.
+ *
+ * Rated against the same four pillars the role is scored on, because the alternative is a gut feel
+ * nobody can defend three months later — and because hiring against the pillars is what makes the
+ * scorecard mean something on day one rather than at the first review.
+ *
+ * Deliberately thin. SPEC is not an applicant tracking system; this is enough to know who is in
+ * front of you, against which role, and on what evidence.
+ */
+export const candidates = pgTable('candidates', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  roleId: text('role_id').notNull().references(() => roles.id),
+  name: text('name').notNull(),
+  /** applied | screening | interview | offer | placed | declined */
+  stage: text('stage').notNull().default('applied'),
+  /** 1–5 against each pillar, as JSON {safety,people,earnings,compliance}. Null until rated. */
+  ratings: text('ratings'),
+  /** What was actually checked — a licence, a ticket, a right to work. The business's own words. */
+  checks: text('checks'),
+  note: text('note'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('candidates_tenant_role').on(t.tenantId, t.roleId)]).enableRLS();
+
 export const diagnostics = pgTable('diagnostics', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),
