@@ -16,6 +16,7 @@ export async function confirmSignIn(formData: FormData) {
   if (!tokenHash || !type) redirect('/signin?error=link');
 
   const supabase = await createClient();
+  if (!supabase) redirect('/signin?error=link');
   const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
   if (error || !data?.user) {
     // Pressed twice, or opened twice: the first press already signed them in. Carry on, not an error.

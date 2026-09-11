@@ -62,6 +62,7 @@ export async function markEmailProven(authUserId: string): Promise<void> {
 export async function emailConfirmed(): Promise<boolean> {
   if (!provingEnabled()) return true;
   const supabase = await createClient();
+  if (!supabase) return false; // Cannot confirm an address against a service that is not there.
   const { data: { user } } = await supabase.auth.getUser();
   return user?.app_metadata?.[PROVEN] === true;
 }
@@ -86,6 +87,7 @@ export async function createSignIn(email: string, password: string): Promise<New
   }
   // A fresh local copy with no service key: the provider's own sign-up.
   const supabase = await createClient();
+  if (!supabase) return { ok: false, reason: 'failed' };
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error || !data.user) return { ok: false, reason: /already/i.test(error?.message ?? '') ? 'exists' : 'failed' };
   return { ok: true, authUserId: data.user.id };
@@ -100,6 +102,7 @@ export async function linkNewSeat(authUserId: string, tenantId: string, email: s
 /** Email and password. Sets the session cookie; returns false if they do not match. */
 export async function signInWithPassword(email: string, password: string): Promise<boolean> {
   const supabase = await createClient();
+  if (!supabase) return false;
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase().trim(), password });
   return !error && Boolean(data.user);
 }
@@ -110,7 +113,9 @@ export async function signInWithPassword(email: string, password: string): Promi
  */
 const mySeats = cache(async (): Promise<UserRow[]> => {
   const supabase = await createClient();
-  const { data: { user: authUser } } = await supabase.auth.getUser();
+  // Not configured, or unreachable, means nobody is signed in — never a 500 on somebody's page.
+  if (!supabase) return [];
+  const authUser = await supabase.auth.getUser().then(r => r.data.user).catch(() => null);
   if (!authUser?.email) return [];
   const email = authUser.email.toLowerCase().trim();
 
@@ -184,6 +189,7 @@ export async function sendEmailLink(email: string, purpose: 'password' | 'confir
   }
   // A fresh local copy: the provider's own email.
   const supabase = await createClient();
+  if (!supabase) { console.error('[auth] cannot send a link: Supabase is not configured'); return; }
   const redirectTo = `${appUrl()}/auth/callback?next=${encodeURIComponent(landing)}`;
   const { error } = purpose === 'password'
     ? await supabase.auth.resetPasswordForEmail(address, { redirectTo })
@@ -196,6 +202,7 @@ export const sendSetPasswordLink = (email: string) => sendEmailLink(email, 'pass
 
 export async function signOut() {
   const supabase = await createClient();
+  if (!supabase) return;
   await supabase.auth.signOut();
 }
 

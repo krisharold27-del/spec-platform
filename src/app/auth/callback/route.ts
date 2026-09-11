@@ -13,7 +13,10 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    // Unconfigured auth cannot honour a link; fall through to the sign-in page below.
+    const { data, error } = supabase
+      ? await supabase.auth.exchangeCodeForSession(code)
+      : { data: null, error: { status: 503, code: 'not_configured', message: 'Supabase is not configured' } };
     if (!error) {
       // A link sent to the address was used — the address is proven theirs.
       if (data?.user) await markEmailProven(data.user.id);
