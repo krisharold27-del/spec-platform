@@ -3,6 +3,7 @@ import { SpecLockup } from './spec-mark';
 import { band, type Pillar, type Score } from '@/lib/scoring';
 import { myBusinesses } from '@/lib/auth';
 import { currentLook } from '@/lib/look';
+import { doSignOut } from '@/app/signin/actions';
 import { LookBar } from './look-bar';
 import { PILLAR_META, SCORE_COLOUR, scoreColour, pct } from '@/lib/pillars';
 
@@ -72,6 +73,13 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
                     {l.label}
                   </Link>
                 ))}
+                {/* Last, quiet, and out of the way. Nobody should sign out by accident on their way
+                    to something else — the point is to stay in all day and come back tomorrow. */}
+                <form action={doSignOut} className="mt-1 border-t border-ink/10 pt-1">
+                  <button type="submit" className="w-full rounded-full px-3 py-1.5 text-left text-ink-light/70 hover:bg-cream hover:text-rust">
+                    Sign out
+                  </button>
+                </form>
               </div>
             </details>
 
@@ -81,9 +89,7 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
               <Link href="/look/decide" className="normal-case tracking-normal text-ink-light/70 hover:text-rust">
                 Finish looking
               </Link>
-            ) : (
-              <Link href="/signout" className="normal-case tracking-normal text-ink-light/70 hover:text-rust">Sign out</Link>
-            )}
+            ) : null}
           </nav>
         </div>
       </header>

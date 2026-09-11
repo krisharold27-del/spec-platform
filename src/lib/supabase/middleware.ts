@@ -19,6 +19,21 @@
 import { createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 
+/**
+ * Auth cookies are kept for a year, not for the browser session.
+ *
+ * Somebody signs in once and then works. They lock the computer at five, open it at seven the next
+ * morning, and SPEC is already there with the day on it — no password, no "session expired", no
+ * friction between arriving at work and seeing the business. A cookie with no lifetime dies when
+ * the browser closes, which would sign somebody out every single evening for no security benefit
+ * anybody asked for: the session itself is still governed by the auth provider, and signing out
+ * still works, so this only removes the accidental logouts.
+ */
+const A_YEAR = 60 * 60 * 24 * 365;
+type CookieOptions = Parameters<NextResponse['cookies']['set']>[2];
+/** Whatever the provider asked for, plus a lifetime if it did not give one. */
+const keep = (options: CookieOptions): CookieOptions => ({ maxAge: A_YEAR, ...options });
+
 /** A slow auth service must not hold every request on the site open behind it. */
 const REFRESH_TIMEOUT_MS = 3000;
 
@@ -38,7 +53,7 @@ export async function updateSession(request: NextRequest) {
         setAll(cookiesToSet) {
           for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
           response = NextResponse.next({ request });
-          for (const { name, value, options } of cookiesToSet) response.cookies.set(name, value, options);
+          for (const { name, value, options } of cookiesToSet) response.cookies.set(name, value, keep(options));
         },
       },
     });

@@ -119,3 +119,35 @@ jobs:
           ' || fail=1
 
           exit $fail
+
+      # The journey every customer takes, driven in a real browser.
+      #
+      # This is the check that ends a whole class of problem. The happy path — look around, sign up,
+      # keep what you were looking at, come back tomorrow, sign in — could previously only be
+      # verified by reading the code, because it needs a real authentication service. It now runs
+      # against scripts/fake-auth, which speaks enough of the provider's HTTP API for the real
+      # client to talk to it unmodified: what is tested is the shipping code path, with no test-only
+      # branch anywhere in the product.
+      - name: Install a browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Walk the whole customer journey in a browser
+        env:
+          DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+          APP_URL: http://localhost:3000
+          NODE_ENV: test
+        run: |
+          node scripts/fake-auth.mjs 54321 &
+          until curl -fsS -o /dev/null http://localhost:54321/auth/v1/user; do sleep 1; done
+
+          # Rebuilt so the client is compiled against the stand-in, then started for real.
+          npm run build
+          npm start &
+          for i in $(seq 1 40); do
+            curl -fsS -o /dev/null http://localhost:3000/welcome && break
+            sleep 2
+          done
+
+          node scripts/journey.mjs
