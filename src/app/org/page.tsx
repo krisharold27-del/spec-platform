@@ -1,209 +1,160 @@
 import Link from 'next/link';
-import { Shell } from '@/components/ui';
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
-import { getTenantById, getRoles, type RoleView } from '@/lib/queries';
+import { db, schema } from '@/db';
+import { Shell } from '@/components/ui';
+import { SubmitButton } from '@/components/submit-button';
+import { OrgCanvas } from '@/components/org-canvas';
+import { getCurrentUser, canManage } from '@/lib/auth';
+import { getTenantById, getScorecard, PILLARS } from '@/lib/queries';
+import { currentPeriod } from '@/lib/period';
 import { getScope } from '@/lib/scope';
+import { isScored } from '@/lib/today-data';
+import { detachedBranches, stages, type ChartRole } from '@/lib/orgchart';
+import { LIGHT_COLOUR } from '@/lib/today';
+import { addRole, importChart } from './actions';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * The org chart is read by business owners, not org designers, so it is laid out the way they
- * already describe the business: leadership across the top, then one column per COGS stream, each
- * headed by the role that owns it. A role can exist with nobody in it — a vacancy is information,
- * so it is drawn plainly rather than hidden.
+ * The interactive org chart — the instrument the board reviews through.
+ *
+ * The chart is the product rather than a diagram of it: roles report to roles, a role exists
+ * whether or not anybody holds it, and every score in SPEC rolls up the lines drawn here.
+ * Link → Flow → Grow is the order it has to happen in — there is no point chasing a score for a
+ * business that has not finished drawing itself.
  */
-const STREAMS: { key: string; name: string; owns: string; colour: string }[] = [
-  { key: 'commercial', name: 'Commercial', owns: 'The numbers are right and on time', colour: '#169BD5' },
-  { key: 'operations', name: 'Operations', owns: 'The work gets done safely and profitably', colour: '#5B9E3F' },
-  { key: 'growth', name: 'Growth', owns: 'Keep the clients we have, win more', colour: '#C1440E' },
-];
-
-const initials = (name: string) =>
-  name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '?';
-
-function Avatar({ role, size = 'md' }: { role: RoleView; size?: 'md' | 'sm' }) {
-  const dim = size === 'md' ? 'h-9 w-9 text-xs' : 'h-7 w-7 text-[10px]';
-  const name = role.holder?.name ?? role.pencilled;
-  if (!name) {
-    return <span className={`${dim} flex shrink-0 items-center justify-center rounded-full border border-dashed border-ink/25 font-semibold text-ink-light/40`}>—</span>;
-  }
-  // A pencilled-in name is shown, but softly — the business as drawn, not yet as running.
-  return <span className={`${dim} flex shrink-0 items-center justify-center rounded-full font-semibold ${role.holder ? 'bg-ink/5 text-ink-light' : 'border border-dashed border-ink/25 text-ink-light/60'}`}>{initials(name)}</span>;
-}
-
-function Holder({ role }: { role: RoleView }) {
-  if (!role.holder) {
-    return role.pencilled
-      ? <span className="text-xs text-ink-light/70">{role.pencilled} <span className="italic text-ink-light/50">· pencilled in</span></span>
-      : <span className="text-xs italic text-ink-light/60">Open — role defined, nobody in it yet</span>;
-  }
-  return (
-    <span className="text-xs text-ink-light">
-      {role.holder.name}
-      {role.holder.access === 'readonly' && <span className="ml-1.5 text-ink-light/50">read-only</span>}
-    </span>
-  );
-}
-
-/**
- * Structure is visible to everyone in the business — the chart is the map. Scores are not: a card
- * only links through to its scorecard when the viewer is allowed to read it.
- */
-function HeadCard({ role, open }: { role: RoleView; open: boolean }) {
-  const inner = (
-    <>
-      <Avatar role={role} />
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold text-ink">{role.title}</span>
-        <Holder role={role} />
-      </span>
-    </>
-  );
-  const base = `flex items-center gap-3 rounded-lg border bg-surface p-3 ${role.holder || role.pencilled ? 'border-ink/10' : 'border-dashed border-ink/25'}`;
-  if (!open) return <div className={`${base} opacity-70`} title="Scores outside your part of the org chart aren't visible to you">{inner}</div>;
-  return <Link href={`/scorecard/${role.id}`} className={`${base} transition-colors hover:border-rust/40`}>{inner}</Link>;
-}
-
-/** Supervisors and their staff, nested under a stream head with a connector rail. */
-function Reports({ role, all, visible }: { role: RoleView; all: RoleView[]; visible: Set<string> }) {
-  const reports = all.filter(r => r.reportsToRoleId === role.id);
-  if (reports.length === 0) return null;
-  return (
-    <ul className="mt-2 space-y-2 border-l border-ink/10 pl-4">
-      {reports.map(r => {
-        const open = visible.has(r.id);
-        const body = (
-          <>
-            <Avatar role={r} size="sm" />
-            <span className="min-w-0">
-              <span className="block truncate text-[13px] font-medium text-ink">{r.title}</span>
-              <Holder role={r} />
-            </span>
-          </>
-        );
-        const base = `flex items-center gap-2.5 rounded-md border bg-surface/80 px-3 py-2 ${r.holder || r.pencilled ? 'border-ink/10' : 'border-dashed border-ink/20'}`;
-        return (
-          <li key={r.id} className="relative">
-            <span className="absolute -left-4 top-4 h-px w-3 bg-ink/10" aria-hidden />
-            {open
-              ? <Link href={`/scorecard/${r.id}`} className={`${base} transition-colors hover:border-rust/40`}>{body}</Link>
-              : <div className={`${base} opacity-70`}>{body}</div>}
-            <Reports role={r} all={all} visible={visible} />
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-export default async function OrgChart({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
-  const user = await getCurrentUser(); if (!user) redirect('/signin');
-  const { welcome } = await searchParams;
+export default async function OrgChart() {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
-  const roles = await getRoles(tenant.id);
-  const { visible } = await getScope(user);
+  const scope = await getScope(user);
+  const period = await currentPeriod(tenant.id);
+  const manage = canManage(user.access);
 
-  const board = roles.filter(r => r.stream === 'board');
-  const leadership = roles.filter(r => r.stream === 'gm');
-  const claimed = new Set<string>([...board, ...leadership].map(r => r.id));
+  const criteria = await db.select().from(schema.criteria);
+  const roles: ChartRole[] = [];
+  for (const r of scope.roles) {
+    const own = criteria.filter(c => c.roleId === r.id && c.active);
+    const scored = isScored(r.level, own.length);
+    let pillars: ChartRole['pillars'] = null;
+    if (period && scored) {
+      const { score } = await getScorecard(r.id, period.id);
+      pillars = score.pillars;
+    }
+    roles.push({
+      id: r.id, title: r.title,
+      person: r.holder?.name ?? r.pencilled ?? null,
+      pencilled: !r.holder && !!r.pencilled,
+      parentId: r.reportsToRoleId, level: r.level, stream: r.stream,
+      pillars, scored,
+      // Two measures per pillar is the starting point the whole system is built around.
+      hasKpis: PILLARS.every(p => own.filter(c => c.pillar === p && c.kpi).length >= 2),
+    });
+  }
 
-  const groups = STREAMS.map(s => {
-    const inStream = roles.filter(r => r.stream === s.key);
-    const heads = inStream.filter(r => !inStream.some(o => o.id === r.reportsToRoleId));
-    inStream.forEach(r => claimed.add(r.id));
-    return { ...s, heads, count: inStream.length, vacant: inStream.filter(r => !r.holder && !r.pencilled).length };
-  });
+  // The chart hangs off the top of the business, not off whatever this viewer happens to see.
+  const rootId = roles.find(r => r.level === 'gm')?.id ?? roles.find(r => !r.parentId)?.id ?? null;
+  const detached = detachedBranches(roles, rootId);
 
-  const unplaced = roles.filter(r => !claimed.has(r.id));
-  const totalVacant = roles.filter(r => !r.holder && !r.pencilled).length;
+  const offIds = new Set(detached.flatMap(d => [d.role.id]));
+  const attachedScored = roles.filter(r => r.scored && !offIds.has(r.id));
+  const averages: Record<string, number | null> = {};
+  for (const p of PILLARS) {
+    const values = attachedScored
+      .map(r => r.pillars?.[p])
+      .filter((v): v is number => v !== null && v !== undefined);
+    averages[p] = values.length ? values.reduce((s, v) => s + v, 0) / values.length : null;
+  }
+  const journey = stages(roles, detached, averages);
 
   return (
-    <Shell title={`${tenant.name} — org chart`} subtitle="The business by stream of work. A role can exist with nobody in it; a person cannot exist without a role.">
-      {/* The table, set. One greeting, one gentle next step — nothing to fill in to be here. */}
-      {welcome && (
-        <div className="mb-6 rounded-lg bg-surface p-5">
-          <div className="font-serif text-xl text-ink">Welcome, {user.name.split(' ')[0]}. This is {tenant.name}.</div>
-          <p className="mt-1 text-sm text-ink-light">We&apos;ve sketched it to start. Put names in when you&apos;re ready.</p>
-          <Link href="/setup/business" className="mt-3 inline-block rounded-full bg-rust px-4 py-2 text-sm text-cream hover:bg-rust-600">Put names in</Link>
-        </div>
-      )}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-ink-light">
-        <span><b className="font-semibold text-ink">{roles.length}</b> roles defined</span>
-        <span><b className="font-semibold text-ink">{roles.length - totalVacant}</b> filled</span>
-        {totalVacant > 0 && <span className="text-rust-dark"><b className="font-semibold">{totalVacant}</b> vacant</span>}
-      </div>
-
-      {board.length > 0 && (
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          {board.map(r => (
-            <div key={r.id} className="w-full max-w-sm">
-              <div className="label-caps mb-1 text-center text-[10px]">Board</div>
-              <HeadCard role={r} open={visible.has(r.id)} />
+    <Shell
+      title={`${tenant.name} — org chart`}
+      subtitle="Roles report to roles. A role exists whether or not anybody holds it."
+    >
+      <section className="grid gap-4 sm:grid-cols-3">
+        {journey.map((s, i) => (
+          <div
+            key={s.key}
+            className="card"
+            style={{ borderTopColor: s.met ? LIGHT_COLOUR.green : LIGHT_COLOUR.pending, borderTopWidth: 4 }}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-serif text-lg text-ink">{s.title}</span>
+              <span className="label-caps" style={{ color: s.met ? LIGHT_COLOUR.green : undefined }}>
+                {s.met ? 'Met' : `Step ${i + 1}`}
+              </span>
             </div>
-          ))}
-        </div>
-      )}
-
-      {leadership.length > 0 && (
-        <div className="mt-6">
-          <div className="mx-auto flex max-w-sm flex-col gap-2">
-            {leadership.map(r => (
-              <div key={r.id}>
-                <div className="label-caps mb-1 text-center text-[10px]">Leadership</div>
-                <HeadCard role={r} open={visible.has(r.id)} />
-              </div>
-            ))}
+            <p className="mt-2 text-sm text-ink-light">{s.detail}</p>
           </div>
-          <div className="mx-auto h-6 w-px bg-ink/15" aria-hidden />
-          <div className="h-px w-full bg-ink/15" aria-hidden />
-        </div>
-      )}
-
-      <div className="mt-px grid gap-4 lg:grid-cols-3">
-        {groups.map(s => (
-          <section key={s.key} className="overflow-hidden rounded-lg border border-ink/10 bg-surface">
-            <div className="h-1 w-full" style={{ backgroundColor: s.colour }} aria-hidden />
-            <div className="border-b border-ink/10 bg-cream/40 px-4 py-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="font-serif text-base text-ink">{s.name}</h2>
-                <span className="shrink-0 text-[11px] text-ink-light">
-                  {s.count} {s.count === 1 ? 'role' : 'roles'}{s.vacant > 0 && <span className="text-rust-dark"> · {s.vacant} vacant</span>}
-                </span>
-              </div>
-              <p className="mt-0.5 text-xs text-ink-light">{s.owns}</p>
-            </div>
-            <div className="space-y-3 p-4">
-              {s.heads.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-ink/20 px-4 py-6 text-center text-xs italic text-ink-light/60">
-                  No role owns this stream yet
-                </div>
-              ) : s.heads.map(h => (
-                <div key={h.id}>
-                  <HeadCard role={h} open={visible.has(h.id)} />
-                  <Reports role={h} all={roles} visible={visible} />
-                </div>
-              ))}
-            </div>
-          </section>
         ))}
-      </div>
+      </section>
 
-      {unplaced.length > 0 && (
-        <div className="card mt-6">
-          <div className="label-caps">Not yet assigned to a stream</div>
-          <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {unplaced.map(r => (
-              <li key={r.id}><HeadCard role={r} open={visible.has(r.id)} /></li>
-            ))}
-          </ul>
+      {roles.length === 0 ? (
+        <div className="callout mt-6 max-w-2xl">
+          <div className="font-serif text-lg text-ink">Start from what you already have</div>
+          <p className="mt-1 text-sm text-ink-light">
+            Paste your structure in below — one role per line — or add them one at a time. Nobody is emailed
+            and nothing is billed: a name here is just a name until you choose to invite them.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-6">
+          <OrgCanvas roles={roles} rootId={rootId} canEdit={manage} />
         </div>
       )}
 
-      <p className="mt-6 text-xs text-ink-light/70">
-        Everyone sees the whole structure; scorecards open only for your own role and the roles beneath it.
-        Roles are defined by what the business needs, then people are assigned to them — the role is never reshaped to
-        fit the person. <Link href="/setup/business" className="underline hover:text-rust">Edit the business</Link>
+      {manage && (
+        <div className="mt-10 grid items-start gap-6 lg:grid-cols-2">
+          <section className="card">
+            <h2 className="font-serif text-xl text-ink">Add a role</h2>
+            <p className="mt-1 text-sm text-ink-light">
+              It starts vacant. Roles are defined by what the business needs and a person is assigned
+              afterwards — never the other way round.
+            </p>
+            <form action={addRole} className="mt-4 grid gap-2 sm:grid-cols-[2fr_1.5fr_auto]">
+              <input className="input" name="title" required placeholder="Role title" aria-label="Role title" />
+              <select className="input" name="parentId" aria-label="Reports to" defaultValue={rootId ?? ''}>
+                <option value="">Top of the chart</option>
+                {roles.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
+              </select>
+              <SubmitButton className="btn-primary shrink-0" pending="Adding…">Add it</SubmitButton>
+            </form>
+          </section>
+
+          <section className="card">
+            <h2 className="font-serif text-xl text-ink">Start from what you already have</h2>
+            <p className="mt-1 text-sm text-ink-light">
+              One role per line: <span className="font-mono text-xs">role, person, reports to</span>. A manager
+              SPEC cannot match is still created — it lands off the chart, where you can drag it in.
+            </p>
+            <form action={importChart} className="mt-4 grid gap-2">
+              <textarea
+                className="input min-h-[120px] rounded-lg font-mono text-xs"
+                name="text"
+                placeholder={'General Manager, A. Morgan\nOperations Manager, J. Barnes, General Manager\nSite Supervisor, , Operations Manager'}
+                aria-label="Paste your structure"
+              />
+              <SubmitButton className="btn-primary justify-self-start" pending="Drawing…">Draw the chart</SubmitButton>
+            </form>
+            <p className="mt-3 text-xs text-ink-light">
+              A CSV exported from a payroll or HR system pastes in the same way — SPEC drops the header row
+              when it recognises one.
+            </p>
+          </section>
+        </div>
+      )}
+
+      {!manage && (
+        <p className="mt-6 text-sm text-ink-light">
+          You can see the structure — the shape of a business is not a secret — but changing it belongs to
+          whoever manages your part of the chart.
+        </p>
+      )}
+
+      <p className="mt-8 text-xs text-ink-light">
+        <Link href="/team" className="text-rust-700 hover:underline">The team roll-up</Link> averages the scored
+        roles that are actually on the chart. Anything off it is excluded and counted, never quietly dropped.
       </p>
     </Shell>
   );
