@@ -22,9 +22,10 @@ export default function Welcome() {
           instruction of 10 September, recorded in DECISIONS.md — so anybody who wants the argument
           before the product can go and read it, and anybody who does not is one press from starting.
         */}
-        <p className="mt-10 flex flex-wrap gap-4 text-sm">
-          <a href="/pricing" className="text-rust-700 underline">What it costs, at your numbers</a>
+        <p className="mt-10 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          <a href="/how" className="text-rust-700 underline">How it works</a>
           <a href="/sectors" className="text-rust-700 underline">What it looks like in your industry</a>
+          <a href="/pricing" className="text-rust-700 underline">What it costs, at your numbers</a>
         </p>
         <Footer />
       </div>

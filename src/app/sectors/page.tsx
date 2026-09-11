@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { Footer } from '@/components/ui';
+import { PublicNav } from '@/components/public-nav';
 import { SECTORS, sectorByKey, QUESTIONS } from '@/lib/sectors';
 import { PILLARS } from '@/lib/scoring';
 import { PILLAR_META } from '@/lib/pillars';
+import { CHARTER } from '@/lib/charter';
 
 export const metadata = { title: 'SPEC — by sector' };
 
@@ -20,19 +22,7 @@ export default async function Sectors({ searchParams }: { searchParams: Promise<
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-ink/10 bg-surface">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Link href="/welcome" className="font-serif text-lg tracking-tight text-ink">
-            SPEC<span className="text-rust">.</span>
-          </Link>
-          <nav className="flex items-center gap-5 label-caps">
-            <Link href="/welcome" className="hover:text-rust">What it is</Link>
-            <Link href="/sectors" className="text-rust">By sector</Link>
-            <Link href="/pricing" className="hover:text-rust">Pricing</Link>
-            <Link href="/signin" className="hover:text-rust">Sign in</Link>
-          </nav>
-        </div>
-      </header>
+      <PublicNav current="/sectors" />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="font-serif text-3xl tracking-tight text-ink sm:text-4xl">
@@ -101,6 +91,38 @@ export default async function Sectors({ searchParams }: { searchParams: Promise<
               {sector.systems.map(x => <li key={x}>· {x}</li>)}
             </ul>
           </div>
+        </section>
+
+        {/*
+          The charter belongs on this page more than anywhere else on the site. The whole argument
+          here is that the four questions do not change and only the measures do — and the charter is
+          the sharpest form of that: four commitments that are word-for-word identical in a workshop,
+          a clinic and a construction firm. Rendered from lib/charter rather than restated, so the
+          claim on the site is literally the rule in the product.
+        */}
+        <section className="mt-10">
+          <h2 className="font-serif text-2xl text-ink">What does not vary at all</h2>
+          <p className="mt-2 max-w-2xl text-sm text-ink-light">
+            The measures above are a starting point and you will change them. Underneath them sit four
+            commitments that are identical in every business on SPEC, whatever it does — carried by
+            pass-or-fail gates reported beside the score and never averaged into it.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {CHARTER.map(c => (
+              <div key={c.pillar} className="card-inset">
+                <span className="label-caps" style={{ color: PILLAR_META[c.pillar].colour }}>
+                  {PILLAR_META[c.pillar].name}
+                </span>
+                <span className="mt-1 block text-ink">{c.says}</span>
+                <span className="mt-2 block text-xs text-ink-light">
+                  {c.basis === 'absolute' ? 'The figure is nought, and it is not negotiated.' : 'The one figure SPEC cannot supply — it is read from your own record.'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <Link href="/how" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+            Why three of them are absolute and one is earned →
+          </Link>
         </section>
 
         <div className="mt-10">

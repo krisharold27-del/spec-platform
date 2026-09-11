@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Footer } from '@/components/ui';
+import { PublicNav } from '@/components/public-nav';
 import { LabourCalculator } from '@/components/labour-calculator';
 import { SEAT_PRICES, HOME_CURRENCY, type Currency } from '@/lib/pricing';
 import { TIER } from '@/lib/plan';
@@ -26,18 +27,7 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-ink/10 bg-surface">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Link href="/welcome" className="font-serif text-lg tracking-tight text-ink">
-            SPEC<span className="text-rust">.</span>
-          </Link>
-          <nav className="flex items-center gap-5 label-caps">
-            <Link href="/welcome" className="hover:text-rust">What it is</Link>
-            <Link href="/pricing" className="text-rust">Pricing</Link>
-            <Link href="/signin" className="hover:text-rust">Sign in</Link>
-          </nav>
-        </div>
-      </header>
+      <PublicNav current="/pricing" />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="font-serif text-3xl tracking-tight text-ink sm:text-4xl">
@@ -131,53 +121,29 @@ export default function Pricing() {
         </section>
 
         {/*
-          The J curve as a named principle. Marketing, but the same discipline as everywhere else:
-          the mechanism is stated so it can be checked, and the page says plainly which tier it
-          applies to. Inside the product, /curve measures whether it actually happened.
+          The J curve argument lives in full on /how, because it is a question about the method
+          rather than about the price. What stays here is the part that genuinely IS a pricing fact:
+          which half of this page the collapse applies to. Stating it beside the two prices is the
+          whole point — a claim that quietly spreads across the entire price list is the overclaim
+          that would make every other number here worth less.
         */}
         <section className="mt-12">
-          <h2 className="font-serif text-2xl text-ink">The shallow J curve</h2>
+          <h2 className="font-serif text-2xl text-ink">Which half of this page the J curve applies to</h2>
           <p className="mt-2 max-w-2xl text-base text-ink-light">
-            Every transformation dips before it climbs. The dip is normally deep, and the reason is
-            almost never the work — it is discovery. Weeks of interviews, spreadsheet archaeology and
-            waiting on month end, during which nothing improves because nothing is visible yet.
+            Every transformation dips before it climbs, and the dip is deep because discovery is manual.
+            SPEC collapses it by letting the systems you already run feed the KPIs, so the picture exists
+            the day they connect.
           </p>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <div className="card">
-              <div className="label-caps">The usual shape</div>
-              <p className="mt-2 text-sm text-ink-light">
-                Most of a quarter spent working out what is actually wrong. The business is paying for
-                the engagement and for the disruption, and getting a picture in return.
-              </p>
-            </div>
-            <div className="card" style={{ borderTopColor: '#4f7a3f', borderTopWidth: 4 }}>
-              <div className="label-caps">What changes it</div>
-              <p className="mt-2 text-sm text-ink-light">
-                Your systems already hold the picture. When they feed the KPIs, discovery collapses to
-                the day they connect — there is nothing left to find out.
-              </p>
-            </div>
-            <div className="card">
-              <div className="label-caps">What is left</div>
-              <p className="mt-2 text-sm text-ink-light">
-                Execution. Getting people to do their jobs properly against numbers everybody can already
-                see. That was always the part that moved anything.
-              </p>
-            </div>
-          </div>
-          <p className="mt-4 max-w-2xl text-sm text-ink-light">
-            This is a deliberate feature rather than a happy accident, so SPEC measures it: inside the
-            product, every business sees its own curve — how long its discovery actually lasted, how deep
-            the dip went, and when it reached the standard. Including when that was slower than it should
-            have been.
+          <p className="mt-4 max-w-2xl text-base text-ink-light">
+            <b className="text-ink">The collapse is caused by connectors, so it happens on Advanced and
+            not on Basic.</b>{' '}
+            Basic is a complete way to run the whole system — every number entered and confirmed by a
+            named person — and it is not a shallow J curve. Saying otherwise would make every other
+            number on this page worth less.
           </p>
-          <p className="mt-3 max-w-2xl text-sm text-ink-light">
-            It is worth being exact about which half of the price list this applies to.{' '}
-            <b className="text-ink">The collapse is caused by connectors, so it happens on Advanced and not
-            on Basic.</b>{' '}
-            Basic is a complete way to run the whole system and it is not a shallow J curve, and saying
-            otherwise would make every other number here worth less.
-          </p>
+          <Link href="/how" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+            How the curve is measured, and what else holds one open →
+          </Link>
         </section>
 
         <section className="card mt-12">
