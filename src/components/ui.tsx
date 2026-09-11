@@ -23,6 +23,9 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
             <Link href="/meeting" className="hover:text-rust">Weekly meeting</Link>
             <Link href="/inbox" className="hover:text-rust">Approvals</Link>
             <Link href="/scoring" className="hover:text-rust">Monthly scoring</Link>
+            <Link href="/connections" className="hover:text-rust">Connections</Link>
+            <Link href="/training" className="hover:text-rust">Training</Link>
+            <Link href="/settings" className="hover:text-rust">Admin</Link>
             <Link href="/journey" className="hover:text-rust">Journey</Link>
             <Link href="/" className="hover:text-rust">Executive summary</Link>
             <Link href="/org" className="hover:text-rust">Org chart</Link>
