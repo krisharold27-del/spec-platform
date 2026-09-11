@@ -1,3 +1,4 @@
+import { BRAND_COLOUR } from '@/lib/pillars';
 import { PILLAR_META, Footer } from '@/components/ui';
 import { PILLARS } from '@/lib/scoring';
 
@@ -17,7 +18,7 @@ export default function Start() {
         <p className="mt-3 text-lg text-ink-light">Effort is never the problem — your business works hard. The gap is unsolved problems. Yes to any of these and you need this system. Then you learn why. We can help with that.</p>
         <form action="/signup" method="get" className="mt-10 space-y-4">
           {PILLARS.map(p => (
-            <fieldset key={p} className="flex items-center justify-between rounded-lg border border-ink/10 p-4" style={{ borderLeftColor: PILLAR_META[p].colour, borderLeftWidth: 6 }}>
+            <fieldset key={p} className="flex items-center justify-between rounded-lg border border-ink/10 p-4" style={{ borderLeftColor: BRAND_COLOUR[p], borderLeftWidth: 6 }}>
               <legend className="sr-only">{ASK[p]}</legend>
               <div><div className="label-caps">{PILLAR_META[p].name}</div><div className="text-lg font-medium text-ink">{ASK[p]}</div></div>
               <div className="flex gap-4 text-sm">

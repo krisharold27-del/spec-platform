@@ -221,10 +221,12 @@ export default async function Business({ searchParams }: { searchParams: Promise
       {/* ---------- What the four pillars will measure ---------- */}
       <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-5">
         <div className="label-caps">What every role here will be measured on</div>
+        {/* Nothing is scored during setup, so nothing here is coloured — colour is only ever the
+            score. The letter is what identifies the pillar. */}
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {(['safety', 'people', 'earnings', 'compliance'] as const).map(p => (
-            <div key={p} className="rounded-lg border border-ink/10 p-3" style={{ borderLeftColor: PILLAR_META[p].colour, borderLeftWidth: 5 }}>
-              <div className="label-caps">{PILLAR_META[p].name}</div>
+            <div key={p} className="rounded-lg border border-ink/10 p-3">
+              <div className="label-caps">{PILLAR_META[p].letter} · {PILLAR_META[p].name}</div>
               <div className="mt-1 text-xs text-ink-light">Two numbers per role, which you tune next.</div>
             </div>
           ))}

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Shell, PillarTile, PILLAR_META, pct } from '@/components/ui';
+import { Shell, PillarTile, PILLAR_META, pct, scoreColour } from '@/components/ui';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById, getTeamRollupForRoles, PILLARS } from '@/lib/queries';
@@ -46,13 +46,22 @@ export default async function TeamRollup() {
                 <div className="font-medium">{role.title}</div>
                 <div className="text-sm text-ink-light">{role.holder?.name ?? 'vacant'}</div>
               </div>
+              {/* The row from the Colour System design: a letter in a pill coloured by that
+                  pillar's own score, with the figure under it. The letter says what it is and the
+                  colour says how it is going — they cannot contradict each other. */}
               <div className="mt-3 grid grid-cols-4 gap-2 text-center text-sm">
                 {PILLARS.map(p => {
                   const v = scored ? score.pillars[p] : null;
                   return (
-                    <div key={p}>
-                      <div className="h-1.5 rounded" style={{ background: PILLAR_META[p].colour, opacity: v === null ? 0.15 : 0.2 + 0.8 * v }} />
-                      <div className="mt-1">{pct(v)}</div>
+                    <div key={p} className="grid justify-items-center gap-1">
+                      <span
+                        title={PILLAR_META[p].name}
+                        className="grid h-6 w-6 place-content-center rounded-lg font-serif text-[12px] text-cream"
+                        style={{ background: scoreColour(v) }}
+                      >
+                        {PILLAR_META[p].letter}
+                      </span>
+                      <span>{pct(v)}</span>
                     </div>
                   );
                 })}
