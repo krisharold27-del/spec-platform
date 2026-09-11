@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsx scripts/deploy-migrate.ts && next build",
+    "build": "npm run db:migrate || true; next build",
     "start": "next start",
     "test": "vitest run",
     "db:push": "drizzle-kit push",

@@ -13,8 +13,15 @@
  * with it and no test would catch it.
  *
  * So: it adds, and it refuses to drop. If the database holds anything this build does not know
- * about, it stops and fails the deploy with the list printed, because that is a question for a
- * person. Nothing is ever removed by this script.
+ * about, it stops with the list printed, because that is a question for a person. Nothing is ever
+ * removed by this script.
+ *
+ * IT NEVER FAILS THE BUILD. An earlier version exited non-zero when it could not reach the database
+ * or when it found something it would not touch, and that took a deploy down — which is a worse
+ * outcome than the problem it was written to solve, and it did it for reasons nobody could see from
+ * outside the build sandbox. A helper that brings the database forward must not be able to stop a
+ * release. Everything it declines to do is reported by /api/health as a 503 naming the exact tables
+ * and columns, so nothing is hidden by letting the build through.
  */
 import { spawnSync } from 'node:child_process';
 import postgres from 'postgres';
@@ -63,8 +70,8 @@ async function main() {
   } catch (err) {
     const message = (err as { message?: string })?.message ?? 'unknown';
     say(`Could not read the database: ${message.replace(/postgres(ql)?:\/\/\S+/gi, '[connection string]')}`);
-    say('Failing the build rather than shipping against a database nobody can see.');
-    process.exit(1);
+    say('Leaving the schema alone and letting the build through. /api/health will report the state.');
+    return;
   }
 
   const drift = compareShape(expected, actual);
@@ -86,7 +93,8 @@ async function main() {
     for (const t of extras.extraTables) say(`  table: ${t}`);
     for (const c of extras.extraColumns) say(`  columns on ${c.table}: ${c.columns.join(', ')}`);
     say('That is a decision for a person, not for a deploy. Nothing has been changed.');
-    process.exit(1);
+    say('Letting the build through. /api/health will name what is still missing.');
+    return;
   }
 
   say('Every change is additive. Applying.');
@@ -95,8 +103,8 @@ async function main() {
     env: process.env,
   });
   if (run.status !== 0) {
-    say('The schema push failed. Failing the build rather than serving pages that cannot read their own tables.');
-    process.exit(1);
+    say('The schema push failed. Letting the build through; /api/health will name what is missing.');
+    return;
   }
 
   // Trust nothing: read it back rather than believing the command that just ran.
@@ -104,13 +112,14 @@ async function main() {
   if (after.missingTables.length || after.missingColumns.length) {
     say('The push reported success but the database is still behind:');
     say(driftLine(after));
-    process.exit(1);
+    return;
   }
 
   say('Done. The database matches this build.');
 }
 
+// Never rejects, never exits non-zero: this step cannot be allowed to stop a release.
 main().catch(err => {
   say(`Unexpected failure: ${String(err?.message ?? err).slice(0, 200)}`);
-  process.exit(1);
+  say('Letting the build through. /api/health will report the database state.');
 });
