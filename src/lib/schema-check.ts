@@ -24,6 +24,44 @@ export interface SchemaDrift {
   missingColumns: { table: string; columns: string[] }[];
 }
 
+/**
+ * Things the DATABASE has that this build does not know about.
+ *
+ * Never reported as ill health — that is what a rollback looks like. It matters for exactly one
+ * decision: whether an automatic migration is safe to run. A schema push reconciles in BOTH
+ * directions, so anything in here is something it would DROP, and dropping a column is how a
+ * deployment turns into data loss. See scripts/deploy-migrate.
+ */
+export interface SchemaExtras {
+  extraTables: string[];
+  extraColumns: { table: string; columns: string[] }[];
+}
+
+export function extrasOf(
+  expected: Map<string, Set<string>>,
+  actual: Map<string, Set<string>>,
+): SchemaExtras {
+  const extraTables: string[] = [];
+  const extraColumns: { table: string; columns: string[] }[] = [];
+
+  for (const [table, columns] of actual) {
+    // Drizzle's own bookkeeping is not part of anybody's schema.
+    if (table.startsWith('__drizzle')) continue;
+    const want = expected.get(table);
+    if (!want) {
+      extraTables.push(table);
+      continue;
+    }
+    const spare = [...columns].filter(c => !want.has(c));
+    if (spare.length) extraColumns.push({ table, columns: spare.sort() });
+  }
+
+  return {
+    extraTables: extraTables.sort(),
+    extraColumns: extraColumns.sort((a, b) => a.table.localeCompare(b.table)),
+  };
+}
+
 export type SchemaCheck =
   | { status: 'ok'; tables: number }
   | ({ status: 'behind'; tables: number } & SchemaDrift)

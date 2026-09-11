@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { expectedShape, compareShape, driftLine } from '../src/lib/schema-check';
+import { expectedShape, compareShape, extrasOf, driftLine } from '../src/lib/schema-check';
 
 /**
  * The schema check is the thing that catches a deploy where the code shipped and the database did
@@ -96,5 +96,39 @@ describe('driftLine', () => {
   it('uses singulars where there is one of something', () => {
     expect(driftLine({ missingTables: [], missingColumns: [{ table: 'criteria', columns: ['x'] }] }))
       .toContain('1 column');
+  });
+});
+
+describe('extrasOf', () => {
+  /**
+   * This is the guard on automatic migration. A schema push reconciles in BOTH directions, so
+   * anything reported here is something it would DROP — and dropping a column is how an automated
+   * deploy turns into data loss that no test would catch.
+   */
+  it('finds a table the build knows nothing about', () => {
+    const e = extrasOf(shape({ criteria: ['id'] }), shape({ criteria: ['id'], legacy_payroll: ['id'] }));
+    expect(e.extraTables).toEqual(['legacy_payroll']);
+  });
+
+  it('finds a column the build knows nothing about', () => {
+    const e = extrasOf(shape({ criteria: ['id'] }), shape({ criteria: ['id', 'payroll_notes'] }));
+    expect(e.extraColumns).toEqual([{ table: 'criteria', columns: ['payroll_notes'] }]);
+  });
+
+  it('is quiet when the database holds nothing unexpected', () => {
+    expect(extrasOf(shape({ criteria: ['id'] }), shape({ criteria: ['id'] })))
+      .toEqual({ extraTables: [], extraColumns: [] });
+  });
+
+  // Drizzle's own bookkeeping is not part of anybody's schema, and flagging it would block every
+  // automated migration forever.
+  it('ignores the migration bookkeeping table', () => {
+    const e = extrasOf(shape({ criteria: ['id'] }), shape({ criteria: ['id'], __drizzle_migrations: ['id'] }));
+    expect(e.extraTables).toEqual([]);
+  });
+
+  it('does not mistake a MISSING column for an extra one', () => {
+    const e = extrasOf(shape({ criteria: ['id', 'proposed_target'] }), shape({ criteria: ['id'] }));
+    expect(e).toEqual({ extraTables: [], extraColumns: [] });
   });
 });
