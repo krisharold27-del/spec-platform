@@ -74,8 +74,15 @@ export function viewRow(row: ScorecardRow, liveSources: string[]): RowView {
   };
 }
 
+export type FlagKind = 'unexplained' | 'unconfirmed' | 'untracked';
+
 export interface Flag {
   id: string;
+  kind: FlagKind;
+  /** The role the measure sits under. Kept apart from the title so flags can be grouped by role. */
+  role: string;
+  /** The measure on its own, without the role in front of it. */
+  measure: string;
   title: string;
   detail: string;
   severity: 'blocking' | 'noted';
@@ -98,6 +105,7 @@ export function flagsFor(roles: { roleId: string; title: string; rows: Scorecard
       if (state === 'missed' && !r.note) {
         flags.push({
           id: `unexplained:${r.criterionId}`,
+          kind: 'unexplained', role: role.title, measure: r.text,
           title: `${role.title}: ${r.text} missed with no reason given`,
           detail: 'A miss with nothing written against it reaches the board as exactly that. Say what happened before the month is handed up.',
           severity: 'blocking',
@@ -106,6 +114,7 @@ export function flagsFor(roles: { roleId: string; title: string; rows: Scorecard
       if (state === 'needs_confirming') {
         flags.push({
           id: `unconfirmed:${r.criterionId}`,
+          kind: 'unconfirmed', role: role.title, measure: r.text,
           title: `${role.title}: ${r.text} has nobody against it`,
           detail: 'A manual number needs a name. Confirm it, or mark it not tracked if the business genuinely cannot measure it.',
           severity: 'blocking',
@@ -114,6 +123,7 @@ export function flagsFor(roles: { roleId: string; title: string; rows: Scorecard
       if (state === 'not_tracked') {
         flags.push({
           id: `untracked:${r.criterionId}`,
+          kind: 'untracked', role: role.title, measure: r.text,
           title: `${role.title}: ${r.text} is not tracked`,
           detail: 'Reported to the board as a gap rather than a score, which is the honest treatment. It is excluded from the fraction on both sides.',
           severity: 'noted',
@@ -125,6 +135,46 @@ export function flagsFor(roles: { roleId: string; title: string; rows: Scorecard
 }
 
 export const blocking = (flags: Flag[]) => flags.filter(f => f.severity === 'blocking');
+
+export interface FlagGroup {
+  id: string;
+  title: string;
+  detail: string;
+  severity: 'blocking' | 'noted';
+  /** The measures behind the count, in the order they are scored. One entry for an ungrouped flag. */
+  measures: string[];
+}
+
+/** A group of one keeps the flag's own wording, so a single problem never reads as a statistic. */
+const HEADLINE: Record<FlagKind, (n: number) => string> = {
+  unexplained: n => `${n} misses with no reason given`,
+  unconfirmed: n => `${n} measures have nobody against them`,
+  untracked: n => `${n} measures are not tracked`,
+};
+
+/**
+ * Collapse a role's identical flags into one line.
+ *
+ * A vacant role raises the same flag against every measure it holds, and sixteen near-identical
+ * cards bury the one flag that is actually about a person's work. Grouping is presentation only —
+ * every measure is still named inside the group, and `blocking` still counts them one by one,
+ * because a month is blocked by the number of unfinished rows and not by the number of cards.
+ */
+export function groupFlags(flags: Flag[]): FlagGroup[] {
+  const groups = new Map<string, Flag[]>();
+  for (const f of flags) {
+    const key = `${f.kind}:${f.role}`;
+    const held = groups.get(key);
+    if (held) held.push(f); else groups.set(key, [f]);
+  }
+  return [...groups.entries()].map(([key, list]) => ({
+    id: list.length === 1 ? list[0].id : key,
+    title: list.length === 1 ? list[0].title : `${list[0].role}: ${HEADLINE[list[0].kind](list.length)}`,
+    detail: list[0].detail,
+    severity: list[0].severity,
+    measures: list.map(f => f.measure),
+  }));
+}
 
 export interface ProgressLine {
   roleId: string;

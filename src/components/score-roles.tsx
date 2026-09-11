@@ -7,6 +7,7 @@ import { STATUSES, STATUS_ORDER, type Status } from '@/lib/status';
 import { ROW_STATE_LABEL, type RowState } from '@/lib/month';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { PILLAR_META } from '@/lib/pillars';
+import { targetLabel } from '@/lib/targets';
 import type { Pillar, RoleScore } from '@/lib/scoring';
 
 /**
@@ -29,6 +30,8 @@ export interface ScoreRow {
   pillar: Pillar;
   text: string;
   target: string | null;
+  /** What SPEC opened with, where the business has not agreed a number yet. */
+  proposed: string | null;
   result: string | null;
   note: string | null;
   status: string | null;
@@ -119,7 +122,7 @@ export function ScoreRoles({ roles, periodId, locked, liveSources }: {
                 <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_1.2fr]">
                   <label className="text-xs text-ink-light">
                     Target
-                    <div className="input mt-1 font-mono text-[13.5px]">{r.target ?? '—'}</div>
+                    <div className="input mt-1 font-mono text-[13.5px]">{targetLabel(r.target, r.proposed)}</div>
                   </label>
 
                   <label className="text-xs text-ink-light">

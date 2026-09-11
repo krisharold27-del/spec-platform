@@ -89,8 +89,15 @@ export function phases(input: CurveInput, at: Date = new Date()): Phase[] {
   const pictureAt = input.kpisSetAt;
 
   const discoveryDays = daysBetween(input.startDate, pictureAt ?? now);
-  const linkingDays = pictureAt ? daysBetween(pictureAt, input.firstFeedAt ?? now) : null;
+  // Linking is measured from the day the business started, not from the day discovery finished.
+  // Connecting a system is something you do from day one — in practice it usually finishes BEFORE
+  // the picture exists, which is the whole mechanism. Measuring it from the end of discovery would
+  // report that as nought days, turning the product's central claim into what looks like a gap in
+  // the data.
+  const linkingDays = daysBetween(input.startDate, input.firstFeedAt ?? now);
   const closeDays = daysBetween(pictureAt ?? input.startDate, input.firstLockedAt ?? now);
+  /** Whether the systems were feeding before anybody drew the picture by hand. */
+  const fedFirst = !!input.firstFeedAt && !!pictureAt && Date.parse(input.firstFeedAt) < Date.parse(pictureAt);
   const climbDays = input.firstLockedAt ? daysBetween(input.firstLockedAt, now) : null;
 
   return [
@@ -110,13 +117,17 @@ export function phases(input: CurveInput, at: Date = new Date()): Phase[] {
       label: 'Linking',
       what: 'The systems the business already runs start feeding the KPIs, so the numbers stop being assembled by hand.',
       state: input.firstFeedAt ? 'done' : pictureAt ? 'current' : 'waiting',
-      days: linkingDays,
+      // A phase that has not started reports nothing. Counting the days a business has been waiting
+      // to connect something is a number, but it is not this phase's duration.
+      days: input.firstFeedAt || pictureAt ? linkingDays : null,
       endedAt: input.firstFeedAt,
       note: input.tier === 'basic'
         ? 'You are on Basic, so nothing feeds automatically. Every number is entered and confirmed by a named person — a complete way to run SPEC, and not a shallow J curve.'
-        : input.firstFeedAt
-          ? `Numbers started arriving on their own after ${linkingDays} ${linkingDays === 1 ? 'day' : 'days'}. This is the step that collapses discovery.`
-          : 'Nothing is feeding yet. Until something does, the picture is still being assembled by hand.',
+        : !input.firstFeedAt
+          ? 'Nothing is feeding yet. Until something does, the picture is still being assembled by hand.'
+          : fedFirst
+            ? `Numbers started arriving on their own ${linkingDays} ${linkingDays === 1 ? 'day' : 'days'} in — before the picture was finished, which is what collapses discovery.`
+            : `Numbers started arriving on their own ${linkingDays} ${linkingDays === 1 ? 'day' : 'days'} in. This is the step that collapses discovery.`,
     },
     {
       key: 'first_close',

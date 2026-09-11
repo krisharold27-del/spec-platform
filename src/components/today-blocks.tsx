@@ -159,7 +159,17 @@ export function ChangeList({ items }: { items: { id: string; kind: string; title
  * sign-off at the bottom is a manager's decision — the bar reaching the end makes somebody ready
  * to be signed off, never signed off.
  */
-export function TrainingPath({ path, progress, signoff }: { path: PathLine[]; progress: PathProgress; signoff: Signoff }) {
+export function TrainingPath({ path, progress, signoff, limit }: {
+  path: PathLine[]; progress: PathProgress; signoff: Signoff;
+  /**
+   * Show only the next few, with the rest counted underneath.
+   *
+   * Today is a page somebody reads standing up; a full path of seven modules turns it into a wall
+   * and pushes everything below it off the screen. The whole path lives on /training, which is
+   * where somebody goes when training is the thing they came to do.
+   */
+  limit?: number;
+}) {
   if (!path.length) {
     return (
       <p className="mt-3 text-sm text-ink-light">
@@ -170,6 +180,12 @@ export function TrainingPath({ path, progress, signoff }: { path: PathLine[]; pr
   }
 
   const overall = Math.round((progress.pct ?? 0) * 100);
+  // Outstanding first: a finished module is a record, and the next one is the thing to act on.
+  const ordered = [...path].sort((a, b) =>
+    Number(a.state === 'complete') - Number(b.state === 'complete'));
+  const shown = limit ? ordered.slice(0, limit) : ordered;
+  const hidden = path.length - shown.length;
+
   return (
     <>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface">
@@ -181,7 +197,7 @@ export function TrainingPath({ path, progress, signoff }: { path: PathLine[]; pr
       <div className="mt-1.5 text-xs text-ink-light">{overall}% of the path</div>
 
       <ul className="mt-4 grid gap-3">
-        {path.map(m => {
+        {shown.map(m => {
           const tone = m.state === 'complete' ? LIGHT_COLOUR.green
             : m.due === 'overdue' ? LIGHT_COLOUR.red
             : m.state === 'in_progress' ? LIGHT_COLOUR.amber
@@ -214,6 +230,13 @@ export function TrainingPath({ path, progress, signoff }: { path: PathLine[]; pr
           );
         })}
       </ul>
+
+      {hidden > 0 && (
+        <p className="mt-3 text-xs text-ink-light">
+          {hidden} more on the path.{' '}
+          <Link href="/training" className="text-rust-700 hover:underline">See all of it</Link>.
+        </p>
+      )}
 
       <div className="mt-4 border-t border-ink/10 pt-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">

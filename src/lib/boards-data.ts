@@ -144,9 +144,12 @@ export async function getCurve(user: CurrentUser): Promise<CurveInput> {
 
   const connections = await db.select().from(schema.systemConnections)
     .where(eq(schema.systemConnections.tenantId, user.tenantId));
-  const fed = connections.filter(c => c.status === 'live' && c.lastSyncAt)
-    .sort((a, b) => (a.lastSyncAt ?? '').localeCompare(b.lastSyncAt ?? ''));
-  const firstFeedAt = fed.length ? fed[0].lastSyncAt : null;
+  // When a system first started feeding — which is when it was CONNECTED, not when it last synced.
+  // `lastSyncAt` moves every morning, so using it would grow the linking phase by a day every day
+  // and report a business as having taken four months to do something it did in a week.
+  const fed = connections.filter(c => c.status === 'live')
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const firstFeedAt = fed.length ? fed[0].createdAt : null;
 
   return {
     startDate: tenant?.startDate ?? new Date().toISOString(),

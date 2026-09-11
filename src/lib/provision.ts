@@ -10,6 +10,7 @@ import templates from '../../seed/criteria_templates.json';
 import rulebook from '../../seed/rulebook.json';
 import trainingCatalogue from '../../seed/training_modules.json';
 import { validateWeights, type Criterion as ScoringCriterion, type Pillar } from './scoring';
+import { resolveTarget } from './targets';
 
 type TemplateCriterion = { text: string; weight: number; kpi?: boolean; target?: string };
 type TemplateRole = {
@@ -131,10 +132,13 @@ export async function provisionTenant(opts: ProvisionOptions) {
 
     // One write per role, not one per KPI — sign-up has to feel instant.
     if (resolved.length) {
-      await db.insert(schema.criteria).values(resolved.map((r, j) => ({
-        id: id(), roleId: rid, pillar: r.pillar, text: r.c.text, weight: r.c.weight,
-        kpi: !!r.c.kpi, target: r.c.target ?? null, sortOrder: j,
-      })));
+      await db.insert(schema.criteria).values(resolved.map((r, j) => {
+        const { target, proposed } = resolveTarget(r.c.target);
+        return {
+          id: id(), roleId: rid, pillar: r.pillar, text: r.c.text, weight: r.c.weight,
+          kpi: !!r.c.kpi, target, proposedTarget: proposed, sortOrder: j,
+        };
+      }));
     }
   }
 

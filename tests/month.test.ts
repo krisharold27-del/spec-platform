@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
-  rowState, viewRow, flagsFor, blocking, progressFor, signoffTrail, verdict, ROW_STATE_LABEL,
+  rowState, viewRow, flagsFor, blocking, groupFlags, progressFor, signoffTrail, verdict, ROW_STATE_LABEL,
 } from '../src/lib/month';
 import type { ScorecardRow } from '../src/lib/queries';
 import type { Pillar, RoleScore } from '../src/lib/scoring';
 
 const row = (over: Partial<ScorecardRow> & { pillar: Pillar; text: string }): ScorecardRow => ({
   criterionId: over.text.replace(/\W+/g, '-').toLowerCase(),
-  weight: 0.5, kpi: true, target: null, answer: '', note: null, status: null, result: null, source: null,
+  weight: 0.5, kpi: true, target: null, proposedTarget: null, answer: '', note: null, status: null, result: null, source: null,
   ...over,
 });
 
@@ -120,6 +120,42 @@ describe('flagsFor', () => {
 
   it('says nothing about a fed row', () => {
     expect(flagsFor(role([row({ pillar: 'earnings', text: 'Margin', source: 'Accounts package', answer: 'Y' })]), ['Accounts package'])).toEqual([]);
+  });
+});
+
+describe('groupFlags', () => {
+  const vacant = (title: string, texts: string[]) =>
+    ({ roleId: title, title, rows: texts.map(text => row({ pillar: 'safety', text })), scored: true });
+
+  it('collapses a vacant role into one line that still names every measure', () => {
+    const flags = flagsFor([vacant('Supervisor', ['Incidents', 'Toolbox talks', 'Inductions'])], []);
+    const g = groupFlags(flags);
+    expect(g).toHaveLength(1);
+    expect(g[0].title).toBe('Supervisor: 3 measures have nobody against them');
+    expect(g[0].measures).toEqual(['Incidents', 'Toolbox talks', 'Inductions']);
+  });
+
+  // One problem must never read as a statistic — a single flag keeps its own wording.
+  it('leaves a lone flag exactly as it was written', () => {
+    const flags = flagsFor([vacant('Supervisor', ['Incidents'])], []);
+    const g = groupFlags(flags);
+    expect(g[0].title).toBe(flags[0].title);
+    expect(g[0].id).toBe(flags[0].id);
+  });
+
+  it('keeps roles and kinds apart', () => {
+    const flags = flagsFor([
+      vacant('Supervisor', ['Incidents', 'Toolbox talks']),
+      { roleId: 'r2', title: 'Head of Ops', rows: [row({ pillar: 'earnings', text: 'Margin', answer: 'N' })], scored: true },
+    ], []);
+    expect(groupFlags(flags)).toHaveLength(2);
+  });
+
+  // Grouping is presentation. A month is blocked by unfinished rows, not by the number of cards.
+  it('does not change what blocks the month', () => {
+    const flags = flagsFor([vacant('Supervisor', ['Incidents', 'Toolbox talks', 'Inductions'])], []);
+    expect(blocking(flags)).toHaveLength(3);
+    expect(groupFlags(flags)).toHaveLength(1);
   });
 });
 

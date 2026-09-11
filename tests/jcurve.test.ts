@@ -56,6 +56,25 @@ describe('phases', () => {
     expect(phases(input(), AT)[1].note).toContain('collapses discovery');
   });
 
+  // Connecting a system starts on day one, not after discovery ends — and it normally FINISHES
+  // first, which is the mechanism. Measured from the end of discovery it would report nought days
+  // and read as missing data rather than as the product's central claim.
+  it('measures linking from the day the business started', () => {
+    const l = phases(input(), AT)[1];
+    expect(l.days).toBe(2);
+    expect(l.note).toContain('2 days in');
+  });
+
+  it('says so when the systems were feeding before the picture was finished', () => {
+    expect(phases(input(), AT)[1].note).toContain('before the picture was finished');
+  });
+
+  it('does not claim that when the picture came first', () => {
+    const l = phases(input({ kpisSetAt: '2026-08-18T00:00:00Z' }), AT)[1];
+    expect(l.note).not.toContain('before the picture was finished');
+    expect(l.note).toContain('collapses discovery');
+  });
+
   // The honest consequence, stated rather than buried.
   it('tells a Basic business plainly that this is not a shallow J curve', () => {
     const l = phases(input({ tier: 'basic', firstFeedAt: null }), AT)[1];
@@ -76,8 +95,9 @@ describe('phases', () => {
   // recorded milestone because its neighbour is missing would lose something true.
   it('reports no span for an undated milestone, but keeps the dates it does have', () => {
     const p = phases(input({ kpisSetAt: null }), AT);
-    expect(p[1].days).toBeNull();
+    // Linking still has both of its own dates here, so it still has a span.
     expect(p[1].endedAt).toBe('2026-08-19T00:00:00Z');
+    expect(phases(input({ kpisSetAt: null, firstFeedAt: null, firstLockedAt: null }), AT)[1].days).toBeNull();
 
     const nothingKnown = phases(input({ kpisSetAt: null, firstFeedAt: null, firstLockedAt: null }), AT);
     expect(nothingKnown[1].endedAt).toBeNull();

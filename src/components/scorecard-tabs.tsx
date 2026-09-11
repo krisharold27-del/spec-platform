@@ -5,6 +5,7 @@ import type { Pillar, Score } from '@/lib/scoring';
 import type { ScorecardRow } from '@/lib/queries';
 import { toneOf, labelOf, isExcluded, type Tone } from '@/lib/scorecard';
 import { LIGHT_COLOUR } from '@/lib/today';
+import { targetLabel } from '@/lib/targets';
 
 /**
  * The four pillars, and the measures behind whichever one is open.
@@ -90,7 +91,7 @@ export function ScorecardTabs({ summaries, scored }: { summaries: PillarPanel[];
                           <span className={muted ? '' : 'text-ink'}>{r.text}</span>
                           {r.note && <span className="mt-0.5 block text-xs text-ink-light">{r.note}</span>}
                         </td>
-                        <td className={MONO}>{r.target ?? '—'}</td>
+                        <td className={MONO}>{targetLabel(r.target, r.proposedTarget)}</td>
                         <td className={MONO}>{r.result ?? '—'}</td>
                         <td>
                           <span

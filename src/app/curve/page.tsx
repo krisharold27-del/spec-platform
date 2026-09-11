@@ -92,10 +92,15 @@ export default async function Curve() {
           The stretch before the first close is drawn with NO value rather than a low one. During
           discovery the business was not performing badly, it was invisible — and drawing an
           invented dip would be making the product's case with a number nobody measured.
+
+          The columns share the width rather than sitting at a fixed one, but never pass 168px. A
+          business with one point would otherwise get a single bar the width of the card, which reads
+          as a rendering fault; a business with four would leave half the card empty, which reads as
+          a page that failed to load.
         */}
         <div className="mt-5 flex items-end gap-3 overflow-x-auto pb-2">
           {plot.map(p => (
-            <div key={p.label} className="flex min-w-[72px] flex-1 flex-col items-center gap-2">
+            <div key={p.label} className="flex min-w-[88px] max-w-[168px] flex-1 flex-col items-center gap-2">
               <div className="flex h-40 w-full items-end justify-center">
                 {p.value === null ? (
                   <div className="flex h-full w-full items-end justify-center rounded-lg border border-dashed border-ink/20">
@@ -105,7 +110,9 @@ export default async function Curve() {
                   </div>
                 ) : (
                   <div
-                    className="w-full rounded-t-lg"
+                    // A small radius: the container's 28px turns a bar into an arch, and a row of
+                    // arches reads as decoration rather than as a measurement.
+                    className="w-full rounded-t-sm"
                     style={{
                       height: `${Math.max(p.value * 100, 4)}%`,
                       background: p.value >= 0.9 ? LIGHT_COLOUR.green : p.value >= 0.75 ? LIGHT_COLOUR.amber : LIGHT_COLOUR.red,

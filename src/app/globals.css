@@ -27,14 +27,33 @@ body { @apply bg-cream font-sans text-ink antialiased; }
   /* Small-caps style eyebrow/meta label, e.g. "PREPARED BY", "SPEC BUSINESS SOLUTIONS" */
   .label-caps { @apply text-xs font-semibold uppercase tracking-wider text-ink-light; }
 
-  /* The base surface for most panels: sand, over-rounded, sitting on the cream page. */
-  .card { @apply rounded-lg border border-ink/10 bg-surface p-4; }
+  /**
+   * The base surface for most panels.
+   *
+   * Sand on cream is only a few points apart, which is the warmth the system is after and is not
+   * enough on its own to say "this is a card". The separation comes from a hairline that is darker
+   * than the fill plus a real shadow — without them a page of cards reads as one undifferentiated
+   * wash, which is the difference between a product and a mock-up.
+   */
+  .card { @apply rounded-lg border border-ink/10 bg-surface p-5 shadow-sm; }
 
   /* A row or tile nested inside a card — drops back to the page ground so it reads as recessed. */
   .card-inset { @apply rounded-lg bg-cream p-4; }
 
-  /* Cream highlight callout with a terracotta left accent — "next step" / "monthly incentive" boxes */
-  .callout { @apply rounded-lg border-l-4 border-rust bg-surface p-4; }
+  /**
+   * A highlighted note.
+   *
+   * The accent is a full-height bar drawn inside the shape rather than `border-l-4`: against a 28px
+   * radius a straight left border gets clipped into a crescent, which looks like a rendering bug
+   * because it more or less is one.
+   */
+  .callout {
+    @apply relative overflow-hidden rounded-lg border border-ink/10 bg-surface p-5 pl-6 shadow-sm;
+  }
+  .callout::before {
+    content: '';
+    @apply absolute inset-y-0 left-0 w-1 bg-rust;
+  }
 
   /* Primary action button — a solid accent fill, pill-shaped. */
   .btn-primary { @apply rounded-full bg-rust px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-rust-600 active:bg-rust-700; }
@@ -54,12 +73,19 @@ body { @apply bg-cream font-sans text-ink antialiased; }
   /* Section letter badge, e.g. the S / P / E / C squares */
   .badge-letter { @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border font-serif text-base; }
 
-  /* Clean data table matching the KPI/Target/Result/Status layout */
-  .table-clean { @apply w-full overflow-hidden rounded-lg border border-ink/10 bg-surface text-sm; }
-  .table-clean thead { @apply bg-cream text-left text-xs uppercase tracking-wide text-ink-light; }
-  .table-clean th { @apply p-3 font-semibold; }
-  .table-clean td { @apply p-3; }
-  .table-clean tbody tr { @apply border-t border-ink/10; }
+  /**
+   * Data tables.
+   *
+   * The header is a rule rather than a filled band: inside a 28px radius a tinted `thead` gets
+   * clipped into a lozenge that reads as a stray pill floating above the rows. A line under the
+   * headings does the same job and survives the corner.
+   */
+  .table-clean { @apply w-full border-separate border-spacing-0 text-sm; }
+  .table-clean thead { @apply text-left text-xs uppercase tracking-wider text-ink-light; }
+  .table-clean th { @apply border-b border-ink/20 px-3 pb-2 pt-0 font-semibold; }
+  .table-clean td { @apply px-3 py-3 align-top; }
+  .table-clean tbody tr + tr td { @apply border-t border-ink/10; }
+  .table-clean tbody tr:hover td { @apply bg-cream/60; }
 
   /* Text input — pill-shaped, on the sand surface. */
   .input {

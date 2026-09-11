@@ -5,7 +5,7 @@ import type { Pillar } from '../src/lib/scoring';
 
 const row = (over: Partial<ScorecardRow> & { pillar: Pillar; text: string }): ScorecardRow => ({
   criterionId: over.text.replace(/\W+/g, '-').toLowerCase(),
-  weight: 0.5, kpi: true, target: null, answer: '', note: null, status: null, result: null, source: null,
+  weight: 0.5, kpi: true, target: null, proposedTarget: null, answer: '', note: null, status: null, result: null, source: null,
   ...over,
 });
 

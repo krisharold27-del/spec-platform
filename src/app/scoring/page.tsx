@@ -13,7 +13,7 @@ import { isScored } from '@/lib/today-data';
 import { saveGates, lockPeriod } from '@/app/period/actions';
 import { submitPeriod, reopenPeriod, signPeriod } from './actions';
 import {
-  flagsFor, blocking, progressFor, signoffTrail, verdict, viewRow, type PeriodStatus,
+  flagsFor, blocking, groupFlags, progressFor, signoffTrail, verdict, viewRow, type PeriodStatus,
 } from '@/lib/month';
 import { LIGHT_COLOUR } from '@/lib/today';
 
@@ -72,6 +72,7 @@ export default async function MonthlyScoring() {
   const gates = await getGates(period.id);
   const flags = flagsFor(roles, liveSources);
   const blockers = blocking(flags);
+  const grouped = groupFlags(flags);
   const progress = progressFor(roles);
   const v = verdict(rollup.scoredCount ? rollup.team : null);
 
@@ -233,6 +234,7 @@ export default async function MonthlyScoring() {
                 pillar: row.pillar,
                 text: row.text,
                 target: row.target,
+                proposed: row.proposedTarget,
                 result: row.result,
                 note: row.note,
                 status: row.status,
@@ -254,9 +256,9 @@ export default async function MonthlyScoring() {
               {blockers.length} blocking · {flags.length - blockers.length} noted
             </span>
           </div>
-          {flags.length ? (
+          {grouped.length ? (
             <ul className="mt-4 grid gap-3">
-              {flags.map(f => (
+              {grouped.map(f => (
                 <li
                   key={f.id}
                   className="rounded-lg bg-cream p-3"
@@ -267,6 +269,18 @@ export default async function MonthlyScoring() {
                     <span className="label-caps">{f.severity === 'blocking' ? 'Blocking' : 'Noted'}</span>
                   </div>
                   <p className="mt-1 text-xs text-ink-light">{f.detail}</p>
+                  {/* The measures stay named. A count on its own tells somebody they have a problem
+                      without telling them where it is. */}
+                  {f.measures.length > 1 && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-xs text-ink-light hover:text-ink">
+                        Which measures
+                      </summary>
+                      <ul className="mt-2 grid gap-1 pl-4 text-xs text-ink-light">
+                        {f.measures.map(m => <li key={m} className="list-disc">{m}</li>)}
+                      </ul>
+                    </details>
+                  )}
                 </li>
               ))}
             </ul>
