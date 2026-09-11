@@ -70,9 +70,22 @@ describe('the front door stays a front door', () => {
    * The argument lives on the pages behind it. This test exists because a welcome page is the single
    * most tempting thing in any product to quietly grow a brochure onto.
    */
-  it('keeps welcome short', () => {
+  /**
+   * Measured as words a visitor actually READS, not as lines of source.
+   *
+   * The first version counted lines, which is a proxy for the wrong thing: adding the mascot and a
+   * two-column layout tripped it while the page still said thirty-four words. A guard that fires on
+   * layout gets its limit raised until it means nothing. This one only fires if somebody starts
+   * arguing on the front door, which is the thing the instruction was actually about.
+   */
+  it('keeps welcome to a headline, a line and a button', () => {
     const src = read('src/app/welcome/page.tsx');
-    expect(src.split('\n').length).toBeLessThan(45);
+    const visible = src
+      .replace(/\/\*[\s\S]*?\*\//g, '')      // comments are not on the page
+      .replace(/className="[^"]*"/g, '')
+      .match(/>([^<>{}]+)</g) ?? [];
+    const words = visible.join(' ').replace(/[<>]/g, '').split(/\s+/).filter(Boolean);
+    expect(words.length).toBeLessThan(60);
     expect(src).not.toContain('<section');
   });
 

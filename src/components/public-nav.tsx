@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SpecLockup } from './spec-mark';
 
 /**
  * The header on every page somebody can reach without signing in.
@@ -21,8 +22,8 @@ export function PublicNav({ current }: { current?: string }) {
   return (
     <header className="border-b border-ink/10 bg-surface">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-3">
-        <Link href="/welcome" className="font-serif text-lg tracking-tight text-ink">
-          SPEC<span className="text-rust">.</span>
+        <Link href="/welcome" aria-label="SPEC home">
+          <SpecLockup line="Nimble and powerful." />
         </Link>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 label-caps">
           {LINKS.map(l => (

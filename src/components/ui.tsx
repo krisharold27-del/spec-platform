@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SpecLockup } from './spec-mark';
 import { band, type Pillar, type Score } from '@/lib/scoring';
 import { myBusinesses } from '@/lib/auth';
 import { PILLAR_META, pct } from '@/lib/pillars';
@@ -15,8 +16,10 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
     <div className="min-h-screen">
       <header className="border-b border-ink/10 bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Link href="/" className="font-serif text-lg tracking-tight text-ink">
-            SPEC<span className="text-rust">.</span>
+          {/* Inside the product the mark is a wayfinder, not a brand statement, so it carries no
+              supporting line. */}
+          <Link href="/" aria-label="SPEC home">
+            <SpecLockup />
           </Link>
           {/*
             Five links, then everything else behind one word.
