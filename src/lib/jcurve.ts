@@ -247,6 +247,182 @@ export function comparison(input: CurveInput, at: Date = new Date()): Comparison
   };
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * What is holding the dip open.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Discovery is the part of the dip SPEC shortens. It is not the only part that makes one deep.
+ *
+ * A dip stays deep when people stop believing the numbers, and two things do that reliably: targets
+ * that were never set properly, and a chart that does not describe the business. A measure nobody
+ * has ever met teaches everyone that the board's numbers are decoration. A measure nobody could
+ * ever miss adds a green light to every month while nothing improves. A role with nobody in it is
+ * a column of work that silently belongs to whoever is nearest.
+ *
+ * THE TONE RULE APPLIES HARDEST HERE. The brief this came from calls it change resistance and
+ * negativity, and those are the right words for what it feels like from the outside. They are also
+ * exactly what must never appear on the screen: naming somebody's psychology back at them is
+ * forbidden in the rule book, and a leader told their people are negative will argue with the
+ * claim instead of fixing the cause. So SPEC shows the CAUSE and never the diagnosis — these are
+ * the four measures nobody has met since May, and these are the two roles with nobody in them. The
+ * reader draws their own conclusion about morale, which is the only way that conclusion ever
+ * survives contact with the person who has to act on it.
+ *
+ * Every item carries the one change that would move it, because a report of a miss that carries no
+ * proposed fix is commentary.
+ */
+export type DragKey = 'never_met' | 'never_missed' | 'unproven' | 'vacant' | 'unmeasured_role';
+
+export interface Drag {
+  key: DragKey;
+  count: number;
+  what: string;
+  /** Why it deepens the dip. Never a claim about anybody's attitude. */
+  why: string;
+  /** The one change that would move it. */
+  move: string;
+  /** The measures or roles behind the count, named rather than totalled. */
+  items: string[];
+}
+
+export interface DragInput {
+  measures: {
+    label: string;
+    /** Closed months this measure has been marked in. */
+    months: number;
+    /** Times it was met across those months. */
+    met: number;
+    /** True where the target sits outside what the record says the business can do. */
+    outOfReach?: boolean;
+    /** True where no target is agreed, or there is not enough history to judge one. */
+    unproven?: boolean;
+  }[];
+  roles: { title: string; vacant: boolean; measures: number; scored: boolean }[];
+  /** Closed months, which is what makes "never" mean anything. */
+  closedMonths: number;
+}
+
+/**
+ * How many closed months it takes before an unbroken run means something.
+ *
+ * Under three, "never met" is one bad quarter and "never missed" is a quiet start. Published here
+ * so it can be argued with rather than buried in a filter.
+ */
+export const RUN_TO_MEAN_SOMETHING = 3;
+
+export function drag(input: DragInput): Drag[] {
+  const out: Drag[] = [];
+  const enough = input.closedMonths >= RUN_TO_MEAN_SOMETHING;
+
+  const neverMet = enough
+    ? input.measures.filter(m => m.months >= RUN_TO_MEAN_SOMETHING && m.met === 0)
+    : [];
+  if (neverMet.length) {
+    out.push({
+      key: 'never_met', count: neverMet.length,
+      what: `${neverMet.length} ${neverMet.length === 1 ? 'measure has' : 'measures have'} not been met once in ${input.closedMonths} closed months.`,
+      why: 'A measure that is red every month stops being read. Once that happens the rest of the card is read the same way, and the score goes on working while nobody is using it.',
+      move: 'Take each one back to the record. Either the target was set beyond what this business has ever done — in which case it is the target that is wrong — or nothing has been put behind it, and that is a different conversation with a different person.',
+      items: neverMet.map(m => m.label),
+    });
+  }
+
+  const neverMissed = enough
+    ? input.measures.filter(m => m.months >= RUN_TO_MEAN_SOMETHING && m.met === m.months)
+    : [];
+  if (neverMissed.length) {
+    out.push({
+      key: 'never_missed', count: neverMissed.length,
+      what: `${neverMissed.length} ${neverMissed.length === 1 ? 'measure has' : 'measures have'} been met every month without exception.`,
+      why: 'A measure that cannot be missed adds a green light to every month while telling nobody anything. A card can read at the standard for a year on measures like these and the business will not have moved.',
+      move: 'Check each against what the business actually runs at. A target at or below the rolling actual is met by carrying on exactly as before, and raising it is not a punishment — it is the difference between a scorecard and a report.',
+      items: neverMissed.map(m => m.label),
+    });
+  }
+
+  const outOfReach = input.measures.filter(m => m.outOfReach);
+  if (outOfReach.length) {
+    out.push({
+      key: 'never_met', count: outOfReach.length,
+      what: `${outOfReach.length} ${outOfReach.length === 1 ? 'target sits' : 'targets sit'} further above the record than this business has ever reached.`,
+      why: 'A target nobody expects to meet is not a stretch, it is an announcement. People stop trying at announcements, and the measure keeps producing a red light that means nothing.',
+      move: 'Reset each from the rolling actual. A target inside a fifth of what the business already does is one it can be held to.',
+      items: outOfReach.map(m => m.label),
+    });
+  }
+
+  const unproven = input.measures.filter(m => m.unproven);
+  if (unproven.length) {
+    out.push({
+      key: 'unproven', count: unproven.length,
+      what: `${unproven.length} ${unproven.length === 1 ? 'target has' : 'targets have'} nothing behind them yet.`,
+      why: 'A target agreed in a room and never checked against the record is an opinion with a number on it. It is not wrong — it is unproven, and it will stay that way until the months accumulate.',
+      move: 'Leave them and keep closing months. Six is enough to set them from the business’s own record instead of from a conversation.',
+      items: unproven.map(m => m.label),
+    });
+  }
+
+  const vacant = input.roles.filter(r => r.vacant);
+  if (vacant.length) {
+    out.push({
+      key: 'vacant', count: vacant.length,
+      what: `${vacant.length} ${vacant.length === 1 ? 'role has' : 'roles have'} nobody in them.`,
+      why: 'The work does not stop when the seat is empty — it moves to whoever is nearest, usually without being discussed. That is the most common reason a person who was coping stops coping.',
+      move: 'Either fill it, or move each measure onto a named role and accept that the work moved. Both are decisions; leaving it is the one that is not.',
+      items: vacant.map(r => r.title),
+    });
+  }
+
+  const unmeasured = input.roles.filter(r => r.scored && r.measures === 0);
+  if (unmeasured.length) {
+    out.push({
+      key: 'unmeasured_role', count: unmeasured.length,
+      what: `${unmeasured.length} scored ${unmeasured.length === 1 ? 'role has' : 'roles have'} no measures against them.`,
+      why: 'A role on the chart with nothing underneath it is a job nobody can succeed or fail at. It reads as a working structure from above and as an unanswerable question from inside it.',
+      move: 'Two measures per pillar is the starting point. A role that genuinely cannot be measured is a role that should not be scored, and saying so is a legitimate answer.',
+      items: unmeasured.map(r => r.title),
+    });
+  }
+
+  /**
+   * Ordered by consequence, not by size.
+   *
+   * A measure nobody can meet and a seat nobody is in are where people have already stopped
+   * believing the numbers; a target nobody has got round to setting is a young business. Sorting by
+   * count would put the largest pile first and bury the sharpest finding underneath it, which is
+   * the failure this whole section exists to prevent.
+   */
+  const ORDER: DragKey[] = ['never_met', 'vacant', 'never_missed', 'unmeasured_role', 'unproven'];
+  return out.sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
+}
+
+/** Named, not just counted — but a list of forty is a wall, so the tail is counted instead. */
+export const NAMED_ITEMS = 6;
+
+export function namedItems(items: string[]): { shown: string[]; more: number } {
+  return { shown: items.slice(0, NAMED_ITEMS), more: Math.max(0, items.length - NAMED_ITEMS) };
+}
+
+/**
+ * The one line about depth.
+ *
+ * Leads with the sharpest finding rather than a total. A total is technically true and useless —
+ * "34 things" reads as an indictment of the business and tells nobody where to start, which is the
+ * opposite of the point. No adjective about the business, no guess at why, and above all no verdict
+ * on the people in it.
+ */
+export function dragLine(drags: Drag[], closedMonths: number): string {
+  if (closedMonths < RUN_TO_MEAN_SOMETHING) {
+    return `Under ${RUN_TO_MEAN_SOMETHING} closed months there is no run to read yet. Nothing here is a judgement on the business — there is simply not enough of its record to look at.`;
+  }
+  if (!drags.length) {
+    return 'Nothing in the record is holding the dip open: every measure has been both met and missed, every scored role has somebody in it, and every role has something underneath it.';
+  }
+  const rest = drags.length - 1;
+  return `${drags[0].what}${rest ? ` ${rest} other ${rest === 1 ? 'thing is' : 'things are'} listed below.` : ''} Each one is a decision somebody can make this week, and none of them is a judgement about anybody.`;
+}
+
 export interface CurvePoint {
   label: string;
   /** The roll-up that month closed on, or null before anything closed. */

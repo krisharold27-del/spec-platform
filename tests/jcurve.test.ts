@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  daysBetween, phases, depth, comparison, points, HAND_BUILT_DISCOVERY_DAYS, type CurveInput,
+  daysBetween, phases, depth, comparison, points, drag, dragLine, namedItems, NAMED_ITEMS, HAND_BUILT_DISCOVERY_DAYS, type CurveInput,
 } from '../src/lib/jcurve';
 
 const AT = new Date('2026-09-11T00:00:00Z');
@@ -185,5 +185,114 @@ describe('points', () => {
     expect(points(input({ firstLockedAt: null, closedMonths: [] }))).toEqual([
       { label: 'Now', value: null, beforeMeasurement: true },
     ]);
+  });
+});
+
+describe('drag', () => {
+  const m = (label: string, months: number, met: number, extra: Record<string, boolean> = {}) =>
+    ({ label, months, met, ...extra });
+  const role = (title: string, over: Partial<{ vacant: boolean; measures: number; scored: boolean }> = {}) =>
+    ({ title, vacant: false, measures: 8, scored: true, ...over });
+
+  const base = { measures: [], roles: [], closedMonths: 6 };
+
+  it('names the measures nobody has met, and says why that matters', () => {
+    const d = drag({ ...base, measures: [m('Gross profit', 6, 0), m('Revenue', 6, 3)] });
+    const never = d.find(x => x.key === 'never_met')!;
+    expect(never.count).toBe(1);
+    expect(never.items).toEqual(['Gross profit']);
+    expect(never.why).toContain('stops being read');
+  });
+
+  it('names the measures nobody could miss', () => {
+    const d = drag({ ...base, measures: [m('Board pack on time', 6, 6)] });
+    const always = d.find(x => x.key === 'never_missed')!;
+    expect(always.items).toEqual(['Board pack on time']);
+    expect(always.why).toContain('green light to every month');
+  });
+
+  // Under three closed months, "never met" is one bad quarter and "never missed" is a quiet start.
+  it('will not read a run that is too short to mean anything', () => {
+    const d = drag({ measures: [m('Gross profit', 2, 0), m('Revenue', 2, 2)], roles: [], closedMonths: 2 });
+    expect(d.filter(x => x.key === 'never_met' || x.key === 'never_missed')).toEqual([]);
+    expect(dragLine(d, 2)).toContain('not enough of its record');
+  });
+
+  it('counts a vacant role as something the business is carrying', () => {
+    const d = drag({ ...base, roles: [role('Supervisor', { vacant: true }), role('Head of Ops')] });
+    const vacant = d.find(x => x.key === 'vacant')!;
+    expect(vacant.items).toEqual(['Supervisor']);
+    expect(vacant.move).toContain('leaving it is the one that is not');
+  });
+
+  it('counts a scored role with nothing underneath it', () => {
+    const d = drag({ ...base, roles: [role('Head of Growth', { measures: 0 })] });
+    expect(d.find(x => x.key === 'unmeasured_role')!.items).toEqual(['Head of Growth']);
+  });
+
+  it('leaves a checklist role alone, since it is not scored', () => {
+    const d = drag({ ...base, roles: [role('Apprentice', { measures: 0, scored: false })] });
+    expect(d.find(x => x.key === 'unmeasured_role')).toBeUndefined();
+  });
+
+  it('reports an unproven target as unproven rather than as a fault', () => {
+    const d = drag({ ...base, measures: [m('Utilisation', 6, 3, { unproven: true })] });
+    const u = d.find(x => x.key === 'unproven')!;
+    expect(u.why).toContain('not wrong');
+    expect(u.move).toContain('keep closing months');
+  });
+
+  /**
+   * The tone rule, enforced. The brief calls this change resistance and negativity, and those words
+   * must never reach the screen — a leader told their people are negative argues with the claim
+   * instead of fixing the cause. SPEC shows the cause and lets them draw the conclusion.
+   */
+  it('never names anybody’s attitude, anywhere', () => {
+    const d = drag({
+      measures: [m('Gross profit', 6, 0), m('Board pack', 6, 6), m('Utilisation', 6, 2, { outOfReach: true })],
+      roles: [role('Supervisor', { vacant: true }), role('Head of Growth', { measures: 0 })],
+      closedMonths: 6,
+    });
+    const words = d.map(x => `${x.what} ${x.why} ${x.move}`).join(' ') + dragLine(d, 6);
+    expect(words).not.toMatch(/resistan|negativ|attitude|moral|engagement|buy-?in|mindset|culture/i);
+  });
+
+  it('says plainly when nothing in the record is holding the dip open', () => {
+    const d = drag({ ...base, measures: [m('Gross profit', 6, 3)], roles: [role('Head of Ops')] });
+    expect(d).toEqual([]);
+    expect(dragLine(d, 6)).toContain('Nothing in the record is holding the dip open');
+  });
+
+  /**
+   * A total is technically true and useless. "34 things" reads as an indictment and tells nobody
+   * where to start, which is the opposite of what this section is for.
+   */
+  it('leads with the sharpest finding rather than a total', () => {
+    const d = drag({ ...base, measures: [m('A', 6, 0), m('B', 6, 0)], roles: [role('S', { vacant: true })] });
+    const line = dragLine(d, 6);
+    expect(line).toContain('not been met once');
+    expect(line).toContain('1 other thing is listed below');
+    expect(line).not.toContain('3 things');
+  });
+
+  // Sorting by count would put the largest pile first and bury the sharpest finding underneath it.
+  it('orders by consequence, not by how many there are', () => {
+    const d = drag({
+      measures: [
+        m('A', 6, 6), m('B', 6, 6), m('C', 6, 6), m('D', 6, 6),
+        m('E', 6, 3, { unproven: true }), m('F', 6, 0),
+      ],
+      roles: [role('S', { vacant: true })],
+      closedMonths: 6,
+    });
+    expect(d.map(x => x.key)).toEqual(['never_met', 'vacant', 'never_missed', 'unproven']);
+  });
+
+  it('names a handful and counts the tail, rather than printing a wall', () => {
+    const many = Array.from({ length: 20 }, (_, i) => `Measure ${i}`);
+    const { shown, more } = namedItems(many);
+    expect(shown).toHaveLength(NAMED_ITEMS);
+    expect(more).toBe(20 - NAMED_ITEMS);
+    expect(namedItems(['one']).more).toBe(0);
   });
 });

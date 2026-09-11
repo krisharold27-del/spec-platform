@@ -4,7 +4,8 @@ import { Shell, pct } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { getCurve } from '@/lib/boards-data';
-import { phases, depth, comparison, points, HAND_BUILT_DISCOVERY_DAYS } from '@/lib/jcurve';
+import { getDrag } from '@/lib/charter-data';
+import { phases, depth, comparison, points, dragLine, namedItems, HAND_BUILT_DISCOVERY_DAYS } from '@/lib/jcurve';
 import { LIGHT_COLOUR } from '@/lib/today';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,7 @@ export default async function Curve() {
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
   const input = await getCurve(user);
+  const { drags, closedMonths } = await getDrag(user);
 
   const all = phases(input);
   const d = depth(input.closedMonths);
@@ -130,6 +132,66 @@ export default async function Curve() {
           The dashed column is the time before anything could be measured. It is drawn empty rather than
           low on purpose: the business was not doing badly then, it was invisible, and a made-up dip
           would be the product arguing its own case with a number nobody took.
+        </p>
+      </section>
+
+      {/*
+        Discovery is the part SPEC shortens. It is not the only thing that makes a dip deep.
+
+        This section shows the CAUSE and never the diagnosis. The words for what this feels like from
+        the outside are change resistance and negativity, and they are exactly what must not appear
+        here: the rule book forbids naming somebody's psychology back at them, and a leader told
+        their people are negative will argue with the claim instead of fixing the cause. Four
+        measures nobody has met since May is a fact they can act on this week.
+      */}
+      <section className="card mt-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-serif text-xl text-ink">What is holding the dip open</h2>
+          <span className="text-sm text-ink-light">
+            {closedMonths} closed {closedMonths === 1 ? 'month' : 'months'} of record
+          </span>
+        </div>
+        <p className="mt-2 max-w-3xl text-sm text-ink-light">{dragLine(drags, closedMonths)}</p>
+
+        {drags.length > 0 && (
+          <ul className="mt-5 grid gap-3">
+            {drags.map((d, i) => (
+              <li key={`${d.key}-${i}`} className="rounded-lg bg-cream p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-serif text-lg text-ink">{d.what}</span>
+                  <span className="label-caps">{d.count}</span>
+                </div>
+                <p className="mt-2 text-sm text-ink-light">{d.why}</p>
+                <p className="mt-3 text-sm text-ink">
+                  <span className="label-caps">What would move it</span>
+                  <br />
+                  {d.move}
+                </p>
+                {/* Named, never only counted. A count tells somebody they have a problem without
+                    telling them where it is. */}
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-xs text-ink-light hover:text-ink">
+                    Which {d.key === 'vacant' || d.key === 'unmeasured_role' ? 'roles' : 'measures'}
+                  </summary>
+                  <ul className="mt-2 grid gap-1 pl-4 text-xs text-ink-light">
+                    {namedItems(d.items).shown.map(item => <li key={item} className="list-disc">{item}</li>)}
+                  </ul>
+                  {namedItems(d.items).more > 0 && (
+                    <p className="mt-2 text-xs text-ink-light">
+                      and {namedItems(d.items).more} more.
+                    </p>
+                  )}
+                </details>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <p className="mt-4 max-w-3xl text-xs text-ink-light">
+          Every line here is something the business wrote down itself. None of it is a judgement about
+          anybody, and none of it counts towards a score —{' '}
+          <Link href="/charter" className="text-rust-700 hover:underline">the charter</Link> is where the
+          rule for setting a target properly lives.
         </p>
       </section>
 

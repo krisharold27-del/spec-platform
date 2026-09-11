@@ -38,6 +38,7 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
               <div className="absolute right-0 z-10 mt-2 grid w-56 gap-1 rounded-lg border border-ink/10 bg-surface p-2 shadow-md">
                 {[
                   { href: '/', label: 'Executive summary' },
+                  { href: '/charter', label: 'Board Charter' },
                   { href: '/me', label: 'My scorecard' },
                   { href: '/team', label: 'Team roll-up' },
                   { href: '/people', label: 'People' },
