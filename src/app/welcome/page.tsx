@@ -28,13 +28,20 @@ export default function Welcome() {
               Safety. People. Earnings. Compliance.
             </h1>
             <p className="mt-4 text-lg text-ink-light">Your whole business on one page.</p>
+            {/*
+              The door, not a form. You do not pay for a house before seeing inside it — so the
+              first press puts somebody inside a real business with a real chart in it, and asks
+              them for nothing at all. Signing up comes after they have decided they like it.
+            */}
             <a
-              href="/signup"
+              href="/look"
               className="mt-9 inline-block rounded-full bg-rust px-8 py-3 text-base font-medium text-cream hover:bg-rust-600"
             >
-              Start free
+              Have a look inside
             </a>
+            <p className="mt-3 text-sm text-ink-light">No sign-up, no email, no card. Just look.</p>
             <p className="mt-6 text-sm text-ink-light">
+              Ready to start? <a href="/signup" className="underline">Set up your business</a> ·
               Already on SPEC? <a href="/signin" className="underline">Sign in</a>
             </p>
           </div>

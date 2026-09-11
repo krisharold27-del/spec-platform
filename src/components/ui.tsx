@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { SpecLockup } from './spec-mark';
 import { band, type Pillar, type Score } from '@/lib/scoring';
 import { myBusinesses } from '@/lib/auth';
+import { currentLook } from '@/lib/look';
+import { LookBar } from './look-bar';
 import { PILLAR_META, SCORE_COLOUR, scoreColour, pct } from '@/lib/pillars';
 
 // Re-exported so existing pages keep importing them from here; they live in lib/pillars because a
@@ -12,8 +14,18 @@ export { PILLAR_META, SCORE_COLOUR, scoreColour, pct };
 export async function Shell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   // Only someone with more than one business ever sees a way to switch.
   const businesses = await myBusinesses().catch(() => []);
+  /*
+    Ask lib/look directly rather than inferring it from the viewer.
+
+    A visitor is deliberately sat in the top role's real seat so every page has something to show
+    them, which means their user looks exactly like a customer's — there is nothing about the
+    viewer to test. The only thing that distinguishes a look-around is the token in the browser, so
+    that is what gets asked.
+  */
+  const looking = Boolean(await currentLook().catch(() => null));
   return (
     <div className="min-h-screen">
+      {looking && <LookBar />}
       <header className="border-b border-ink/10 bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           {/* Inside the product the mark is a wayfinder, not a brand statement, so it carries no
@@ -63,7 +75,15 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
               </div>
             </details>
 
-            <Link href="/signout" className="normal-case tracking-normal text-ink-light/70 hover:text-rust">Sign out</Link>
+            {/* A visitor never signed in, so offering to sign them out is nonsense. They get the
+                way out of the look-around instead. */}
+            {looking ? (
+              <Link href="/look/decide" className="normal-case tracking-normal text-ink-light/70 hover:text-rust">
+                Finish looking
+              </Link>
+            ) : (
+              <Link href="/signout" className="normal-case tracking-normal text-ink-light/70 hover:text-rust">Sign out</Link>
+            )}
           </nav>
         </div>
       </header>

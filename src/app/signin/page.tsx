@@ -1,6 +1,11 @@
+import { redirect } from 'next/navigation';
 import { Footer } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
+import { getCurrentUser, signedInWithoutSeat } from '@/lib/auth';
+import { DEFAULT_AFTER_SIGN_IN } from '@/lib/auth-redirect';
 import { signIn } from './actions';
+
+export const dynamic = 'force-dynamic';
 
 const MESSAGES: Record<string, string> = {
   wrong: "Email or password doesn't match.",
@@ -11,6 +16,19 @@ const MESSAGES: Record<string, string> = {
 
 export default async function SignIn({ searchParams }: { searchParams: Promise<{ known?: string; error?: string }> }) {
   const sp = await searchParams;
+
+  /*
+    Somebody already signed in should never be shown a sign-in form — it reads as though the last
+    one did not work.
+
+    The second check is the one that matters. A sign-up that stopped after the account was made but
+    before the business existed leaves a person who can authenticate and holds no seat: every page
+    finds nobody and sends them here, and this page used to send them straight back. That is an
+    unbreakable loop with no explanation, at the exact moment a new customer is deciding whether to
+    trust this. Send them somewhere that can finish the job instead.
+  */
+  if (await getCurrentUser()) redirect(DEFAULT_AFTER_SIGN_IN);
+  if (await signedInWithoutSeat()) redirect('/signup?resume=1');
   const note = sp.known ? "You're already on SPEC. Sign in." : sp.error ? MESSAGES[sp.error] ?? null : null;
   return (
     <main className="mx-auto max-w-sm px-6 py-20">

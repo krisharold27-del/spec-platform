@@ -20,11 +20,21 @@ const ERRORS: Record<string, string> = {
 export default async function SignUp({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const error = sp.error ? ERRORS[sp.error] ?? ERRORS.expired : null;
+  // Arrived here from /signin because their account exists but their business never got built.
+  const resuming = sp.resume === '1';
   const siteKey = turnstileSiteKey();
   return (
     <main className="mx-auto max-w-sm px-6 py-20">
       <div className="label-caps">SPEC</div>
-      <h1 className="mt-1 font-serif text-2xl text-ink">Set up your business</h1>
+      <h1 className="mt-1 font-serif text-2xl text-ink">
+        {resuming ? 'Let\u2019s finish setting up' : 'Set up your business'}
+      </h1>
+      {resuming && (
+        <p className="mt-4 rounded-lg bg-cream p-3 text-sm text-ink">
+          Your sign-in works — your business just never finished being created. Fill this in with the
+          same email and password and it will pick up where it stopped. Nothing is lost.
+        </p>
+      )}
       {error && <p className="mt-4 text-sm text-rust-dark">{error}</p>}
       <form action={signUp} className="relative mt-6 space-y-3">
         <input type="hidden" name="form_token" value={issueFormToken(formSecret())} />

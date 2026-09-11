@@ -14,6 +14,15 @@ export const tenants = pgTable('tenants', {
   startDate: text('start_date').notNull(),
   status: text('status').notNull().default('active'), // active | paused | closed
   plan: text('plan').notNull().default('trial'),      // trial | basic (self-serve, ~$100/yr) | program (rollout + training, principal on site) | lapsed
+  /**
+   * A secret token while this business is an unclaimed LOOK-AROUND, and null once it is somebody's.
+   *
+   * Somebody who has not signed up can be given a real business to walk through — the house is
+   * viewed before it is bought. Their browser holds this token and nothing else; it is the only
+   * thing that opens this tenant without a sign-in. Clearing it at sign-up is what stops an old
+   * browser from still reaching a business once it belongs to a real customer.
+   */
+  lookId: text('look_id'),
   programRequestedAt: text('program_requested_at'),
   stripeCustomerId: text('stripe_customer_id'),        // set on first Checkout Session; reused for the billing portal
   stripeSubscriptionId: text('stripe_subscription_id'), // set on checkout.session.completed; used to match invoice/subscription webhooks back to a tenant

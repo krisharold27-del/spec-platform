@@ -99,6 +99,33 @@ export async function linkNewSeat(authUserId: string, tenantId: string, email: s
     .where(and(eq(schema.users.tenantId, tenantId), eq(schema.users.email, email), isNull(schema.users.authUserId)));
 }
 
+/**
+ * The Supabase id of whoever is signed in, or null. Says nothing about whether they hold a seat.
+ *
+ * Needed because "authenticated" and "has a business" are genuinely two different states, and the
+ * gap between them is where a half-finished sign-up leaves somebody.
+ */
+export async function currentAuthUserId(): Promise<string | null> {
+  const supabase = await createClient();
+  if (!supabase) return null;
+  const user = await supabase.auth.getUser().then(r => r.data.user).catch(() => null);
+  return user?.id ?? null;
+}
+
+/**
+ * Signed in, and holding no seat in any business.
+ *
+ * This is the state a sign-up that stopped half way leaves behind: the sign-in was created first —
+ * deliberately, so an address already in use is refused before anything is built — and if anything
+ * after it failed, the person owns an account attached to nothing. Signing in then succeeds, every
+ * page finds no seat and sends them to /signin, and /signin shows the form again. They can never
+ * get in and nothing tells them why. It has to be detectable so it can be recovered from.
+ */
+export async function signedInWithoutSeat(): Promise<boolean> {
+  if (!(await currentAuthUserId())) return false;
+  return (await mySeats()).length === 0;
+}
+
 /** Email and password. Sets the session cookie; returns false if they do not match. */
 export async function signInWithPassword(email: string, password: string): Promise<boolean> {
   const supabase = await createClient();
@@ -142,7 +169,21 @@ const mySeats = cache(async (): Promise<UserRow[]> => {
  */
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const seats = await mySeats();
-  if (!seats.length) return null;
+  /*
+    Nobody signed in? They may still be walking through a look-around. That visitor is scoped to
+    the one tenant whose secret token their browser holds and is READ-ONLY — see lib/look for why
+    that token cannot be pointed at anybody else's business, and lib/plan.assertWritable for where
+    read-only is actually enforced.
+  */
+  if (!seats.length) {
+    const { currentLook, lookSeat } = await import('./look');
+    const look = await currentLook();
+    if (!look) return null;
+    // Sat in the top role's chair, so every page has something real to show — but read-only.
+    const seat = await lookSeat(look.tenantId);
+    if (!seat) return null;
+    return { id: seat.id, tenantId: look.tenantId, email: seat.email, name: seat.name, access: 'readonly' };
+  }
   const chosen = (await cookies()).get(BUSINESS_COOKIE)?.value;
   const row = seats.find(s => s.tenantId === chosen) ?? seats[0];
   return { id: row.id, tenantId: row.tenantId, email: row.email, name: row.name, access: row.access as AccessLevel };

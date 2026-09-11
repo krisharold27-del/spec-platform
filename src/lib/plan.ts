@@ -149,6 +149,19 @@ export async function planStateFor(tenantId: string, currency: Currency = HOME_C
  * not only in the UI that hides the button.
  */
 export async function assertWritable(tenantId: string): Promise<void> {
+  /*
+    A look-around is read-only, and this is the single place that has to hold.
+
+    Every write in the product already comes through here, so putting the check anywhere else would
+    be putting it in the wrong place. Walking through a house does not include moving the furniture
+    — and read-only is also what guarantees a visitor can never send an email, invite anybody, or
+    reach anything that bills.
+  */
+  const { isLookTenant } = await import('./look');
+  if (await isLookTenant(tenantId)) {
+    throw new Error('This is a look around, so nothing is saved. Set up your own business to keep what you change — it takes about a minute.');
+  }
+
   const state = await planStateFor(tenantId);
   if (state.lapsed) throw new Error('This subscription has lapsed. Renew to keep making changes — nothing has been deleted.');
 }
