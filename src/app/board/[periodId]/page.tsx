@@ -13,21 +13,21 @@ import { approveBoardOutput } from '@/app/period/actions';
 export const dynamic = 'force-dynamic';
 
 const PILLAR_STATUS = {
-  on_target: { label: 'At target', cls: 'text-emerald-800' },
-  below: { label: 'Below target', cls: 'text-red-800' },
+  on_target: { label: 'At target', cls: 'text-sage-800' },
+  below: { label: 'Below target', cls: 'text-rust-800' },
   not_scored: { label: 'Not scored', cls: 'text-ink-light' },
 } as const;
 
 const GATE_STATUS = {
-  pass: { label: 'Pass', cls: 'bg-emerald-100 text-emerald-900' },
-  fail: { label: 'Fail', cls: 'bg-red-100 text-red-900' },
-  not_reporting: { label: 'Not reporting', cls: 'bg-amber-100 text-amber-900' },
+  pass: { label: 'Pass', cls: 'bg-sage-200 text-sage-900' },
+  fail: { label: 'Fail', cls: 'bg-rust-200 text-rust-800' },
+  not_reporting: { label: 'Not reporting', cls: 'bg-rust-200 text-rust-800' },
 } as const;
 
 const GOV_STATUS = {
-  pass: { label: 'OK', cls: 'text-emerald-800' },
-  attention: { label: 'Needs attention', cls: 'text-red-800' },
-  not_reporting: { label: 'Not reporting', cls: 'text-amber-800' },
+  pass: { label: 'OK', cls: 'text-sage-800' },
+  attention: { label: 'Needs attention', cls: 'text-rust-800' },
+  not_reporting: { label: 'Not reporting', cls: 'text-rust-800' },
 } as const;
 
 /**
@@ -66,21 +66,44 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
 
   const snap = snapshotFor({ tenantName: tenant.name, period: period.period, rollup, gates, pillars: PILLARS, governance });
 
+  // What only the board can unblock. Read from the approvals queue rather than typed by hand: a
+  // pack listing asks somebody remembered to write is a pack that quietly drops the ones they forgot.
+  const boardAsks = (await db.select().from(schema.approvals)
+    .where(eq(schema.approvals.tenantId, user.tenantId)))
+    .filter(a => a.state === 'waiting' && a.decidedByLevel === 'board')
+    .sort((a, b) => a.requestedAt.localeCompare(b.requestedAt));
+
+  // Numbers the business cannot produce. Flags, never scores.
+  const unsupported = rollup.roles.flatMap(({ role, rows }) =>
+    rows.filter(r => r.status === 'not_tracked')
+      .map(r => ({ role: role.title, text: r.text, source: r.source })));
+
+  // The run behind the figure: the closed months, oldest first. A month is a point, not a trend.
+  const closed = (await db.select().from(schema.periods).where(eq(schema.periods.tenantId, user.tenantId)))
+    .filter(p => p.status === 'locked' || p.id === periodId)
+    .sort((a, b) => a.period.localeCompare(b.period))
+    .slice(-6);
+  const trend = [];
+  for (const p of closed) {
+    const r = p.id === periodId ? rollup : await getTeamRollup(user.tenantId, p.id);
+    trend.push({ period: p.period, pillars: r.team.pillars });
+  }
+
   return (
     <Shell
       title={`Board pack — ${period.period}`}
       subtitle={`${tenant.name} · ${CADENCE[cadence].label} board · ${bo ? (bo.approvedBy ? `approved by ${bo.approvedBy}` : 'awaiting approval') : 'not yet generated'}`}
     >
       {/* ---------- Layer one: the two-minute read ---------- */}
-      <section className="rounded-lg border border-ink/10 bg-white p-6">
+      <section className="rounded-lg border border-ink/10 bg-surface p-6">
         <div className="label-caps">At a glance</div>
-        <p className="mt-2 font-serif text-xl font-bold leading-snug text-ink">{snap.headline}</p>
+        <p className="mt-2 font-serif text-xl leading-snug text-ink">{snap.headline}</p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {snap.pillars.map(p => (
             <div key={p.pillar} className="rounded-lg border border-ink/10 p-4" style={{ borderLeftColor: PILLAR_META[p.pillar].colour, borderLeftWidth: 6 }}>
               <div className="label-caps">{p.name}</div>
-              <div className="mt-1 font-serif text-3xl font-bold text-ink">{p.value === null ? '—' : pct(p.value)}</div>
+              <div className="mt-1 font-serif text-3xl text-ink">{p.value === null ? '—' : pct(p.value)}</div>
               <div className={`text-xs font-medium ${PILLAR_STATUS[p.status].cls}`}>{PILLAR_STATUS[p.status].label}</div>
               {p.driver && <div className="mt-2 text-xs leading-snug text-ink-light">{p.driver}</div>}
             </div>
@@ -96,7 +119,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
             </div>
           ))}
           <div className="flex items-center gap-2 rounded-lg border border-ink/10 px-3 py-2 text-sm">
-            <span className={`rounded px-2 py-0.5 text-xs font-medium ${govStatus === 'pass' ? 'bg-emerald-100 text-emerald-900' : govStatus === 'attention' ? 'bg-red-100 text-red-900' : 'bg-amber-100 text-amber-900'}`}>
+            <span className={`rounded px-2 py-0.5 text-xs font-medium ${govStatus === 'pass' ? 'bg-sage-200 text-sage-900' : govStatus === 'attention' ? 'bg-rust-200 text-rust-800' : 'bg-rust-200 text-rust-800'}`}>
               {GOV_STATUS[govStatus].label}
             </span>
             <span className="font-medium text-ink">Governance</span>
@@ -122,7 +145,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
       </section>
 
       {/* ---------- Governance detail, inside Compliance ---------- */}
-      <section className="mt-6 rounded-lg border border-ink/10 bg-white p-6">
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-6">
         <div className="label-caps">Compliance — governance</div>
         <p className="mt-1 text-sm text-ink-light">
           {CADENCE[cadence].label} board. {CADENCE[cadence].note}
@@ -141,9 +164,83 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
         </ul>
       </section>
 
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-6">
+        <div className="label-caps">What the board is asked to do</div>
+        {boardAsks.length ? (
+          <ul className="mt-3 grid gap-3">
+            {boardAsks.map(a => (
+              <li key={a.id} className="rounded-lg bg-cream p-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm text-ink">{a.title}</span>
+                  <span className="text-xs text-ink-light">waiting since {a.requestedAt.slice(0, 10)}</span>
+                </div>
+                <p className="mt-1 text-xs text-ink-light">{a.detail}</p>
+                {a.blocks && <p className="mt-1 text-xs text-rust-800">{a.blocks}</p>}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-ink-light">Nothing. Every decision this month sat inside the business.</p>
+        )}
+        <p className="mt-3 text-xs text-ink-light">
+          Decided in <a href="/inbox" className="text-rust-700 underline">approvals</a>, where each one keeps the
+          name and the date — approvals and declines alike.
+        </p>
+      </section>
+
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-6">
+        <div className="label-caps">What the data cannot support</div>
+        {unsupported.length ? (
+          <>
+            <ul className="mt-3 grid gap-2">
+              {unsupported.map(u => (
+                <li key={`${u.role}:${u.text}`} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink/10 pb-2 last:border-0">
+                  <span className="text-sm text-ink">{u.text}</span>
+                  <span className="text-xs text-ink-light">{u.role}{u.source ? ` · ${u.source}` : ''}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-ink-light">
+              Excluded from the fraction on both sides rather than counted as zeros. These are flags, not
+              scores — a gap in what the business can measure, not a failure by whoever holds the card.
+            </p>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-ink-light">
+            Nothing. Every measure on every card has either a system or a named person behind it.
+          </p>
+        )}
+      </section>
+
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-6">
+        <div className="label-caps">The last six months</div>
+        {trend.length > 1 ? (
+          <div className="mt-3 overflow-x-auto">
+            <table className="table-clean min-w-[520px]">
+              <thead>
+                <tr><th>Month</th>{PILLARS.map(p => <th key={p}>{PILLAR_META[p].name}</th>)}</tr>
+              </thead>
+              <tbody>
+                {trend.map(t => (
+                  <tr key={t.period}>
+                    <td className="text-ink">{t.period}</td>
+                    {PILLARS.map(p => <td key={p} className="font-mono">{pct(t.pillars[p])}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-ink-light">
+            Only one month has closed. The 90% rule needs two consecutive ones, so there is a run to build
+            rather than a trend to read.
+          </p>
+        )}
+      </section>
+
       {/* ---------- Layer two: the full pack ---------- */}
       {bo ? (
-        <details className="mt-6 rounded-lg border border-ink/10 bg-white" open={false}>
+        <details className="mt-6 rounded-lg border border-ink/10 bg-surface" open={false}>
           <summary className="cursor-pointer list-none p-4 text-sm font-medium text-ink hover:text-rust">
             Read the full pack
             <span className="ml-2 font-normal text-ink-light">— every pillar in detail, with the reasoning</span>
@@ -154,7 +251,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
           />
         </details>
       ) : (
-        <p className="mt-6 rounded-lg border border-ink/10 bg-white p-4 text-sm text-ink-light">
+        <p className="mt-6 rounded-lg border border-ink/10 bg-surface p-4 text-sm text-ink-light">
           The figures above are live. Lock the period from the executive summary to generate the written
           pack that goes with them.
         </p>
@@ -163,7 +260,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
       {bo && !bo.approvedBy && canManage(user.access) && (
         <form action={approveBoardOutput} className="mt-4">
           <input type="hidden" name="periodId" value={periodId} />
-          <button className="rounded-lg bg-rust px-5 py-2 text-white hover:bg-rust-dark">Approve for the board</button>
+          <button className="rounded-full bg-rust px-5 py-2 text-cream hover:bg-rust-600">Approve for the board</button>
         </form>
       )}
     </Shell>

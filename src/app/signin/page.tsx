@@ -15,7 +15,7 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
   return (
     <main className="mx-auto max-w-sm px-6 py-20">
       <div className="label-caps">SPEC</div>
-      <h1 className="mt-1 font-serif text-2xl font-bold text-ink">Sign in</h1>
+      <h1 className="mt-1 font-serif text-2xl text-ink">Sign in</h1>
       {note && <p className="mt-4 text-sm text-rust-dark">{note}</p>}
       <form action={signIn} className="mt-6 space-y-3">
         <input name="email" type="email" required autoComplete="email" placeholder="Your email" aria-label="Your email" className="w-full rounded border px-3 py-2.5" />

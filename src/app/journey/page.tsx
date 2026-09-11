@@ -21,7 +21,7 @@ export const dynamic = 'force-dynamic';
 const STATUS: Record<StepStatus, { label: string; cls: string }> = {
   todo: { label: 'Not started', cls: 'bg-cream text-ink-light' },
   in_progress: { label: 'Started', cls: 'bg-cream text-ink' },
-  done: { label: 'Done', cls: 'bg-emerald-100 text-emerald-900' },
+  done: { label: 'Done', cls: 'bg-sage-200 text-sage-900' },
   blocked: { label: 'Waiting', cls: 'bg-cream text-ink-light' },
 };
 
@@ -71,14 +71,14 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
   return (
     <Shell title={tenant.name} subtitle={`${shapeSentence(shape)} · ${costLabel(plan)}`}>
       {notice && (
-        <div className={`mb-4 rounded-lg border-l-4 p-4 text-sm ${notice.tone === 'ok' ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : 'border-amber-400 bg-white text-ink'}`}>
+        <div className={`mb-4 rounded-lg border-l-4 p-4 text-sm ${notice.tone === 'ok' ? 'border-sage-600 bg-sage-100 text-sage-900' : 'border-rust-400 bg-surface text-ink'}`}>
           {notice.text}
         </div>
       )}
       {plan.lapsed && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900">
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-rust-300 bg-rust-100 p-4 text-sm text-rust-800">
           <span>A payment didn&apos;t go through, so the business is read-only until it&apos;s sorted. Nothing has been deleted.</span>
-          <form action="/api/stripe/checkout" method="post"><button className="ml-4 shrink-0 rounded-lg bg-red-900 px-4 py-2 text-sm font-medium text-white hover:bg-red-800">Fix payment</button></form>
+          <form action="/api/stripe/checkout" method="post"><button className="ml-4 shrink-0 rounded-full bg-rust-800 px-4 py-2 text-sm font-medium text-cream hover:bg-rust-900">Fix payment</button></form>
         </div>
       )}
       {/*
@@ -87,7 +87,7 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
         * things are going wrong is the last thing they need.
         */}
       {plan.free && (
-        <div className="mb-4 rounded-lg border-l-4 border-emerald-500 bg-white p-4 text-sm">
+        <div className="mb-4 rounded-lg border-l-4 border-sage-600 bg-surface p-4 text-sm">
           <div className="flex items-baseline justify-between gap-3">
             <div className="font-medium">Free — nothing to pay yet</div>
             <span className="label-caps text-[10px]">No card needed</span>
@@ -99,19 +99,19 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
         </div>
       )}
       {plan.billing && (
-        <div className="mb-4 flex items-baseline justify-between gap-3 rounded-lg bg-white p-4 text-sm">
+        <div className="mb-4 flex items-baseline justify-between gap-3 rounded-lg bg-surface p-4 text-sm">
           <span><b>{costLabel(plan)}</b> <span className="text-ink-light">· each extra person is {seatLabel(currency)} a month</span></span>
           <form action="/api/stripe/portal" method="post"><button className="text-sm text-ink-light underline hover:text-rust">Billing</button></form>
         </div>
       )}
       {four.length > 0 && (
-        <div className="mb-4 rounded-lg bg-white p-4 text-sm">
+        <div className="mb-4 rounded-lg bg-surface p-4 text-sm">
           <span className="font-medium">Where it hurts, in your words:</span> {hurting.length ? hurting.map(h => h[0].toUpperCase() + h.slice(1)).join(', ') : 'nowhere yet'}.
           <span className="text-ink-light"> The journey below is how you learn why — and every KPI Claude proposes leans on those pillars first.</span>
         </div>
       )}
       {momentum.quiet && next && momentum.lastChangeAt && (
-        <div className="mb-4 rounded-lg border border-ink/15 bg-white p-4 text-sm">
+        <div className="mb-4 rounded-lg border border-ink/15 bg-surface p-4 text-sm">
           <div className="label-caps">Where this stands</div>
           <p className="mt-1 text-ink-light">
             Nothing has changed in {tenant.name} since {onDate(momentum.lastChangeAt)}. {done} of {steps.length} steps
@@ -130,23 +130,23 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
             <div className="label-caps">Do this next</div>
             {next.minutes > 0 && <span className="text-xs text-ink-light">{mins(next.minutes)}</span>}
           </div>
-          <div className="mt-1 font-serif text-2xl font-bold text-ink">{next.title}</div>
+          <div className="mt-1 font-serif text-2xl text-ink">{next.title}</div>
           <p className="mt-2 text-sm text-ink"><span className="font-medium">When it&apos;s done:</span> {next.payoff}</p>
           <p className="mt-1 text-sm text-ink-light">{next.detail}</p>
-          <Link href={next.href} className="mt-4 inline-block rounded-lg bg-rust px-5 py-2.5 text-sm font-medium text-white hover:bg-rust-dark">Start</Link>
+          <Link href={next.href} className="mt-4 inline-block rounded-full bg-rust px-5 py-2.5 text-sm font-medium text-cream hover:bg-rust-600">Start</Link>
           <p className="mt-3 text-xs text-ink-light">
             Every answer saves as you type. Stop wherever you like and come back — you will land on the next unanswered question, not back at the start.
           </p>
         </div>
       )}
-      {!next && <div className="rounded-lg bg-emerald-50 p-4 text-emerald-900">Setup is done. From here the rhythm carries it: the weekly meeting, monthly scoring, monthly board output.</div>}
+      {!next && <div className="rounded-lg bg-sage-100 p-4 text-sage-900">Setup is done. From here the rhythm carries it: the weekly meeting, monthly scoring, monthly board output.</div>}
 
       {/* What they have already built, in results rather than ticks. Progress is worth feeling. */}
       {built.length > 0 && (
-        <section className="mt-6 rounded-lg border border-ink/10 bg-white p-5">
+        <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-5">
           <div className="label-caps">What you have already built</div>
           <ul className="mt-2 space-y-1.5 text-sm text-ink-light">
-            {built.map(b => <li key={b.id} className="flex gap-2"><span className="text-emerald-700">✓</span><span>{b.payoff}</span></li>)}
+            {built.map(b => <li key={b.id} className="flex gap-2"><span className="text-sage-700">✓</span><span>{b.payoff}</span></li>)}
           </ul>
           {left > 0 && <p className="mt-3 text-sm text-ink">Roughly {mins(left).replace('about ', '')} of setup left, in pieces this size.</p>}
         </section>
@@ -154,7 +154,7 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
 
       {/* Optional accelerators — offered, never owed. Nothing here blocks anything. */}
       {offers.length > 0 && (
-        <section className="mt-6 rounded-lg border border-dashed border-ink/20 bg-white p-5">
+        <section className="mt-6 rounded-lg border border-dashed border-ink/20 bg-surface p-5">
           <div className="label-caps">Optional — when you want it working harder</div>
           {offers.map(o => (
             <div key={o.id} className="mt-2">
@@ -171,7 +171,7 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
         * there is something to sharpen.
         */}
       {deepen.length > 0 && done > 0 && (
-        <section className="mt-6 rounded-lg border border-ink/10 bg-white p-5">
+        <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-5">
           <div className="label-caps">When you want to go deeper</div>
           <p className="mt-1 text-sm text-ink-light">
             None of these are needed to run SPEC. Each one makes what it tells you sharper.
@@ -192,7 +192,7 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
         * every remaining step at once is what makes a long job feel impossible; being unable to see
         * it at all is what makes it feel like a trap. So: closed, and one click from open.
         */}
-      <details className="group mt-8 rounded-lg border border-ink/10 bg-white">
+      <details className="group mt-8 rounded-lg border border-ink/10 bg-surface">
         <summary className="cursor-pointer list-none p-4 text-sm font-medium text-ink hover:text-rust">
           See the whole journey
           <span className="ml-2 font-normal text-ink-light">— {required.length} steps, start to a working board pack</span>
@@ -201,7 +201,7 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
           {[0, 1, 2, 3].map(stage => steps.some(s => s.stage === stage) && (
             <section key={stage} className="mt-5">
               <h2 className="label-caps">{STAGES[stage]}</h2>
-              <ol className="mt-2 divide-y rounded-lg border bg-white">
+              <ol className="mt-2 divide-y rounded-lg border bg-surface">
                 {steps.filter(s => s.stage === stage).map(s => (
                   <li key={s.id} className="flex items-start gap-4 p-4">
                     <span className={`mt-0.5 rounded px-2 py-0.5 text-xs font-medium ${STATUS[s.status].cls}`}>{STATUS[s.status].label}</span>
@@ -217,7 +217,7 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
           ))}
           <section className="mt-5">
             <h2 className="label-caps">{STAGES[4]}</h2>
-            <ol className="mt-2 divide-y rounded-lg border bg-white">
+            <ol className="mt-2 divide-y rounded-lg border bg-surface">
               {MILESTONES.map(m => <li key={m.when} className="flex gap-4 p-4 text-sm"><span className="w-20 shrink-0 font-medium">{m.when}</span><span className="text-ink-light">{m.what}</span></li>)}
             </ol>
           </section>

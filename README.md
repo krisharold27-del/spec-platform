@@ -30,11 +30,43 @@ Start with `CLAUDE.md` (rule book), then `docs/SPEC_Platform_Build_Plan.md` (pha
 ## Next
 Supabase Auth + Postgres + RLS for production; email invites; markdown rendering for the board output; Claude "why this KPI?" on every criterion; SOG meeting log; power meter.
 
-## Run locally (no accounts needed)
+## Run locally
+
+The app runs on Postgres, so local work needs one. **Point `DATABASE_URL` at a Postgres on your own
+machine, never at the hosted database** — `db:push` applies schema changes wherever it is aimed.
+
+Put local settings in `.env.local`, which git ignores. It takes precedence over `.env`, so the
+hosted connection string stays untouched:
+
+```
+# .env.local
+DATABASE_URL=postgres://spec:spec@127.0.0.1:5432/spec
+APP_URL=http://localhost:3000
+```
+
+On Debian or Ubuntu, a local Postgres from nothing:
+
+```
+sudo apt-get install -y postgresql
+sudo pg_ctlcluster 16 main start
+sudo -u postgres psql -c "CREATE ROLE spec LOGIN PASSWORD 'spec' SUPERUSER"
+sudo -u postgres createdb -O spec spec
+```
+
+Then:
+
 ```
 npm install
-npm run db:push     # creates data/dev.db
-npm run db:seed     # demo tenant
+npm run db:push     # apply the schema
+npm run db:seed     # demo tenant, "Acme Electrical"
 npm run dev         # http://localhost:3000
-npm test            # scoring engine vs Master Scorecard
+npm test            # the pure logic in src/lib, 133 tests
 ```
+
+`npm test` needs no database — everything in `src/lib` that carries a rule is pure and tested
+without one. Signing in needs Supabase Auth credentials (`NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`); without them the schema, the seed and the whole test suite still
+run, but the signed-in pages will bounce to `/signin`.
+
+RLS policies are applied by hand rather than by `db:push` — see the header of `drizzle/0001_rls.sql`
+for why, and run each `drizzle/*.sql` once against a new database.

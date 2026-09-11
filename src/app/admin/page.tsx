@@ -39,20 +39,20 @@ export default async function Admin() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-ink/10 bg-white">
+      <header className="border-b border-ink/10 bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <span className="font-serif text-lg font-bold tracking-tight text-ink">SPEC<span className="text-rust">.</span> <span className="label-caps align-middle">Admin</span></span>
+          <span className="font-serif text-lg tracking-tight text-ink">SPEC<span className="text-rust">.</span> <span className="label-caps align-middle">Admin</span></span>
           <span className="text-sm text-ink-light">{user.email}</span>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">
-        <h1 className="font-serif text-2xl font-bold text-ink">Accounts</h1>
+        <h1 className="font-serif text-2xl text-ink">Accounts</h1>
         <p className="mt-1 text-sm text-ink-light">{tenants.length} businesses · {rows.filter(r => r.tenant.plan === 'basic' || r.tenant.plan === 'program').length} paying. Accounts only — what is inside a business is not visible to SPEC.</p>
 
         {programRequests.length > 0 && (
           <section className="mt-6">
             <h2 className="label-caps">Program requests — call within 48h</h2>
-            <ul className="mt-2 divide-y rounded-lg border bg-white text-sm">
+            <ul className="mt-2 divide-y rounded-lg border bg-surface text-sm">
               {programRequests.map(r => (
                 <li key={r.tenant.id} className="flex items-center justify-between p-3">
                   <span><b>{r.tenant.name}</b> {r.contact && <span className="text-ink-light">· {r.contact.name} · {r.contact.email}</span>}</span>
@@ -65,7 +65,7 @@ export default async function Admin() {
 
         <section className="mt-8">
           <h2 className="label-caps">All businesses</h2>
-          <div className="mt-2 overflow-x-auto rounded-lg border bg-white">
+          <div className="mt-2 overflow-x-auto rounded-lg border bg-surface">
             <table className="w-full text-sm">
               <thead className="bg-cream text-left text-xs uppercase text-ink-light">
                 <tr><th className="p-3">Business</th><th className="p-3">Plan</th><th className="p-3">Started</th><th className="p-3">Administrator</th></tr>

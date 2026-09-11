@@ -21,10 +21,43 @@ import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, type Currency } from
 /** Per active named seat, per month, in the home currency (AUD). Other regions: see lib/pricing. */
 export const SEAT_PRICE_MONTHLY = SEAT_PRICES[HOME_CURRENCY].seat;
 
+/**
+ * The two ways to run SPEC, decided by one question to the leader — "do you want the power of AI?"
+ *
+ *   basic    — no connectors, no assistant. Every number is typed in and confirmed by a name.
+ *   advanced — systems feed the KPIs, every figure traces to where it came from, and Claude is
+ *              available on every page. AI usage is paid for through SPEC.
+ *
+ * Basic is a complete way to run the whole system, not a crippled one: no feature anywhere is
+ * reachable only by connecting something. The difference is where the numbers come from, and
+ * whether there is anything to ask.
+ */
+export type Tier = 'basic' | 'advanced';
+
+export const TIER: Record<Tier, { label: string; blurb: string; consequence: string }> = {
+  basic: {
+    label: 'SPEC Basic',
+    blurb: 'No connectors, no assistant. Every number typed in and confirmed by a named person.',
+    consequence: 'Everything still works. You enter each month’s results yourself, and every figure carries the name of whoever confirmed it.',
+  },
+  advanced: {
+    label: 'SPEC Advanced',
+    blurb: 'Systems feed the KPIs, every figure is traceable, and Claude is on every page.',
+    consequence: 'Numbers arrive on their own from the systems you already run, and you can ask about any of them. AI usage is paid for through SPEC.',
+  },
+};
+
+export const tierOf = (value: string | null | undefined): Tier => (value === 'advanced' ? 'advanced' : 'basic');
+
+/** Connectors and the assistant are the two things the tier actually gates. Nothing else. */
+export const hasConnectors = (tier: Tier) => tier === 'advanced';
+export const hasAssistant = (tier: Tier) => tier === 'advanced';
+
 export interface TenantPlan {
   id: string;
   plan: string;
   startDate: string;
+  tier?: string;
 }
 
 export interface PlanState {
@@ -47,11 +80,16 @@ export interface PlanState {
    * has not paid yet, because until they invite someone they owe nothing.
    */
   readOnly: boolean;
+  /** basic or advanced — whether connectors and the assistant are part of this business's SPEC. */
+  tier: Tier;
+  connectors: boolean;
+  assistant: boolean;
 }
 
 export function planState(tenant: TenantPlan, seats: number, currency: Currency = HOME_CURRENCY): PlanState {
   const program = tenant.plan === 'program';
   const lapsed = tenant.plan === 'lapsed';
+  const tier = tierOf(tenant.tier);
   return {
     seats,
     currency,
@@ -61,6 +99,9 @@ export function planState(tenant: TenantPlan, seats: number, currency: Currency 
     program,
     lapsed,
     readOnly: lapsed,
+    tier,
+    connectors: hasConnectors(tier),
+    assistant: hasAssistant(tier),
   };
 }
 
@@ -100,7 +141,7 @@ export async function planStateFor(tenantId: string, currency: Currency = HOME_C
   const { eq } = await import('drizzle-orm');
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, tenantId)))[0];
   if (!tenant) throw new Error('Business not found.');
-  return planState({ id: tenant.id, plan: tenant.plan, startDate: tenant.startDate }, await countSeats(tenantId), currency);
+  return planState({ id: tenant.id, plan: tenant.plan, startDate: tenant.startDate, tier: tenant.tier }, await countSeats(tenantId), currency);
 }
 
 /**

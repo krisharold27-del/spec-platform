@@ -45,3 +45,20 @@ export const STATUS_LABEL: Record<string, string> = {
   live: 'Live — numbers arriving automatically',
   broken: 'Reconnecting',
 };
+
+/**
+ * Categories the board decides on, not the GM.
+ *
+ * Anything carrying pay, personal records or the ledger. The test is what the system holds rather
+ * than which product it is — that is the whole reason SPEC reasons in categories: a business should
+ * not be able to route around board approval by using a product SPEC has never heard of.
+ */
+const SENSITIVE: CategoryId[] = ['financials', 'payroll'];
+
+export const isSensitive = (category: string): boolean =>
+  SENSITIVE.includes(category as CategoryId);
+
+/** What the board is being asked to allow, in plain words. Always read only. */
+export const SENSITIVE_NOTE =
+  'Financial and people systems go to the board with their exact data scope written on the request. '
+  + 'A business should feel that the board approved it, because the board did.';

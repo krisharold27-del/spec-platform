@@ -6,7 +6,7 @@ export default function Terms() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
       <div className="label-caps">SPEC Business Solutions</div>
-      <h1 className="mt-1 font-serif text-3xl font-bold text-ink">Terms of Service</h1>
+      <h1 className="mt-1 font-serif text-3xl text-ink">Terms of Service</h1>
       <p className="mt-2 text-sm text-ink-light">Last updated 6 September 2026.</p>
 
       <div className="prose-sm mt-8 space-y-5 text-sm leading-6 text-ink-light">

@@ -23,6 +23,16 @@ export const tenants = pgTable('tenants', {
    * honestly beats one that agrees to monthly and then doesn't sit.
    */
   boardCadence: text('board_cadence').notNull().default('monthly'), // monthly | quarterly
+  /**
+   * basic | advanced — decided by one question to the leader: "Do you want the power of AI?"
+   *
+   *   basic    — no connectors, no assistant. Every number is typed in and confirmed by a name.
+   *   advanced — systems feed the KPIs, every figure is traceable, and Claude is on every page.
+   *
+   * Defaults to `basic` because manual is a complete and permanent way to run SPEC, not a lesser
+   * one: nothing should switch itself on for a business that has not asked for it.
+   */
+  tier: text('tier').notNull().default('basic'),
 }).enableRLS();
 
 /**
@@ -141,7 +151,72 @@ export const roleAssignments = pgTable('role_assignments', {
   staffId: text('staff_id').references(() => staff.id),
   fromDate: text('from_date').notNull(),
   toDate: text('to_date'),
+  /**
+   * The training path signed off by this person's manager: trained on the job and confirmed
+   * capable in THIS role. It hangs off the placement rather than the person, so moving somebody to
+   * a different role correctly does not carry their sign-off across — which is the whole point of
+   * "trained on the role, not the software".
+   */
+  trainedAt: text('trained_at'),
+  trainedBy: text('trained_by'),
 }, t => [index('ra_role').on(t.roleId), index('ra_user').on(t.userId), index('ra_staff').on(t.staffId)]).enableRLS();
+
+/**
+ * SPEC's own training — the catalogue a business draws its role paths from.
+ *
+ * Every module is tied to a pillar, and through it to the KPIs a role is already scored on: the
+ * training exists to move a number somebody is accountable for, not to explain the software. A
+ * `core` module is one every role starts with and no manager can remove.
+ */
+export const trainingModules = pgTable('training_modules', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  title: text('title').notNull(),
+  summary: text('summary').notNull(),
+  /** safety | people | earnings | compliance | all — 'all' is a module that serves every pillar. */
+  pillar: text('pillar').notNull(),
+  minutes: integer('minutes').notNull().default(30),
+  core: boolean('core').notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
+  active: boolean('active').notNull().default(true),
+}, t => [index('training_modules_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * Which modules a role requires. Role first, person second: the path belongs to the job, and
+ * whoever holds the job inherits it. Reassigning a person never edits the path.
+ */
+export const roleCurriculum = pgTable('role_curriculum', {
+  id: text('id').primaryKey(),
+  roleId: text('role_id').notNull().references(() => roles.id),
+  moduleId: text('module_id').notNull().references(() => trainingModules.id),
+  /** Days from taking the role to when this module is due. Null means no deadline. */
+  dueDays: integer('due_days'),
+  sortOrder: integer('sort_order').notNull().default(0),
+}, t => [uniqueIndex('role_curriculum_unique').on(t.roleId, t.moduleId), index('role_curriculum_role').on(t.roleId)]).enableRLS();
+
+/**
+ * One person's progress through one module.
+ *
+ * Progress is the person's — somebody learns a thing once — while WHICH modules count is the
+ * role's, resolved through the path above. That split is what lets a path be reported by role
+ * without making a person re-sit the same module every time the chart changes.
+ */
+export const trainingRecords = pgTable('training_records', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  moduleId: text('module_id').notNull().references(() => trainingModules.id),
+  userId: text('user_id').references(() => users.id),
+  staffId: text('staff_id').references(() => staff.id),
+  /** 0–100. 100 is complete; anything between is started and not finished. */
+  progress: integer('progress').notNull().default(0),
+  /** The mark, where the module carries one. Null is "no mark", never zero. */
+  resultPct: integer('result_pct'),
+  startedAt: text('started_at'),
+  completedAt: text('completed_at'),
+}, t => [
+  uniqueIndex('training_records_user_module').on(t.userId, t.moduleId),
+  index('training_records_tenant').on(t.tenantId),
+]).enableRLS();
 
 export const criteria = pgTable('criteria', {
   id: text('id').primaryKey(),
@@ -160,7 +235,19 @@ export const periods = pgTable('assessment_periods', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),
   period: text('period').notNull(),          // YYYY-MM
-  status: text('status').notNull().default('open'), // open | locked
+  /**
+   * open | submitted | locked.
+   *
+   * `submitted` is the month handed up for sign-off: still editable by whoever has to correct
+   * something, but declared finished by the person accountable for it. Locking is a separate,
+   * deliberate act — a person's decision, never a date.
+   */
+  status: text('status').notNull().default('open'),
+  submittedBy: text('submitted_by'),
+  submittedAt: text('submitted_at'),
+  /** Signed by the board, or by whoever sits at the top of the chart where there is no board seat. */
+  signedBy: text('signed_by'),
+  signedAt: text('signed_at'),
 }, t => [uniqueIndex('periods_tenant_period').on(t.tenantId, t.period)]).enableRLS();
 
 // Append-only per period. Locked periods are never edited.
@@ -181,6 +268,25 @@ export const assessments = pgTable('assessments', {
   enteredAt: text('entered_at').notNull(),
 }, t => [uniqueIndex('assessments_unique').on(t.periodId, t.roleId, t.criterionId)]).enableRLS();
 
+/**
+ * The conversation on a month's card, per role.
+ *
+ * A score without its reasoning is a number somebody has to take on trust. Comments travel with the
+ * month to sign-off and into the board pack, which is why they are kept against the period rather
+ * than against the role: what was said in August belongs to August.
+ */
+export const scorecardComments = pgTable('scorecard_comments', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  roleId: text('role_id').notNull().references(() => roles.id),
+  periodId: text('period_id').notNull().references(() => periods.id),
+  /** The name and title as they stood when it was written. History is not re-signed. */
+  author: text('author').notNull(),
+  authorUserId: text('author_user_id').references(() => users.id),
+  body: text('body').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [index('scorecard_comments_role_period').on(t.roleId, t.periodId)]).enableRLS();
+
 export const gates = pgTable('gates', {
   id: text('id').primaryKey(),
   periodId: text('period_id').notNull().references(() => periods.id),
@@ -189,6 +295,61 @@ export const gates = pgTable('gates', {
   pass: boolean('pass').notNull(),
   reason: text('reason'),
 }, t => [uniqueIndex('gates_unique').on(t.periodId, t.gate)]).enableRLS();
+
+/**
+ * Things one person has asked another to decide.
+ *
+ * Only the ones that genuinely need a record live here — a board approving a sensitive connector,
+ * money, a target being renegotiated. Everything else on the approvals queue is DERIVED from the
+ * state it is about: a month waiting to be signed is a period with status `submitted`, not a row
+ * somebody remembered to create. Deriving what can be derived is what stops the queue drifting out
+ * of step with the business.
+ */
+export const approvals = pgTable('approvals', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** connection | spend | kpi_change | other — what kind of decision this is. */
+  kind: text('kind').notNull(),
+  title: text('title').notNull(),
+  /** Exactly what is being asked for, including the data scope where one applies. */
+  detail: text('detail').notNull(),
+  /** What is held up while this waits. An approval with no consequence is not urgent, and says so. */
+  blocks: text('blocks'),
+  /** The level entitled to decide: board | administrator | manager. */
+  decidedByLevel: text('decided_by_level').notNull().default('board'),
+  requestedBy: text('requested_by').notNull(),
+  requestedAt: text('requested_at').notNull(),
+  state: text('state').notNull().default('waiting'), // waiting | approved | declined
+  decidedBy: text('decided_by'),
+  decidedAt: text('decided_at'),
+  /** Free-form id of whatever this is about — a connection, a role. Never dereferenced blindly. */
+  refId: text('ref_id'),
+}, t => [index('approvals_tenant_state').on(t.tenantId, t.state)]).enableRLS();
+
+/**
+ * Somebody being considered for a role.
+ *
+ * Rated against the same four pillars the role is scored on, because the alternative is a gut feel
+ * nobody can defend three months later — and because hiring against the pillars is what makes the
+ * scorecard mean something on day one rather than at the first review.
+ *
+ * Deliberately thin. SPEC is not an applicant tracking system; this is enough to know who is in
+ * front of you, against which role, and on what evidence.
+ */
+export const candidates = pgTable('candidates', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  roleId: text('role_id').notNull().references(() => roles.id),
+  name: text('name').notNull(),
+  /** applied | screening | interview | offer | placed | declined */
+  stage: text('stage').notNull().default('applied'),
+  /** 1–5 against each pillar, as JSON {safety,people,earnings,compliance}. Null until rated. */
+  ratings: text('ratings'),
+  /** What was actually checked — a licence, a ticket, a right to work. The business's own words. */
+  checks: text('checks'),
+  note: text('note'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('candidates_tenant_role').on(t.tenantId, t.roleId)]).enableRLS();
 
 export const diagnostics = pgTable('diagnostics', {
   id: text('id').primaryKey(),
@@ -206,7 +367,18 @@ export const meetings = pgTable('meetings', {
   type: text('type').notNull(),              // sog | board
   date: text('date').notNull(),
   minutes: text('minutes'),
-  actions: text('actions'),                  // JSON [{text, owner, due, done}]
+  actions: text('actions'),                  // JSON [{id, text, owner, due, done, pillar}]
+  /**
+   * Who was in the room, as JSON names. Attendance is part of whether the meeting happened at all:
+   * a senior meeting the senior group did not attend is a note, not a meeting.
+   */
+  attendees: text('attendees'),              // JSON [name]
+  /**
+   * What was decided, as JSON [{text, who, at}]. Kept separately from the minutes because a
+   * decision outlives the week it was made in — "decisions nobody remembers" is the thing the
+   * rhythm exists to fix.
+   */
+  decisions: text('decisions'),
 }).enableRLS();
 
 export const boardOutputs = pgTable('board_outputs', {

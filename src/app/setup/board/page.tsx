@@ -38,10 +38,10 @@ export default async function BoardSetup({ searchParams }: { searchParams: Promi
       title="How your board runs"
       subtitle="The board is the fourth audience on the same data. This decides how often it sits and who sits on it — both reported in Compliance every period."
     >
-      {error && <div className="mb-4 rounded-lg border-l-4 border-amber-400 bg-white p-4 text-sm">{error}</div>}
-      {sp.saved && <div className="mb-4 rounded-lg border-l-4 border-emerald-500 bg-emerald-50 p-4 text-sm text-emerald-900">Saved.</div>}
+      {error && <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">{error}</div>}
+      {sp.saved && <div className="mb-4 rounded-lg border-l-4 border-sage-600 bg-sage-100 p-4 text-sm text-sage-900">Saved.</div>}
 
-      <section className="rounded-lg border border-ink/10 bg-white p-5">
+      <section className="rounded-lg border border-ink/10 bg-surface p-5">
         <div className="label-caps">How often does the board sit?</div>
         <form action={setCadence} className="mt-3 space-y-3">
           {(Object.keys(CADENCE) as Cadence[]).map(k => (
@@ -57,7 +57,7 @@ export default async function BoardSetup({ searchParams }: { searchParams: Promi
         </form>
       </section>
 
-      <section className="mt-6 rounded-lg border border-ink/10 bg-white p-5">
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-5">
         <div className="label-caps">Directors</div>
         {directors.filter(d => d.active).length > 0 ? (
           <ul className="mt-2 divide-y divide-ink/10">
@@ -88,7 +88,7 @@ export default async function BoardSetup({ searchParams }: { searchParams: Promi
         </p>
       </section>
 
-      <section className="mt-6 rounded-lg border border-ink/10 bg-white p-5">
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-5">
         <div className="label-caps">Board meetings</div>
         {meetings.length > 0 ? (
           <ul className="mt-2 divide-y divide-ink/10">
@@ -108,7 +108,7 @@ export default async function BoardSetup({ searchParams }: { searchParams: Promi
         </form>
       </section>
 
-      <section className="mt-6 rounded-lg border border-ink/10 bg-white p-5">
+      <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-5">
         <div className="label-caps">What the board pack will say</div>
         <ul className="mt-2 divide-y divide-ink/10">
           {checks.map(c => (

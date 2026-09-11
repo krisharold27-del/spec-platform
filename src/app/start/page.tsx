@@ -10,10 +10,10 @@ const ASK: Record<string, string> = {
 
 export default function Start() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-surface">
       <div className="mx-auto max-w-3xl px-6 py-16">
         <div className="label-caps">SPEC Business Solutions</div>
-        <h1 className="mt-2 font-serif text-4xl font-bold tracking-tight text-ink">Four questions. Answer honestly.</h1>
+        <h1 className="mt-2 font-serif text-4xl tracking-tight text-ink">Four questions. Answer honestly.</h1>
         <p className="mt-3 text-lg text-ink-light">Effort is never the problem — your business works hard. The gap is unsolved problems. Yes to any of these and you need this system. Then you learn why. We can help with that.</p>
         <form action="/signup" method="get" className="mt-10 space-y-4">
           {PILLARS.map(p => (

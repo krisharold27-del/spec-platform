@@ -55,3 +55,34 @@ export async function saveScorecard(formData: FormData) {
   }
   revalidatePath('/'); revalidatePath('/team'); revalidatePath(`/scorecard/${roleId}`);
 }
+
+/**
+ * Add a comment to a role's month.
+ *
+ * Comments travel with the month to sign-off and into the board pack, so they are kept against the
+ * period rather than the role: what was said in August belongs to August. Anybody entitled to SEE
+ * the card may comment on it — a readonly seat comments on its own month by design — but a locked
+ * month takes no new comment, because nothing rewrites a closed period.
+ */
+export async function addComment(formData: FormData) {
+  const user = await getCurrentUser(); if (!user) redirect('/signin');
+  const roleId = String(formData.get('roleId'));
+  const periodId = String(formData.get('periodId'));
+  const body = String(formData.get('body') ?? '').trim();
+  if (!body) return;
+
+  await assertWritable(user.tenantId);
+  const scope = await getScope(user);
+  if (!scope.canSee(roleId)) throw new Error('That card is not yours to comment on.');
+
+  const [period] = await db.select().from(schema.periods)
+    .where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId)));
+  if (!period || period.status === 'locked') throw new Error('That month is locked. Corrections are dated amendments in the next one.');
+
+  await db.insert(schema.scorecardComments).values({
+    id: randomUUID(), tenantId: user.tenantId, roleId, periodId,
+    author: user.name, authorUserId: user.id, body,
+    createdAt: new Date().toISOString(),
+  });
+  revalidatePath(`/scorecard/${roleId}`);
+}

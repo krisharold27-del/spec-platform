@@ -50,6 +50,11 @@ export async function getRoles(tenantId: string): Promise<RoleView[]> {
 
 export interface ScorecardRow {
   criterionId: string; pillar: Pillar; text: string; weight: number; kpi: boolean; target: string | null;
+  /**
+   * What SPEC opened with, before anybody agreed it. Carried beside `target` rather than folded
+   * into it: a number the business has not agreed must never read as one it signed up to.
+   */
+  proposedTarget: string | null;
   answer: Answer; note: string | null;
   /** The label the business uses — see lib/status. `answer` remains the scoring value. */
   status: string | null;
@@ -74,6 +79,7 @@ export async function getScorecard(roleId: string, periodId: string): Promise<{ 
     !a ? '' : !locked && a.status ? answerFor(a.status) : (a.answer as Answer);
   const rows: ScorecardRow[] = crit.map(c => ({
     criterionId: c.id, pillar: c.pillar as Pillar, text: c.text, weight: c.weight, kpi: c.kpi, target: c.target,
+    proposedTarget: c.proposedTarget,
     answer: answerOf(byId.get(c.id)), note: byId.get(c.id)?.note ?? null,
     status: byId.get(c.id)?.status ?? null,
     result: byId.get(c.id)?.result ?? null,

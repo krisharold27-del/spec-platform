@@ -20,20 +20,20 @@ export default async function KpiSetup({ searchParams }: { searchParams: Promise
   return (
     <Shell title="KPIs per role" subtitle="Two per pillar. Weights sum to 100%. Targets are negotiated — the proposed figure stays on record.">
       <nav className="flex flex-wrap gap-2 text-sm">
-        {roles.map(r => <a key={r.id} href={`/setup/kpis?role=${r.id}`} className={`rounded-full border px-3 py-1 ${r.id === role.id ? 'bg-rust text-white' : 'bg-white'}`}>{r.title}</a>)}
+        {roles.map(r => <a key={r.id} href={`/setup/kpis?role=${r.id}`} className={`rounded-full border px-3 py-1 ${r.id === role.id ? 'bg-rust text-cream' : 'bg-surface'}`}>{r.title}</a>)}
       </nav>
-      {sp.err && <p className="mt-4 rounded bg-red-50 p-3 text-sm text-red-900">Not saved — weights must sum to 100% in every pillar. {sp.err}.</p>}
-      {sp.saved && <p className="mt-4 rounded bg-emerald-50 p-3 text-sm text-emerald-900">Saved.</p>}
+      {sp.err && <p className="mt-4 rounded bg-rust-100 p-3 text-sm text-rust-800">Not saved — weights must sum to 100% in every pillar. {sp.err}.</p>}
+      {sp.saved && <p className="mt-4 rounded bg-sage-100 p-3 text-sm text-sage-900">Saved.</p>}
       <form action={saveCriteria} className="mt-4">
         <input type="hidden" name="roleId" value={role.id} />
         {PILLARS.map(p => {
           const rows = crit.filter(c => c.pillar === p);
           const slots = [...rows, ...Array(Math.max(0, 2 - rows.length)).fill(null)];
           return (
-            <div key={p} className="mt-4 overflow-hidden rounded-lg border border-ink/10 bg-white">
+            <div key={p} className="mt-4 overflow-hidden rounded-lg border border-ink/10 bg-surface">
               <div className="flex items-center gap-2 border-b border-ink/10 bg-cream/50 px-4 py-2.5">
                 <Badge pillar={p} />
-                <div className="font-serif text-base font-bold text-ink">{PILLAR_META[p].name}</div>
+                <div className="font-serif text-base text-ink">{PILLAR_META[p].name}</div>
                 <span className="text-xs text-ink-light">— {PILLAR_META[p].question}</span>
               </div>
               <table className="w-full text-sm">
@@ -56,7 +56,7 @@ export default async function KpiSetup({ searchParams }: { searchParams: Promise
             </div>
           );
         })}
-        <button className="mt-4 rounded-lg bg-rust px-5 py-2 text-white hover:bg-rust-dark">Save {role.title} KPIs</button>
+        <button className="mt-4 rounded-full bg-rust px-5 py-2 text-cream hover:bg-rust-600">Save {role.title} KPIs</button>
         <span className="ml-4 text-sm text-ink-light">Leave a row blank to drop it. Clearing a criterion's text removes it.</span>
       </form>
       <p className="mt-6 text-sm"><a href="/journey" className="underline">Back to the journey</a></p>

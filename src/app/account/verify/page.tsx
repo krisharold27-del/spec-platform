@@ -16,12 +16,12 @@ export default async function Verify({ searchParams }: { searchParams: Promise<{
       <div className="label-caps">SPEC</div>
       {sp.sent ? (
         <>
-          <h1 className="mt-1 font-serif text-2xl font-bold text-ink">Check your email</h1>
+          <h1 className="mt-1 font-serif text-2xl text-ink">Check your email</h1>
           <p className="mt-3 text-sm text-ink-light">Click the link and you&apos;re straight back here.</p>
         </>
       ) : (
         <>
-          <h1 className="mt-1 font-serif text-2xl font-bold text-ink">One quick check</h1>
+          <h1 className="mt-1 font-serif text-2xl text-ink">One quick check</h1>
           <p className="mt-3 text-sm text-ink-light">Before you add people, confirm {user.email} is yours. Once only.</p>
           {sp.error && <p className="mt-3 text-sm text-rust-dark">{sp.error === 'ratelimited' ? 'One was sent a moment ago. Check your email.' : "That didn't send. Try again."}</p>}
           <form action={sendConfirmLink} className="mt-6">

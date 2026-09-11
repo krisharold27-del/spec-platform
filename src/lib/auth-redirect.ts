@@ -7,7 +7,11 @@
  */
 import type { EmailOtpType } from '@supabase/supabase-js';
 
-export const DEFAULT_AFTER_SIGN_IN = '/journey';
+/**
+ * Everybody starts their work day on Today. Someone who does not hold a role yet is sent on to the
+ * journey by that page itself, so a business still being built lands where it actually is.
+ */
+export const DEFAULT_AFTER_SIGN_IN = '/today';
 
 export function safeNext(next: string | null | undefined, fallback = DEFAULT_AFTER_SIGN_IN): string {
   if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) return fallback;

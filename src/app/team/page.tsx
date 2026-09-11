@@ -15,13 +15,13 @@ export default async function TeamRollup() {
   if (!period) {
     return (
       <Shell title="My team" subtitle="Not scoring yet">
-        <div className="rounded-lg border-l-4 border-rust bg-white p-5 text-sm">
+        <div className="rounded-lg border-l-4 border-rust bg-surface p-5 text-sm">
           <div className="font-medium text-ink">Your dashboard opens as soon as a role has its KPIs</div>
           <p className="mt-1 text-ink-light">
             Every role needs two numbers per pillar — Safety, People, Earnings, Compliance. Set them for
             one role and this page fills in. Building the business and setting the KPIs is free.
           </p>
-          <Link href="/setup/kpis" className="mt-3 inline-block rounded-lg bg-rust px-4 py-2 text-sm text-white hover:bg-rust-dark">Set the KPIs</Link>
+          <Link href="/setup/kpis" className="mt-3 inline-block rounded-full bg-rust px-4 py-2 text-sm text-cream hover:bg-rust-600">Set the KPIs</Link>
         </div>
       </Shell>
     );
@@ -36,12 +36,12 @@ export default async function TeamRollup() {
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {PILLARS.map(p => <PillarTile key={p} pillar={p} score={rollup.team.pillars[p]} scored={scoredRoles.length > 0} sub="Target 90%" />)}
       </section>
-      <h2 className="mt-10 font-serif text-lg font-bold text-ink">By role</h2>
+      <h2 className="mt-10 font-serif text-lg text-ink">By role</h2>
       <div className="mt-3 grid gap-4 md:grid-cols-2">
         {rollup.roles.map(({ role, rows, score }) => {
           const scored = rows.some(r => r.answer !== '');
           return (
-            <Link key={role.id} href={`/scorecard/${role.id}`} className="rounded-lg border bg-white p-4 hover:border-rust/40">
+            <Link key={role.id} href={`/scorecard/${role.id}`} className="rounded-lg border bg-surface p-4 hover:border-rust/40">
               <div className="flex items-baseline justify-between">
                 <div className="font-medium">{role.title}</div>
                 <div className="text-sm text-ink-light">{role.holder?.name ?? 'vacant'}</div>

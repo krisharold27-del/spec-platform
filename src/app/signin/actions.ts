@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { signInWithPassword, signOut } from '@/lib/auth';
+import { DEFAULT_AFTER_SIGN_IN } from '@/lib/auth-redirect';
 import { createThrottle } from '@/lib/throttle';
 
 // Ten tries per address per network in fifteen minutes — plenty for a person, useless for guessing.
@@ -17,7 +18,7 @@ export async function signIn(formData: FormData) {
   if (!attempts.allow(`${ip}|${email}`)) redirect('/signin?error=wait');
 
   if (!(await signInWithPassword(email, password))) redirect('/signin?error=wrong');
-  redirect('/journey');
+  redirect(DEFAULT_AFTER_SIGN_IN);
 }
 
 export async function doSignOut() { await signOut(); redirect('/signin'); }

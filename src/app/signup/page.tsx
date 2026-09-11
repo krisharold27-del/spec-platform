@@ -24,7 +24,7 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<R
   return (
     <main className="mx-auto max-w-sm px-6 py-20">
       <div className="label-caps">SPEC</div>
-      <h1 className="mt-1 font-serif text-2xl font-bold text-ink">Set up your business</h1>
+      <h1 className="mt-1 font-serif text-2xl text-ink">Set up your business</h1>
       {error && <p className="mt-4 text-sm text-rust-dark">{error}</p>}
       <form action={signUp} className="relative mt-6 space-y-3">
         <input type="hidden" name="form_token" value={issueFormToken(formSecret())} />
