@@ -130,6 +130,56 @@ export default function Pricing() {
           </div>
         </section>
 
+        {/*
+          The J curve as a named principle. Marketing, but the same discipline as everywhere else:
+          the mechanism is stated so it can be checked, and the page says plainly which tier it
+          applies to. Inside the product, /curve measures whether it actually happened.
+        */}
+        <section className="mt-12">
+          <h2 className="font-serif text-2xl text-ink">The shallow J curve</h2>
+          <p className="mt-2 max-w-2xl text-base text-ink-light">
+            Every transformation dips before it climbs. The dip is normally deep, and the reason is
+            almost never the work — it is discovery. Weeks of interviews, spreadsheet archaeology and
+            waiting on month end, during which nothing improves because nothing is visible yet.
+          </p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            <div className="card">
+              <div className="label-caps">The usual shape</div>
+              <p className="mt-2 text-sm text-ink-light">
+                Most of a quarter spent working out what is actually wrong. The business is paying for
+                the engagement and for the disruption, and getting a picture in return.
+              </p>
+            </div>
+            <div className="card" style={{ borderTopColor: '#4f7a3f', borderTopWidth: 4 }}>
+              <div className="label-caps">What changes it</div>
+              <p className="mt-2 text-sm text-ink-light">
+                Your systems already hold the picture. When they feed the KPIs, discovery collapses to
+                the day they connect — there is nothing left to find out.
+              </p>
+            </div>
+            <div className="card">
+              <div className="label-caps">What is left</div>
+              <p className="mt-2 text-sm text-ink-light">
+                Execution. Getting people to do their jobs properly against numbers everybody can already
+                see. That was always the part that moved anything.
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 max-w-2xl text-sm text-ink-light">
+            This is a deliberate feature rather than a happy accident, so SPEC measures it: inside the
+            product, every business sees its own curve — how long its discovery actually lasted, how deep
+            the dip went, and when it reached the standard. Including when that was slower than it should
+            have been.
+          </p>
+          <p className="mt-3 max-w-2xl text-sm text-ink-light">
+            It is worth being exact about which half of the price list this applies to.{' '}
+            <b className="text-ink">The collapse is caused by connectors, so it happens on Advanced and not
+            on Basic.</b>{' '}
+            Basic is a complete way to run the whole system and it is not a shallow J curve, and saying
+            otherwise would make every other number here worth less.
+          </p>
+        </section>
+
         <section className="card mt-12">
           <h2 className="font-serif text-xl text-ink">If you stop paying</h2>
           <p className="mt-2 text-sm text-ink-light">

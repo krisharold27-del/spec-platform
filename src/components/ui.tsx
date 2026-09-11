@@ -41,6 +41,8 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
                   { href: '/me', label: 'My scorecard' },
                   { href: '/team', label: 'Team roll-up' },
                   { href: '/people', label: 'People' },
+                  { href: '/boards', label: 'Conversation boards' },
+                  { href: '/curve', label: 'Your J curve' },
                   { href: '/training', label: 'Training' },
                   { href: '/connections', label: 'Connections' },
                   { href: '/setup', label: 'Setting up' },
