@@ -235,7 +235,19 @@ export const periods = pgTable('assessment_periods', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),
   period: text('period').notNull(),          // YYYY-MM
-  status: text('status').notNull().default('open'), // open | locked
+  /**
+   * open | submitted | locked.
+   *
+   * `submitted` is the month handed up for sign-off: still editable by whoever has to correct
+   * something, but declared finished by the person accountable for it. Locking is a separate,
+   * deliberate act — a person's decision, never a date.
+   */
+  status: text('status').notNull().default('open'),
+  submittedBy: text('submitted_by'),
+  submittedAt: text('submitted_at'),
+  /** Signed by the board, or by whoever sits at the top of the chart where there is no board seat. */
+  signedBy: text('signed_by'),
+  signedAt: text('signed_at'),
 }, t => [uniqueIndex('periods_tenant_period').on(t.tenantId, t.period)]).enableRLS();
 
 // Append-only per period. Locked periods are never edited.
@@ -256,6 +268,25 @@ export const assessments = pgTable('assessments', {
   enteredAt: text('entered_at').notNull(),
 }, t => [uniqueIndex('assessments_unique').on(t.periodId, t.roleId, t.criterionId)]).enableRLS();
 
+/**
+ * The conversation on a month's card, per role.
+ *
+ * A score without its reasoning is a number somebody has to take on trust. Comments travel with the
+ * month to sign-off and into the board pack, which is why they are kept against the period rather
+ * than against the role: what was said in August belongs to August.
+ */
+export const scorecardComments = pgTable('scorecard_comments', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  roleId: text('role_id').notNull().references(() => roles.id),
+  periodId: text('period_id').notNull().references(() => periods.id),
+  /** The name and title as they stood when it was written. History is not re-signed. */
+  author: text('author').notNull(),
+  authorUserId: text('author_user_id').references(() => users.id),
+  body: text('body').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [index('scorecard_comments_role_period').on(t.roleId, t.periodId)]).enableRLS();
+
 export const gates = pgTable('gates', {
   id: text('id').primaryKey(),
   periodId: text('period_id').notNull().references(() => periods.id),
@@ -264,6 +295,36 @@ export const gates = pgTable('gates', {
   pass: boolean('pass').notNull(),
   reason: text('reason'),
 }, t => [uniqueIndex('gates_unique').on(t.periodId, t.gate)]).enableRLS();
+
+/**
+ * Things one person has asked another to decide.
+ *
+ * Only the ones that genuinely need a record live here — a board approving a sensitive connector,
+ * money, a target being renegotiated. Everything else on the approvals queue is DERIVED from the
+ * state it is about: a month waiting to be signed is a period with status `submitted`, not a row
+ * somebody remembered to create. Deriving what can be derived is what stops the queue drifting out
+ * of step with the business.
+ */
+export const approvals = pgTable('approvals', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** connection | spend | kpi_change | other — what kind of decision this is. */
+  kind: text('kind').notNull(),
+  title: text('title').notNull(),
+  /** Exactly what is being asked for, including the data scope where one applies. */
+  detail: text('detail').notNull(),
+  /** What is held up while this waits. An approval with no consequence is not urgent, and says so. */
+  blocks: text('blocks'),
+  /** The level entitled to decide: board | administrator | manager. */
+  decidedByLevel: text('decided_by_level').notNull().default('board'),
+  requestedBy: text('requested_by').notNull(),
+  requestedAt: text('requested_at').notNull(),
+  state: text('state').notNull().default('waiting'), // waiting | approved | declined
+  decidedBy: text('decided_by'),
+  decidedAt: text('decided_at'),
+  /** Free-form id of whatever this is about — a connection, a role. Never dereferenced blindly. */
+  refId: text('ref_id'),
+}, t => [index('approvals_tenant_state').on(t.tenantId, t.state)]).enableRLS();
 
 export const diagnostics = pgTable('diagnostics', {
   id: text('id').primaryKey(),

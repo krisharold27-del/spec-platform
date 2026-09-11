@@ -1,21 +1,12 @@
 import Link from 'next/link';
 import { band, type Pillar, type Score } from '@/lib/scoring';
 import { myBusinesses } from '@/lib/auth';
+import { PILLAR_META, pct } from '@/lib/pillars';
 
-/**
- * Colours match the `safety` / `people` / `earnings` / `compliance` tokens in tailwind.config.ts —
- * repeated as hex here only because these are used in inline styles, which Tailwind cannot generate
- * from a dynamic value. Change them in both places or in neither.
- */
-export const PILLAR_META: Record<Pillar, { name: string; letter: string; colour: string; question: string }> = {
-  safety:     { name: 'Safety',     letter: 'S', colour: '#b2622d', question: 'Are we going well in Safety?' },
-  people:     { name: 'People',     letter: 'P', colour: '#728157', question: 'Does everyone love coming to work?' },
-  earnings:   { name: 'Earnings',   letter: 'E', colour: '#a67c1a', question: 'Are we making money?' },
-  compliance: { name: 'Compliance', letter: 'C', colour: '#7d5068', question: 'Are we clear to work?' },
-};
+// Re-exported so existing pages keep importing them from here; they live in lib/pillars because a
+// client component must be able to reach them without pulling the server's request context in too.
+export { PILLAR_META, pct };
 
-/** No score renders as a dash, never as 0%. */
-export const pct = (n: number | null) => (n === null ? '—' : `${Math.round(n * 100)}%`);
 
 export async function Shell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   // Only someone with more than one business ever sees a way to switch.
@@ -30,6 +21,8 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
           <nav className="flex items-center gap-5 label-caps">
             <Link href="/today" className="hover:text-rust">Today</Link>
             <Link href="/meeting" className="hover:text-rust">Weekly meeting</Link>
+            <Link href="/inbox" className="hover:text-rust">Approvals</Link>
+            <Link href="/scoring" className="hover:text-rust">Monthly scoring</Link>
             <Link href="/journey" className="hover:text-rust">Journey</Link>
             <Link href="/" className="hover:text-rust">Executive summary</Link>
             <Link href="/org" className="hover:text-rust">Org chart</Link>
