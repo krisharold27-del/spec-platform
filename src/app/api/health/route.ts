@@ -13,6 +13,7 @@
  * `select 1`: it reads no table.
  */
 import { NextResponse } from 'next/server';
+import { checkSchema, driftLine } from '@/lib/schema-check';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,9 +66,21 @@ async function checkDatabase(): Promise<DatabaseCheck> {
 export async function GET() {
   const missing = REQUIRED.filter(k => !present(k));
   const database = await checkDatabase();
-  const ok = missing.length === 0 && database.status === 'ok';
+
+  /*
+    A deploy can succeed, the app can start, `select 1` can pass, and the product can still be
+    broken — because the build shipped with a column the database has not been given yet. That is
+    a 500 on some pages and silence on the others, and it is the failure this endpoint exists to
+    name. Only worth asking once the connection itself works.
+  */
+  const shape = database.status === 'ok' ? await checkSchema() : null;
+
+  const ok = missing.length === 0 && database.status === 'ok' && shape?.status === 'ok';
   const body = {
     ok,
+    schema: shape
+      ? { ...shape, says: shape.status === 'behind' ? driftLine(shape) : undefined }
+      : { status: 'not_checked', says: 'The database was not reachable, so its shape was not read.' },
     // Names only. Never a value, never a prefix, never a length.
     required: Object.fromEntries(REQUIRED.map(k => [k, present(k)])),
     optional: Object.fromEntries(OPTIONAL.map(k => [k, present(k)])),
