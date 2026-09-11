@@ -1,0 +1,121 @@
+# Nothing reaches production without passing this.
+#
+# The repository had no automated checks at all, which meant every safeguard was somebody
+# remembering to run it by hand. That is how a broken build reached production on 11 September:
+# the change was verified locally, against a database, with the dev dependencies installed — none
+# of which is what the deploy environment actually looks like.
+#
+# So this deliberately reproduces the conditions that broke, rather than the conditions that work:
+# it builds once with NO database, and once against a real empty one to prove the deploy-time
+# migration creates the schema from nothing. Then it starts the built app and asks it for pages,
+# because "it compiled" and "it serves" are different claims and only the second one matters.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push makes an older run pointless. Never cancel on main — those runs are the record of
+# what was actually shipped.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: spec
+          POSTGRES_PASSWORD: spec
+          POSTGRES_DB: spec_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Tests
+        run: npx vitest run
+
+      # The exact shape of the failure that took production down. The public pages need no
+      # database, so a build without one has to succeed — if this step ever fails, the marketing
+      # site would have gone down over a missing setting.
+      - name: Build with no database configured
+        run: npm run build
+        env:
+          DATABASE_URL: ''
+
+      # Proves the deploy-time migration can build the schema from nothing, which is what a new
+      # environment looks like on its first deploy.
+      - name: Build against an empty database, migrating it
+        run: npm run build
+        env:
+          DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
+
+      # Running it twice proves the migration is idempotent — every deploy after the first is this.
+      - name: Build again, to prove the migration repeats safely
+        run: npm run build
+        env:
+          DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
+
+      # "It compiled" and "it serves" are different claims. This is the one that matters, and it is
+      # the check that would have caught every failure this project has had.
+      - name: Start it and check it actually serves
+        env:
+          DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
+          APP_URL: http://localhost:3000
+        run: |
+          npm start &
+          for i in $(seq 1 30); do
+            curl -fsS -o /dev/null http://localhost:3000/welcome && break
+            sleep 2
+          done
+
+          fail=0
+          # The public pages: these must serve with no sign-in and no Supabase configured at all.
+          for path in /welcome /how /sectors /pricing; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$path")
+            echo "$path -> $code"
+            [ "$code" = "200" ] || fail=1
+          done
+
+          # A signed-out visitor must be redirected, never shown an error.
+          code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/today")
+          echo "/today (signed out) -> $code"
+          case "$code" in 200|30[0-9]) ;; *) fail=1 ;; esac
+
+          # The database was migrated by the build above, so the schema check must pass.
+          echo "--- /api/health ---"
+          curl -s http://localhost:3000/api/health | tee /tmp/health.json
+          echo
+          node -e '
+            const h = require("/tmp/health.json");
+            if (h.schema?.status !== "ok") {
+              console.error("Schema is not ok after the build migrated it:", JSON.stringify(h.schema));
+              process.exit(1);
+            }
+            console.log("schema ok:", h.schema.tables, "tables");
+          ' || fail=1
+
+          exit $fail
