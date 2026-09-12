@@ -190,3 +190,8 @@ jobs:
           # is waiting, with this problem already sitting in the middle of it" -- so the last
           # check is whether the thing they typed on a public page is really there afterwards.
           node scripts/frontdoor-journey.mjs
+
+          # Taking a seat somebody gave you -- the other half of the way in, and the one that
+          # reaches every person in a customer's business except the owner. Single use,
+          # expiring, bound to that address, and a refusal that never says "invalid token".
+          node scripts/seat-journey.mjs

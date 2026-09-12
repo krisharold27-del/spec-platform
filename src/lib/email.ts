@@ -11,6 +11,7 @@
  * board-output.ts without ANTHROPIC_API_KEY.
  */
 import { Resend } from 'resend';
+import { seatUrl, SEAT_TOKEN_DAYS } from './seat';
 
 const key = process.env.RESEND_API_KEY;
 const resend = key ? new Resend(key) : null;
@@ -52,13 +53,28 @@ export async function sendSignInEmail(opts: { to: string; url: string; subject?:
 
 const wrap = (body: string) => `<div style="font-family:sans-serif;font-size:15px;line-height:1.5;color:#0f172a;max-width:520px">${body}</div>`;
 
-export async function sendInviteEmail(opts: { to: string; name: string; businessName: string; roleTitle: string }) {
-  const url = `${appUrl()}/signin`;
+/**
+ * Take your seat.
+ *
+ * Two things were wrong with this email and both would have met every invited person.
+ *
+ * It linked to a bare `/signin`, which the engine does not allow: the invitation has to be single
+ * use, expiring and bound to one address (designs/the-rules.md §11). It now carries a seat token
+ * that is all three.
+ *
+ * And it promised "a one-time link, no password needed" — which stopped being true when sign-up
+ * moved to email and password. It described a way in that no longer exists, to somebody who has
+ * never seen the product and has no way of telling which of us is wrong.
+ */
+export async function sendInviteEmail(opts: {
+  to: string; name: string; businessName: string; roleTitle: string; token: string;
+}) {
+  const url = seatUrl(appUrl(), opts.token);
   await send(
     opts.to,
-    `You've been added to ${opts.businessName} on SPEC`,
-    wrap(`<p>Hi ${opts.name},</p><p>You've been assigned the <b>${opts.roleTitle}</b> role at <b>${opts.businessName}</b> on SPEC.</p><p><a href="${url}">Sign in</a> with this email address (${opts.to}) — we'll send you a one-time link, no password needed.</p>`),
-    `Hi ${opts.name},\n\nYou've been assigned the ${opts.roleTitle} role at ${opts.businessName} on SPEC.\n\nSign in at ${url} with this email address (${opts.to}) — we'll send you a one-time link, no password needed.`,
+    `Take your seat at ${opts.businessName} on SPEC`,
+    wrap(`<p>Hi ${opts.name},</p><p>You've been given the <b>${opts.roleTitle}</b> role at <b>${opts.businessName}</b> on SPEC.</p><p><a href="${url}" style="display:inline-block;background:#B5502F;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Take your seat</a></p><p style="color:#64748b;font-size:13px">The link is yours alone and works once, for ${SEAT_TOKEN_DAYS} days. You'll choose a password when you take it.</p>`),
+    `Hi ${opts.name},\n\nYou've been given the ${opts.roleTitle} role at ${opts.businessName} on SPEC.\n\nTake your seat: ${url}\n\nThe link is yours alone and works once, for ${SEAT_TOKEN_DAYS} days. You'll choose a password when you take it.`,
   );
 }
 

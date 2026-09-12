@@ -14,7 +14,7 @@ const ERRORS: Record<string, string> = {
   too_fast: 'Press Create again.',
   expired: 'Press Create again.',
   check: 'Press Create again.',
-  busy: 'Too many new businesses from this network just now. Try again in an hour.',
+  busy: 'A lot of businesses are being set up from your network right now. Wait a minute and press Create again — nothing you typed is lost.',
   down: 'Setting up is temporarily unavailable — that is our end, not yours. Nothing you typed is wrong. Try again in a few minutes.',
 };
 

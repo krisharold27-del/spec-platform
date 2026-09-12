@@ -11,8 +11,19 @@ import { logProblem } from '@/lib/register-data';
 import { diagnose } from '@/lib/diagnose';
 import { createThrottle } from '@/lib/throttle';
 
-// Real businesses sign up one at a time; a script does not. Three per network address per hour.
-const signupsByAddress = createThrottle(60 * 60_000, 10_000, 3);
+/*
+  A script signs up in bulk; a business does not. But the limit here was three per address per
+  HOUR, and that is a rule aimed at the wrong person.
+
+  One address is one office. A firm with a shared connection where the owner sets up, then a
+  manager tries, then somebody mistypes an email and starts again, hits three before lunch — and is
+  then told to come back in an hour, which for a prospect means never. Losing a real customer to
+  stop a script that would simply use a different address is the wrong trade.
+
+  Ten in fifteen minutes: still nowhere near worth automating against, and no honest office can
+  reach it.
+*/
+const signupsByAddress = createThrottle(15 * 60_000, 10_000, 10);
 
 /**
  * Sign up: four boxes, then straight in — no email step. The signer becomes the top role; the rest

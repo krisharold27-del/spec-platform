@@ -76,6 +76,16 @@ export const users = pgTable('users', {
    */
   access: text('access').notNull().default('readonly'),
   invitedAt: text('invited_at'),
+  /**
+   * The "take your seat" link, which the engine requires to be single use, expiring, and bound to
+   * one address (designs/the-rules.md §11).
+   *
+   * The invitation used to be a bare link to /signin, which is none of those three: anybody who saw
+   * the email could follow it, it never stopped working, and it proved nothing about who was
+   * holding it. A token here makes the seat the invitation is for the seat they actually take.
+   */
+  seatToken: text('seat_token'),
+  seatTokenExpires: text('seat_token_expires'),
   acceptedAt: text('accepted_at'),
 }, t => [uniqueIndex('users_tenant_email').on(t.tenantId, t.email), index('users_auth_user').on(t.authUserId)]).enableRLS();
 

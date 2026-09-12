@@ -7,6 +7,7 @@ import { db, schema } from '@/db';
 import { getCurrentUser, canManage, emailConfirmed } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
 import { sendInviteEmail } from '@/lib/email';
+import { newSeatToken, seatTokenExpiry } from '@/lib/seat';
 import { roleChangeFor, type AssignmentRow, type RoleRow, type StaffRow } from '@/lib/staff';
 
 const now = () => new Date().toISOString();
@@ -199,7 +200,14 @@ export async function invite(formData: FormData) {
 
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0];
   if (tenant && !existing?.invitedAt) {
-    await sendInviteEmail({ to: email, name: person.name, businessName: tenant.name, roleTitle: roleRow.title });
+    // A fresh token per invitation: single use, expiring, bound to this address. See lib/seat.
+    const token = newSeatToken();
+    await db.update(schema.users)
+      .set({ seatToken: token, seatTokenExpires: seatTokenExpiry() })
+      .where(eq(schema.users.id, userId));
+    await sendInviteEmail({
+      to: email, name: person.name, businessName: tenant.name, roleTitle: roleRow.title, token,
+    });
   }
 
   done(['/setup/business', '/org', '/journey', '/team']);
