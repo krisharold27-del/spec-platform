@@ -115,6 +115,28 @@ check('RAISED AGAIN counts up rather than adding a second row', /Raised 2×/.tes
 const rows = await page.locator('section:has-text("Improvement register") li').count();
 check('and it is still one entry', rows === 1, `${rows} rows in the register`);
 
+// ── The six sections the design asks for ─────────────────────────────────────────────────────────
+await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
+body = await text();
+for (const [label, pattern] of [
+  ['My KPIs lead the page', /Safety[\s\S]*People[\s\S]*Earnings[\s\S]*Compliance/],
+  ['Improvement opportunity', /Improvement opportunity/],
+  ['Where you sit', /Where you sit/],
+  ['what changed for you', /Changes you should know about/],
+  ['mail and the tasks it created', /Mail and the tasks it created/],
+  ['My week', /My week/],
+  ['learning, in small pieces', /My training/],
+  ['it closes the day', /That is the whole day\. Nothing else to open\./],
+]) {
+  check(`section — ${label}`, pattern.test(body));
+}
+
+// The visibility rule, said plainly rather than left to be discovered.
+check('it states who can see your card', /cannot see theirs|top of the chart/i.test(body));
+
+// My week must never become a diary, so it says what it is not.
+check('My week says it is not a calendar', /not your diary/i.test(body));
+
 check('no page errors anywhere in the journey', errors.length === 0, errors.slice(0, 3).join(' | '));
 
 await b.close();

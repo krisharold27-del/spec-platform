@@ -4,6 +4,8 @@ import { Shell, PILLAR_META, pct } from '@/components/ui';
 import { TodoList, AskPanel, ChangeList, MeetingLog, TrainingPath } from '@/components/today-blocks';
 import { ImprovementBox, ImprovementRegister } from '@/components/improvement-register';
 import { MailBlock } from '@/components/mail-block';
+import { WhereYouSit, NobodyBelow, MyWeek, AskBar } from '@/components/my-page-blocks';
+import { rhythm, rhythmLine } from '@/lib/rhythm';
 import { myMail } from '@/lib/mail';
 import { registerFor } from '@/lib/register-data';
 import { currentLook } from '@/lib/look';
@@ -63,6 +65,17 @@ export default async function MyPage() {
   const teamNames = team.map(m => m.holder).filter((n): n is string => !!n);
   const register = await registerFor(user.tenantId, user.name, teamNames);
   const mail = await myMail(user.tenantId, user.id);
+
+  // My week: the handful of beats the business runs on, never a diary. See lib/rhythm.
+  const unmarked = myRows.filter(r => r.kpi && !r.answer).length;
+  const beats = rhythm({
+    meetingLogged,
+    leadsPeople: team.length > 0,
+    openPeriod: data.period?.period ?? null,
+    daysToClose: daysLeftInMonth(),
+    unmarked,
+    canManage: data.canManage,
+  });
   const advanced = tier === 'advanced';
   // A supervisor's reports are on the tools, not running scorecards of their own. Calling that
   // "my team" is the language of an office; "my crew" is what they actually say.
@@ -80,6 +93,13 @@ export default async function MyPage() {
           ? standing(todos.length, myScore)
           : 'Checklist view · this role is not individually scored. You keep people safe, log your hours and finish your training; the numbers are carried by the role above you.'}
       </p>
+
+      {/*
+        The ask bar, across the top. This is what retires the separate chat screen: two screens both
+        claiming to be where you start is the most reliable way a product gets called confusing.
+        The page is the dashboard; the conversation is how you work it.
+      */}
+      <AskBar available={advanced} href={`/boards?ask=1`} />
 
       {/* The four lights lead the page: the first thing anybody wants is where they stand. */}
       {scored && (
@@ -125,6 +145,20 @@ export default async function MyPage() {
           me={user.name}
           people={[user.name, ...teamNames]}
           canWrite={canWrite}
+        />
+      </div>
+
+      {/*
+        Where you sit, under the register. The three facts that decide everything else on the page,
+        including what this person is allowed to see — said plainly rather than left to be worked
+        out by poking at the product and drawing the wrong conclusion.
+      */}
+      <div className="mt-8">
+        <WhereYouSit
+          role={data.myRole.title}
+          reportsTo={reportsTo ? reportsTo.title : null}
+          score={pct(myScore.overall)}
+          scored={scored}
         />
       </div>
 
@@ -227,15 +261,8 @@ export default async function MyPage() {
                 </ul>
               </>
             ) : (
-              <p className="mt-3 text-sm text-ink-light">
-                Nobody reports to you, so there is nothing to roll up. Your own card is the whole of your month.
-              </p>
+              <NobodyBelow />
             )}
-            <p className="mt-4 text-xs text-ink-light">
-              {reportsTo
-                ? `You report to the ${reportsTo.title}. Your card rolls into theirs.`
-                : 'You are the top of the chart. Everything below rolls into your card.'}
-            </p>
           </section>
 
           <section className="card">
@@ -333,13 +360,12 @@ export default async function MyPage() {
             </div>
           </section>
 
+          <MyWeek beats={beats} line={rhythmLine(beats)} />
+
           <section className="card">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-serif text-xl text-ink">
-                <Link href="/meeting" className="hover:text-rust">Weekly meeting</Link>
-              </h2>
-              <span className="text-sm text-ink-light">{meetingLogged ? 'Logged for this week' : 'Not logged yet'}</span>
-            </div>
+            <h2 className="font-serif text-xl text-ink">
+              <Link href="/meeting" className="hover:text-rust">This week{"\u2019"}s meeting</Link>
+            </h2>
             <p className="mt-2 text-sm text-ink-light">
               {todos.length
                 ? `Take the list above: ${todos.slice(0, 3).map(t => t.label.toLowerCase()).join('; ')}.`
@@ -393,6 +419,18 @@ export default async function MyPage() {
       <p className="mt-10 max-w-xl text-base text-ink-light">That is the whole day. Nothing else to open.</p>
     </Shell>
   );
+}
+
+/**
+ * Days left to close the month being marked.
+ *
+ * A month is closed in the month AFTER it — August is marked and locked during September, because
+ * that is when the P&L lands. So the deadline that matters is the end of the current calendar
+ * month, not the end of the month being scored.
+ */
+function daysLeftInMonth(now = new Date()): number {
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return lastDay - now.getDate();
 }
 
 /** A traffic light. Pending is a warm neutral — an absence, never an alarm. */
