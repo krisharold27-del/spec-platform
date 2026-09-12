@@ -1,10 +1,20 @@
 -- Row-level security policies, by tenant_id.
 --
--- Why raw SQL instead of drizzle-kit push: this project pushes schema changes with
--- `drizzle-kit push` (no migration-file history), which is fine for tables/columns but not
--- something we want deciding security-critical policies implicitly. Policies are applied once,
--- by hand, via the Supabase SQL editor (or `psql "$DATABASE_URL" -f drizzle/0001_rls.sql`).
--- Re-running is safe — every statement below is idempotent (DROP POLICY IF EXISTS first).
+-- HOW THIS IS APPLIED: automatically, by scripts/deploy-migrate.ts, on every deploy.
+--
+-- It used to say "applied once, by hand, via the Supabase SQL editor". Nobody ever did — for
+-- months — and it was found out only when a check was finally written that tried to run the file,
+-- at which point it turned out to abort partway through on a table that does not exist, silently
+-- skipping every policy below that line. **A safeguard that depends on somebody remembering a
+-- manual step is a safeguard you do not have.** So the deploy does it, CI proves the deploy does
+-- it, and this comment no longer sends anybody to a SQL editor.
+--
+-- Re-running is safe — every statement below is idempotent (DROP POLICY IF EXISTS first) — and CI
+-- proves that too, by running the whole file twice.
+--
+-- Why raw SQL instead of drizzle-kit push: this project pushes schema changes additively (see
+-- scripts/deploy-migrate.ts), which is right for tables and columns but not something that should
+-- be deciding security-critical policies implicitly. They are written out, in full, here.
 --
 -- What this actually protects: the app itself (src/db, src/lib/queries.ts, src/lib/provision.ts)
 -- already scopes every query by tenantId in application code, and connects with a role that owns

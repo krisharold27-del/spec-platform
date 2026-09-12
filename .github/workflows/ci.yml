@@ -114,6 +114,27 @@ jobs:
           test "$(psql "$DATABASE_URL" -t -A -c "select kept from a_forgotten_experiment")" = 'do not lose me'
           echo "brought up to date, and the stranger is untouched"
 
+      # The same lesson, applied to security: the policy file used to say it should be "applied
+      # once, by hand, via the Supabase SQL editor". Nobody ever did, for months. A safeguard that
+      # depends on somebody remembering a manual step is a safeguard you do not have, so the deploy
+      # applies it — and this proves the deploy really does, rather than trusting that it would.
+      - name: The deploy applies the security policies, not a person
+        env:
+          DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
+        run: |
+          # Supabase supplies auth.uid(); a plain Postgres does not. Stubbed so the REAL file runs
+          # unmodified, exactly as it will in production.
+          psql "$DATABASE_URL" -c 'create schema if not exists auth'
+          psql "$DATABASE_URL" -c 'create or replace function auth.uid() returns uuid language sql stable as $$ select null::uuid $$'
+          psql "$DATABASE_URL" -c "drop policy if exists tenant_isolation on tenants"
+
+          npx tsx scripts/deploy-migrate.ts | tee /tmp/migrate.log
+          grep -q 'Row-level security applied' /tmp/migrate.log
+
+          count=$(psql "$DATABASE_URL" -t -A -c "select count(*) from pg_policies where policyname = 'tenant_isolation'")
+          echo "tables carrying the tenant policy: $count"
+          test "$count" -ge 20
+
       # Row-level security, applied for real and then inspected.
       #
       # drizzle/0001_rls.sql needs Supabase's auth.uid(), so it could never be applied by our own

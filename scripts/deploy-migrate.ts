@@ -40,6 +40,7 @@
  * could see from outside the build sandbox. Everything it cannot do is reported by /api/health as a
  * 503 naming the exact tables and columns, and in plain words on /status.
  */
+import { readFileSync } from 'node:fs';
 import postgres from 'postgres';
 import { expectedShape, compareShape, driftLine } from '../src/lib/schema-check';
 import { additivePlan, isAdditive } from '../src/lib/schema-sql';
@@ -165,11 +166,66 @@ async function main() {
     if (after.missingTables.length || after.missingColumns.length) {
       say('Still behind after applying:');
       say(`  ${driftLine(after)}`);
-      return;
+    } else {
+      say('Done. The database matches this build.');
     }
-    say('Done. The database matches this build.');
   } catch {
     say('Applied, but could not read the database back to confirm. /api/health will say.');
+  }
+
+  await applyPolicies(url);
+}
+
+/**
+ * Row-level security, applied by the deploy rather than by somebody remembering.
+ *
+ * The file itself said how it was meant to be run: "applied once, by hand, via the Supabase SQL
+ * editor". Nobody ever did — for months — and it was only discovered because a check was finally
+ * written that tried to run it, at which point it turned out to abort partway through on a table
+ * that does not exist. A security measure that depends on a person remembering a manual step is a
+ * security measure you do not have, and this project has now been bitten by exactly that shape of
+ * bug twice in one week.
+ *
+ * Safe to run on every deploy, for reasons worth stating rather than assuming:
+ *
+ *   It cannot break the app. The file sets no `force row level security`, and SPEC connects as the
+ *   role that owns the tables — which Postgres lets bypass RLS. These policies govern every OTHER
+ *   way into the same database: PostgREST, the Supabase table editor, any future service that
+ *   connects as `anon`. Defence in depth, not the thing holding tenants apart today (application
+ *   code and tests/tenant-isolation.test.ts do that, and always did).
+ *
+ *   It is idempotent. Every policy is dropped-if-exists before being created, and CI proves it by
+ *   running the whole file twice.
+ *
+ *   It cannot fail a release. A database that is not Supabase has no auth.uid(), so the first
+ *   statement fails — that is expected, said plainly, and moves on.
+ */
+async function applyPolicies(url: string) {
+  let text: string;
+  try {
+    text = readFileSync(new URL('../drizzle/0001_rls.sql', import.meta.url), 'utf8');
+  } catch {
+    say('No policy file found, so there is nothing to apply.');
+    return;
+  }
+
+  const sql = postgres(url, { max: 1, idle_timeout: 5, connect_timeout: 20, onnotice: () => {} });
+  try {
+    await sql.unsafe(text).simple();
+    const [{ count }] = await sql<{ count: string }[]>`
+      select count(*)::text as count from pg_policies where policyname = 'tenant_isolation'
+    `;
+    say(`Row-level security applied — ${count} tables carry the tenant policy.`);
+  } catch (err) {
+    const message = (err as { message?: string })?.message ?? 'unknown';
+    say(
+      /auth\.uid|schema "auth"/.test(message)
+        ? 'Skipped the security policies: this database is not Supabase, so it has no auth.uid(). Expected outside production.'
+        : `Could not apply the security policies: ${message.slice(0, 160)}`,
+    );
+    say('The build carries on — tenant separation is enforced in the application either way.');
+  } finally {
+    await sql.end({ timeout: 5 });
   }
 }
 

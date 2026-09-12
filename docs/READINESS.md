@@ -131,9 +131,11 @@ In order. The first three are the ones that would be discovered *by the customer
    signed in before.
 3. **Turn on `ANTHROPIC_API_KEY`** and read ten real problems. The front door
    claims SPEC understands their business; check that it does.
-4. **Apply the policies to the live database.** ~~Write the missing 18~~ — done,
-   **24 of 24**, and CI now proves the file runs. What is left is running it
-   against the live database once and confirming.
+4. ~~**Apply the policies to the live database.**~~ **Done — and no longer a step
+   anybody has to remember.** The file used to say it should be "applied once, by
+   hand, via the Supabase SQL editor", and nobody ever had. It is now applied by
+   the deploy, every time, and CI proves the deploy does it. 24 of 24 tables.
+   Confirm once on the next deploy and this line can go.
 5. **Restore a backup** into a scratch database. A backup nobody has restored is
    a belief.
 6. **Have somebody who is not you** sign up, on a phone, without help.
