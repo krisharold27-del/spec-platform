@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { PILLAR_META, BRAND_COLOUR, SCORE_COLOUR, scoreColour } from '../src/lib/pillars';
+import { PILLAR_META, BRAND_COLOUR, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk } from '../src/lib/pillars';
+import { LIGHT_COLOUR, LIGHT_INK } from '../src/lib/today';
 import { PILLARS } from '../src/lib/scoring';
 
 /**
@@ -72,6 +73,86 @@ describe('colour is only ever the score', () => {
   it('draws an unscored month as a warm neutral, never as a failure', () => {
     expect(scoreColour(null)).toBe(SCORE_COLOUR.pending);
     expect(SCORE_COLOUR.pending).not.toBe(SCORE_COLOUR.behind);
+  });
+});
+
+/**
+ * A colour nobody can read is not a signal, it is decoration.
+ *
+ * WCAG AA asks 4.5:1 for ordinary text. The signal colours do not clear it on this warm ground —
+ * amber sits at 3.0:1, the pending grey at 3.0:1, and green at 3.7:1 on a surface card. Only red
+ * passes. That is why there are two palettes: one to be looked at, one to be read.
+ *
+ * Measured rather than asserted, so the numbers cannot drift behind a comment. Change a hex and
+ * this tells you what it does to a person who has to read it.
+ */
+const CREAM = '#f5ead8';    // the page
+const SURFACE = '#ebddc5';  // a card on the page
+const AA = 4.5;
+
+function luminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  const channel = (c: number) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel((n >> 16) & 255) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255);
+}
+
+function contrast(a: string, b: string): number {
+  const [x, y] = [luminance(a), luminance(b)];
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+
+describe('anything a person has to read is readable', () => {
+  it('measures contrast the way a browser does', () => {
+    // Two fixed points: the extremes have known ratios, so a broken formula cannot pass quietly.
+    expect(contrast('#ffffff', '#000000')).toBeCloseTo(21, 1);
+    expect(contrast(CREAM, CREAM)).toBeCloseTo(1, 5);
+  });
+
+  it('clears AA for every band, on the page and on a card', () => {
+    for (const [band, hex] of Object.entries(SCORE_INK)) {
+      for (const [where, ground] of [['page', CREAM], ['card', SURFACE]] as const) {
+        const ratio = contrast(hex, ground);
+        expect(ratio, `${band} ${hex} on the ${where} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(AA);
+      }
+    }
+  });
+
+  // The record of why the second palette exists. If a fill colour ever did clear AA on its own,
+  // this would fail and tell us the ink for that band is no longer earning its place.
+  it('records that the fill colours do not, which is the whole reason for the ink', () => {
+    const failing = Object.entries(SCORE_COLOUR)
+      .filter(([, hex]) => contrast(hex, SURFACE) < AA)
+      .map(([band]) => band);
+    expect(failing.sort()).toEqual(['on_track', 'pending', 'watch']);
+  });
+
+  it('keeps the two palettes the same four bands, differing only in darkness', () => {
+    expect(Object.keys(SCORE_INK).sort()).toEqual(Object.keys(SCORE_COLOUR).sort());
+    for (const band of Object.keys(SCORE_COLOUR) as (keyof typeof SCORE_COLOUR)[]) {
+      expect(luminance(SCORE_INK[band]), `${band} ink should be darker than its fill`)
+        .toBeLessThan(luminance(SCORE_COLOUR[band]));
+    }
+  });
+
+  // today.ts names the same four bands 'green'/'amber'/'red'/'pending'. Two spellings of one idea is
+  // already a risk; two spellings that disagree on the hex would be a bug nobody sees until print.
+  it('agrees with the light palette it mirrors', () => {
+    expect(LIGHT_INK.green).toBe(SCORE_INK.on_track);
+    expect(LIGHT_INK.amber).toBe(SCORE_INK.watch);
+    expect(LIGHT_INK.red).toBe(SCORE_INK.behind);
+    expect(LIGHT_INK.pending).toBe(SCORE_INK.pending);
+    expect(LIGHT_COLOUR.green).toBe(SCORE_COLOUR.on_track);
+    expect(LIGHT_COLOUR.amber).toBe(SCORE_COLOUR.watch);
+  });
+
+  it('picks ink by the same 90% rule as the fill', () => {
+    expect(scoreInk(0.9)).toBe(SCORE_INK.on_track);
+    expect(scoreInk(0.89)).toBe(SCORE_INK.watch);
+    expect(scoreInk(0.74)).toBe(SCORE_INK.behind);
+    expect(scoreInk(null)).toBe(SCORE_INK.pending);
   });
 });
 

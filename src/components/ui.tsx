@@ -5,11 +5,11 @@ import { myBusinesses } from '@/lib/auth';
 import { currentLook } from '@/lib/look';
 import { doSignOut } from '@/app/signin/actions';
 import { LookBar } from './look-bar';
-import { PILLAR_META, SCORE_COLOUR, scoreColour, pct } from '@/lib/pillars';
+import { PILLAR_META, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk, pct } from '@/lib/pillars';
 
 // Re-exported so existing pages keep importing them from here; they live in lib/pillars because a
 // client component must be able to reach them without pulling the server's request context in too.
-export { PILLAR_META, SCORE_COLOUR, scoreColour, pct };
+export { PILLAR_META, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk, pct };
 
 
 export async function Shell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
@@ -129,12 +129,13 @@ export function StatusPill({ tone, children }: { tone: 'confirmed' | 'pending' |
  */
 export function Badge({ pillar, score = null, scored = false }: { pillar: Pillar; score?: Score; scored?: boolean }) {
   const m = PILLAR_META[pillar];
+  // The edge and the wash carry the signal; the letter has to be legible, so it takes the ink.
   const tone = scored ? scoreColour(score) : null;
   return (
     <span
       className="badge-letter"
       title={m.name}
-      style={tone ? { borderColor: tone, color: tone, backgroundColor: `${tone}14` } : undefined}
+      style={tone ? { borderColor: tone, color: scoreInk(score), backgroundColor: `${tone}14` } : undefined}
     >
       {m.letter}
     </span>
@@ -160,18 +161,20 @@ export function PillarTile({ pillar, score: raw, scored: anyScored, sub }: { pil
   const scored = score !== null;
   const status = BAND_LABEL[band(score)];
   // One colour on the card, and it is the score. The letter says which pillar.
+  // Two weights of that one colour: the bright one for the edge, the dark one for anything read.
   const tone = scoreColour(score);
+  const ink = scoreInk(score);
   return (
     <div className="card" style={{ borderTopColor: tone, borderTopWidth: 4 }}>
       <div className="flex items-center gap-2">
         <span
           className="badge-letter h-6 w-6 text-xs"
-          style={{ borderColor: tone, color: tone, backgroundColor: `${tone}14` }}
+          style={{ borderColor: tone, color: ink, backgroundColor: `${tone}14` }}
         >{m.letter}</span>
         <div className="label-caps">{m.name}</div>
       </div>
       <div className="mt-2 font-serif text-3xl text-ink">{scored ? pct(score) : '—'}</div>
-      <div className="mt-1 text-sm font-medium" style={{ color: tone }}>{status}</div>
+      <div className="mt-1 text-sm font-medium" style={{ color: ink }}>{status}</div>
       {sub && <div className="mt-2 text-xs text-ink-light">{sub}</div>}
     </div>
   );

@@ -9,7 +9,7 @@ import { getTenantById } from '@/lib/queries';
 import { getScope } from '@/lib/scope';
 import { tierOf, TIER } from '@/lib/plan';
 import { CATEGORIES, categoryName, isSensitive, STATUS_LABEL, SENSITIVE_NOTE } from '@/lib/systems';
-import { LIGHT_COLOUR } from '@/lib/today';
+import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { connectSystem, disconnectSystem, markLive } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -79,14 +79,12 @@ export default async function Connections() {
               const sensitive = isSensitive(c.category);
               const approval = approvals.find(a => a.refId === c.id);
               const approved = approval?.state === 'approved';
-              const tone = c.status === 'live' ? LIGHT_COLOUR.green
-                : c.status === 'broken' ? LIGHT_COLOUR.red
-                : LIGHT_COLOUR.pending;
+              const tone = c.status === 'live' ? 'green' : c.status === 'broken' ? 'red' : 'pending';
               return (
-                <li key={c.id} className="card-inset" style={{ borderLeft: `4px solid ${tone}` }}>
+                <li key={c.id} className="card-inset" style={{ borderLeft: `4px solid ${LIGHT_COLOUR[tone]}` }}>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="font-serif text-base text-ink">{categoryName(c.category)}</span>
-                    <span className="pill" style={{ background: `color-mix(in srgb, ${tone} 14%, transparent)`, color: tone }}>
+                    <span className="pill" style={pillTone(tone)}>
                       {STATUS_LABEL[c.status] ?? c.status}
                     </span>
                   </div>

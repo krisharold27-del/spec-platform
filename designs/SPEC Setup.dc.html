@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 9px;"><img src="logo.svg" alt="" width="26" height="26" style="display: block; flex: none;" />SPEC</a>
+    <a href="SPEC Today.dc.html">Today</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="padding: clamp(28px,4vw,44px) 0 26px;">
+      <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Week one · setting the business up</span>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">Roles first. People second.</h1>
+      <p style="font-size: 17px; line-height: 28px; max-width: 58ch; margin: 18px 0 0;">Claude proposes what the business needs from your sector and size. You negotiate it. Nothing is scored until a target is agreed, and building this is free.</p>
+    </header>
+
+    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; padding-bottom: clamp(20px,3vw,28px);">
+      <sc-for list="{{ steps }}" as="st" hint-placeholder-count="5">
+        <button type="button" onClick="{{ st.select }}" style="{{ st.style }}">
+          <span style="display: flex; align-items: center; gap: 10px;">
+            <span style="{{ st.markStyle }}">{{ st.mark }}</span>
+            <span style="font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ st.kicker }}</span>
+          </span>
+          <span style="display: block; font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px; margin-top: 10px; text-align: left;">{{ st.label }}</span>
+        </button>
+      </sc-for>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
+
+      <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); min-width: 0;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 0;">{{ stepTitle }}</h2>
+        <p style="font-size: 15px; line-height: 25px; margin: 12px 0 0; max-width: 54ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ stepBody }}</p>
+
+        <sc-if value="{{ onBusiness }}" hint-placeholder-val="{{ true }}">
+          <div style="display: grid; gap: 14px; margin-top: 26px;">
+            <label style="display: grid; gap: 8px;">
+              <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Business name</span>
+              <input class="input" type="text" value="{{ bizName }}" onChange="{{ setBizName }}" onInput="{{ setBizName }}" style="width: 100%; box-sizing: border-box; min-height: 42px;" />
+            </label>
+            <div style="display: grid; gap: 8px;">
+              <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Sector</span>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <sc-for list="{{ sectors }}" as="sc" hint-placeholder-count="4">
+                  <button type="button" onClick="{{ sc.select }}" style="{{ sc.style }}">{{ sc.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display: grid; gap: 8px;">
+              <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">People</span>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <sc-for list="{{ sizes }}" as="sz" hint-placeholder-count="4">
+                  <button type="button" onClick="{{ sz.select }}" style="{{ sz.style }}">{{ sz.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="border-radius: 20px; padding: 22px 24px; margin-top: 10px; background: var(--color-accent-2-100);">
+              <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 8px; color: var(--color-accent-2-900);">The one question a leader has to answer</p>
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.25; margin: 0;">Do you want the power of AI?</p>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; margin-top: 18px;">
+                <button type="button" onClick="{{ chooseAiYes }}" style="{{ aiYesStyle }}">
+                  <span style="display: block; font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; text-align: left;">Yes — SPEC Advanced</span>
+                  <span style="display: block; font-size: 14px; line-height: 22px; margin-top: 10px; text-align: left;">AI takes it over and makes it happen. The systems talk to each other, the KPIs are fed, and you pay for the AI through SPEC. Nothing else for you to set up.</span>
+                </button>
+                <button type="button" onClick="{{ chooseAiNo }}" style="{{ aiNoStyle }}">
+                  <span style="display: block; font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; text-align: left;">No — SPEC Basic</span>
+                  <span style="display: block; font-size: 14px; line-height: 22px; margin-top: 10px; text-align: left;">You can still use SPEC. It runs without AI support or connectors, so numbers are entered by hand and the platform cannot help you set or hold great KPIs.</span>
+                </button>
+              </div>
+              <p style="font-size: 13.5px; line-height: 21px; margin: 16px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ aiConsequence }}</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onRoles }}" hint-placeholder-val="{{ false }}">
+          <div style="display: grid; gap: 12px; margin-top: 26px;">
+            <sc-for list="{{ roles }}" as="rl" hint-placeholder-count="5">
+              <div style="{{ rl.style }}">
+                <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                  <span style="display: grid; gap: 3px;">
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px;">{{ rl.title }}</span>
+                    <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ rl.reportsTo }}</span>
+                  </span>
+                  <button type="button" onClick="{{ rl.toggle }}" style="{{ rl.buttonStyle }}">{{ rl.buttonLabel }}</button>
+                </div>
+                <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ rl.why }}</p>
+              </div>
+            </sc-for>
+            <button type="button" class="btn btn-ghost" style="justify-self: start; flex: none; white-space: nowrap;">Add a role Claude missed</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onKpis }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top: 24px;">
+            <div style="background: var(--color-accent-2-100); border-radius: 20px; padding: 18px 20px; margin-bottom: 20px;">
+              <p style="font-size: 14.5px; line-height: 23px; margin: 0;">Two per pillar is the starting point, not the limit. Add more as the role needs them, and set every one with the person who holds the role — a KPI only works if they understand it and can achieve it. The point is to set people up to succeed, not to catch them out.</p>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <sc-for list="{{ kpiRoleTabs }}" as="kt" hint-placeholder-count="3">
+                <button type="button" onClick="{{ kt.select }}" style="{{ kt.style }}">{{ kt.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display: grid; gap: 12px; margin-top: 20px;">
+              <sc-for list="{{ kpis }}" as="kp" hint-placeholder-count="8">
+                <div style="{{ kp.style }}">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="display: grid; gap: 3px;">
+                      <span style="font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ kp.pillar }}</span>
+                      <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px;">{{ kp.name }}</span>
+                    </span>
+                    <span style="{{ kp.chip }}">{{ kp.state }}</span>
+                  </div>
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px;">
+                    <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent); min-width: 13ch;">Proposed {{ kp.proposed }}</span>
+                    <input class="input" type="text" value="{{ kp.agreed }}" onChange="{{ kp.set }}" onInput="{{ kp.set }}" aria-label="Agreed target" style="flex: 0 1 140px; min-height: 38px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;" />
+                    <button type="button" onClick="{{ kp.agree }}" style="{{ kp.buttonStyle }}">{{ kp.buttonLabel }}</button>
+                  </div>
+                  <p style="font-size: 13px; line-height: 20px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ kp.source }}</p>
+                </div>
+              </sc-for>
+              <button type="button" onClick="{{ addKpi }}" style="{{ addKpiStyle }}">{{ addKpiLabel }}</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onPeople }}" hint-placeholder-val="{{ false }}">
+          <div style="display: grid; gap: 12px; margin-top: 26px;">
+            <sc-for list="{{ people }}" as="pl" hint-placeholder-count="5">
+              <div style="background: var(--color-bg); border-radius: 20px; padding: 18px 20px;">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+                  <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">{{ pl.role }}</span>
+                  <span style="{{ pl.chip }}">{{ pl.state }}</span>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px;">
+                  <input class="input" type="text" value="{{ pl.person }}" onChange="{{ pl.set }}" onInput="{{ pl.set }}" aria-label="Person in the role" placeholder="Leave blank to keep it vacant" style="flex: 1 1 200px; min-height: 38px;" />
+                  <button type="button" onClick="{{ pl.invite }}" style="{{ pl.buttonStyle }}">{{ pl.buttonLabel }}</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onCascade }}" hint-placeholder-val="{{ false }}">
+          <div style="display: grid; gap: 12px; margin-top: 26px;">
+            <sc-for list="{{ cascade }}" as="cs" hint-placeholder-count="4">
+              <div style="{{ cs.style }}">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+                  <span style="display: grid; gap: 3px;">
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">{{ cs.person }}</span>
+                    <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ cs.role }} · {{ cs.reports }}</span>
+                  </span>
+                  <button type="button" onClick="{{ cs.send }}" style="{{ cs.buttonStyle }}">{{ cs.buttonLabel }}</button>
+                </div>
+                <p style="font-size: 13.5px; line-height: 21px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ cs.note }}</p>
+              </div>
+            </sc-for>
+            <p style="font-size: 13.5px; line-height: 21px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Each manager repeats these same steps for their own reports. They see their own scorecard first.</p>
+          </div>
+        </sc-if>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 28px;">
+          <button type="button" class="btn btn-primary" onClick="{{ next }}" style="flex: none; white-space: nowrap;">{{ nextLabel }}</button>
+          <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ stepFooter }}</span>
+        </div>
+      </section>
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+        <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">What Claude is doing</h2>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ claudeNote }}</p>
+          <div style="display: grid; gap: 10px; margin-top: 18px;">
+            <sc-for list="{{ claudeSteps }}" as="cl" hint-placeholder-count="4">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="{{ cl.dot }}"></span>
+                <span style="font-size: 14px; line-height: 22px;">{{ cl.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Where you are</h2>
+          <div style="height: 8px; border-radius: 999px; background: var(--color-accent-100); overflow: hidden; margin-top: 18px;">
+            <div style="{{ progressStyle }}"></div>
+          </div>
+          <p style="font-size: 13.5px; line-height: 21px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ progressLine }}</p>
+          <div style="display: grid; gap: 12px; margin-top: 20px;">
+            <sc-for list="{{ summary }}" as="sm" hint-placeholder-count="4">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-accent-100); padding-bottom: 12px;">
+                <span style="font-size: 14.5px; line-height: 21px;">{{ sm.label }}</span>
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px;">{{ sm.value }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size: 13px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Building the business and setting the KPIs is free. Seats are charged once you start scoring.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
+const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+const dotOf = tone => 'width:12px;height:12px;border-radius:50%;display:block;flex:none;margin-top:5px;background:' + tone + ';';
+
+const STEPS = [
+  { key: 'business', kicker: 'Step 1', label: 'The business' },
+  { key: 'roles', kicker: 'Step 2', label: 'Roles it needs' },
+  { key: 'kpis', kicker: 'Step 3', label: 'Two KPIs per pillar' },
+  { key: 'people', kicker: 'Step 4', label: 'People into roles' },
+  { key: 'cascade', kicker: 'Step 5', label: 'Cascade to managers' },
+];
+
+const ROLES = [
+  { id: 'r1', title: 'Managing Director', reportsTo: 'Top of the chart', why: 'The signer. Owns all four pillars for the business as a whole.' },
+  { id: 'r2', title: 'Operations Manager', reportsTo: 'Reports to Managing Director', why: 'Typical for an electrical contractor at this size. Owns delivery, crews and job margin.' },
+  { id: 'r3', title: 'BD Manager', reportsTo: 'Reports to Managing Director', why: 'Quoting and win rate need their own scorecard once quoted work passes about 30 jobs a month.' },
+  { id: 'r4', title: 'Safety & Compliance Lead', reportsTo: 'Reports to Managing Director', why: 'Both hard gates need an owner who is not also carrying delivery pressure.' },
+  { id: 'r5', title: 'Site Supervisor', reportsTo: 'Reports to Operations Manager', why: 'Where Zero Harm is actually held. One per crew group.' },
+  { id: 'r6', title: 'Scheduler', reportsTo: 'Reports to Operations Manager', why: 'Utilisation moves more on scheduling than on anything else at this size.' },
+];
+
+const KPI_ROLES = ['Operations Manager', 'BD Manager', 'Site Supervisor'];
+
+const KPIS = {
+  'Operations Manager': [
+    { id: 'k1', pillar: 'Safety', name: 'Inspections completed', proposed: '8 / month', source: 'Simpro · inspection records' },
+    { id: 'k2', pillar: 'Safety', name: 'Corrective actions on time', proposed: '95%', source: 'Safety Minder · once connected' },
+    { id: 'k3', pillar: 'People', name: 'One-to-ones held', proposed: '1 per report / month', source: 'SPEC meeting log' },
+    { id: 'k4', pillar: 'People', name: 'Retention against target', proposed: '90%', source: 'Payroll · terminations' },
+    { id: 'k5', pillar: 'Earnings', name: 'Margin against quote', proposed: '32%', source: 'Simpro · job actual vs quoted' },
+    { id: 'k6', pillar: 'Earnings', name: 'Labour utilisation', proposed: '90%', source: 'Simpro · scheduled vs billable' },
+    { id: 'k7', pillar: 'Compliance', name: 'Tickets current', proposed: '100%', source: 'Pylon · certifications' },
+    { id: 'k8', pillar: 'Compliance', name: 'Plant checks logged', proposed: '100%', source: 'Manual · signed by operator' },
+  ],
+  'BD Manager': [
+    { id: 'b1', pillar: 'Safety', name: 'Inductions before site visits', proposed: '100%', source: 'Manual · BD confirmation' },
+    { id: 'b2', pillar: 'Safety', name: 'Scope risk noted on quotes', proposed: '100%', source: 'Simpro · quote fields' },
+    { id: 'b3', pillar: 'People', name: 'One-to-ones held', proposed: '1 per report / month', source: 'SPEC meeting log' },
+    { id: 'b4', pillar: 'People', name: 'Handover to delivery within 2 days', proposed: '95%', source: 'Simpro · job creation' },
+    { id: 'b5', pillar: 'Earnings', name: 'Quoted work won', proposed: '35%', source: 'HubSpot · deals won / quoted' },
+    { id: 'b6', pillar: 'Earnings', name: 'Estimating accuracy', proposed: '95%', source: 'Groundplan · take-off vs installed' },
+    { id: 'b7', pillar: 'Compliance', name: 'Quotes with signed scope', proposed: '100%', source: 'Simpro · quote status' },
+    { id: 'b8', pillar: 'Compliance', name: 'Licences checked before quoting', proposed: '100%', source: 'Pylon · licence register' },
+  ],
+  'Site Supervisor': [
+    { id: 's1', pillar: 'Safety', name: 'Toolbox talks held', proposed: '4 / month', source: 'Simpro · sign-on records' },
+    { id: 's2', pillar: 'Safety', name: 'Hazards closed', proposed: '100%', source: 'Safety Minder · once connected' },
+    { id: 's3', pillar: 'People', name: 'Crew one-to-ones', proposed: '1 per crew member', source: 'SPEC meeting log' },
+    { id: 's4', pillar: 'People', name: 'Apprentice hours signed', proposed: '100%', source: 'Manual · supervisor confirmation' },
+    { id: 's5', pillar: 'Earnings', name: 'Jobs completed on time', proposed: '90%', source: 'Simpro · completion date' },
+    { id: 's6', pillar: 'Earnings', name: 'Rework hours', proposed: 'under 2%', source: 'Simpro · job costing' },
+    { id: 's7', pillar: 'Compliance', name: 'Crew clear to work', proposed: '100%', source: 'Pylon · certifications' },
+    { id: 's8', pillar: 'Compliance', name: 'Plant checks logged', proposed: '100%', source: 'Manual · signed by operator' },
+  ],
+};
+
+const PEOPLE = [
+  { role: 'Managing Director', person: 'Kristopher Harold' },
+  { role: 'Operations Manager', person: 'Dane Whitmore' },
+  { role: 'BD Manager', person: 'Priya Raman' },
+  { role: 'Safety & Compliance Lead', person: '' },
+  { role: 'Site Supervisor', person: 'Tom Alderson' },
+  { role: 'Scheduler', person: 'Amrit Kaur' },
+];
+
+const CASCADE = [
+  { person: 'Dane Whitmore', role: 'Operations Manager', reports: '2 reports', note: 'Sets KPIs for Site Supervisor and Scheduler, then puts people into them.' },
+  { person: 'Priya Raman', role: 'BD Manager', reports: '2 reports', note: 'Sets KPIs for Estimator and BD Coordinator.' },
+  { person: 'Tom Alderson', role: 'Site Supervisor', reports: '4 crew', note: 'Crew get the read-only checklist view, not a scorecard.' },
+];
+
+const SECTORS = ['Electrical', 'Construction', 'Trades & services', 'Manufacturing', 'Professional services'];
+const SIZES = ['1–10', '11–25', '26–60', '61–150', '150+'];
+
+class Component extends DCLogic {
+  state = {
+    step: 'business',
+    bizName: 'JBI Electrical',
+    sector: 'Electrical',
+    size: '26–60',
+    claudeOn: true,
+    keptRoles: ROLES.reduce((a, r) => { a[r.id] = true; return a; }, {}),
+    kpiRole: 'Operations Manager',
+    agreedValues: {},
+    agreed: {},
+    people: PEOPLE.reduce((a, p) => { a[p.role] = p.person; return a; }, {}),
+    invited: {},
+    sent: {},
+    extra: {},
+  };
+
+  renderVals() {
+    const step = this.state.step;
+    const idx = STEPS.findIndex(s => s.key === step);
+    const roleList = ROLES.filter(r => this.state.keptRoles[r.id]);
+    const kpiRole = this.state.kpiRole;
+    const kpiSet = KPIS[kpiRole];
+    const agreedCount = Object.keys(this.state.agreed).filter(k => this.state.agreed[k]).length;
+    const totalKpis = KPI_ROLES.reduce((t, r) => t + KPIS[r].length, 0);
+    const filled = Object.keys(this.state.people).filter(r => this.state.people[r]).length;
+    const sentCount = Object.keys(this.state.sent).filter(k => this.state.sent[k]).length;
+
+    const copy = {
+      business: {
+        title: 'Name the business. Nothing else.',
+        body: 'A business name, the sector and a size band. Claude uses these three things to propose the roles and the KPIs, so they are worth getting right.',
+        footer: 'Takes about two minutes.',
+        claude: 'Reading your sector and size to work out the shape of business this usually is.',
+        steps: ['Registers Claude as the delivery channel', 'Picks the role template for electrical contractors at 26–60 people', 'Notes which systems that sector normally runs on', 'Prepares two KPIs per pillar for every proposed role'],
+      },
+      roles: {
+        title: 'The roles this business needs',
+        body: 'Proposed from your sector and size, not from who you happen to employ. Remove what does not apply and add what Claude missed. People come later.',
+        footer: roleList.length + ' roles kept',
+        claude: 'Proposing the structure an electrical contractor of this size usually needs to hold all four pillars.',
+        steps: ['Six roles proposed, each with a reason', 'Anything you remove is remembered, not re-proposed', 'The chart is drawn as you go', 'Roles with no individual scorecard cannot reach Ace'],
+      },
+      kpis: {
+        title: 'Two KPIs per pillar to start',
+        body: 'Claude proposes a target. You agree it, change it, or push back — with the person who holds the role in the conversation. The app records both the proposed and the agreed figure so nobody rewrites history later.',
+        footer: agreedCount + ' of ' + totalKpis + ' targets agreed',
+        claude: 'Proposing targets from sector benchmarks and what your connected systems can actually measure.',
+        steps: ['Eight to start — two per pillar, expandable', 'Targets are negotiated with the person, never imposed', 'A KPI has to be understood and achievable to count', 'Anything no system can measure is marked manual up front'],
+      },
+      people: {
+        title: 'Now put people into roles',
+        body: 'The role is already defined and measured. Adding a person does not change the scorecard — it just says who holds it this month. Leave a role vacant if it is.',
+        footer: filled + ' of ' + PEOPLE.length + ' roles filled',
+        claude: 'Preparing each person\u2019s first view: their own scorecard, before anything about their team.',
+        steps: ['Roles can stay vacant and still be scored', 'A vacant role counts against the roll-up', 'Moving a person later does not move the KPIs', 'Everyone gets the same Today page'],
+      },
+      cascade: {
+        title: 'Hand it to the managers',
+        body: 'Each manager repeats these steps for their own reports. They see their own scorecard first, so they know what it feels like before they score anyone else.',
+        footer: sentCount + ' of ' + CASCADE.length + ' sent',
+        claude: 'Guiding each manager through the same steps, in their own words, on their own day.',
+        steps: ['Managers negotiate targets with their own reports', 'Staff without an individual scorecard get the checklist view', 'The first month can be scored as soon as the cascade is done', 'Week two is usually when the first weekly meeting is logged'],
+      },
+    }[step];
+
+    return {
+      steps: STEPS.map((s, i) => {
+        const on = s.key === step;
+        const done = i < idx;
+        return {
+          kicker: s.kicker,
+          label: s.label,
+          mark: done ? '✓' : String(i + 1),
+          markStyle: 'width:26px;height:26px;flex:none;border-radius:50%;display:grid;place-content:center;font-size:12.5px;'
+            + (done ? 'background:' + GREEN + ';color:#fff;' : on ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:color-mix(in srgb, var(--color-text) 60%, transparent);'),
+          select: () => this.setState({ step: s.key }),
+          style: 'cursor:pointer;border:0;display:block;width:100%;text-align:left;border-radius:var(--radius-lg);padding:18px 20px;font-family:var(--font-body);color:var(--color-text);background:var(--color-surface, #fff);'
+            + (on ? 'box-shadow:0 0 0 2px var(--color-accent),var(--shadow-sm);' : 'box-shadow:var(--shadow-sm);'),
+        };
+      }),
+
+      stepTitle: copy.title,
+      stepBody: copy.body,
+      stepFooter: copy.footer,
+      claudeNote: copy.claude,
+      claudeSteps: copy.steps.map(s => ({ label: s, dot: dotOf(GREEN) })),
+
+      onBusiness: step === 'business',
+      onRoles: step === 'roles',
+      onKpis: step === 'kpis',
+      onPeople: step === 'people',
+      onCascade: step === 'cascade',
+
+      bizName: this.state.bizName,
+      setBizName: e => this.setState({ bizName: e.target.value }),
+      sectors: SECTORS.map(s => ({
+        label: s,
+        select: () => this.setState({ sector: s }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
+          + (this.state.sector === s ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+      })),
+      sizes: SIZES.map(s => ({
+        label: s,
+        select: () => this.setState({ size: s }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
+          + (this.state.size === s ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+      })),
+      chooseAiYes: () => this.setState({ claudeOn: true }),
+      chooseAiNo: () => this.setState({ claudeOn: false }),
+      aiYesStyle: 'cursor:pointer;border:0;display:block;text-align:left;border-radius:20px;padding:20px 22px;font-family:var(--font-body);color:var(--color-text);background:var(--color-surface, #fff);'
+        + (this.state.claudeOn ? 'box-shadow:0 0 0 3px ' + GREEN + ';' : 'box-shadow:none;opacity:0.72;'),
+      aiNoStyle: 'cursor:pointer;border:0;display:block;text-align:left;border-radius:20px;padding:20px 22px;font-family:var(--font-body);color:var(--color-text);background:var(--color-surface, #fff);'
+        + (!this.state.claudeOn ? 'box-shadow:0 0 0 3px ' + AMBER + ';' : 'box-shadow:none;opacity:0.72;'),
+      aiConsequence: this.state.claudeOn
+        ? 'SPEC Advanced. Claude is registered as the delivery channel, the connectors are available, and every KPI below arrives fed rather than typed.'
+        : 'SPEC Basic. The platform still runs, but every number is entered by hand, nothing is traced to a system, and the KPIs below are proposed without benchmarks behind them.',
+
+      roles: ROLES.map(r => {
+        const kept = !!this.state.keptRoles[r.id];
+        return {
+          title: r.title,
+          reportsTo: r.reportsTo,
+          why: r.why,
+          style: 'background:var(--color-bg);border-radius:20px;padding:18px 20px;border-left:4px solid ' + (kept ? GREEN : GREY) + ';' + (kept ? '' : 'opacity:0.6;'),
+          buttonLabel: kept ? 'Keeping ✓' : 'Removed',
+          buttonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
+            + (kept ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-surface, #fff);color:color-mix(in srgb, var(--color-text) 60%, transparent);'),
+          toggle: () => this.setState(s => ({ keptRoles: { ...s.keptRoles, [r.id]: !s.keptRoles[r.id] } })),
+        };
+      }),
+
+      kpiRoleTabs: KPI_ROLES.map(r => ({
+        label: r,
+        select: () => this.setState({ kpiRole: r }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:10px 18px;font-family:var(--font-body);font-size:13.5px;white-space:nowrap;'
+          + (r === kpiRole ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+      })),
+      addKpiLabel: (this.state.extra[kpiRole] || 0) > 0
+        ? (this.state.extra[kpiRole] + ' extra KPI' + (this.state.extra[kpiRole] === 1 ? '' : 's') + ' added with ' + kpiRole)
+        : 'Add another KPI for this role',
+      addKpiStyle: 'cursor:pointer;border:0;border-radius:20px;padding:16px 20px;font-family:var(--font-body);font-size:14px;text-align:left;background:var(--color-bg);color:var(--color-text);box-shadow:inset 0 0 0 2px var(--color-accent-200);',
+      addKpi: () => this.setState(s => ({ extra: { ...s.extra, [kpiRole]: (s.extra[kpiRole] || 0) + 1 } })),
+      kpis: kpiSet.map(k => {
+        const isAgreed = !!this.state.agreed[k.id];
+        const value = this.state.agreedValues[k.id] !== undefined ? this.state.agreedValues[k.id] : k.proposed;
+        const changed = value !== k.proposed;
+        return {
+          pillar: k.pillar,
+          name: k.name,
+          proposed: k.proposed,
+          agreed: value,
+          source: k.source,
+          state: isAgreed ? (changed ? 'Agreed — negotiated' : 'Agreed as proposed') : 'Waiting on agreement',
+          chip: chip(isAgreed ? GREEN : AMBER),
+          style: 'background:var(--color-bg);border-radius:20px;padding:18px 20px;border-left:4px solid ' + (isAgreed ? GREEN : AMBER) + ';',
+          set: e => { const v = e.target.value; this.setState(s => ({ agreedValues: { ...s.agreedValues, [k.id]: v } })); },
+          buttonLabel: isAgreed ? 'Agreed ✓' : 'Agree this target',
+          buttonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
+            + (isAgreed ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+          agree: () => this.setState(s => ({ agreed: { ...s.agreed, [k.id]: !s.agreed[k.id] } })),
+        };
+      }),
+
+      people: PEOPLE.map(p => {
+        const person = this.state.people[p.role];
+        const invited = !!this.state.invited[p.role];
+        return {
+          role: p.role,
+          person,
+          state: person ? (invited ? 'Invited' : 'Named') : 'Vacant',
+          chip: chip(person ? (invited ? GREEN : AMBER) : GREY),
+          set: e => { const v = e.target.value; this.setState(s => ({ people: { ...s.people, [p.role]: v } })); },
+          buttonLabel: invited ? 'Invite sent ✓' : 'Send the invite',
+          buttonStyle: 'cursor:' + (person ? 'pointer' : 'not-allowed') + ';border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
+            + (invited ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);'
+              : person ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-surface, #fff);color:color-mix(in srgb, var(--color-text) 55%, transparent);'),
+          invite: () => { if (person) this.setState(s => ({ invited: { ...s.invited, [p.role]: !s.invited[p.role] } })); },
+        };
+      }),
+
+      cascade: CASCADE.map(c => {
+        const sent = !!this.state.sent[c.person];
+        return {
+          person: c.person,
+          role: c.role,
+          reports: c.reports,
+          note: c.note,
+          style: 'background:var(--color-bg);border-radius:20px;padding:18px 20px;border-left:4px solid ' + (sent ? GREEN : AMBER) + ';',
+          buttonLabel: sent ? 'Handed over ✓' : 'Hand over the step',
+          buttonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
+            + (sent ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+          send: () => this.setState(s => ({ sent: { ...s.sent, [c.person]: !s.sent[c.person] } })),
+        };
+      }),
+
+      nextLabel: idx === STEPS.length - 1 ? 'Open the org chart' : 'Next — ' + STEPS[idx + 1].label,
+      next: () => {
+        if (idx === STEPS.length - 1) { window.location.href = 'SPEC Org Chart.dc.html'; return; }
+        this.setState({ step: STEPS[idx + 1].key });
+      },
+
+      progressStyle: 'height:100%;border-radius:999px;width:' + Math.round(((idx + 1) / STEPS.length) * 100) + '%;background:' + (idx === STEPS.length - 1 ? GREEN : AMBER) + ';transition:width 200ms;',
+      progressLine: 'Step ' + (idx + 1) + ' of ' + STEPS.length + ' · ' + this.state.bizName + ' · ' + this.state.sector + ' · ' + this.state.size + ' people',
+      summary: [
+        { label: 'Roles kept', value: String(roleList.length) },
+        { label: 'Targets agreed', value: agreedCount + ' / ' + totalKpis },
+        { label: 'Roles filled', value: filled + ' / ' + PEOPLE.length },
+        { label: 'Managers handed over', value: sentCount + ' / ' + CASCADE.length },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

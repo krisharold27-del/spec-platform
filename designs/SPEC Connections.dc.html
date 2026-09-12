@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="#" style="color: var(--color-text); font-weight: 700;">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="padding: clamp(28px,4vw,44px) 0 26px;">
+      <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Connection centre</span>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">You talk to Claude. The systems talk to each other.</h1>
+      <p style="font-size: 17px; line-height: 28px; max-width: 58ch; margin: 18px 0 0;">Connect what the business already runs on and stop opening it. Claude reads what each system holds, proposes which KPIs it can feed, and you approve the mapping before anything is scored.</p>
+    </header>
+
+    <section style="{{ authStyle }}">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+        <div>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 18px; line-height: 1.3; margin: 0;">{{ authTitle }}</p>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 8px 0 0; max-width: 62ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ authBody }}</p>
+        </div>
+        <button type="button" class="btn btn-ghost" onClick="{{ toggleAuth }}" style="flex: none; white-space: nowrap;">{{ authToggleLabel }}</button>
+      </div>
+    </section>
+
+    <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); margin-top: clamp(20px,3vw,28px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 14px;">
+        <div>
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Board approvals</h2>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 10px 0 0; max-width: 60ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Anything holding money or personal records — Xero, HubSpot, MYOB, payroll, BambooHR, Employment Hero — is not connected on a GM's say-so. The Director sees the exact scope and approves it, and that approval is recorded against the connection.</p>
+        </div>
+        <button type="button" class="btn btn-ghost" onClick="{{ toggleBoard }}" style="flex: none; white-space: nowrap;">{{ boardToggleLabel }}</button>
+      </div>
+
+      <sc-if value="{{ hasApprovals }}" hint-placeholder-val="{{ false }}">
+        <div style="display: grid; gap: 12px; margin-top: 22px;">
+          <sc-for list="{{ approvals }}" as="ap" hint-placeholder-count="1">
+            <div style="background: var(--color-accent-100); border-radius: 20px; padding: 20px 22px;">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px;">{{ ap.name }}</span>
+                <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ ap.requested }}</span>
+              </div>
+              <p style="font-size: 14.5px; line-height: 23px; margin: 10px 0 0;">Scope: {{ ap.scope }}</p>
+              <p style="font-size: 13.5px; line-height: 21px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ ap.actionLine }}</p>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;">
+                <button type="button" onClick="{{ ap.approve }}" style="{{ ap.buttonStyle }}">Approve the connection</button>
+                <button type="button" onClick="{{ ap.decline }}" style="{{ ap.declineStyle }}">Decline</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <div style="display: grid; gap: 8px; margin-top: 18px;">
+        <sc-for list="{{ declinedList }}" as="dl" hint-placeholder-count="0">
+          <p style="font-size: 13.5px; line-height: 21px; margin: 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ dl.line }}</p>
+        </sc-for>
+      </div>
+
+      <p style="font-size: 13.5px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ approvalsLine }} · every approval, decline and scope change is kept in the connection log.</p>
+    </section>
+
+    <section aria-label="Connection summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; padding: clamp(20px,3vw,28px) 0;">
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 24px;">
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ s.label }}</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 40px; line-height: 1; margin: 16px 0 0;">{{ s.value }}</p>
+          <p style="font-size: 13.5px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ s.note }}</p>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); margin-bottom: clamp(20px,3vw,28px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 14px;">
+        <div>
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Connection health</h2>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 10px 0 0; max-width: 62ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">A feed that stops is worse than no feed, because the number stays on the board looking current. Anything stale is marked at source and stops counting towards the month until it is fixed.</p>
+        </div>
+        <span style="{{ healthChip }}">{{ healthLabel }}</span>
+      </div>
+
+      <div style="display: grid; gap: 10px; margin-top: 22px;">
+        <sc-for list="{{ health }}" as="h" hint-placeholder-count="5">
+          <div style="{{ h.style }}">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;">
+              <span style="display: grid; gap: 3px; min-width: 180px;">
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px;">{{ h.name }}</span>
+                <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ h.sync }}</span>
+              </span>
+              <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+                <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ h.reliability }}</span>
+                <span style="{{ h.chip }}">{{ h.state }}</span>
+                <button type="button" onClick="{{ h.fix }}" style="{{ h.buttonStyle }}">{{ h.buttonLabel }}</button>
+              </span>
+            </div>
+            <p style="font-size: 13.5px; line-height: 21px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ h.impact }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Connected</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ connectedLine }}</span>
+          </div>
+
+          <div style="display: grid; gap: 12px; margin-top: 22px;">
+            <sc-for list="{{ connected }}" as="c" hint-placeholder-count="3">
+              <div style="{{ c.style }}">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+                  <span style="display: flex; align-items: center; gap: 12px;">
+                    <span style="{{ c.mark }}">{{ c.initial }}</span>
+                    <span style="display: grid; gap: 3px;">
+                      <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px;">{{ c.name }}</span>
+                      <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ c.meta }}</span>
+                    </span>
+                  </span>
+                  <span style="{{ c.statusStyle }}">{{ c.status }}</span>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                  <sc-for list="{{ c.feeds }}" as="f" hint-placeholder-count="2">
+                    <span style="{{ f.style }}">{{ f.label }}</span>
+                  </sc-for>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;">
+                  <button type="button" onClick="{{ c.sync }}" style="{{ c.syncStyle }}">{{ c.syncLabel }}</button>
+                  <button type="button" onClick="{{ c.review }}" style="{{ c.ghostStyle }}">Review mapping</button>
+                  <button type="button" onClick="{{ c.disconnect }}" style="{{ c.ghostStyle }}">Disconnect</button>
+                </div>
+                <sc-if value="{{ c.showMapping }}" hint-placeholder-val="{{ false }}">
+                  <div style="background: var(--color-bg); border-radius: 18px; padding: 16px 18px; margin-top: 14px; display: grid; gap: 10px;">
+                    <sc-for list="{{ c.mapping }}" as="m" hint-placeholder-count="2">
+                      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                        <span style="font-size: 14px; line-height: 21px;">{{ m.kpi }}</span>
+                        <span style="font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ m.field }}</span>
+                      </div>
+                    </sc-for>
+                    <p style="font-size: 13px; line-height: 20px; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Claude proposed this mapping. Anything you reject stays manual.</p>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Available to connect</h2>
+            <input class="input" type="text" value="{{ query }}" onChange="{{ setQuery }}" onInput="{{ setQuery }}" aria-label="Search systems" placeholder="Search systems" style="flex: 0 1 240px; min-height: 36px;" />
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+            <sc-for list="{{ filters }}" as="fl" hint-placeholder-count="5">
+              <button type="button" onClick="{{ fl.select }}" style="{{ fl.style }}">{{ fl.label }}</button>
+            </sc-for>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; margin-top: 20px;">
+            <sc-for list="{{ available }}" as="a" hint-placeholder-count="6">
+              <div style="background: var(--color-bg); border-radius: 20px; padding: 18px 20px; display: grid; align-content: start; gap: 10px;">
+                <span style="display: flex; align-items: center; gap: 10px;">
+                  <span style="{{ a.mark }}">{{ a.initial }}</span>
+                  <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">{{ a.name }}</span>
+                </span>
+                <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ a.feedsLine }}</span>
+                <span style="{{ a.sensitiveStyle }}">{{ a.sensitiveLabel }}</span>
+                <button type="button" onClick="{{ a.connect }}" style="{{ a.buttonStyle }}">{{ a.buttonLabel }}</button>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size: 13.5px; line-height: 21px; margin: 20px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ emptyLine }}</p>
+        </section>
+      </div>
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+
+        <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Not on the list?</h2>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Describe the system in your own words. Claude works out what it holds, which pillar it belongs to and what it can feed, then brings you a mapping to approve.</p>
+          <div style="display: grid; gap: 10px; margin-top: 20px;">
+            <textarea class="input" value="{{ ask }}" onChange="{{ setAsk }}" onInput="{{ setAsk }}" aria-label="Describe a system" placeholder="We log plant checks in a shared spreadsheet the yard fills in each morning." style="width: 100%; box-sizing: border-box; min-height: 100px; border-radius: 20px; padding: 14px 18px; font-family: var(--font-body); font-size: 14.5px; line-height: 22px; resize: vertical;"></textarea>
+            <button type="button" class="btn btn-primary" onClick="{{ runAsk }}" style="flex: none; white-space: nowrap; justify-self: start;">Ask Claude to work it out</button>
+          </div>
+          <sc-if value="{{ hasProposal }}" hint-placeholder-val="{{ false }}">
+            <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 18px 20px; margin-top: 16px;">
+              <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 8px; color: var(--color-accent-700);">Proposed mapping</p>
+              <p style="font-size: 14.5px; line-height: 23px; margin: 0;">{{ proposal }}</p>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                <button type="button" class="btn btn-secondary" style="flex: none; white-space: nowrap;">Approve mapping</button>
+                <button type="button" class="btn btn-ghost" onClick="{{ clearAsk }}" style="flex: none; white-space: nowrap;">Discard</button>
+              </div>
+            </div>
+          </sc-if>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">What is still manual</h2>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">These KPIs have no system behind them. SPEC marks them not tracked rather than scoring them.</p>
+          <div style="display: grid; gap: 10px; margin-top: 20px;">
+            <sc-for list="{{ manual }}" as="mn" hint-placeholder-count="3">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-accent-100); padding-bottom: 12px;">
+                <span style="display: grid; gap: 2px;">
+                  <span style="font-size: 14.5px; line-height: 21px;">{{ mn.kpi }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ mn.pillar }}</span>
+                </span>
+                <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ mn.who }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.2; margin: 0;">Connection log</h2>
+          <div style="display: grid; gap: 12px; margin-top: 18px;">
+            <sc-for list="{{ log }}" as="lg" hint-placeholder-count="4">
+              <div style="display: grid; gap: 3px; border-bottom: 1px solid var(--color-accent-200); padding-bottom: 12px;">
+                <span style="font-size: 14.5px; line-height: 21px;">{{ lg.what }}</span>
+                <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ lg.who }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size: 13px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Every connection, disconnection and mapping change is logged against a name.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', GREY = '#8c8681';
+
+const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;'
+  + 'background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+const mark = tone => 'width:36px;height:36px;flex:none;border-radius:12px;display:grid;place-content:center;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:15px;'
+  + 'background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+const SYSTEMS = [
+  { name: 'Simpro', category: 'Operations', tone: GREEN, connected: true, meta: 'Jobs, quotes and scheduling · synced 6:04am', status: 'Healthy', feeds: ['Earnings', 'Safety'], mapping: [{ kpi: 'Margin against quote', field: 'Job actual vs quoted' }, { kpi: 'Labour utilisation', field: 'Scheduled vs billable hours' }, { kpi: 'Jobs completed on time', field: 'Job · completion date' }] },
+  { name: 'Xero', category: 'Finance', tone: GREEN, connected: true, meta: 'Actuals refreshed 9 Sep · nightly', status: 'Healthy', feeds: ['Earnings'], mapping: [{ kpi: 'Revenue against plan', field: 'Tracking category · Plan' }, { kpi: 'Gross margin', field: 'P&L · Gross profit %' }, { kpi: 'Net margin', field: 'P&L · Net profit %' }] },
+  { name: 'HubSpot', category: 'Sales', tone: GREEN, connected: true, meta: 'Pipeline, quotes and win rate · hourly', status: 'Healthy', feeds: ['Earnings'], mapping: [{ kpi: 'Quoted work won', field: 'Deals · won / quoted' }, { kpi: 'Pipeline against plan', field: 'Pipeline value · stage weighted' }] },
+  { name: 'Safety Minder', category: 'Safety', tone: AMBER, connected: false, meta: 'Not connected — TRIFR cannot be measured', status: 'Pending', feeds: ['Safety'], mapping: [{ kpi: 'TRIFR', field: 'Incidents · rolling 12 months' }, { kpi: 'Corrective actions on time', field: 'Actions · due date' }, { kpi: 'Tickets current', field: 'Certifications · expiry' }] },
+  { name: 'Groundplan', category: 'Operations', tone: GREEN, connected: true, meta: 'Take-offs and plan mark-ups · daily', status: 'Healthy', feeds: ['Earnings'], mapping: [{ kpi: 'Estimating accuracy', field: 'Take-off vs installed quantities' }] },
+  { name: 'Pylon', category: 'Operations', tone: AMBER, connected: true, meta: 'Design and compliance calculations · two fields unmapped', status: 'Needs review', feeds: ['Compliance'], mapping: [{ kpi: 'Designs signed off', field: 'Project · approval status' }, { kpi: 'Defects at handover', field: 'Unmapped' }] },
+  { name: 'Payroll / rostering', category: 'People', tone: GREY, connected: false, meta: 'Starters, leavers and rostered hours', status: 'Available', feeds: ['People', 'Earnings'], mapping: [] },
+  { name: 'Microsoft 365', category: 'Workplace', tone: GREY, connected: false, meta: 'Sign-in, calendar and the weekly meeting log', status: 'Available', feeds: ['People'], mapping: [] },
+  { name: 'Google Workspace', category: 'Workplace', tone: GREY, connected: false, meta: 'Sign-in, calendar and the weekly meeting log', status: 'Available', feeds: ['People'], mapping: [] },
+  { name: 'MYOB', category: 'Finance', tone: GREY, connected: false, meta: 'Ledger, invoicing and payroll', status: 'Available', feeds: ['Earnings'], mapping: [] },
+  { name: 'Employment Hero', category: 'People', tone: GREY, connected: false, meta: 'Org structure, engagement and eNPS', status: 'Available', feeds: ['People'], mapping: [] },
+  { name: 'BambooHR', category: 'People', tone: GREY, connected: false, meta: 'Org structure, starters and leavers', status: 'Available', feeds: ['People'], mapping: [] },
+];
+
+const CATEGORIES = ['All', 'Operations', 'Finance', 'People', 'Safety', 'Compliance', 'Sales', 'Workplace'];
+
+const SENSITIVE = {
+  'Xero': { scope: 'Full ledger, revenue and margin. Read only.', approved: 'Justin Bussell, Director · 14 Aug' },
+  'HubSpot': { scope: 'Pipeline value, customer names and quoted work. Read only.', approved: 'Justin Bussell, Director · 14 Aug' },
+  'MYOB': { scope: 'Ledger, invoicing and payroll. Read only.', approved: '' },
+  'BambooHR': { scope: 'Personal records, salaries, starters and leavers. Read only.', approved: '' },
+  'Employment Hero': { scope: 'Personal records, engagement responses and eNPS. Read only.', approved: '' },
+  'Payroll / rostering': { scope: 'Pay rates, hours and termination dates. Read only.', approved: '' },
+};
+
+const MANUAL = [
+  { kpi: 'Zero Incidents', pillar: 'Safety', who: 'GM confirmation' },
+  { kpi: 'Days Without Harm', pillar: 'Safety', who: 'GM confirmation' },
+  { kpi: 'Engagement & eNPS', pillar: 'People', who: 'Not collected' },
+  { kpi: 'Plant checks logged', pillar: 'Compliance', who: 'Signed by operator' },
+];
+
+const RED = '#a63b26';
+
+const HEALTH = [
+  { name: 'Simpro', sync: 'Synced 6:04am · every 15 minutes', reliability: '100% of syncs, 30 days', state: 'Healthy', tone: GREEN, impact: 'Feeding margin against quote and labour utilisation. Both current.' },
+  { name: 'Xero', sync: 'Synced 2:10am · nightly', reliability: '29 of 30 nights', state: 'Healthy', tone: GREEN, impact: 'Feeding revenue against plan. One missed night last month, recovered on the next run.' },
+  { name: 'Safety Minder', sync: 'Last successful sync 28 Aug · 14 days ago', reliability: 'Token expired', state: 'Stale', tone: RED, impact: 'TRIFR and incidents closed are not being fed. Both are marked Not tracked on the scorecard rather than carried forward at last known value.' },
+  { name: 'HubSpot', sync: 'Synced 6:02am · hourly', reliability: '100% of syncs, 30 days', state: 'Healthy', tone: GREEN, impact: 'Feeding pipeline value and quoted work won.' },
+  { name: 'Groundplan', sync: 'Synced 5:51am · daily', reliability: '26 of 30 days', state: 'Watch', tone: AMBER, impact: 'Four missed runs this month. Take-off accuracy is still counting, but a fifth miss stops it counting for September.' },
+];
+
+const LOG = [
+  { what: 'Pylon mapping changed — defects at handover left unmapped', who: 'Kristopher Harold, GM · 9 Sep' },
+  { what: 'Xero reconnected after token expiry', who: 'Kristopher Harold, GM · 9 Sep' },
+  { what: 'Safety Minder connection requested', who: 'Justin Bussell, Director · 2 Sep' },
+  { what: 'Groundplan connected', who: 'Kristopher Harold, GM · 14 Aug' },
+];
+
+class Component extends DCLogic {
+  state = {
+    connected: SYSTEMS.reduce((acc, s) => { acc[s.name] = s.connected; return acc; }, {}),
+    open: {}, query: '', category: 'All', ask: '', proposal: '', authorised: true, synced: {},
+    pending: {}, boardView: false, declined: {}, approvals: {}, logAdded: [],
+  };
+
+  renderVals() {
+    const authorised = this.state.authorised;
+    const fixed = this.state.fixed || {};
+    const healthRows = HEALTH.map(h => {
+      const tone = fixed[h.name] ? GREEN : h.tone;
+      const ok = tone === GREEN;
+      const watch = tone === AMBER;
+      return {
+        name: h.name,
+        sync: fixed[h.name] ? 'Reconnected just now · next run in 15 minutes' : h.sync,
+        reliability: fixed[h.name] ? 'Token renewed · monitoring' : h.reliability,
+        state: fixed[h.name] ? 'Healthy' : h.state,
+        chip: chip(tone),
+        impact: fixed[h.name] ? 'Feeding again. The numbers it owns count towards September from this run.' : h.impact,
+        style: 'background:var(--color-bg);border-radius:20px;padding:16px 20px;border-left:4px solid ' + tone + ';',
+        buttonLabel: ok ? 'Test the feed' : watch ? 'View missed runs' : (authorised ? 'Reconnect' : 'Ask the GM'),
+        buttonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
+          + (ok || watch ? 'background:var(--color-surface, #fff);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+        fix: () => { if (!ok && !watch && authorised) this.setState(s => ({ fixed: { ...(s.fixed || {}), [h.name]: true } })); },
+      };
+    });
+    const broken = healthRows.filter(h => h.state !== 'Healthy').length;
+    const all = SYSTEMS.map(s => ({ ...s, isOn: !!this.state.connected[s.name] }));
+    const connected = all.filter(s => s.isOn);
+    const q = this.state.query.trim().toLowerCase();
+    const available = all.filter(s => !s.isOn)
+      .filter(s => this.state.category === 'All' || s.category === this.state.category)
+      .filter(s => !q || s.name.toLowerCase().includes(q) || s.category.toLowerCase().includes(q));
+
+    const needsReview = connected.filter(s => s.status === 'Needs review').length;
+    const pendingNames = Object.keys(this.state.pending).filter(k => this.state.pending[k]);
+    const ghost = 'cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13px;flex:none;white-space:nowrap;background:var(--color-bg);color:var(--color-text);';
+
+    return {
+      authStyle: 'border-radius:var(--radius-lg);padding:22px 24px;background:' + (authorised ? 'color-mix(in srgb, ' + GREEN + ' 10%, transparent)' : 'var(--color-accent-100)') + ';',
+      authTitle: authorised ? 'You are authorised to connect systems' : 'You can see connections, but not change them',
+      authBody: authorised
+        ? 'Kristopher Harold, GM. Connecting, disconnecting and approving a mapping is limited to the roles the Director has authorised, and every change is logged.'
+        : 'Ask the Managing Director or the Director to authorise your role, or to make the change for you. Everything below is read-only.',
+      authToggleLabel: authorised ? 'View as unauthorised' : 'View as authorised',
+      toggleAuth: () => this.setState(s => ({ authorised: !s.authorised })),
+
+      health: healthRows,
+      healthChip: chip(broken ? RED : GREEN),
+      healthLabel: broken ? broken + ' needing attention' : 'All feeds current',
+
+      stats: [
+        { label: 'Connected', value: String(connected.length), note: 'feeding KPIs across four pillars' },
+        { label: 'Needs review', value: String(needsReview), note: needsReview ? 'a mapping changed at the source' : 'every mapping approved' },
+        { label: 'Still manual', value: String(MANUAL.length), note: 'confirmed by a person, not a system' },
+        { label: 'Last sync', value: '6:04am', note: 'nightly and hourly feeds are current' },
+      ],
+
+      connectedLine: connected.length + ' systems · ' + (needsReview ? needsReview + ' needs review' : 'all healthy'),
+      connected: connected.map(s => {
+        const justSynced = !!this.state.synced[s.name];
+        return {
+          name: s.name,
+          initial: s.name.slice(0, 1),
+          mark: mark(s.tone),
+          meta: justSynced ? 'Synced just now · ' + s.category : s.meta,
+          status: s.status,
+          statusStyle: chip(s.status === 'Healthy' ? GREEN : s.status === 'Needs review' ? AMBER : GREY),
+          style: 'background:var(--color-bg);border-radius:20px;padding:20px 22px;border-left:4px solid ' + s.tone + ';',
+          feeds: s.feeds.map(f => ({ label: 'Feeds ' + f, style: chip(GREY) }))
+            .concat(SENSITIVE[s.name]
+              ? [{ label: 'Board approved · ' + (this.state.approvals[s.name] || SENSITIVE[s.name].approved || 'awaiting board record'), style: chip(AMBER) }]
+              : []),
+          syncLabel: justSynced ? 'Synced ✓' : 'Sync now',
+          syncStyle: 'cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13px;flex:none;white-space:nowrap;'
+            + (justSynced ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+          sync: () => this.setState(st => ({ synced: { ...st.synced, [s.name]: !st.synced[s.name] } })),
+          ghostStyle: ghost + (authorised ? '' : 'opacity:0.45;'),
+          review: () => this.setState(st => ({ open: { ...st.open, [s.name]: !st.open[s.name] } })),
+          showMapping: !!this.state.open[s.name] && s.mapping.length > 0,
+          mapping: s.mapping,
+          disconnect: () => { if (authorised) this.setState(st => ({ connected: { ...st.connected, [s.name]: false } })); },
+        };
+      }),
+
+      filters: CATEGORIES.map(c => ({
+        label: c,
+        select: () => this.setState({ category: c }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
+          + (this.state.category === c ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+      })),
+      query: this.state.query,
+      setQuery: e => this.setState({ query: e.target.value }),
+      available: available.map(s => ({
+        name: s.name,
+        initial: s.name.slice(0, 1),
+        mark: mark(s.tone),
+        feedsLine: s.meta,
+        sensitive: !!SENSITIVE[s.name],
+        sensitiveStyle: SENSITIVE[s.name] ? chip(AMBER) : 'display:none;',
+        sensitiveLabel: SENSITIVE[s.name] ? 'Board approval needed' : '',
+        buttonLabel: !authorised ? 'Needs authorisation' : this.state.pending[s.name] ? 'Awaiting the board ✓' : SENSITIVE[s.name] ? 'Request board approval' : 'Connect',
+        buttonStyle: 'cursor:' + (authorised ? 'pointer' : 'not-allowed') + ';border:0;border-radius:999px;padding:9px 18px;font-family:var(--font-body);font-size:13px;justify-self:start;white-space:nowrap;'
+          + (!authorised
+            ? 'background:var(--color-surface, #fff);color:color-mix(in srgb, var(--color-text) 55%, transparent);'
+            : this.state.pending[s.name]
+              ? 'background:color-mix(in srgb, ' + AMBER + ' 16%, transparent);color:var(--color-text);'
+              : 'background:var(--color-accent);color:#fff;'),
+        connect: () => {
+          if (!authorised) return;
+          if (SENSITIVE[s.name]) this.setState(st => ({ pending: { ...st.pending, [s.name]: true }, declined: { ...st.declined, [s.name]: false } }));
+          else this.setState(st => ({ connected: { ...st.connected, [s.name]: true } }));
+        },
+      })),
+
+      boardView: this.state.boardView,
+      boardToggleLabel: this.state.boardView ? 'Back to the GM view' : 'View as the board',
+      toggleBoard: () => this.setState(st => ({ boardView: !st.boardView })),
+      approvalsLine: pendingNames.length ? pendingNames.length + ' waiting on the board' : 'Nothing waiting',
+      hasApprovals: pendingNames.length > 0,
+      approvals: pendingNames.map(name => ({
+        name,
+        scope: SENSITIVE[name].scope,
+        requested: 'Requested by Kristopher Harold, GM · today',
+        canAct: this.state.boardView,
+        actionLine: this.state.boardView ? 'You are viewing as Justin Bussell, Director.' : 'Justin Bussell, Director has been notified. Nothing is read until he approves.',
+        approve: () => {
+          if (!this.state.boardView) return;
+          this.setState(st => ({
+            connected: { ...st.connected, [name]: true },
+            pending: { ...st.pending, [name]: false },
+            approvals: { ...st.approvals, [name]: 'Justin Bussell, Director · today' },
+            logAdded: [{ what: name + ' approved and connected — scope: ' + SENSITIVE[name].scope, who: 'Justin Bussell, Director · today' }].concat(st.logAdded),
+          }));
+        },
+        decline: () => {
+          if (!this.state.boardView) return;
+          this.setState(st => ({
+            pending: { ...st.pending, [name]: false },
+            declined: { ...st.declined, [name]: true },
+            logAdded: [{ what: name + ' declined — stays disconnected, its KPIs stay manual', who: 'Justin Bussell, Director · today' }].concat(st.logAdded),
+          }));
+        },
+        buttonStyle: 'cursor:' + (this.state.boardView ? 'pointer' : 'not-allowed') + ';border:0;border-radius:999px;padding:9px 18px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
+          + (this.state.boardView ? 'background:' + GREEN + ';color:#fff;' : 'background:var(--color-bg);color:color-mix(in srgb, var(--color-text) 55%, transparent);'),
+        declineStyle: 'cursor:' + (this.state.boardView ? 'pointer' : 'not-allowed') + ';border:0;border-radius:999px;padding:9px 18px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;background:var(--color-bg);color:var(--color-text);'
+          + (this.state.boardView ? '' : 'opacity:0.45;'),
+      })),
+      declinedList: Object.keys(this.state.declined).filter(k => this.state.declined[k]).map(name => ({
+        name,
+        line: name + ' — declined by the board. It stays disconnected and its KPIs stay manual.',
+      })),
+      emptyLine: available.length ? 'Claude reads what each system holds before anything is scored.' : 'Nothing left in this category — everything here is connected.',
+
+      ask: this.state.ask,
+      setAsk: e => this.setState({ ask: e.target.value }),
+      runAsk: () => {
+        const text = this.state.ask.trim();
+        if (!text) return;
+        this.setState({ proposal: 'Reads as a Compliance source. Claude would map it to “Plant checks logged” against the operator who signs each morning, pull the sheet daily at 6am, and flag any day with no entry rather than scoring it 100%. Nothing else on the scorecard changes.' });
+      },
+      clearAsk: () => this.setState({ ask: '', proposal: '' }),
+      hasProposal: !!this.state.proposal,
+      proposal: this.state.proposal,
+
+      manual: MANUAL,
+      log: this.state.logAdded.concat(LOG),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

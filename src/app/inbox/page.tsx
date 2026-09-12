@@ -9,7 +9,7 @@ import { getScorecard } from '@/lib/queries';
 import { currentPeriod } from '@/lib/period';
 import { getScope, scoredRolesInScope, isTopOfChart } from '@/lib/scope';
 import { queue, ageLabel, type DerivedInputs } from '@/lib/inbox';
-import { LIGHT_COLOUR } from '@/lib/today';
+import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { approve, decline } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -119,7 +119,7 @@ export default async function Inbox() {
                     <span className="label-caps">{i.kind}</span>
                     <span
                       className="pill"
-                      style={{ background: `color-mix(in srgb, ${TONE[i.tone]} 14%, transparent)`, color: TONE[i.tone] }}
+                      style={pillTone(i.tone)}
                     >
                       {ageLabel(i.age)}
                     </span>

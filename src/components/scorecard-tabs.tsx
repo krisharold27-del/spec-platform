@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { Pillar, Score } from '@/lib/scoring';
 import type { ScorecardRow } from '@/lib/queries';
 import { toneOf, labelOf, isExcluded, type Tone } from '@/lib/scorecard';
-import { LIGHT_COLOUR } from '@/lib/today';
+import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { targetLabel } from '@/lib/targets';
 
 /**
@@ -96,7 +96,7 @@ export function ScorecardTabs({ summaries, scored }: { summaries: PillarPanel[];
                         <td>
                           <span
                             className="pill"
-                            style={{ background: `color-mix(in srgb, ${TONE[tone]} 14%, transparent)`, color: TONE[tone] }}
+                            style={pillTone(tone)}
                           >
                             {labelOf(r)}
                           </span>

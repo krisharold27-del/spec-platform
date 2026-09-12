@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="#" style="color: var(--color-text); font-weight: 700;">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; padding: clamp(28px,4vw,44px) 0 26px;">
+      <div>
+        <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Board pack · generated from the data</span>
+        <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 18ch;">September 2026</h1>
+        <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">JBI Electrical · locked 30 Sep · prepared by Kristopher Harold, GM · signed by Justin Bussell, Director. Nobody built this. It is the month, read back.</p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <button type="button" class="btn btn-ghost" style="flex: none; white-space: nowrap;">Export as PDF</button>
+        <button type="button" class="btn btn-primary" onClick="{{ toggleDetail }}" style="flex: none; white-space: nowrap;">{{ detailLabel }}</button>
+      </div>
+    </header>
+
+    <section style="{{ verdictStyle }}">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 20px;">
+        <div style="max-width: 56ch;">
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,3vw,34px); line-height: 1.2; margin: 0;">{{ verdictTitle }}</p>
+          <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0;">{{ verdictBody }}</p>
+        </div>
+        <div style="display: grid; gap: 10px; min-width: 180px;">
+          <sc-for list="{{ gates }}" as="g" hint-placeholder-count="2">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--color-surface, #fff); border-radius: 999px; padding: 10px 18px;">
+              <span style="font-size: 14px;">{{ g.name }}</span>
+              <span style="{{ g.chip }}">{{ g.state }}</span>
+            </div>
+          </sc-for>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--color-surface, #fff); border-radius: 999px; padding: 10px 18px;">
+            <span style="font-size: 14px;">Snap Score</span>
+            <span style="{{ snapChip }}">{{ snapLabel }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="The four pillars" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; padding: clamp(20px,3vw,28px) 0;">
+      <sc-for list="{{ pillars }}" as="p" hint-placeholder-count="4">
+        <div style="{{ p.style }}">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ p.name }}</span>
+            <span style="{{ p.dot }}"></span>
+          </div>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 42px; line-height: 1; margin: 16px 0 0;">{{ p.score }}</p>
+          <p style="font-size: 13.5px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ p.move }}</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0;">{{ p.line }}</p>
+        </div>
+      </sc-for>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+
+        <sc-if value="{{ hasRegister }}" hint-placeholder-val="{{ false }}">
+          <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Sign off the register</h2>
+              <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ regLine }}</span>
+            </div>
+            <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; max-width: 56ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Every improvement opportunity in the business, ranked harm → money → people → everything else. Approve confirms it; deny sends it back with no owner.</p>
+            <div style="display: grid; gap: 12px; margin-top: 22px;">
+              <sc-for list="{{ regItems }}" as="r" hint-placeholder-count="3">
+                <div style="{{ r.style }}">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="{{ r.priorityChip }}">{{ r.priorityLabel }}</span>
+                    <span style="{{ r.statusChip }}">{{ r.statusLabel }}</span>
+                  </div>
+                  <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15.5px; line-height: 22px; margin: 8px 0 0;">{{ r.text }}</p>
+                  <p style="font-size: 13px; line-height: 20px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ r.metaLine }}</p>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                    <button type="button" class="btn btn-primary" onClick="{{ r.approve }}" style="flex: none; white-space: nowrap;">Approve</button>
+                    <button type="button" class="btn btn-ghost" onClick="{{ r.deny }}" style="flex: none; white-space: nowrap;">Deny — send back</button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-if>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">What the board is asked to do</h2>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; max-width: 54ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Three things only the owner can unblock. Everything else is being handled in the business.</p>
+          <div style="display: grid; gap: 12px; margin-top: 22px;">
+            <sc-for list="{{ asks }}" as="a" hint-placeholder-count="3">
+              <div style="{{ a.style }}">
+                <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                  <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16.5px; line-height: 23px;">{{ a.what }}</span>
+                  <span style="{{ a.chip }}">{{ a.pillar }}</span>
+                </div>
+                <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ a.why }}</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                  <button type="button" onClick="{{ a.decide }}" style="{{ a.buttonStyle }}">{{ a.buttonLabel }}</button>
+                  <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ a.owner }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); min-width: 0;">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">By role</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Four roles scored · September</span>
+          </div>
+          <div style="overflow-x: auto; margin-top: 20px;">
+            <table class="table" style="width: 100%; min-width: 560px;">
+              <thead>
+                <tr>
+                  <th style="text-align: left;">Role</th>
+                  <th style="text-align: left;">S</th>
+                  <th style="text-align: left;">P</th>
+                  <th style="text-align: left;">E</th>
+                  <th style="text-align: left;">C</th>
+                  <th style="text-align: left;">Month</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ roleRows }}" as="r" hint-placeholder-count="4">
+                  <tr>
+                    <td>
+                      <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px;">{{ r.role }}</span>
+                      <span style="display: block; font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ r.person }}</span>
+                    </td>
+                    <td><span style="{{ r.s }}">S</span></td>
+                    <td><span style="{{ r.p }}">P</span></td>
+                    <td><span style="{{ r.e }}">E</span></td>
+                    <td><span style="{{ r.c }}">C</span></td>
+                    <td><span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px;">{{ r.month }}</span></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <sc-if value="{{ detail }}" hint-placeholder-val="{{ false }}">
+            <div style="display: grid; gap: 10px; margin-top: 20px;">
+              <sc-for list="{{ roleNotes }}" as="rn" hint-placeholder-count="4">
+                <p style="font-size: 14px; line-height: 22px; margin: 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ rn.line }}</p>
+              </sc-for>
+            </div>
+          </sc-if>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">What the data cannot support</h2>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; max-width: 54ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Reported as flags, not scores. A flag says the business has not yet built the means to measure the thing it said mattered.</p>
+          <div style="display: grid; gap: 12px; margin-top: 20px;">
+            <sc-for list="{{ flags }}" as="f" hint-placeholder-count="3">
+              <div style="display: grid; gap: 4px; background: var(--color-bg); border-radius: 18px; padding: 16px 18px;">
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15.5px;">{{ f.what }}</span>
+                <span style="font-size: 13.5px; line-height: 21px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ f.why }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Six months</h2>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">All four pillars, month by month. SPEC is two consecutive months with every pillar at 90% or better.</p>
+          <div style="display: grid; gap: 18px; margin-top: 24px;">
+            <sc-for list="{{ trends }}" as="t" hint-placeholder-count="4">
+              <div>
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+                  <span style="font-size: 13.5px;">{{ t.name }}</span>
+                  <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ t.move }}</span>
+                </div>
+                <div style="display: flex; align-items: flex-end; gap: 6px; height: 70px; margin-top: 10px;">
+                  <sc-for list="{{ t.bars }}" as="b" hint-placeholder-count="6">
+                    <div style="{{ b.style }}"></div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size: 12.5px; line-height: 20px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Apr · May · Jun · Jul · Aug · Sep</p>
+        </section>
+
+        <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Aces this month</h2>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Trained on the job, signed off, and holding a minimum 90% on the KPI board three months in a row. The incentive follows automatically.</p>
+          <div style="display: grid; gap: 12px; margin-top: 20px;">
+            <sc-for list="{{ aces }}" as="ac" hint-placeholder-count="2">
+              <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 16px 20px;">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
+                  <span style="display: grid; gap: 2px;">
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">{{ ac.person }}</span>
+                    <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ ac.role }}</span>
+                  </span>
+                  <span style="{{ ac.chip }}">{{ ac.state }}</span>
+                </div>
+                <p style="font-size: 13.5px; line-height: 21px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ ac.note }}</p>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.2; margin: 0;">Provenance</h2>
+          <div style="display: grid; gap: 12px; margin-top: 18px;">
+            <sc-for list="{{ provenance }}" as="pv" hint-placeholder-count="4">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-accent-200); padding-bottom: 12px;">
+                <span style="font-size: 14.5px; line-height: 21px;">{{ pv.name }}</span>
+                <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ pv.detail }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size: 13px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Every figure in this pack traces to a system or to the person who confirmed it.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
+const rag = v => (v >= 90 ? GREEN : v >= 75 ? AMBER : RED);
+const dot = (v, size) => 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:block;flex:none;background:' + rag(v) + ';';
+const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 90 ? '#4f7a3f' : v >= 75 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
+const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+const PILLARS = [
+  { name: 'Safety', score: 96, prev: 92, line: 'Zero Harm held all month. Four of five KPIs measured; TRIFR still has no system behind it.' },
+  { name: 'People', score: 84, prev: 86, line: 'Two 90-day departures in the yard crew and one one-to-one not held. The only pillar moving the wrong way.' },
+  { name: 'Earnings', score: 91, prev: 88, line: 'Revenue at 94% of plan, margin recovered to 30% against a 32% target. Rework, not pricing.' },
+  { name: 'Compliance', score: 100, prev: 100, line: 'Clear to Work held. Licences current, plant checks logged on the day.' },
+];
+
+const ROLE_ROWS = [
+  { role: 'Managing Director', person: 'Kristopher Harold', s: 96, p: 88, e: 91, c: 100 },
+  { role: 'Operations Manager', person: 'Dane Whitmore', s: 96, p: 86, e: 91, c: 100 },
+  { role: 'BD Manager', person: 'Priya Raman', s: 100, p: 92, e: 100, c: 100 },
+  { role: 'Site Supervisor', person: 'Tom Alderson', s: 98, p: 72, e: 100, c: 100 },
+];
+
+const ROLE_NOTES = [
+  { line: 'Site Supervisor · People at 72% is the single largest drag on the month. Three of five crew one-to-ones held.' },
+  { line: 'Operations Manager · Earnings recovered nine points on rework control at the yard.' },
+  { line: 'BD Manager · Quoted work won at 41% against a 35% target, third month running.' },
+  { line: 'Managing Director · No KPI moved more than four points. A steady month at the top.' },
+];
+
+const TRENDS = [
+  { name: 'Safety', bars: [78, 84, 88, 90, 92, 96] },
+  { name: 'People', bars: [88, 86, 84, 86, 86, 84] },
+  { name: 'Earnings', bars: [84, 86, 87, 89, 88, 91] },
+  { name: 'Compliance', bars: [100, 100, 100, 100, 100, 100] },
+];
+
+const ASKS = [
+  { what: 'Approve the Safety Minder connection', why: 'TRIFR has been closed out unmeasured for two months. The connection is requested and waiting on the board; scope is incident records, read only.', pillar: 'Safety', owner: 'Decision sits with the Director' },
+  { what: 'Fill the Yard Lead role', why: 'Unfilled since July. The crew has no direct manager, which is where both 90-day departures came from and where rework is concentrated.', pillar: 'People', owner: 'Budget approval needed' },
+  { what: 'Confirm the 32% margin target for FY27', why: 'Held at 30% for three months. Either the target moves or the quoting rule does, and the GM needs the call before October quoting.', pillar: 'Earnings', owner: 'Decision sits with the board' },
+];
+
+const FLAGS = [
+  { what: 'TRIFR — Safety', why: 'No system behind it. Closed out for September rather than scored. Connecting Safety Minder makes it measurable from October.' },
+  { what: 'Engagement and eNPS — People', why: 'Not collected this period. People is scored on the measures that exist, so the figure understates what is not known.' },
+  { what: 'Defects at handover — Compliance', why: 'Pylon field unmapped. Reported by exception until the mapping is approved.' },
+];
+
+const ACES = [
+  { person: 'Priya Raman', role: 'BD Manager · Sales Ace', state: 'Ace', hit: 3, note: 'Three months above 90% on the KPI board. Increased incentive applies from October.' },
+  { person: 'Dane Whitmore', role: 'Operations Manager · Ops Ace', state: '2 of 3 months', hit: 2, note: 'People at 86% drops the board below 90% and breaks the run. Back to month one in October.' },
+];
+
+const PROVENANCE = [
+  { name: 'Simpro', detail: 'Jobs, quotes, sign-ons · 6:04am' },
+  { name: 'Xero', detail: 'Actuals · refreshed 9 Sep' },
+  { name: 'HubSpot', detail: 'Pipeline and win rate · hourly' },
+  { name: 'Groundplan', detail: 'Take-off vs installed · daily' },
+  { name: 'Manual — GM confirmation', detail: '6 KPIs, named and dated' },
+];
+
+const RED_BP = '#a63b26', AMBER_BP = '#c67139', GREY_BP = '#8c8681';
+const chipBp = tone => 'display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+const priorityOfBp = e => {
+  const letters = (e.bloom || []).filter(b => b.certainty === 'definite').map(b => b.pillar);
+  if (letters.includes('S')) return 1;
+  if (letters.includes('E')) return 2;
+  if (letters.includes('P')) return 3;
+  return 4;
+};
+const PRIORITY_LABEL_BP = { 1: 'Harm — act now', 2: 'Losing money', 3: 'Losing people', 4: 'Everything else' };
+const PRIORITY_TONE_BP = { 1: RED_BP, 2: AMBER_BP, 3: '#35617a', 4: GREY_BP };
+
+class Component extends DCLogic {
+  state = { detail: false, decided: {}, register: [] };
+
+  componentDidMount() {
+    let register = [];
+    try { register = JSON.parse(localStorage.getItem('spec_register') || '[]'); } catch (e) {}
+    this.setState({ register });
+  }
+
+  saveRegisterBp(register) {
+    try { localStorage.setItem('spec_register', JSON.stringify(register)); } catch (e) {}
+    this.setState({ register });
+  }
+
+  renderVals() {
+    const snap = (() => {
+      const reg = this.state.register;
+      if (reg.length < 3) return { pct: 0, tone: GREY_BP, label: 'Not enough history yet' };
+      const total = reg.length;
+      const closed = reg.filter(r => r.status === 'closed').length;
+      const reopens = reg.reduce((t, r) => t + (r.reopenCount || 0), 0);
+      const recurring = reg.filter(r => r.recurrenceCount > 1).length;
+      const pct = Math.max(8, Math.min(97, Math.round(55 + (closed / total) * 40 - reopens * 8 - recurring * 6)));
+      const tone = pct >= 90 ? '#4f7a3f' : pct >= 75 ? AMBER_BP : RED_BP;
+      return { pct, tone, label: pct + '%' };
+    })();
+
+    const openReg = this.state.register.filter(r => r.status !== 'boardApproved');
+    const regViewList = [...openReg].sort((a, b) => priorityOfBp(a) - priorityOfBp(b));
+    const worst = Math.min.apply(null, PILLARS.map(p => p.score));
+    const snapChip = chip(snap.tone);
+    const snapLabel = snap.label;
+    const gatesPass = true;
+
+    return {
+      snapChip: snapChip,
+      snapLabel: snapLabel,
+      hasRegister: regViewList.length > 0,
+      regLine: regViewList.length + ' waiting on board sign-off',
+      regItems: regViewList.map(e => {
+        const pr = priorityOfBp(e);
+        return {
+          text: e.text,
+          priorityLabel: PRIORITY_LABEL_BP[pr],
+          priorityChip: chipBp(PRIORITY_TONE_BP[pr]),
+          statusLabel: e.status === 'closed' ? 'Signed off by COGS meeting' : e.status === 'claimed' ? 'Claimed done' : e.owner ? (e.accepted ? 'Accepted, in progress' : 'Waiting on acceptance') : 'No owner yet',
+          statusChip: chipBp(e.status === 'closed' ? '#4f7a3f' : e.status === 'claimed' ? AMBER_BP : e.owner && e.accepted ? '#4f7a3f' : AMBER_BP),
+          metaLine: (e.owner ? 'Owner: ' + e.owner : 'Unassigned') + (e.deadline ? ' · due ' + e.deadline : '') + (e.recurrenceCount > 1 ? ' · ' + e.recurrenceCount + 'th time this has come up' : ''),
+          style: 'background:var(--color-bg);border-radius:20px;padding:16px 18px;border-left:4px solid ' + PRIORITY_TONE_BP[pr] + ';',
+          approve: () => this.saveRegisterBp(this.state.register.map(r => r.id === e.id ? { ...r, status: 'boardApproved', boardApprovedAt: Date.now() } : r)),
+          deny: () => this.saveRegisterBp(this.state.register.map(r => r.id === e.id ? { ...r, status: 'open', owner: null, accepted: false, deniedByBoard: true } : r)),
+        };
+      }),
+
+      detail: this.state.detail,
+      detailLabel: this.state.detail ? 'Hide the detail' : 'Show the detail',
+      toggleDetail: () => this.setState(s => ({ detail: !s.detail })),
+
+      verdictStyle: 'border-radius:var(--radius-lg);padding:clamp(24px,3vw,34px);background:'
+        + (worst >= 90 ? 'color-mix(in srgb, ' + GREEN + ' 12%, transparent)' : 'var(--color-accent-100)') + ';',
+      verdictTitle: worst >= 90 ? 'Three pillars green. People is the month.' : 'People at ' + worst + '% is the month.',
+      verdictBody: 'Safety, Earnings and Compliance all sit at 91% or better and both hard gates passed. People fell two points on two 90-day departures and a missed one-to-one, all of it in the crew with no Yard Lead. SPEC is one pillar away, and that pillar has one cause.',
+
+      gates: [
+        { name: 'Zero Harm', state: 'Pass', chip: chip(GREEN) },
+        { name: 'Clear to Work', state: 'Pass', chip: chip(GREEN) },
+      ],
+
+      pillars: PILLARS.map(p => ({
+        name: p.name,
+        score: p.score + '%',
+        line: p.line,
+        dot: dot(p.score, 14),
+        move: (p.score === p.prev ? 'Held' : (p.score > p.prev ? 'Up ' : 'Down ') + Math.abs(p.score - p.prev) + ' on August'),
+        style: 'border-radius:var(--radius-lg);padding:24px;background:var(--color-surface, #fff);box-shadow:var(--shadow-sm);border-top:4px solid ' + rag(p.score) + ';',
+      })),
+
+      asks: ASKS.map(a => {
+        const done = !!this.state.decided[a.what];
+        return {
+          what: a.what,
+          why: a.why,
+          pillar: a.pillar,
+          owner: a.owner,
+          chip: chip(a.pillar === 'Safety' ? GREEN : a.pillar === 'People' ? AMBER : GREY),
+          style: 'background:var(--color-bg);border-radius:20px;padding:20px 22px;border-left:4px solid ' + (done ? GREEN : AMBER) + ';',
+          buttonLabel: done ? 'Decided ✓' : 'Mark as decided',
+          buttonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 18px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
+            + (done ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+          decide: () => this.setState(s => ({ decided: { ...s.decided, [a.what]: !s.decided[a.what] } })),
+        };
+      }),
+
+      roleRows: ROLE_ROWS.map(r => ({
+        role: r.role,
+        person: r.person,
+        s: tile(r.s, 13), p: tile(r.p, 13), e: tile(r.e, 13), c: tile(r.c, 13),
+        month: Math.round((r.s + r.p + r.e + r.c) / 4) + '%',
+      })),
+      roleNotes: ROLE_NOTES,
+
+      flags: FLAGS,
+
+      trends: TRENDS.map(t => ({
+        name: t.name,
+        move: t.bars[5] === t.bars[4] ? 'Held' : (t.bars[5] > t.bars[4] ? 'Up ' : 'Down ') + Math.abs(t.bars[5] - t.bars[4]),
+        bars: t.bars.map((v, i) => ({
+          style: 'flex:1 1 0;border-radius:8px 8px 4px 4px;height:' + Math.round(v * 0.6) + 'px;background:' + rag(v) + ';opacity:' + (i === 5 ? 1 : 0.45) + ';',
+        })),
+      })),
+
+      aces: ACES.map(a => ({
+        person: a.person,
+        role: a.role,
+        state: a.state,
+        note: a.note,
+        chip: chip(a.hit === 3 ? GREEN : AMBER),
+      })),
+
+      provenance: PROVENANCE,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

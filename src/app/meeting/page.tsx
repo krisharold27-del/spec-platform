@@ -4,7 +4,7 @@ import { Shell, PILLAR_META, pct } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
 import { getCurrentUser } from '@/lib/auth';
 import { getMeeting } from '@/lib/meeting-data';
-import { LIGHT_COLOUR, light } from '@/lib/today';
+import { LIGHT_COLOUR, light, pillTone } from '@/lib/today';
 import { PILLARS } from '@/lib/scoring';
 import { addAction, completeAction, addDecision, toggleAttendee, logMeeting } from './actions';
 
@@ -58,7 +58,7 @@ export default async function WeeklyMeeting() {
                 {data.agenda.map(a => (
                   <li key={a.id} className="rounded-lg bg-cream p-4" style={{ borderLeft: `4px solid ${TONE[a.tone]}` }}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="pill" style={{ background: `color-mix(in srgb, ${TONE[a.tone]} 14%, transparent)`, color: TONE[a.tone] }}>
+                      <span className="pill" style={pillTone(a.tone)}>
                         {a.state}
                       </span>
                       <span className="label-caps">{a.pillar ? PILLAR_META[a.pillar].name : 'Every pillar'}</span>

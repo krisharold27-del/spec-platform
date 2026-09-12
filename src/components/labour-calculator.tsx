@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { calculate, money, LEAKS, DEFAULTS } from '@/lib/calculator';
-import { LIGHT_COLOUR } from '@/lib/today';
+import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 
 /**
  * "Your labour bill has 10 to 30% more to give."
@@ -66,7 +66,7 @@ export function LabourCalculator({ seatCostAnnual, currencySymbol = '$' }: {
           </p>
           <div className="mt-4 border-t border-ink/10 pt-3">
             <div className="label-caps">Recoverable in the first twelve months</div>
-            <div className="mt-1 font-serif text-2xl" style={{ color: LIGHT_COLOUR.green }}>{fmt(r.recoverable)}</div>
+            <div className="mt-1 font-serif text-2xl" style={{ color: LIGHT_INK.green }}>{fmt(r.recoverable)}</div>
             <p className="mt-2 text-xs text-ink-light">
               {r.multiple === null
                 ? 'Switch a line back on to compare it against what SPEC costs.'

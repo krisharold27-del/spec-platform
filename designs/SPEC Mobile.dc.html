@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 9px;"><img src="logo.svg" alt="" width="26" height="26" style="display: block; flex: none;" />SPEC</a>
+    <a href="SPEC Today.dc.html">Today</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; padding: clamp(28px,4vw,44px) 0 26px;">
+      <div>
+        <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">On site · the phone view</span>
+        <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">Four taps, gloves on, one bar of signal</h1>
+        <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 56ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Crews do not open dashboards. Everything the field needs is four big targets: sign on, report, log hours, ask. It queues offline and syncs when the signal comes back.</p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <sc-for list="{{ screens }}" as="s" hint-placeholder-count="4">
+          <button type="button" onClick="{{ s.select }}" style="{{ s.style }}">{{ s.label }}</button>
+        </sc-for>
+      </div>
+    </header>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: clamp(24px,4vw,48px); align-items: start;">
+
+      <div style="justify-self: center; width: 100%; max-width: 390px;">
+        <div style="background: var(--color-text); border-radius: 44px; padding: 12px;">
+          <div style="background: var(--color-bg); border-radius: 34px; overflow: hidden;">
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 22px 6px; font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">
+              <span>7:04</span>
+              <span>{{ signalLabel }}</span>
+            </div>
+
+            <div style="padding: 8px 18px 18px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <span style="display: grid; gap: 2px;">
+                  <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px;">{{ crewName }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ crewRole }}</span>
+                </span>
+                <span style="{{ clearChip }}">{{ clearState }}</span>
+              </div>
+
+              <div style="{{ screenStyle }}">
+                <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ screenKicker }}</p>
+                <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.25; margin: 10px 0 0;">{{ screenTitle }}</p>
+                <p style="font-size: 14.5px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ screenBody }}</p>
+
+                <div style="display: grid; gap: 10px; margin-top: 18px;">
+                  <sc-for list="{{ screenRows }}" as="r" hint-placeholder-count="3">
+                    <div style="{{ r.style }}">
+                      <span style="display: grid; gap: 2px;">
+                        <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px;">{{ r.label }}</span>
+                        <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ r.note }}</span>
+                      </span>
+                      <span style="{{ r.chip }}">{{ r.state }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <button type="button" onClick="{{ act }}" style="{{ actStyle }}">{{ actLabel }}</button>
+                <p style="font-size: 12.5px; line-height: 19px; margin: 12px 0 0; text-align: center; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ actNote }}</p>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 18px;">
+                <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+                  <button type="button" onClick="{{ t.select }}" style="{{ t.style }}">
+                    <span style="display: block; font-size: 18px; line-height: 1;">{{ t.mark }}</span>
+                    <span style="display: block; font-size: 11.5px; line-height: 15px; margin-top: 6px;">{{ t.label }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size: 13px; line-height: 21px; margin: 16px 0 0; text-align: center; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Hit targets are 56px minimum. Nothing here needs two hands.</p>
+      </div>
+
+      <div style="display: grid; gap: clamp(20px,3vw,28px); min-width: 0;">
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Why only four things</h2>
+          <div style="display: grid; gap: 14px; margin-top: 20px;">
+            <sc-for list="{{ rules }}" as="rl" hint-placeholder-count="4">
+              <div style="display: grid; gap: 4px;">
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px;">{{ rl.what }}</span>
+                <span style="font-size: 14px; line-height: 22px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ rl.why }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="{{ offlineStyle }}">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;">
+            <div style="max-width: 44ch;">
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 19px; line-height: 1.25; margin: 0;">{{ offlineTitle }}</p>
+              <p style="font-size: 14.5px; line-height: 23px; margin: 8px 0 0;">{{ offlineBody }}</p>
+            </div>
+            <button type="button" onClick="{{ toggleSignal }}" style="{{ offlineButtonStyle }}">{{ offlineButtonLabel }}</button>
+          </div>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">What the office gets from it</h2>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; max-width: 52ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Every tap on site is a KPI somewhere else. Nobody is entering data for the sake of it.</p>
+          <div style="display: grid; gap: 12px; margin-top: 20px;">
+            <sc-for list="{{ feeds }}" as="fd" hint-placeholder-count="4">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-accent-100); padding-bottom: 12px;">
+                <span style="font-size: 14.5px; line-height: 21px;">{{ fd.tap }}</span>
+                <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ fd.feeds }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
+const chip = tone => 'display:inline-flex;align-items:center;border-radius:999px;padding:6px 13px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+const SCREENS = {
+  signon: {
+    label: 'Sign on',
+    mark: '✓',
+    kicker: 'Before you start',
+    title: 'Toolbox talk · Harbourview',
+    body: 'Read it, sign it, start. Tom raised the near miss at the switchboard yesterday.',
+    rows: [
+      { label: 'Working at heights today', note: 'Two apprentices on the scaffold', state: 'Read', tone: GREEN },
+      { label: 'Switchboard near miss', note: 'Isolation confirmed before work', state: 'Read', tone: GREEN },
+      { label: 'Ticket check', note: 'Yours is current to Mar 2027', state: 'Clear', tone: GREEN },
+    ],
+    act: 'Sign on',
+    acted: 'Signed on ✓',
+    note: 'Signs you and the crew you tap in with.',
+  },
+  hazard: {
+    label: 'Report',
+    mark: '!',
+    kicker: 'Something is not right',
+    title: 'Report a hazard',
+    body: 'Photo, one line, done. It reaches your supervisor before you have put the phone away.',
+    rows: [
+      { label: 'Take a photo', note: 'Location is attached automatically', state: 'Tap', tone: GREY },
+      { label: 'What is the risk', note: 'Speak it if your hands are dirty', state: 'Voice', tone: GREY },
+      { label: 'Stop work?', note: 'Says so loudly if you tap yes', state: 'Choose', tone: AMBER },
+    ],
+    act: 'Send it',
+    acted: 'Sent ✓ · Tom notified',
+    note: 'A hazard reported is never held against you.',
+  },
+  hours: {
+    label: 'Hours',
+    mark: '⏱',
+    kicker: 'End of day',
+    title: 'Log today',
+    body: 'Pre-filled from the job you signed on to. Change it if the day changed.',
+    rows: [
+      { label: 'Harbourview stage 2', note: '8:00am – 4:00pm', state: '8.0 hrs', tone: GREEN },
+      { label: 'Travel', note: 'Yard to site and back', state: '0.5 hrs', tone: GREEN },
+      { label: 'Waiting on materials', note: 'Counts against utilisation, not you', state: '0.5 hrs', tone: AMBER },
+    ],
+    act: 'Submit the day',
+    acted: 'Submitted ✓',
+    note: 'Feeds utilisation and margin against quote.',
+  },
+  ask: {
+    label: 'Ask',
+    mark: '?',
+    kicker: 'Anything',
+    title: 'Ask SPEC',
+    body: 'Who is on my job, am I clear to work, when is my ticket due, what did the supervisor say.',
+    rows: [
+      { label: '"Am I clear to work?"', note: 'Every ticket current, nothing expiring', state: 'Yes', tone: GREEN },
+      { label: '"Who is on Harbourview?"', note: 'You and Ruby, 8 until 4', state: 'Answered', tone: GREEN },
+      { label: '"What training do I owe?"', note: 'Psychosocial basics, due the 30th', state: '20 min', tone: AMBER },
+    ],
+    act: 'Ask something',
+    acted: 'Listening…',
+    note: 'Works by voice, with gloves on.',
+  },
+};
+
+const RULES = [
+  { what: 'Four targets, nothing else', why: 'A phone on site is used standing up, in sun, often in gloves. Anything beyond four choices gets ignored and the data stops arriving.' },
+  { what: 'Everything pre-filled', why: 'The job, the crew and the hours come from the schedule. The crew corrects rather than enters.' },
+  { what: 'Voice before typing', why: 'Reporting a hazard has to be faster than not reporting it, or it will not happen.' },
+  { what: 'No scores on this screen', why: 'Crews are not individually scored. Showing them a percentage would be a number they cannot act on.' },
+];
+
+const FEEDS = [
+  { tap: 'Signing on to the toolbox talk', feeds: 'Safety · toolbox talks held' },
+  { tap: 'Reporting a hazard', feeds: 'Safety · hazards closed' },
+  { tap: 'Submitting hours', feeds: 'Earnings · labour utilisation' },
+  { tap: 'Finishing a training module', feeds: 'Compliance · clear to work' },
+];
+
+class Component extends DCLogic {
+  state = { screen: 'signon', done: {}, online: true };
+
+  renderVals() {
+    const key = this.state.screen;
+    const s = SCREENS[key];
+    const done = !!this.state.done[key];
+    const online = this.state.online;
+
+    return {
+      crewName: 'Sione Tui',
+      crewRole: 'Apprentice · year 2 · Harbourview',
+      clearChip: chip(GREEN),
+      clearState: 'Clear to work',
+      signalLabel: online ? 'Online' : 'No signal · 2 queued',
+
+      screens: Object.keys(SCREENS).map(k => ({
+        label: SCREENS[k].label,
+        select: () => this.setState({ screen: k }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:10px 18px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
+          + (k === key ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);box-shadow:var(--shadow-sm);'),
+      })),
+
+      screenStyle: 'background:var(--color-surface, #fff);border-radius:26px;padding:22px 20px;margin-top:16px;',
+      screenKicker: s.kicker,
+      screenTitle: s.title,
+      screenBody: s.body,
+      screenRows: s.rows.map(r => ({
+        label: r.label,
+        note: r.note,
+        state: r.state,
+        chip: chip(r.tone),
+        style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--color-bg);border-radius:18px;padding:14px 16px;',
+      })),
+
+      actLabel: done ? s.acted : s.act,
+      actStyle: 'cursor:pointer;border:0;width:100%;min-height:56px;border-radius:999px;margin-top:18px;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:17px;'
+        + (done ? 'background:color-mix(in srgb, ' + GREEN + ' 16%, transparent);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+      act: () => this.setState(st => ({ done: { ...st.done, [key]: !st.done[key] } })),
+      actNote: done && !online ? 'Queued. It will sync the moment you have signal.' : s.note,
+
+      tabs: Object.keys(SCREENS).map(k => ({
+        label: SCREENS[k].label,
+        mark: SCREENS[k].mark,
+        select: () => this.setState({ screen: k }),
+        style: 'cursor:pointer;border:0;min-height:56px;border-radius:20px;padding:10px 6px;font-family:var(--font-body);text-align:center;'
+          + (k === key ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);'),
+      })),
+
+      rules: RULES,
+      feeds: FEEDS,
+
+      offlineStyle: 'border-radius:var(--radius-lg);padding:clamp(22px,3vw,30px);background:' + (online ? 'color-mix(in srgb, ' + GREEN + ' 12%, transparent)' : 'var(--color-accent-100)') + ';',
+      offlineTitle: online ? 'Online · everything syncing' : 'No signal · two taps queued',
+      offlineBody: online
+        ? 'Basements, lift shafts and rural sites are where this app is used. Turn the signal off and nothing breaks.'
+        : 'The crew keeps working. Sign-ons, hazards and hours queue on the phone and upload the moment there is signal, timestamped when they happened, not when they synced.',
+      offlineButtonLabel: online ? 'Drop the signal' : 'Signal back',
+      offlineButtonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:11px 20px;font-family:var(--font-body);font-size:13.5px;white-space:nowrap;flex:none;background:var(--color-surface, #fff);color:var(--color-text);',
+      toggleSignal: () => this.setState(st => ({ online: !st.online })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

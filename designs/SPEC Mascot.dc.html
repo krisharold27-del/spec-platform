@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  @keyframes dotIn { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh; padding: clamp(24px,4vw,48px) clamp(20px,5vw,56px) 72px;">
+  <div style="max-width: 900px; margin: 0 auto;">
+
+    <span style="display: inline-flex; align-items: center; border-radius: 999px; padding: 7px 16px; font-size: 12.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; background: var(--color-accent-100); color: var(--color-accent-800);">Mascot · the mark</span>
+    <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(26px,3.4vw,40px); line-height: 1.12; margin: 18px 0 0; max-width: 24ch;">The feathertail glider, locked</h1>
+    <p style="font-size: 15.5px; line-height: 25px; margin: 14px 0 0; max-width: 60ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">The confirmed mascot silhouette, in the brand accent orange with a transparent background.</p>
+
+    <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(28px,4vw,40px); margin-top: 28px; display: grid; place-items: center;">
+      <div style="position: relative; width: min(100%, 320px);">
+        <img src="mascot-orange.png" alt="" style="width: 100%; display: block;" />
+      </div>
+    </section>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:900}}">
+const PTS = [{"x":471,"y":336},{"x":502,"y":336},{"x":532,"y":336},{"x":562,"y":336},{"x":486,"y":362},{"x":517,"y":362},{"x":547,"y":362},{"x":578,"y":362},{"x":471,"y":389},{"x":532,"y":389},{"x":562,"y":389},{"x":593,"y":389},{"x":456,"y":415},{"x":486,"y":415},{"x":547,"y":415},{"x":578,"y":415},{"x":608,"y":415},{"x":441,"y":441},{"x":471,"y":441},{"x":562,"y":441},{"x":593,"y":441},{"x":623,"y":441},{"x":836,"y":441},{"x":426,"y":468},{"x":456,"y":468},{"x":547,"y":468},{"x":578,"y":468},{"x":608,"y":468},{"x":410,"y":494},{"x":441,"y":494},{"x":532,"y":494},{"x":562,"y":494},{"x":593,"y":494},{"x":623,"y":494},{"x":395,"y":521},{"x":426,"y":521},{"x":517,"y":521},{"x":547,"y":521},{"x":578,"y":521},{"x":410,"y":547},{"x":593,"y":547},{"x":623,"y":547},{"x":243,"y":574},{"x":578,"y":574},{"x":608,"y":574},{"x":228,"y":600},{"x":258,"y":600},{"x":289,"y":600},{"x":441,"y":600},{"x":562,"y":600},{"x":182,"y":627},{"x":213,"y":627},{"x":608,"y":627},{"x":638,"y":627},{"x":167,"y":653},{"x":198,"y":653},{"x":593,"y":653},{"x":623,"y":653},{"x":152,"y":680},{"x":182,"y":680},{"x":213,"y":680},{"x":274,"y":680},{"x":578,"y":680},{"x":608,"y":680},{"x":167,"y":706},{"x":198,"y":706},{"x":562,"y":706},{"x":593,"y":706},{"x":182,"y":732},{"x":213,"y":732},{"x":517,"y":732},{"x":547,"y":732},{"x":578,"y":732},{"x":167,"y":759},{"x":198,"y":759},{"x":228,"y":759},{"x":502,"y":759},{"x":532,"y":759},{"x":562,"y":759},{"x":213,"y":785},{"x":243,"y":785},{"x":274,"y":785},{"x":456,"y":785},{"x":486,"y":785},{"x":517,"y":785},{"x":228,"y":812},{"x":258,"y":812},{"x":289,"y":812},{"x":319,"y":812},{"x":350,"y":812},{"x":380,"y":812},{"x":410,"y":812},{"x":441,"y":812},{"x":471,"y":812},{"x":502,"y":812},{"x":304,"y":838},{"x":334,"y":838},{"x":365,"y":838},{"x":395,"y":838},{"x":426,"y":838}];
+
+class Component extends DCLogic {
+  state = { showMark: true, run: 0 };
+  renderVals() {
+    return {
+      markOpacity: this.state.showMark ? 1 : 0,
+      markLabel: this.state.showMark ? 'Hide the mark' : 'Show the mark',
+      toggleMark: () => this.setState(s => ({ showMark: !s.showMark })),
+      replay: () => this.setState(s => ({ run: s.run + 1 })),
+      dots: PTS.map((p, i) => ({
+        x: p.x, y: p.y,
+        style: 'animation: dotIn 0.4s ease-out ' + (i * 0.02) + 's backwards; transform-origin: ' + p.x + 'px ' + p.y + 'px;',
+      })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

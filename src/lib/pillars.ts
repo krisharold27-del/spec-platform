@@ -45,6 +45,27 @@ export const SCORE_COLOUR = {
 } as const;
 
 /**
+ * The same four signals, dark enough to read as WORDS.
+ *
+ * The colours above are tuned to be *seen* — a dot, a bar, the edge of a card, where the eye only
+ * has to tell them apart. Set as text on the warm ground they are too light to be *read*: amber
+ * lands at 3.0:1 and the warm grey at 3.0:1, against the 4.5:1 ordinary eyesight needs, and even
+ * green only reaches 3.7:1 on a surface card. Three of the four fail, so this was never an amber
+ * problem — it is that a colour picked to be distinguishable was being asked to be legible.
+ *
+ * Hence one rule: a fill, a dot or a bar takes SCORE_COLOUR; anything a person has to READ takes
+ * SCORE_INK. Same signal, same meaning, one step down the design system's own ramp — every value
+ * here is an existing token. `tests/colour.test.ts` measures all of them against both grounds and
+ * fails the build if any drops below the standard, so this cannot quietly come undone.
+ */
+export const SCORE_INK = {
+  on_track: '#56633f',  // --color-accent-2-700
+  watch: '#8c491a',     // --color-accent-700
+  behind: '#8c3220',
+  pending: '#645c50',   // --color-neutral-700
+} as const;
+
+/**
  * The thresholds every light in the product already uses: the 90% rule, and three quarters below it.
  *
  * Deliberately NOT `band()`. That function answers a different question — it calls a pillar "on
@@ -56,12 +77,22 @@ export const SCORE_COLOUR = {
 export const AT_THE_STANDARD = 0.9;
 export const WATCH_FROM = 0.75;
 
-/** What colour a score is drawn in, anywhere in the product. The only colour rule there is. */
+/** Which of the four a score is. Every colour rule in the product starts here. */
+export function scoreBand(score: Score): keyof typeof SCORE_COLOUR {
+  if (score === null) return 'pending';
+  if (score >= AT_THE_STANDARD) return 'on_track';
+  if (score >= WATCH_FROM) return 'watch';
+  return 'behind';
+}
+
+/** What colour a score is FILLED in — dots, bars, card edges. Nothing is read off this. */
 export function scoreColour(score: Score): string {
-  if (score === null) return SCORE_COLOUR.pending;
-  if (score >= AT_THE_STANDARD) return SCORE_COLOUR.on_track;
-  if (score >= WATCH_FROM) return SCORE_COLOUR.watch;
-  return SCORE_COLOUR.behind;
+  return SCORE_COLOUR[scoreBand(score)];
+}
+
+/** What colour a score is WRITTEN in. Use this wherever the colour lands on text. */
+export function scoreInk(score: Score): string {
+  return SCORE_INK[scoreBand(score)];
 }
 
 /**

@@ -58,6 +58,14 @@ jobs:
       - name: Tests
         run: npx vitest run
 
+      # Prints what each design screen says, and whether the product says it too. Reported rather
+      # than enforced: a design is a prototype and wording legitimately drifts, so failing the build
+      # on a reworded heading would only teach people to ignore the step. The value is that the
+      # answer to "is everything in the designs actually built?" is a command anybody can run,
+      # instead of somebody's recollection.
+      - name: What the designs say, against what the code says
+        run: node scripts/design-coverage.mjs
+
       # The exact shape of the failure that took production down. The public pages need no
       # database, so a build without one has to succeed — if this step ever fails, the marketing
       # site would have gone down over a missing setting.
