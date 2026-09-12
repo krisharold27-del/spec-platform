@@ -36,6 +36,14 @@ declare
 begin
   foreach t in array array['tenants', 'users', 'claude_registrations', 'journey_steps', 'roles', 'assessment_periods', 'diagnostics', 'meetings']
   loop
+    -- Skip a table this database does not have.
+    --
+    -- Not defensiveness: 'claude_registrations' is in this list and is NOT in schema.ts. Without
+    -- this guard the whole file aborted on that line, and every policy BELOW it -- role_assignments,
+    -- criteria, assessments, gates, board_outputs -- was silently never created. The file claimed
+    -- to be idempotent and re-runnable, and it was neither, because nothing ever ran it: it needs
+    -- Supabase's auth.uid() and therefore cannot be applied by our own local Postgres.
+    continue when to_regclass(t) is null;
     execute format('drop policy if exists tenant_isolation on %I', t);
     if t = 'tenants' then
       -- tenants.id IS the tenant id (no separate tenant_id column on this one table).
@@ -75,3 +83,41 @@ create policy tenant_isolation on board_outputs for all
 
 -- rulebook_rules has no tenant_id and RLS is not enabled on it (see schema.ts) — it's global,
 -- anonymised cross-client learnings, readable by everyone. Nothing to do here.
+
+-- ───────────────────────────────────────────────────────────────────────────────────────────────
+-- The remaining ten, added 12 September 2026.
+--
+-- Every table above had a policy; these ten had RLS enabled and no policy at all. That combination
+-- is fail-CLOSED in Postgres — a non-owner role sees nothing — so this was never an open door. It
+-- was worse in a quieter way: the tables looked protected in schema.ts, and the protection was
+-- "deny everything", which is indistinguishable from "correctly scoped" until the day somebody
+-- connects as `authenticated` and cannot understand why half the product is empty.
+--
+-- Named one at a time rather than looped, because each one's route to a tenant is a decision.
+-- ───────────────────────────────────────────────────────────────────────────────────────────────
+
+-- Their own tenant_id: the straightforward case.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array[
+    'approvals', 'candidates', 'directors', 'register_entries', 'scorecard_comments',
+    'staff', 'system_connections', 'training_modules', 'training_records'
+  ]
+  loop
+    continue when to_regclass(t) is null;
+    execute format('drop policy if exists tenant_isolation on %I', t);
+    execute format('create policy tenant_isolation on %I for all using (tenant_id = auth_tenant_id()) with check (tenant_id = auth_tenant_id())', t);
+  end loop;
+end $$;
+
+-- role_curriculum hangs off roles, the same as criteria and role_assignments above. It is the only
+-- one of the ten with no tenant_id of its own, so it is the only one that cannot be looped.
+drop policy if exists tenant_isolation on role_curriculum;
+create policy tenant_isolation on role_curriculum for all
+  using (exists (select 1 from roles where roles.id = role_curriculum.role_id and roles.tenant_id = auth_tenant_id()))
+  with check (exists (select 1 from roles where roles.id = role_curriculum.role_id and roles.tenant_id = auth_tenant_id()));
+
+-- training_modules carries a NOT NULL tenant_id: every business owns its own curriculum rather than
+-- sharing a library SPEC ships. So it is scoped like any other table, not treated as global.

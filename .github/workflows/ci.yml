@@ -89,6 +89,17 @@ jobs:
         env:
           DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
 
+      # Row-level security, applied for real and then inspected.
+      #
+      # drizzle/0001_rls.sql needs Supabase's auth.uid(), so it could never be applied by our own
+      # Postgres — which meant nobody had ever run it. It referenced a table that does not exist and
+      # aborted partway through, silently skipping every policy below that line. This stubs auth.uid()
+      # and applies the real file unmodified, then asks the database what it actually got.
+      - name: Apply the row-level security policies and check them
+        run: npm run db:check-rls
+        env:
+          DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
+
       # Running it twice proves the migration is idempotent — every deploy after the first is this.
       - name: Build again, to prove the migration repeats safely
         run: npm run build

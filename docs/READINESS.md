@@ -65,17 +65,26 @@ behaviour, its rate limits, or its email delivery.
 
 ### Tenant isolation rests on application code alone
 
-Row-level security is enabled on all 23 tables, but only **5 have a policy**, and
-the app connects as the role that owns the tables — which Postgres lets bypass
-RLS entirely. So for the app's own path there is **no second line of defence**:
-every guarantee that one business cannot see another's data comes from queries
-naming a tenant.
+**Corrected, 12 September.** I first reported "5 of 23 tables have a policy". That
+was wrong — I had missed a loop covering eight more. The real figure was 12 of
+23, and it is now **22 of 22**, with `rulebook_rules` global by design.
 
-`tests/tenant-isolation.test.ts` now guards the shape that fails. It is a good
-guard and it is not a database-level control.
+Two things were genuinely wrong, and both are fixed:
 
-The policies in `drizzle/0001_rls.sql` are also applied **by hand**, by design.
-Whether they are applied to the live database is unknown to me.
+- The file referenced `claude_registrations`, **a table that does not exist**. It
+  therefore aborted partway through, and every policy below that line — including
+  `role_assignments`, `criteria`, `assessments`, `gates` and `board_outputs` —
+  was never created. It now skips a table the database does not have.
+- The file needs Supabase's `auth.uid()`, so our own Postgres could never apply
+  it, which is why **nobody had ever run it.** `npm run db:check-rls` stubs that
+  one function, applies the real file unmodified, runs it twice to prove the
+  idempotence it claimed, and then asks the database what it actually got. It is
+  in CI.
+
+What remains true: the app connects as the role that owns the tables, which
+Postgres lets bypass RLS. So for the app's own path RLS is still not the control
+— `tests/tenant-isolation.test.ts` is. The policies now genuinely protect every
+other route into the same database, which is what they were always for.
 
 ### The diagnosis has never been read by Claude
 
@@ -108,20 +117,22 @@ Things I have no way to answer from here.
 
 In order. The first three are the ones that would be discovered *by the customer*.
 
-1. **Take a real payment.** Stripe in test mode end to end, then one live
-   transaction you refund. Until then the revenue path is theory.
-2. **Send a real invitation.** Verify the sender domain, invite yourself from a
-   second address, and confirm it does not land in spam.
-3. **Sign in against real Supabase**, on the live site, as a person who has never
+1. **Send a real invitation.** Verify the sender domain, invite yourself from a
+   second address, and confirm it does not land in spam. Without this a
+   customer's team never arrives.
+2. **Sign in against real Supabase**, on the live site, as a person who has never
    signed in before.
-4. **Apply the RLS policies to the live database** and confirm. Then write the
-   missing 18, or decide deliberately that application scoping is the control
-   and say so in writing.
-5. **Turn on `ANTHROPIC_API_KEY`** and read ten real problems. The front door
+3. **Turn on `ANTHROPIC_API_KEY`** and read ten real problems. The front door
    claims SPEC understands their business; check that it does.
-6. **Restore a backup** into a scratch database. A backup nobody has restored is
+4. **Apply the policies to the live database.** ~~Write the missing 18~~ — done,
+   22 of 22, and CI now proves the file runs. What is left is running it against
+   the live database once and confirming.
+5. **Restore a backup** into a scratch database. A backup nobody has restored is
    a belief.
-7. **Have somebody who is not you** sign up, on a phone, without help.
+6. **Have somebody who is not you** sign up, on a phone, without help.
+7. **Take a real payment — last, by Kris's instruction.** Stripe in test mode end
+   to end, then one live transaction you refund. Nothing above depends on it, and
+   there is no point proving the till works before the shop does.
 
 None of these is large. All seven are a day's work together, and every one of
 them is currently a thing you would find out about from a customer rather than
