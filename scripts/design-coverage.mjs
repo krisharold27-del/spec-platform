@@ -5,12 +5,13 @@
 // words in the built product. Anything we cannot find is printed, by name, so
 // nobody has to take my word for what is and is not built.
 //
-//   node scripts/design-coverage.mjs            report
+//   node scripts/design-coverage.mjs            headings and buttons -- the clean pass
+//   node scripts/design-coverage.mjs --deep     every label too -- noisier, misses less
 //   node scripts/design-coverage.mjs --misses   only what is missing
 //
-// A phrase counts as found if it appears in src/ (any file). Designs are
-// prototypes, so wording drifts; the point is to surface what drifted, not to
-// demand a character-for-character match.
+// A phrase counts as found if one source file contains it, or contains all of
+// its significant words. Designs are prototypes and wording drifts; the point
+// is to surface what drifted, not to demand a character-for-character match.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, extname, basename } from 'node:path';
@@ -28,13 +29,19 @@ function walk(dir, out = []) {
   return out;
 }
 
-/** One lowercase haystack of everything the product says. */
-function productText() {
+/**
+ * The product's text, kept one file per entry rather than glued into one blob.
+ *
+ * The distinction matters more than it looks. With a single blob, a phrase counts as "reworded" if
+ * its words turn up ANYWHERE in the codebase — so "Snap Score" passed, because "snap" is in the
+ * logo component and "score" is in a hundred places, and a feature that does not exist was reported
+ * as built. Words scattered across unrelated files are not a rewording of anything. Per file, they
+ * have to at least occur together.
+ */
+function productFiles() {
   return walk(SRC)
     .filter(p => ['.ts', '.tsx', '.css'].includes(extname(p)))
-    .map(p => readFileSync(p, 'utf8'))
-    .join('\n')
-    .toLowerCase();
+    .map(p => readFileSync(p, 'utf8').toLowerCase());
 }
 
 /** Flatten one element's inner markup down to the words a person reads. */
@@ -84,32 +91,62 @@ const actions = html => pull(html, ['button', 'a'], attrs =>
 const isAPerson = text => /^[A-Z][a-z]+ [A-Z][a-z]+, [A-Z]/.test(text);
 
 /**
+ * Everything else a person reads: the labels that are neither a heading nor a button.
+ *
+ * The first version of this script looked only at headings and buttons, and reported 97% — while
+ * missing "Snap Score", "People with access" and a whole "My page" screen, because the designs
+ * write those as plain spans. A check that misses four features is worse than no check: it hands
+ * over confidence nobody earned, which is the exact thing this script exists to stop.
+ *
+ * So this sweeps every literal text node instead. Noisier by construction — prose and fragments
+ * come through too — which is why it is a second tier behind the clean one rather than a
+ * replacement. Under two words or over eight is dropped: a label is short, and a long string is a
+ * sentence whose exact wording nobody should be held to.
+ */
+function labels(html) {
+  const body = html
+    .replace(/<(script|style|helmet)\b[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ');
+  const found = new Set();
+  for (const raw of body.split(/<[^>]*>/)) {
+    const text = raw.replace(/\{\{[^}]*\}\}/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+    if (!/^[A-Za-z]/.test(text)) continue;
+    const words = text.split(' ');
+    if (words.length < 2 || words.length > 8) continue;
+    if (/[.!?]$/.test(text)) continue;          // a sentence, not a label
+    found.add(text);
+  }
+  return [...found];
+}
+
+/**
  * Is this phrase present in the product?
  * Exact first; then every significant word, so "What needs me today" still
  * counts when the code says "What needs you today".
  */
-function present(phrase, haystack) {
+function present(phrase, files) {
   const clean = phrase.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!clean) return true;
-  if (haystack.includes(clean)) return 'exact';
+  if (files.some(f => f.includes(clean))) return 'exact';
   // The four letter badges sit as four sibling elements, so they arrive here as "S P E C". The
   // product draws them from PILLAR_META rather than writing them out, which is the better way.
   if (clean.replace(/ /g, '') === 'spec') return 'exact';
   const words = clean.split(' ').filter(w => w.length > 3);
-  if (words.length === 0) return haystack.includes(clean) ? 'exact' : false;
-  const hits = words.filter(w => haystack.includes(w)).length;
-  return hits === words.length ? 'reworded' : false;
+  if (words.length === 0) return false;
+  // All the significant words, in one file. Scattered across the codebase does not count.
+  return files.some(f => words.every(w => f.includes(w))) ? 'reworded' : false;
 }
 
-const haystack = productText();
+const files = productFiles();
 const screens = readdirSync(DESIGNS).filter(f => f.endsWith('.dc.html')).sort();
 const onlyMisses = process.argv.includes('--misses');
+const deep = process.argv.includes('--deep');
 
 let totalPhrases = 0;
 let totalFound = 0;
 const gaps = [];
 
-console.log(`Design coverage — ${screens.length} screens against src/\n`);
+console.log(`Design coverage — ${screens.length} screens against src/${deep ? ' (deep: every label)' : ''}\n`);
 
 // Navigation between prototype files is scaffolding, not product copy.
 const SCAFFOLD = /^spec /i;
@@ -120,13 +157,16 @@ for (const file of screens) {
   const phrases = [
     ...headings(html).map(text => ({ text, kind: 'says' })),
     ...actions(html).filter(t => !SCAFFOLD.test(t) && !isAPerson(t)).map(text => ({ text, kind: 'does' })),
+    ...(deep
+      ? labels(html).filter(t => !SCAFFOLD.test(t) && !isAPerson(t)).map(text => ({ text, kind: 'labels' }))
+      : []),
   ];
   const misses = [];
   let exact = 0;
   let reworded = 0;
 
   for (const phrase of phrases) {
-    const verdict = present(phrase.text, haystack);
+    const verdict = present(phrase.text, files);
     if (verdict === 'exact') exact++;
     else if (verdict === 'reworded') reworded++;
     else misses.push(phrase);
