@@ -63,6 +63,14 @@ jobs:
       # on a reworded heading would only teach people to ignore the step. The value is that the
       # answer to "is everything in the designs actually built?" is a command anybody can run,
       # instead of somebody's recollection.
+      # Is the design set whole? Prints any screen the designs link to that was never sent, and
+      # whether the folder holds screens from more than one export. Reported rather than enforced,
+      # for the same reason as the coverage check below: an incomplete export is a fact about what
+      # arrived, not a fault in the change being tested, and failing a build over it would stop
+      # unrelated work while teaching everyone to skip the step.
+      - name: Is every design screen actually here
+        run: npm run designs:check
+
       - name: What the designs say, against what the code says
         run: node scripts/design-coverage.mjs
 

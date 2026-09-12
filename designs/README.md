@@ -3,15 +3,54 @@
 The SPEC Business Solutions design project, exported from claude.ai/design.
 
 These are prototypes in HTML, not production code. They are committed here so
-`scripts/design-coverage.mjs` can check the product against them on every
-change, and so the reference survives the machine it was exported from.
+the product can be checked against them on every change, and so the reference
+survives the machine it was exported from.
 
-Run the check with:
+## After every export, run this
 
 ```
-node scripts/design-coverage.mjs          # headings and buttons
+npm run designs:check
+```
+
+It answers one question — **is the whole design project here?** — and ends with
+either:
+
+```
+COMPLETE — 22 screens, one export, nothing missing.
+```
+
+or an `INCOMPLETE` line naming what is wrong. It catches the two ways a design
+set goes quietly out of date:
+
+- **a screen that was never sent.** Every screen the navigation links to must
+  exist as a file. This is how `SPEC My Page.dc.html` was found — linked from
+  the nav, never received, nobody aware of it.
+- **screens from different exports mixed together.** Every screen of one export
+  shares a logo, so two logos in this folder means two exports. This is how
+  eighteen screens turned out to be a day behind while looking current.
+
+Then, for what is built against them:
+
+```
+npm run designs:coverage                  # headings and buttons
 node scripts/design-coverage.mjs --deep   # every label — noisier, misses less
 ```
+
+Both run in CI on every change, and neither fails a build: an incomplete export
+is a fact about what arrived, not a fault in the code being tested.
+
+## Getting the designs here
+
+Send the **whole project**, never individual files. Individual files are what
+caused both problems above — every screen shares a nav and a logo, so a change
+to either lands on all twenty-one at once, and sending three of them leaves
+eighteen behind with nothing to show that they are.
+
+- **From claude.ai/code (the cloud):** use Claude Design's **"Send to Claude
+  Code Web"**. It seeds the whole project into the workspace.
+- **From Claude Code on a desktop machine:** run `/design-login` once. After
+  that the project can be read directly from Claude Design, with no export step
+  at all — this is the one that removes the manual step for good.
 
 ## Decisions that are settled
 
@@ -27,24 +66,14 @@ logo shows how the business is actually going rather than being decoration.
 **Colour is the score; the letter is the pillar.** Option D. A pillar carries no
 colour of its own — see the note at the top of `src/lib/pillars.ts`.
 
-## These files are not all the same age
+## Where this set stands
 
-The design project shares one navigation bar and one logo across every screen,
-so a change to either lands on all of them at once. That makes it possible to
-tell, from the files themselves, which ones are current:
+As of 12 September 2026 `npm run designs:check` reports:
 
 ```
-grep -L "SPEC My Page.dc.html" *.dc.html    # screens on the older nav
+INCOMPLETE — 1 screen(s) missing, 2 exports mixed together.
 ```
 
-As of 12 September 2026, three screens (Admin, Board Pack, Connections) carry
-that day's navigation and animated logo; eighteen still carry the previous
-day's. They were sent one file at a time, and only those three arrived.
-
-**Two things follow from that.** The eighteen older screens may be missing
-changes nobody has seen here. And `SPEC My Page.dc.html` — a screen the new
-navigation links to — has never been received at all.
-
-Sending files individually loses work. The reliable routes are Claude Design's
-**"Send to Claude Code Web"**, or running `/design-login` once from Claude Code
-on a desktop machine, after which the project can be read directly.
+Three screens (Admin, Board Pack, Connections) came from a later export than
+the other fourteen, and `SPEC My Page.dc.html` has never been received at all.
+Re-exporting the whole project clears both at once.

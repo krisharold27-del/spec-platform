@@ -9,7 +9,9 @@
     "test": "vitest run",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/seed-demo.ts",
-    "db:migrate": "tsx scripts/deploy-migrate.ts"
+    "db:migrate": "tsx scripts/deploy-migrate.ts",
+    "designs:check": "node scripts/design-check.mjs",
+    "designs:coverage": "node scripts/design-coverage.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
