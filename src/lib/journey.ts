@@ -84,7 +84,9 @@ export const STEPS: StepDef[] = [
     why: 'Everything in SPEC works without this. Connecting the systems you already run — jobs, financials, safety, clients, payroll — is what stops the numbers being typed in by hand each month.',
     payoff: 'Your numbers arrive on their own instead of being re-typed each month.',
     check: async t => {
-      const rows = await db.select().from(schema.systemConnections).where(eq(schema.systemConnections.tenantId, t));
+      // Connecting your own mail is not progress the BUSINESS made, so it does not count here.
+      const rows = await db.select().from(schema.systemConnections)
+        .where(and(eq(schema.systemConnections.tenantId, t), isNull(schema.systemConnections.personalFor)));
       if (!rows.length) return { status: 'todo', detail: 'Nothing connected yet — everything else still works without it.' };
       const live = rows.filter(r => r.status === 'live').length;
       if (live === rows.length) return { status: 'done', detail: `${live} system${live === 1 ? '' : 's'} feeding numbers automatically.` };

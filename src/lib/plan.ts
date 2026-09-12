@@ -53,6 +53,20 @@ export const tierOf = (value: string | null | undefined): Tier => (value === 'ad
 export const hasConnectors = (tier: Tier) => tier === 'advanced';
 export const hasAssistant = (tier: Tier) => tier === 'advanced';
 
+/**
+ * Whether a problem gets READ for them — a different question from whether they can log one.
+ *
+ * Basic is "the platform with no AI support, every number typed by hand", so having Claude work out
+ * the causal chain is exactly the thing Basic is defined as not including. But the register itself
+ * is not AI: logging a problem, ranking it, giving it an owner, accepting it, signing it off — that
+ * is the method, and the method is what a business bought.
+ *
+ * So Basic gets the whole register and names its own pillars. The difference between the tiers is
+ * who does the thinking, never whether the feature exists — the same line the product draws
+ * everywhere else, where a business that connects nothing still gets all of it, with more typing.
+ */
+export const hasDiagnosis = (tier: Tier) => tier === 'advanced';
+
 export interface TenantPlan {
   id: string;
   plan: string;

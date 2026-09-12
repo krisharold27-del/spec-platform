@@ -1,5 +1,6 @@
 import { SubmitButton } from './submit-button';
 import { PILLAR_META } from '@/lib/pillars';
+import { PILLARS } from '@/lib/scoring';
 import { LIGHT_COLOUR, LIGHT_INK, pillTone } from '@/lib/today';
 import {
   PRIORITY_LABEL, priorityOf, waitingOn, isOverdue, auditDue, snapScore,
@@ -22,13 +23,16 @@ import {
 /** Harm, money, people, everything else — the colour follows the same rule as every other light. */
 const PRIORITY_LIGHT = ['red', 'amber', 'green', 'pending'] as const;
 
-export function ImprovementBox({ canWrite }: { canWrite: boolean }) {
+export function ImprovementBox({ canWrite, read }: { canWrite: boolean; read: boolean }) {
   return (
     <section className="card">
       <h2 className="font-serif text-xl text-ink">Improvement opportunity</h2>
       <p className="mt-1 text-sm text-ink-light">
         Not for every day — this is for when you stumble onto something real. Type it in plain words, an
-        ongoing one rather than a one-off, and SPEC works out what is really going on and where it starts.
+        ongoing one rather than a one-off.{' '}
+        {read
+          ? 'SPEC works out what is really going on and where it starts.'
+          : 'Then say which pillars it touches — on Basic you name them yourself.'}
       </p>
       {canWrite ? (
         <form action={logImprovement} className="mt-4 grid gap-2">
@@ -41,7 +45,29 @@ export function ImprovementBox({ canWrite }: { canWrite: boolean }) {
             aria-label="What keeps happening?"
             placeholder="The yard is a mess every Monday morning and the crew lose an hour finding gear."
           />
-          <SubmitButton className="btn-primary justify-self-start" pending="Reading it…">
+          {/*
+            Basic has no AI in it, so nothing is read for them. The entry is identical in every
+            other way — ranked the same, assigned the same, signed off the same. The difference
+            between the tiers is who does the thinking, never whether the feature exists.
+          */}
+          {!read && (
+            <fieldset className="mt-1 grid gap-2">
+              <legend className="label-caps">Which of the four does this touch?</legend>
+              <div className="flex flex-wrap gap-4">
+                {PILLARS.map(p => (
+                  <label key={p} className="flex items-center gap-2 text-sm text-ink">
+                    <input type="checkbox" name={`pillar.${p}`} />
+                    {PILLAR_META[p].name}
+                  </label>
+                ))}
+              </div>
+              <label className="grid gap-1 text-xs text-ink-light">
+                Who owns it, if you already know
+                <input className="input" name="owner" placeholder="Leave blank if nobody owns it yet" />
+              </label>
+            </fieldset>
+          )}
+          <SubmitButton className="btn-primary justify-self-start" pending={read ? 'Reading it…' : 'Logging it…'}>
             Log it
           </SubmitButton>
         </form>

@@ -1,7 +1,7 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser, canManage } from '@/lib/auth';
 import { getScope, isTopOfChart } from '@/lib/scope';
@@ -44,11 +44,15 @@ async function decide(formData: FormData, state: 'approved' | 'declined') {
   // An approved connection is the one kind that changes something elsewhere: it is what lets the
   // system start feeding numbers at all.
   if (state === 'approved' && approval.kind === 'connection' && approval.refId) {
+    // A personal mailbox never goes to the board, so in principle this can never reach one.
+    // isNull(personalFor) anyway: a refId is free-form, this is a privacy boundary, and the cost of
+    // being certain is one line.
     await db.update(schema.systemConnections)
       .set({ status: 'invited' })
       .where(and(
         eq(schema.systemConnections.id, approval.refId),
         eq(schema.systemConnections.tenantId, user.tenantId),
+        isNull(schema.systemConnections.personalFor),
       ));
   }
 

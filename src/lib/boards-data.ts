@@ -142,8 +142,12 @@ export async function getCurve(user: CurrentUser): Promise<CurveInput> {
     : [];
   const kpisSetAt = marks.length ? marks[0].enteredAt : null;
 
+  // Never a personal mailbox — a board discussing whose email is connected is the wrong meeting.
   const connections = await db.select().from(schema.systemConnections)
-    .where(eq(schema.systemConnections.tenantId, user.tenantId));
+    .where(and(
+      eq(schema.systemConnections.tenantId, user.tenantId),
+      isNull(schema.systemConnections.personalFor),
+    ));
   // When a system first started feeding — which is when it was CONNECTED, not when it last synced.
   // `lastSyncAt` moves every morning, so using it would grow the linking phase by a day every day
   // and report a business as having taken four months to do something it did in a week.

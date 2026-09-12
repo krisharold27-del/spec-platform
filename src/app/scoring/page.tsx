@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { Shell, PILLAR_META, GateBadge, pct } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
@@ -64,8 +64,13 @@ export default async function MonthlyScoring() {
     });
   }
 
+  // The business's systems only — a person's own mailbox is theirs and never appears in a list
+  // the rest of the business reads. See PERSONAL_CATEGORIES in lib/systems.
   const connections = await db.select().from(schema.systemConnections)
-    .where(eq(schema.systemConnections.tenantId, user.tenantId));
+    .where(and(
+      eq(schema.systemConnections.tenantId, user.tenantId),
+      isNull(schema.systemConnections.personalFor),
+    ));
   const liveSources = connections.filter(c => c.status === 'live').map(c => c.name);
 
   const rollup = await getTeamRollupForRoles(inScope, period.id);

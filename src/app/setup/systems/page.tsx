@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { Shell } from '@/components/ui';
@@ -25,8 +25,13 @@ export default async function Systems({ searchParams }: { searchParams: Promise<
   const sp = await searchParams;
   const error = ERROR[String(sp.error ?? '')];
 
+  // The business's systems only — a person's own mailbox is theirs and never appears in a list
+  // the rest of the business reads. See PERSONAL_CATEGORIES in lib/systems.
   const connections = await db.select().from(schema.systemConnections)
-    .where(eq(schema.systemConnections.tenantId, user.tenantId));
+    .where(and(
+      eq(schema.systemConnections.tenantId, user.tenantId),
+      isNull(schema.systemConnections.personalFor),
+    ));
 
   return (
     <Shell

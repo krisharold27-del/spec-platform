@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
@@ -31,8 +31,13 @@ export default async function Connections() {
   const scope = await getScope(user);
   const tier = tierOf(tenant.tier);
 
+  // The business's connections only. A person's own mailbox is theirs — it belongs on their page,
+  // not in a list the whole business reads. See PERSONAL_CATEGORIES in lib/systems.
   const connections = await db.select().from(schema.systemConnections)
-    .where(eq(schema.systemConnections.tenantId, user.tenantId));
+    .where(and(
+      eq(schema.systemConnections.tenantId, user.tenantId),
+      isNull(schema.systemConnections.personalFor),
+    ));
   const approvals = await db.select().from(schema.approvals)
     .where(eq(schema.approvals.tenantId, user.tenantId));
 

@@ -1,7 +1,7 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -82,9 +82,15 @@ export async function disconnectSystem(formData: FormData) {
   const user = await administrator();
   const id = String(formData.get('connectionId') ?? '');
   if (!id) return;
+  // isNull(personalFor): an administrator runs the business's connections, not anybody's mailbox.
+  // Without this, a well-meaning tidy-up of the connections list could disconnect a person's email.
   await db.update(schema.systemConnections)
     .set({ status: 'requested', lastSyncAt: null })
-    .where(and(eq(schema.systemConnections.id, id), eq(schema.systemConnections.tenantId, user.tenantId)));
+    .where(and(
+      eq(schema.systemConnections.id, id),
+      eq(schema.systemConnections.tenantId, user.tenantId),
+      isNull(schema.systemConnections.personalFor),
+    ));
   revalidatePath('/connections');
 }
 

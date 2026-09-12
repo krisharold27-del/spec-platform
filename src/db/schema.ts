@@ -100,6 +100,13 @@ export const systemConnections = pgTable('system_connections', {
   ownerName: text('owner_name'),
   ownerEmail: text('owner_email'),
   ownerIsSelf: boolean('owner_is_self').notNull().default(true),
+  /**
+   * Set when this connection belongs to ONE PERSON rather than to the business — mail, and only
+   * mail. A mailbox is not the company's to switch on, so a personal connection is made by the
+   * person themselves, visible only to them, and withdrawn by them. Null is the ordinary case: a
+   * business connection an administrator turned on.
+   */
+  personalFor: text('personal_for').references(() => users.id),
   status: text('status').notNull().default('requested'), // requested | invited | live | broken
   lastSyncAt: text('last_sync_at'),
   lastErrorAt: text('last_error_at'),

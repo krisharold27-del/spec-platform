@@ -2,8 +2,11 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth';
-import { assertWritable } from '@/lib/plan';
-import { diagnose } from '@/lib/diagnose';
+import { eq } from 'drizzle-orm';
+import { db, schema } from '@/db';
+import { diagnose, selfDiagnosed } from '@/lib/diagnose';
+import { assertWritable, hasDiagnosis, tierOf } from '@/lib/plan';
+import { PILLARS } from '@/lib/scoring';
 import { logProblem, assign, respond, markDone, signOff } from '@/lib/register-data';
 
 /**
@@ -31,7 +34,18 @@ export async function logImprovement(formData: FormData) {
   const text = String(formData.get('text') ?? '').trim().slice(0, 2000);
   if (text.length < 8) return;
 
-  const diagnosis = await diagnose(text);
+  // Basic is the tier with no AI in it, so nothing is read for them — they name the pillars
+  // themselves and the entry is identical in every other way. See `hasDiagnosis` in lib/plan.
+  const [tenant] = await db.select({ tier: schema.tenants.tier })
+    .from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
+
+  const diagnosis = hasDiagnosis(tierOf(tenant?.tier))
+    ? await diagnose(text)
+    : selfDiagnosed(
+        PILLARS.filter(p => formData.get(`pillar.${p}`) === 'on'),
+        String(formData.get('owner') ?? '').trim() || null,
+      );
+
   await logProblem(user.tenantId, text, diagnosis, user.name);
   revalidatePath('/today');
 }

@@ -172,6 +172,31 @@ Respond with ONLY this JSON, no markdown fences, no other text:
 export async function diagnose(text: string): Promise<Diagnosis> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return deterministic(text);
+  return askClaude(text, key);
+}
+
+/**
+ * A problem logged on Basic, where the person names the pillars themselves.
+ *
+ * No reading, because Basic is the tier with no AI in it. What it is not is a lesser register: the
+ * entry is identical in every other way — ranked the same, assigned the same, signed off the same —
+ * and `enforce` still holds the method, so the fix comes back in People → Compliance → Earnings
+ * order whatever order they ticked the boxes in.
+ *
+ * The empty lines are deliberate rather than filled with something generic. A business that typed
+ * the problem knows what it is; a sentence SPEC made up would be worse than the silence.
+ */
+export function selfDiagnosed(pillars: Pillar[], owner: string | null): Diagnosis {
+  return enforce({
+    bloom: pillars.map(pillar => ({ pillar, certainty: 'definite' as Certainty })),
+    chain: pillars,
+    noOwner: !owner,
+    errorLine: '',
+    solutionLine: '',
+  });
+}
+
+async function askClaude(text: string, key: string): Promise<Diagnosis> {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

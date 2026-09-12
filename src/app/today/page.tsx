@@ -3,11 +3,14 @@ import { redirect } from 'next/navigation';
 import { Shell, PILLAR_META, pct } from '@/components/ui';
 import { TodoList, AskPanel, ChangeList, MeetingLog, TrainingPath } from '@/components/today-blocks';
 import { ImprovementBox, ImprovementRegister } from '@/components/improvement-register';
+import { MailBlock } from '@/components/mail-block';
+import { myMail } from '@/lib/mail';
 import { registerFor } from '@/lib/register-data';
 import { currentLook } from '@/lib/look';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById, PILLARS } from '@/lib/queries';
 import { getToday } from '@/lib/today-data';
+import { hasDiagnosis } from '@/lib/plan';
 import { light, pillarNote, clearToWork, LIGHT_COLOUR, LIGHT_LABEL, type Light } from '@/lib/today';
 import type { Pillar, RoleScore } from '@/lib/scoring';
 
@@ -59,6 +62,7 @@ export default async function MyPage() {
   const canWrite = !(await currentLook().catch(() => null));
   const teamNames = team.map(m => m.holder).filter((n): n is string => !!n);
   const register = await registerFor(user.tenantId, user.name, teamNames);
+  const mail = await myMail(user.tenantId, user.id);
   const advanced = tier === 'advanced';
   // A supervisor's reports are on the tools, not running scorecards of their own. Calling that
   // "my team" is the language of an office; "my crew" is what they actually say.
@@ -115,7 +119,7 @@ export default async function MyPage() {
         stranger — so a problem raised before anybody had an account lands in exactly this list.
       */}
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
-        <ImprovementBox canWrite={canWrite} />
+        <ImprovementBox canWrite={canWrite} read={hasDiagnosis(tier)} />
         <ImprovementRegister
           entries={register}
           me={user.name}
@@ -310,8 +314,15 @@ export default async function MyPage() {
           </section>
 
 
+          {/*
+            Replaces the old Messages block, which only offered a way out to Outlook or Gmail. The
+            design asks for mail that MATCHES something on this person's card, with the task each
+            piece created under it — and for that to stay narrow enough that the list ends.
+          */}
+          <MailBlock connection={mail} canWrite={canWrite} />
+
           <section className="card">
-            <h2 className="font-serif text-xl text-ink">Messages</h2>
+            <h2 className="font-serif text-xl text-ink">Your own mail, where it lives</h2>
             <p className="mt-2 text-sm text-ink-light">
               SPEC does not carry your mail. Nothing with business content in it is ever sent, attached or
               linked — the month is read here, in SPEC, by whoever is entitled to see it.

@@ -235,8 +235,12 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
     });
   }
 
+  // Feeds are the business's systems. A person's mailbox has its own block and is not a feed.
   const connections = await db.select().from(schema.systemConnections)
-    .where(eq(schema.systemConnections.tenantId, user.tenantId));
+    .where(and(
+      eq(schema.systemConnections.tenantId, user.tenantId),
+      isNull(schema.systemConnections.personalFor),
+    ));
 
   const feeds: FeedLine[] = connections.map(c => ({
     id: c.id,
