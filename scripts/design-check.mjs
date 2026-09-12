@@ -100,9 +100,14 @@ const groups = [...byBrand.values()].sort((a, b) => b.screens.length - a.screens
 console.log(`Design set — ${screens.length} screens in ${DESIGNS.replace(process.cwd() + '/', '')}\n`);
 
 if (missing.length) {
-  console.log('Linked to, but never received:');
-  for (const name of missing) console.log(`  ${name}`);
-  console.log('  → these screens exist in the design project and have not been sent.\n');
+  console.log('Linked to, but not here:');
+  for (const name of missing) {
+    const from = current.filter(f => read(f).includes(`href="${name}"`)).map(f => basename(f, '.dc.html'));
+    console.log(`  ${name}  ← linked from ${from.join(', ')}`);
+  }
+  // Two different faults produce this, and naming the linking screen is what tells them apart.
+  console.log('  → either the screen was never sent, or the link is stale and points at a');
+  console.log('    screen that has since been renamed or retired.\n');
 }
 
 if (noBrand.length) {
