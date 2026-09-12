@@ -360,6 +360,51 @@ export const candidates = pgTable('candidates', {
   createdAt: text('created_at').notNull(),
 }, t => [index('candidates_tenant_role').on(t.tenantId, t.roleId)]).enableRLS();
 
+/**
+ * The improvement register — a problem somebody said out loud, and what happened to it.
+ *
+ * The same row whether it was typed by a stranger on the front door or by a supervisor on My Page,
+ * which is the point: a problem raised before anybody had an account is not a different kind of
+ * thing from one raised in month six.
+ *
+ * Nothing here is ever deleted. A closed problem becomes history a business can look back on, and
+ * the count of how many times one came back is the number worth being frightened by — see
+ * `recurrenceCount` and `reopenCount`. Both are the signal a business is least able to see about
+ * itself, because each individual raising feels small at the time.
+ *
+ * People are held as NAMES rather than staff ids on purpose. An entry outlives the person who
+ * raised it, the role they held, and sometimes the org chart itself; pointing at a row that can be
+ * moved or removed would mean history quietly changing, which every other rule in SPEC forbids.
+ */
+export const registerEntries = pgTable('register_entries', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** What the person typed, in their own words. Never rewritten, never tidied. */
+  text: text('text').notNull(),
+  createdBy: text('created_by'),
+  createdAt: text('created_at').notNull(),
+
+  /** The causal chain, as JSON [{pillar, certainty}]. Order is the chain, not a ranking. */
+  bloom: text('bloom').notNull().default('[]'),
+  /** The fix, as JSON pillar names, always in People → Compliance → Earnings order. */
+  chain: text('chain').notNull().default('[]'),
+  /** What the diagnosis said, in one line each, for the card. */
+  errorLine: text('error_line'),
+  solutionLine: text('solution_line'),
+  /** The story gave no clear owner, so the only honest fix is finding one. */
+  noOwner: boolean('no_owner').notNull().default(false),
+
+  /** open | done | closed. Done is marked by the owner; closed is signed off in the weekly meeting. */
+  status: text('status').notNull().default('open'),
+  owner: text('owner'),
+  /** null = not answered, true = accepted, false = denied as not theirs. */
+  accepted: boolean('accepted'),
+  deadline: text('deadline'),
+  recurrenceCount: integer('recurrence_count').notNull().default(1),
+  reopenCount: integer('reopen_count').notNull().default(0),
+  signedOffAt: text('signed_off_at'),
+}, t => [index('register_tenant_status').on(t.tenantId, t.status)]).enableRLS();
+
 export const diagnostics = pgTable('diagnostics', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),

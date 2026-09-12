@@ -58,11 +58,6 @@ jobs:
       - name: Tests
         run: npx vitest run
 
-      # Prints what each design screen says, and whether the product says it too. Reported rather
-      # than enforced: a design is a prototype and wording legitimately drifts, so failing the build
-      # on a reworded heading would only teach people to ignore the step. The value is that the
-      # answer to "is everything in the designs actually built?" is a command anybody can run,
-      # instead of somebody's recollection.
       # Is the design set whole? Prints any screen the designs link to that was never sent, and
       # whether the folder holds screens from more than one export. Reported rather than enforced,
       # for the same reason as the coverage check below: an incomplete export is a fact about what
@@ -71,6 +66,11 @@ jobs:
       - name: Is every design screen actually here
         run: npm run designs:check
 
+      # Prints what each design screen says, and whether the product says it too. Reported rather
+      # than enforced: a design is a prototype and wording legitimately drifts, so failing the build
+      # on a reworded heading would only teach people to ignore the step. The value is that the
+      # answer to "is everything in the designs actually built?" is a command anybody can run,
+      # instead of somebody's recollection.
       - name: What the designs say, against what the code says
         run: node scripts/design-coverage.mjs
 
@@ -167,3 +167,9 @@ jobs:
           done
 
           node scripts/journey.mjs
+
+          # The improvement register, all the way through: a problem typed in plain words,
+          # read, ranked, assigned, accepted, marked done, and raised again as one entry
+          # rather than two. It is the mechanism the front door and My Page share, so a
+          # break here is a break in both.
+          node scripts/register-journey.mjs

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   FIX_ORDER, fixOrder, priorityOf, PRIORITY_LABEL, visibleTo, rank, similar,
-  recurrenceOf, auditDue, isOverdue, waitingOn, bloomLetters,
+  recurrenceOf, auditDue, isOverdue, waitingOn, bloomLetters, snapScore,
   type RegisterEntry, type Bloom,
 } from '../src/lib/register';
 
@@ -212,6 +212,47 @@ describe('what an entry is waiting on', () => {
     expect(waitingOn(entry({ owner: 'Tom Alderson', accepted: true }))).toBe('Tom Alderson owns it.');
     expect(waitingOn(entry({ status: 'done' }))).toContain('waiting to be signed off');
     expect(waitingOn(entry({ status: 'closed' }))).toContain('Signed off');
+  });
+});
+
+describe('the Snap Score reads the engine, not the pile', () => {
+  const many = (n: number, over: Partial<RegisterEntry> = {}) =>
+    Array.from({ length: n }, (_, i) => entry({ id: `e${i}`, ...over }));
+
+  // Three problems is not a pattern, and a number drawn from two would be noise presented as insight.
+  it('says nothing until there is enough to read', () => {
+    expect(snapScore(many(2)).early).toBe(true);
+    expect(snapScore(many(2)).pct).toBeNull();
+    expect(snapScore(many(3)).early).toBe(false);
+  });
+
+  it('rises with the share actually closed out', () => {
+    const allOpen = snapScore(many(10)).pct!;
+    const allClosed = snapScore(many(10, { status: 'closed' })).pct!;
+    expect(allClosed).toBeGreaterThan(allOpen);
+  });
+
+  /**
+   * A reopen is the worst thing the register can record — it was signed off, somebody believed it
+   * was finished, and it came back. It has to cost more than a problem simply being raised twice.
+   */
+  it('punishes a reopen harder than a recurrence', () => {
+    const base = many(10, { status: 'closed' });
+    const withReopen = [...base.slice(1), entry({ id: 'r', status: 'closed', reopenCount: 1 })];
+    const withRecurrence = [...base.slice(1), entry({ id: 'c', status: 'closed', recurrenceCount: 2 })];
+    expect(snapScore(withReopen).pct!).toBeLessThan(snapScore(withRecurrence).pct!);
+  });
+
+  /**
+   * Never nought and never a hundred. A business that logs its problems honestly has already done
+   * the hard part and should not be shown a zero for it; and the next problem has not happened yet.
+   */
+  it('stays inside its bounds however bad or good it gets', () => {
+    const awful = many(10, { status: 'open', reopenCount: 9, recurrenceCount: 9 });
+    const perfect = many(40, { status: 'closed' });
+    expect(snapScore(awful).pct).toBe(8);
+    expect(snapScore(perfect).pct!).toBeLessThanOrEqual(97);
+    expect(snapScore(perfect).pct!).toBeGreaterThan(90);
   });
 });
 

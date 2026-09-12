@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Shell, PILLAR_META, pct } from '@/components/ui';
 import { TodoList, AskPanel, ChangeList, MeetingLog, TrainingPath } from '@/components/today-blocks';
+import { ImprovementBox, ImprovementRegister } from '@/components/improvement-register';
+import { registerFor } from '@/lib/register-data';
+import { currentLook } from '@/lib/look';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById, PILLARS } from '@/lib/queries';
 import { getToday } from '@/lib/today-data';
@@ -11,7 +14,7 @@ import type { Pillar, RoleScore } from '@/lib/scoring';
 export const dynamic = 'force-dynamic';
 
 /**
- * SPEC Today — the page everybody in the business opens first.
+ * My Page — the one screen a person logs into, and the only one they need to open.
  *
  * The whole day, in the order a person needs it: their four lights, what needs them, the roles
  * reporting to them, the numbers arriving from the systems they have connected, somewhere to ask,
@@ -19,7 +22,7 @@ export const dynamic = 'force-dynamic';
  * business has actually recorded, so a business that has just started sees a short honest page
  * rather than a full one made of nothing.
  */
-export default async function Today() {
+export default async function MyPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
@@ -36,7 +39,7 @@ export default async function Today() {
   // rather than drawing an empty page that reads like a bad month.
   if (!data.period) {
     return (
-      <Shell title={`Good morning, ${firstName}.`} subtitle={`${today} · your SPEC sheet for the day`}>
+      <Shell title={`Good morning, ${firstName}.`} subtitle={`${today} · your page`}>
         <div className="callout max-w-2xl">
           <div className="font-serif text-lg text-ink">Your day fills in as soon as a role has its KPIs</div>
           <p className="mt-1 text-sm text-ink-light">
@@ -50,6 +53,12 @@ export default async function Today() {
   }
 
   const { myRows, myScore, team, reportsTo, feeds, todos, changes, meetingLogged, training, ace, scored, tier } = data;
+
+  // A visitor looking around never writes. `assertWritable` refuses them anyway, but showing a form
+  // that cannot work is a worse way to find that out than being told.
+  const canWrite = !(await currentLook().catch(() => null));
+  const teamNames = team.map(m => m.holder).filter((n): n is string => !!n);
+  const register = await registerFor(user.tenantId, user.name, teamNames);
   const advanced = tier === 'advanced';
   // A supervisor's reports are on the tools, not running scorecards of their own. Calling that
   // "my team" is the language of an office; "my crew" is what they actually say.
@@ -60,7 +69,7 @@ export default async function Today() {
   return (
     <Shell
       title={`Good morning, ${firstName}.`}
-      subtitle={`${today} · your SPEC sheet for the day · ${data.myRole.title} at ${tenant.name}`}
+      subtitle={`${today} · your page · ${data.myRole.title} at ${tenant.name}`}
     >
       <p className="-mt-4 mb-8 max-w-2xl text-sm text-ink-light">
         {scored
@@ -96,6 +105,24 @@ export default async function Today() {
         })}
       </section>
       )}
+
+      {/*
+        The improvement register, directly under the lights and above everything the day asks.
+
+        Its position is the argument. A problem somebody has been carrying for months outranks
+        today's list, because today's list is this month's numbers and this is the thing that will
+        still be here next year if nobody names it. It is also the same box the front door offers a
+        stranger — so a problem raised before anybody had an account lands in exactly this list.
+      */}
+      <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
+        <ImprovementBox canWrite={canWrite} />
+        <ImprovementRegister
+          entries={register}
+          me={user.name}
+          people={[user.name, ...teamNames]}
+          canWrite={canWrite}
+        />
+      </div>
 
       {/*
         Two columns of comparable weight. What the day asks of you on the left — the list, what moved

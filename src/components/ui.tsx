@@ -43,7 +43,7 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
             hydration, and it needs nothing shipped to the browser.
           */}
           <nav className="flex items-center gap-5 label-caps">
-            <Link href="/today" className="hover:text-rust">Today</Link>
+            <Link href="/today" className="hover:text-rust">My page</Link>
             <Link href="/meeting" className="hidden hover:text-rust sm:inline">This week</Link>
             <Link href="/scoring" className="hidden hover:text-rust sm:inline">The month</Link>
             <Link href="/inbox" className="hover:text-rust">Approvals</Link>
