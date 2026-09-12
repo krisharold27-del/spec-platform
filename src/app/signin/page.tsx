@@ -47,6 +47,14 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
         <a href="/reset" className="underline">Forgot password?</a>
         <a href="/signup" className="underline">Start a business</a>
       </div>
+      {/*
+        The one place this link earns its keep. Somebody stuck on this screen cannot tell whether
+        they have the password wrong or whether SPEC itself is down, and the difference decides
+        whether they try again or ring somebody. /status needs no sign-in, for exactly this reason.
+      */}
+      <p className="mt-4 text-xs text-ink-light">
+        Not sure it is you? <a href="/status" className="underline">Check whether SPEC is working</a>.
+      </p>
       <Footer />
     </main>
   );
