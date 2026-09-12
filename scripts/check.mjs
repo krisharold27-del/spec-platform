@@ -13,6 +13,8 @@
 // never counted as a pass.
 
 import { execFileSync, execSync } from 'node:child_process';
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 const t0 = Date.now();
 const results = [];
@@ -101,6 +103,44 @@ const serving = (() => {
   } catch { return false; }
 })();
 
+/*
+  Find a browser, rather than assuming Playwright's.
+
+  This check said SOMETHING IS BROKEN — 3 of 7 checks failed, and nothing was broken: the machine
+  had Chromium installed somewhere Playwright does not look, so three journeys crashed before they
+  reached the product. That is the same cry-wolf failure this file has now had three times, and it
+  is the worst kind, because the whole point of one command is that its verdict can be trusted
+  without reading the detail.
+
+  So: look where browsers actually live, hand the journeys the path, and when there is genuinely no
+  browser say so as a SKIP. "I could not check this" and "this is broken" are different sentences
+  and only one of them should make somebody's stomach drop.
+*/
+function findBrowser() {
+  if (process.env.CHROME_PATH && existsSync(process.env.CHROME_PATH)) return process.env.CHROME_PATH;
+
+  const roots = [process.env.PLAYWRIGHT_BROWSERS_PATH, '/opt/pw-browsers'].filter(Boolean);
+  for (const root of roots) {
+    if (!existsSync(root)) continue;
+    for (const dir of readdirSync(root)) {
+      for (const rel of ['chrome-linux/chrome', 'chrome-linux/headless_shell', 'chrome-mac/Chromium.app/Contents/MacOS/Chromium']) {
+        const path = join(root, dir, rel);
+        if (existsSync(path)) return path;
+      }
+    }
+  }
+  // Playwright's own copy, wherever it keeps it. Silence, not an error, when it has none.
+  try {
+    const path = execSync('node -e "console.log(require(\'playwright\').chromium.executablePath())"', {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (path && existsSync(path)) return path;
+  } catch { /* no playwright, or no browser downloaded — handled by the caller */ }
+  return null;
+}
+
+const browser = findBrowser();
+
 const JOURNEYS = [
   ['look', 'looking around, then signing up', 'journey'],
   ['front', 'a stranger types a problem on the front door', 'frontdoor-journey'],
@@ -110,10 +150,12 @@ const JOURNEYS = [
 
 if (!serving) {
   for (const [id, what] of JOURNEYS) skip(id, what, `nothing is running at ${APP}`);
+} else if (!browser) {
+  for (const [id, what] of JOURNEYS) skip(id, what, 'there is no browser on this machine to drive');
 } else {
   for (const [id, what, script] of JOURNEYS) {
     step(id, what, () => {
-      const out = run(`node scripts/${script}.mjs`);
+      const out = run(`node scripts/${script}.mjs`, { env: { ...process.env, CHROME_PATH: browser } });
       if (/FAIL|check\(s\) failed/.test(out)) throw new Error(out.split('\n').filter(l => l.startsWith('FAIL')).join(' '));
       const n = (out.match(/^ok /gm) ?? []).length;
       return n ? `${n} checks` : null;

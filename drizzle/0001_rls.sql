@@ -102,8 +102,8 @@ declare
   t text;
 begin
   foreach t in array array[
-    'approvals', 'candidates', 'directors', 'register_entries', 'scorecard_comments',
-    'staff', 'system_connections', 'training_modules', 'training_records'
+    'approvals', 'candidates', 'directors', 'leave_entries', 'obligations', 'register_entries',
+    'scorecard_comments', 'staff', 'system_connections', 'training_modules', 'training_records'
   ]
   loop
     continue when to_regclass(t) is null;

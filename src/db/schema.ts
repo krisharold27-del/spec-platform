@@ -172,6 +172,68 @@ export const staff = pgTable('staff', {
 }, t => [index('staff_tenant').on(t.tenantId)]).enableRLS();
 
 /**
+ * The tickets, licences, checks and signed papers a person or a role is obliged to hold.
+ *
+ * This is the evidence under the Clear to Work gate. Until now the gate could only be failed by an
+ * overdue training module, which meant a business could pass it with an expired forklift licence in
+ * a drawer — the exact situation the gate exists to catch. An obligation with a date in the past
+ * blocks the person, in the same pass-or-fail way and with no percentage anywhere near it.
+ *
+ * Held against a PERSON or a ROLE, never both:
+ *
+ *   A person holds their own licence — it travels with them between jobs and between businesses.
+ *   A role carries what the job requires — an insurance certificate, a signed authority — and
+ *   whoever holds the role inherits it, the same way the training path does.
+ *
+ * `expiresAt` may be null, and that is not a gap: a signed employment contract does not expire.
+ * What is never allowed is a date SPEC invented, which is why nothing is defaulted here.
+ */
+export const obligations = pgTable('obligations', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** What it is, in the words the business uses. "White card", not "certification type 3". */
+  what: text('what').notNull(),
+  staffId: text('staff_id').references(() => staff.id),
+  userId: text('user_id').references(() => users.id),
+  roleId: text('role_id').references(() => roles.id),
+  /** Null means it does not expire — a signed contract, an induction that stands. */
+  expiresAt: text('expires_at'),
+  /** Where the paper actually lives, in their words. Never a file SPEC holds. */
+  evidence: text('evidence'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('obligations_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * Who is away, and when.
+ *
+ * Deliberately not a leave management system. SPEC does not calculate entitlements, does not hold
+ * balances and does not replace payroll — the business already has something that does. What it
+ * holds is the one thing the four questions need and payroll will not tell them: **who is not here,
+ * and what that leaves uncovered.**
+ *
+ * That is a People question and an Earnings question at once. A supervisor away for a fortnight
+ * with nobody signed off to cover the role is a gap in the chart, and the chart is the thing SPEC
+ * actually reasons about.
+ */
+export const leaveEntries = pgTable('leave_entries', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  staffId: text('staff_id').references(() => staff.id),
+  userId: text('user_id').references(() => users.id),
+  /** annual | sick | unpaid | parental | other — their words for it, from a short fixed list. */
+  kind: text('kind').notNull().default('annual'),
+  fromDate: text('from_date').notNull(),
+  toDate: text('to_date').notNull(),
+  /** requested | approved | declined. A decline is a real outcome with a name against it. */
+  state: text('state').notNull().default('requested'),
+  decidedBy: text('decided_by'),
+  decidedAt: text('decided_at'),
+  /** Who is covering, if anybody is. Free text: it is usually a name, sometimes "nobody yet". */
+  coveredBy: text('covered_by'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('leave_tenant').on(t.tenantId)]).enableRLS();
+
+/**
  * Who holds a role, over time. Assignments are opened and closed, never deleted, so the chart can
  * always answer "who held this role in March".
  *
