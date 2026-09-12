@@ -99,3 +99,73 @@ export function stuckOnStepNudgeTemplate(opts: { name: string; businessName: str
   const body = `Hi ${opts.name},\n\nI noticed ${opts.businessName} has been sitting on "${opts.stepTitle}" for a while (${url}). Is something in the way, or would a hand get it moving?\n\nHappy to jump on a call if that's easier.`;
   return { subject, body };
 }
+
+/**
+ * Can SPEC actually send an invitation — right now, from this deployment?
+ *
+ * `canSendEmail()` only says a key is SET, and that turned out to be a comfortable lie. On
+ * 12 September the live site had RESEND_API_KEY present and the key behind it had been deleted an
+ * hour earlier, so /status reported "Working. Invitations can be sent." about a key that would be
+ * refused the moment anybody invited somebody. A status page that reports the presence of a setting
+ * rather than the working of a thing is worse than no status page: it is confidently wrong at
+ * exactly the moment somebody is relying on it.
+ *
+ * So this asks Resend. Three separate ways this fails in practice, and they need different answers:
+ *
+ *   the key is refused          — deleted, rotated, or pasted wrong
+ *   no verified sender domain   — the key is fine and every send still bounces, which is the one
+ *                                 nobody predicts
+ *   Resend cannot be reached    — say so, and never claim it is broken on that basis
+ *
+ * It reads a list of domains. It sends nothing, and it cannot: a status check that sends a real
+ * email to prove email works is a status check that spams somebody every time it is opened.
+ */
+export type EmailReadiness = 'ok' | 'no_key' | 'refused' | 'no_verified_domain' | 'unreachable';
+
+/** The domain SPEC sends from — read from FROM so the two can never drift apart. */
+export const SENDER_DOMAIN = FROM.slice(FROM.lastIndexOf('@') + 1).replace(/>$/, '');
+
+export async function checkEmailSending(): Promise<{ state: EmailReadiness; detail?: string }> {
+  if (!key) return { state: 'no_key' };
+  try {
+    const res = await fetch('https://api.resend.com/domains', {
+      headers: { authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(6000),
+      cache: 'no-store',
+    });
+    /*
+      A 403 is not proof the key is bad.
+
+      Anything sitting between here and Resend — a corporate egress proxy, a filtering gateway, a
+      sandbox — answers 403 to a request it will not forward, and that is indistinguishable from
+      Resend rejecting a key. Telling somebody their key has been deleted when the truth is "a
+      network is in the way" is the cry-wolf failure in its most expensive form: they would go and
+      replace a key that was perfectly fine, and trust the page less next time.
+
+      401 is taken at face value — that is Resend's own answer for a bad key. A 403 has to prove it
+      came from Resend by carrying Resend's error shape. Anything else is "could not reach".
+    */
+    if (res.status === 401) return { state: 'refused' };
+    if (res.status === 403) {
+      const body = await res.text().catch(() => '');
+      const fromResend = /"(message|name|statusCode)"/.test(body) && /api[_ ]?key|unauthor|forbidden|restricted/i.test(body);
+      return fromResend
+        ? { state: 'refused' }
+        : { state: 'unreachable', detail: 'Something between SPEC and the email service refused the request.' };
+    }
+    if (!res.ok) return { state: 'unreachable', detail: `Resend answered ${res.status}.` };
+
+    const body = (await res.json()) as { data?: { name?: string; status?: string }[] };
+    const domains = body.data ?? [];
+    const ours = domains.find(d => d.name === SENDER_DOMAIN);
+    if (ours?.status === 'verified') return { state: 'ok' };
+    return {
+      state: 'no_verified_domain',
+      detail: ours
+        ? `${SENDER_DOMAIN} is in Resend but its status is "${ours.status ?? 'unknown'}", not verified.`
+        : `${SENDER_DOMAIN} has not been added to Resend at all.`,
+    };
+  } catch {
+    return { state: 'unreachable' };
+  }
+}

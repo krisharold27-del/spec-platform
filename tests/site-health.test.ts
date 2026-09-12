@@ -6,6 +6,8 @@ const healthy: HealthFacts = {
   optional: { RESEND_API_KEY: true, ANTHROPIC_API_KEY: true },
   database: { status: 'ok' },
   schema: { status: 'ok' },
+  // Asked and answered. Leaving this out is itself a state — "not tested" — covered further down.
+  email: { state: 'ok' },
 };
 
 const find = (f: HealthFacts, what: string) => lines(f).find(l => l.what === what)!;
@@ -79,5 +81,56 @@ describe('is the live site working', () => {
     const said = lines(healthy).map(l => `${l.says} ${l.fix ?? ''}`).join(' ');
     expect(said).not.toMatch(/re_[A-Za-z0-9]/);
     expect(said).not.toMatch(/postgres(ql)?:\/\//);
+  });
+});
+
+/*
+  The failure that prompted this: /status said "Working. Invitations can be sent." about a key that
+  had been deleted an hour earlier, because it only checked that the SETTING existed.
+*/
+describe('whether email actually works, rather than whether a key exists', () => {
+  const withEmail = (state: string, detail?: string): HealthFacts => ({ ...healthy, email: { state, detail } });
+  const emailLine = (f: HealthFacts) => lines(f).find(l => l.what === 'Inviting people by email')!;
+
+  it('never calls a refused key working, and says how to replace it', () => {
+    const l = emailLine(withEmail('refused'));
+    expect(l.severity).not.toBe('working');
+    expect(l.says).toMatch(/refuses it/);
+    expect(l.fix).toMatch(/resend\.com/);
+  });
+
+  it('catches the one nobody predicts — a good key with no verified sender domain', () => {
+    const l = emailLine(withEmail('no_verified_domain', 'specbizhq.com has not been added to Resend at all.'));
+    expect(l.severity).not.toBe('working');
+    expect(l.says).toMatch(/has not been added to Resend/);
+    expect(l.says).toMatch(/would still bounce/);
+  });
+
+  it('does not blame SPEC when the email service cannot be reached', () => {
+    const l = emailLine(withEmail('unreachable'));
+    expect(l.says).toMatch(/does not mean it is broken/);
+  });
+
+  it('says it has not been tested rather than claiming it works', () => {
+    const notAsked: HealthFacts = { ...healthy };
+    delete notAsked.email;
+    expect(emailLine(notAsked).says).toMatch(/has not been tested/);
+    expect(emailLine(notAsked).severity).not.toBe('working');
+  });
+
+  it('only says working when the key was accepted AND the domain is verified', () => {
+    const l = emailLine(withEmail('ok'));
+    expect(l.severity).toBe('working');
+    expect(l.fix).toBeNull();
+  });
+
+  /*
+    None of these stop anybody using SPEC. A business that never sends an invitation loses nothing,
+    so a broken key must not put "Something is wrong" at the top of the page.
+  */
+  it('never makes an email problem the headline', () => {
+    for (const state of ['refused', 'no_verified_domain', 'unreachable', 'no_key']) {
+      expect(verdict(lines(withEmail(state))), state).toBe('limited');
+    }
   });
 });

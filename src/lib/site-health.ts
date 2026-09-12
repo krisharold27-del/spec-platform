@@ -33,6 +33,15 @@ export interface HealthFacts {
   optional: Record<string, boolean>;
   database: { status: string; reason?: string };
   schema: { status: string; says?: string };
+  /**
+   * What Resend actually said when asked, rather than whether a setting exists.
+   *
+   * Optional, so this stays reasonable about a caller that has not asked — but when it is absent
+   * the email line says it could not be established, never that email works. A page that reports
+   * the presence of a setting instead of the working of a thing is confidently wrong at exactly
+   * the moment somebody is relying on it. See lib/email.checkEmailSending.
+   */
+  email?: { state: string; detail?: string };
 }
 
 const VERCEL = 'In Vercel: your project → Settings → Environment Variables → Add New. Then Deployments → the top one → ⋮ → Redeploy.';
@@ -102,15 +111,53 @@ export function lines(f: HealthFacts): HealthLine[] {
         },
   );
 
+  /*
+    Asked, not assumed.
+
+    This said "Working. Invitations can be sent." about a key that had been deleted an hour
+    earlier, because it only ever checked that the SETTING existed. Three different things break
+    sending and they need three different answers — a refused key, a sender domain that was never
+    verified, and Resend simply being unreachable, which is not a fault of ours and must never be
+    reported as one.
+  */
+  const email = f.email?.state ?? (has('RESEND_API_KEY') ? 'unknown' : 'no_key');
   out.push(
-    has('RESEND_API_KEY')
-      ? { what: 'Inviting people by email', severity: 'working', says: 'Working. Invitations can be sent.', fix: null }
-      : {
-        what: 'Inviting people by email',
-        severity: 'limited',
-        says: 'No invitations can be sent yet. Everything else works — people can still be added, they just will not get an email.',
-        fix: `Add RESEND_API_KEY when you are ready to invite somebody. ${VERCEL}`,
-      },
+    email === 'ok'
+      ? { what: 'Inviting people by email', severity: 'working', says: 'Working. The key was accepted and the sending domain is verified.', fix: null }
+      : email === 'refused'
+        ? {
+          what: 'Inviting people by email',
+          severity: 'limited',
+          says: 'The key is there but the email service refuses it — it has been deleted or replaced. Invitations would fail. Nothing else is affected.',
+          fix: `Make a new key at resend.com → API Keys → Create API Key, then replace RESEND_API_KEY. ${VERCEL}`,
+        }
+        : email === 'no_verified_domain'
+          ? {
+            what: 'Inviting people by email',
+            severity: 'limited',
+            says: `${f.email?.detail ?? 'The sending domain is not verified.'} The key works; every invitation would still bounce.`,
+            fix: 'In resend.com → Domains, add the sending domain and follow its DNS steps. Verification usually takes a few minutes once the records are in.',
+          }
+          : email === 'unreachable'
+            ? {
+              what: 'Inviting people by email',
+              severity: 'limited',
+              says: `Could not reach the email service to check.${f.email?.detail ? ` ${f.email.detail}` : ''} This does not mean it is broken — it means nobody can say right now.`,
+              fix: 'Refresh in a minute. If it keeps saying this, the email service is having trouble rather than SPEC.',
+            }
+            : email === 'unknown'
+              ? {
+                what: 'Inviting people by email',
+                severity: 'limited',
+                says: 'A key is set, but it has not been tested, so nobody can say whether an invitation would arrive.',
+                fix: 'Refresh the page — this one is checked live.',
+              }
+              : {
+                what: 'Inviting people by email',
+                severity: 'limited',
+                says: 'No invitations can be sent yet. Everything else works — people can still be added, they just will not get an email.',
+                fix: `Add RESEND_API_KEY when you are ready to invite somebody. ${VERCEL}`,
+              },
   );
 
   out.push(

@@ -1,4 +1,5 @@
 import { checkSchema, driftLine } from '@/lib/schema-check';
+import { checkEmailSending } from '@/lib/email';
 import { lines, verdict, VERDICT_LINE, VERDICT_NOTE, type HealthFacts } from '@/lib/site-health';
 import { LIGHT_INK } from '@/lib/today';
 
@@ -53,7 +54,16 @@ async function database(): Promise<{ status: string; reason?: string }> {
 }
 
 export default async function Status() {
-  const db = await database();
+  /*
+    The database and the email service are asked at the same time rather than one after the other.
+    Each has its own timeout; run in sequence a slow one would make the other look slow, and this
+    is the page somebody opens when they are already worried.
+
+    Email is ASKED, not assumed — a key that is present and refused is exactly the failure this
+    page exists to catch. It sends nothing: a check that proves email works by emailing somebody
+    spams them once per refresh.
+  */
+  const [db, email] = await Promise.all([database(), checkEmailSending()]);
   const shape = db.status === 'ok' ? await checkSchema() : { status: 'not_checked' as const };
 
   const facts: HealthFacts = {
@@ -63,6 +73,7 @@ export default async function Status() {
     schema: shape.status === 'behind'
       ? { status: 'behind', says: driftLine(shape) }
       : { status: shape.status },
+    email,
   };
 
   const rows = lines(facts);
