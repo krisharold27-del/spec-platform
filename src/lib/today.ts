@@ -29,7 +29,7 @@ export type Light = 'green' | 'amber' | 'red' | 'pending';
  * is held to. Green is the 90% every pillar of the roll-up has to hold. Amber is close enough to
  * recover inside the month. Null has no light at all: it is an absence, not a red.
  */
-export function light(score: Score, threshold = 0.9, watch = 0.75): Light {
+export function light(score: Score, threshold = 0.9, watch = 0.5): Light {
   if (score === null) return 'pending';
   if (score >= threshold) return 'green';
   if (score >= watch) return 'amber';

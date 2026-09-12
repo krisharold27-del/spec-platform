@@ -66,16 +66,25 @@ export const SCORE_INK = {
 } as const;
 
 /**
- * The thresholds every light in the product already uses: the 90% rule, and three quarters below it.
+ * The 90% rule above, and the failure line beneath it — which is FIFTY per cent, not seventy-five.
  *
  * Deliberately NOT `band()`. That function answers a different question — it calls a pillar "on
  * track" only at 100%, because a pillar is a set of measures and every one of them should be met.
  * That is the right rule for a LABEL and the wrong one for a light: a business holding 94% would
  * see amber on every card while being told it is at the standard, which is the contradiction
  * Option D exists to remove. The two live side by side on purpose; this one is the colour.
+ *
+ * The lower line was 0.75, which I picked, and it was wrong. The engine puts the failure line at
+ * 50% and says so twice: the bands are "Behind — under 50%", and the incentive deducts 5% for each
+ * pillar "under 50%" in a leader's chain. At 0.75 a pillar on 60% was painted red while deducting
+ * nothing — the colour accusing somebody of a failure the money did not agree was one. A person
+ * reading their own card has to be able to trust that red means the thing red means.
+ *
+ * So: 50% is where behind starts, because that is where the engine says a pillar has failed.
+ * `designs/the-rules.md` §5 and §7.
  */
 export const AT_THE_STANDARD = 0.9;
-export const WATCH_FROM = 0.75;
+export const WATCH_FROM = 0.5;
 
 /** Which of the four a score is. Every colour rule in the product starts here. */
 export function scoreBand(score: Score): keyof typeof SCORE_COLOUR {

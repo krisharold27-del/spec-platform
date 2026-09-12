@@ -64,7 +64,10 @@ describe('colour is only ever the score', () => {
     expect(scoreColour(0.9)).toBe(SCORE_COLOUR.on_track);
     expect(scoreColour(0.89)).toBe(SCORE_COLOUR.watch);
     expect(scoreColour(0.75)).toBe(SCORE_COLOUR.watch);
-    expect(scoreColour(0.74)).toBe(SCORE_COLOUR.behind);
+    // 50%, not 75% — the engine's failure line, and the one the incentive deducts on.
+    expect(scoreColour(0.6)).toBe(SCORE_COLOUR.watch);
+    expect(scoreColour(0.5)).toBe(SCORE_COLOUR.watch);
+    expect(scoreColour(0.49)).toBe(SCORE_COLOUR.behind);
     expect(scoreColour(0)).toBe(SCORE_COLOUR.behind);
   });
 
@@ -151,7 +154,7 @@ describe('anything a person has to read is readable', () => {
   it('picks ink by the same 90% rule as the fill', () => {
     expect(scoreInk(0.9)).toBe(SCORE_INK.on_track);
     expect(scoreInk(0.89)).toBe(SCORE_INK.watch);
-    expect(scoreInk(0.74)).toBe(SCORE_INK.behind);
+    expect(scoreInk(0.49)).toBe(SCORE_INK.behind);
     expect(scoreInk(null)).toBe(SCORE_INK.pending);
   });
 });
