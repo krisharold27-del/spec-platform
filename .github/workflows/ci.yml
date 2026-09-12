@@ -89,6 +89,31 @@ jobs:
         env:
           DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
 
+      # The failure that cost months, reproduced so it cannot return.
+      #
+      # The deploy-time migration used to refuse to touch a database holding anything the build did
+      # not recognise. One forgotten table in production therefore meant NO schema change reached it
+      # again — silently, for months, while every build stayed green. By 12 September production was
+      # missing nine tables and seventeen columns and the product looked broken.
+      #
+      # So: put a table there that the build has never heard of, migrate, and require the result to
+      # be a database that matches the build with the stranger still sitting in it untouched.
+      - name: A forgotten table must not stop the database being brought up to date
+        env:
+          DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
+        run: |
+          psql "$DATABASE_URL" -c 'create table if not exists a_forgotten_experiment (id text primary key, kept text)'
+          psql "$DATABASE_URL" -c "insert into a_forgotten_experiment values ('1','do not lose me') on conflict do nothing"
+          psql "$DATABASE_URL" -c 'alter table tenants drop column if exists tier'
+          psql "$DATABASE_URL" -c 'drop table if exists obligations'
+
+          npx tsx scripts/deploy-migrate.ts
+
+          psql "$DATABASE_URL" -c 'select tier from tenants limit 0'
+          psql "$DATABASE_URL" -c 'select id from obligations limit 0'
+          test "$(psql "$DATABASE_URL" -t -A -c "select kept from a_forgotten_experiment")" = 'do not lose me'
+          echo "brought up to date, and the stranger is untouched"
+
       # Row-level security, applied for real and then inspected.
       #
       # drizzle/0001_rls.sql needs Supabase's auth.uid(), so it could never be applied by our own

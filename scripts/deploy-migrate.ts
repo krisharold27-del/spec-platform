@@ -6,32 +6,55 @@
  * anybody, it is the step most likely to be forgotten, and forgetting it looks like the product
  * being broken rather than like a missed step.
  *
- * It is deliberately cautious about one thing. A schema push reconciles in BOTH directions: it adds
- * what the code needs AND drops what the code no longer mentions. Adding is safe and is the whole
- * point. Dropping is how an automated deployment turns into data loss — a column removed from the
- * code by mistake, or a build running against the wrong database, would take real customer data
- * with it and no test would catch it.
+ * ── What changed on 12 September, and why it matters ─────────────────────────────────────────────
  *
- * So: it adds, and it refuses to drop. If the database holds anything this build does not know
- * about, it stops with the list printed, because that is a question for a person. Nothing is ever
- * removed by this script.
+ * The first version used `drizzle-kit push`, which reconciles in BOTH directions: it adds what the
+ * code needs AND drops what the code no longer mentions. Dropping is how an automated deploy turns
+ * into data loss, so this script refused to run at all whenever the database held anything the
+ * build did not recognise, and printed the list for a person to decide about.
  *
- * IT NEVER FAILS THE BUILD. An earlier version exited non-zero when it could not reach the database
- * or when it found something it would not touch, and that took a deploy down — which is a worse
- * outcome than the problem it was written to solve, and it did it for reasons nobody could see from
- * outside the build sandbox. A helper that brings the database forward must not be able to stop a
- * release. Everything it declines to do is reported by /api/health as a 503 naming the exact tables
- * and columns, so nothing is hidden by letting the build through.
+ * The refusal was right. Its consequence was a disaster.
+ *
+ * One forgotten table in the live database — something from an experiment nobody remembered —
+ * meant no schema change reached production again. Not once. For months. Every deploy succeeded,
+ * every build was green, and the database quietly stayed where it was. By 12 September production
+ * was missing NINE TABLES and SEVENTEEN COLUMNS: the improvement register, training, approvals,
+ * candidates and scorecard comments had never worked for a real customer, and the owner had spent
+ * weeks believing the product was broken. It was not. The tables were not there, and the mechanism
+ * built to say so was politely declining to act, in a build log nobody reads.
+ *
+ * The lesson is not "be less careful". It is that **a safety measure whose failure mode is silence
+ * is not a safety measure.** So the caution moved from refusing to act, to being incapable of the
+ * thing it was afraid of:
+ *
+ *   lib/schema-sql generates only `create table if not exists`, `add column if not exists` and
+ *   `create index if not exists`. There is no code path that emits `drop`, and a test runs the
+ *   generator against an empty database and a half-built one and fails the build if any statement
+ *   it produces is anything else.
+ *
+ * Extras in the database are now simply ignored. A forgotten table can no longer hold the whole
+ * product hostage, and nothing this script can say is capable of removing a customer's data.
+ *
+ * IT STILL NEVER FAILS THE BUILD. An even earlier version exited non-zero when it could not reach
+ * the database, and that took a deploy down — worse than the problem it solved, for reasons nobody
+ * could see from outside the build sandbox. Everything it cannot do is reported by /api/health as a
+ * 503 naming the exact tables and columns, and in plain words on /status.
  */
-import { spawnSync } from 'node:child_process';
 import postgres from 'postgres';
-import { expectedShape, compareShape, extrasOf, driftLine } from '../src/lib/schema-check';
+import { expectedShape, compareShape, driftLine } from '../src/lib/schema-check';
+import { additivePlan, isAdditive } from '../src/lib/schema-sql';
 
 const say = (s: string) => console.log(`[deploy-migrate] ${s}`);
 
 /** Read the shape without importing src/db, which throws at module load when unconfigured. */
 async function actualShape(url: string) {
-  const sql = postgres(url, { max: 1, idle_timeout: 5, connect_timeout: 20 });
+  // `if not exists` makes Postgres emit a NOTICE for every object already there, and the driver
+  // prints each one as a large object. A build log full of alarming-looking noise is how the last
+  // problem stayed hidden for months, so the expected ones are swallowed and nothing else is.
+  const sql = postgres(url, {
+    max: 1, idle_timeout: 5, connect_timeout: 20,
+    onnotice: n => { if (!/already exists, skipping/.test(n.message ?? '')) console.log(`[deploy-migrate] note: ${n.message}`); },
+  });
   try {
     const rows = await sql<{ table_name: string; column_name: string }[]>`
       select table_name, column_name
@@ -75,47 +98,79 @@ async function main() {
   }
 
   const drift = compareShape(expected, actual);
-  const extras = extrasOf(expected, actual);
   const behind = drift.missingTables.length > 0 || drift.missingColumns.length > 0;
 
-  if (!behind) {
-    say(`The database already has everything this build expects (${expected.size} tables). Nothing to do.`);
+  if (behind) {
+    say(driftLine(drift));
+    if (drift.missingTables.length) say(`  tables to add: ${drift.missingTables.join(', ')}`);
+    for (const c of drift.missingColumns) say(`  columns to add on ${c.table}: ${c.columns.join(', ')}`);
+  } else {
+    say(`The database already has every table and column this build expects (${expected.size} tables).`);
+    say('Checking the indexes anyway — a missing unique index is invisible to a column check.');
+  }
+
+  const { statements, notes } = additivePlan(actual);
+
+  /*
+    The last gate, and it is deliberately redundant with the test.
+
+    A test proves the generator only produces additive SQL. This proves it again about the exact
+    strings on their way to a real customer's database, because the cost of being wrong once is
+    unrecoverable and the cost of checking is nothing.
+  */
+  const unsafe = statements.filter(s => !isAdditive(s));
+  if (unsafe.length) {
+    say('STOPPING. Generated a statement that is not purely additive, which should be impossible:');
+    for (const s of unsafe) say(`  ${s.slice(0, 120)}`);
+    say('Nothing has been changed. Letting the build through; /api/health will name what is missing.');
     return;
   }
 
-  say(driftLine(drift));
-  if (drift.missingTables.length) say(`  tables to add: ${drift.missingTables.join(', ')}`);
-  for (const c of drift.missingColumns) say(`  columns to add on ${c.table}: ${c.columns.join(', ')}`);
-
-  // The refusal. A push would reconcile these away, and they may be the only copy of something.
-  if (extras.extraTables.length || extras.extraColumns.length) {
-    say('STOPPING. The database holds things this build does not know about, and a push would drop them:');
-    for (const t of extras.extraTables) say(`  table: ${t}`);
-    for (const c of extras.extraColumns) say(`  columns on ${c.table}: ${c.columns.join(', ')}`);
-    say('That is a decision for a person, not for a deploy. Nothing has been changed.');
-    say('Letting the build through. /api/health will name what is still missing.');
+  if (statements.length === 0) {
+    say('Nothing to do.');
     return;
   }
 
-  say('Every change is additive. Applying.');
-  const run = spawnSync('npx', ['drizzle-kit', 'push', '--force'], {
-    stdio: 'inherit',
-    env: process.env,
+  // `if not exists` makes Postgres emit a NOTICE for every object already there, and the driver
+  // prints each one as a large object. A build log full of alarming-looking noise is how the last
+  // problem stayed hidden for months, so the expected ones are swallowed and nothing else is.
+  const sql = postgres(url, {
+    max: 1, idle_timeout: 5, connect_timeout: 20,
+    onnotice: n => { if (!/already exists, skipping/.test(n.message ?? '')) console.log(`[deploy-migrate] note: ${n.message}`); },
   });
-  if (run.status !== 0) {
-    say('The schema push failed. Letting the build through; /api/health will name what is missing.');
-    return;
+  let applied = 0;
+  const failures: string[] = [];
+  try {
+    for (const statement of statements) {
+      try {
+        await sql.unsafe(statement);
+        applied++;
+      } catch (err) {
+        // One statement failing must not stop the rest: an index that cannot be created is not a
+        // reason to leave eight tables uncreated. Collected and reported together.
+        failures.push(`${statement.slice(0, 90)} — ${(err as { message?: string })?.message ?? 'failed'}`);
+      }
+    }
+  } finally {
+    await sql.end({ timeout: 5 });
   }
 
-  // Trust nothing: read it back rather than believing the command that just ran.
-  const after = compareShape(expected, await actualShape(url));
-  if (after.missingTables.length || after.missingColumns.length) {
-    say('The push reported success but the database is still behind:');
-    say(driftLine(after));
-    return;
-  }
+  for (const n of notes) say(`  ${n}`);
+  say(`Applied ${applied} of ${statements.length} statements.`);
+  for (const f of failures) say(`  could not: ${f}`);
 
-  say('Done. The database matches this build.');
+  // Trust nothing: read it back rather than believing the commands that just ran.
+  try {
+    const after = compareShape(expected, await actualShape(url));
+    if (after.missingTables.length || after.missingColumns.length) {
+      say('Still behind after applying:');
+      say(`  ${driftLine(after)}`);
+      return;
+    }
+    say('Done. The database matches this build.');
+  } catch {
+    say('Applied, but could not read the database back to confirm. /api/health will say.');
+  }
 }
 
 // Never rejects, never exits non-zero: this step cannot be allowed to stop a release.
