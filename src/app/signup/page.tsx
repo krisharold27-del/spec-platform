@@ -24,6 +24,11 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<R
   const error = sp.error ? ERRORS[sp.error] ?? ERRORS.expired : null;
   // Arrived here from /signin because their account exists but their business never got built.
   const resuming = sp.resume === '1';
+  // Carried from the front door: the business they named, and the problem they typed. The page
+  // promised "this problem is waiting in your page", so it travels with them rather than being
+  // asked for twice.
+  const business = (sp.business ?? '').slice(0, 200);
+  const problem = (sp.problem ?? '').slice(0, 2000);
   const siteKey = turnstileSiteKey();
   return (
     <main className="mx-auto max-w-sm px-6 py-20">
@@ -37,6 +42,11 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<R
           same email and password and it will pick up where it stopped. Nothing is lost.
         </p>
       )}
+      {problem && (
+        <p className="mt-4 rounded-lg bg-cream p-3 text-sm text-ink">
+          This will be waiting in your page: <span className="text-ink-light">{'\u201c'}{problem}{'\u201d'}</span>
+        </p>
+      )}
       {error && <p className="mt-4 text-sm text-rust-dark">{error}</p>}
       <form action={signUp} className="relative mt-6 space-y-3">
         <input type="hidden" name="form_token" value={issueFormToken(formSecret())} />
@@ -45,7 +55,8 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<R
           <label>Website<input name="website" tabIndex={-1} autoComplete="off" defaultValue="" /></label>
         </div>
         <input name="name" required autoFocus maxLength={200} autoComplete="name" placeholder="Your name" aria-label="Your name" className="w-full rounded border px-3 py-2.5" />
-        <input name="business" required maxLength={200} autoComplete="organization" placeholder="Business name" aria-label="Business name" className="w-full rounded border px-3 py-2.5" />
+        <input name="business" required maxLength={200} defaultValue={business} autoComplete="organization" placeholder="Business name" aria-label="Business name" className="w-full rounded border px-3 py-2.5" />
+        {problem && <input type="hidden" name="problem" value={problem} />}
         <input name="email" type="email" required maxLength={320} autoComplete="email" inputMode="email" placeholder="Your email" aria-label="Your email" className="w-full rounded border px-3 py-2.5" />
         <PasswordField name="password" autoComplete="new-password" placeholder="Choose a password (8+ characters)" minLength={8} />
         {siteKey && <div className="cf-turnstile" data-sitekey={siteKey} data-appearance="interaction-only" />}

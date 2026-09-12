@@ -173,3 +173,9 @@ jobs:
           # rather than two. It is the mechanism the front door and My Page share, so a
           # break here is a break in both.
           node scripts/register-journey.mjs
+
+          # The front door: a stranger with a problem becomes a business with that problem
+          # already in its register. The landing page promises this literally -- "your page
+          # is waiting, with this problem already sitting in the middle of it" -- so the last
+          # check is whether the thing they typed on a public page is really there afterwards.
+          node scripts/frontdoor-journey.mjs

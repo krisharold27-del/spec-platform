@@ -7,6 +7,8 @@ import { provisionTenant, assignPerson } from '@/lib/provision';
 import { findUserByEmail, createSignIn, linkNewSeat, signInWithPassword, currentAuthUserId } from '@/lib/auth';
 import { checkFormToken, formSecret, honeypotTripped, verifyTurnstile } from '@/lib/bot-check';
 import { currentLook, claimLook } from '@/lib/look';
+import { logProblem } from '@/lib/register-data';
+import { diagnose } from '@/lib/diagnose';
 import { createThrottle } from '@/lib/throttle';
 
 // Real businesses sign up one at a time; a script does not. Three per network address per hour.
@@ -98,6 +100,22 @@ export async function signUp(formData: FormData) {
 
   await assignPerson(tenantId, gmRoleId, { name, email });
   await linkNewSeat(authUserId, tenantId, email);
+
+  /*
+    The problem they typed on the front door, put where the page said it would be.
+
+    Best effort on purpose: a business that has just been created successfully must never be lost
+    because the register write failed. They are inside either way, and a missing entry is something
+    they can retype in ten seconds — an error on this screen is not.
+  */
+  const problem = String(formData.get('problem') ?? '').trim().slice(0, 2000);
+  if (problem.length >= 8) {
+    try {
+      await logProblem(tenantId, problem, await diagnose(problem), name);
+    } catch {
+      // Nothing to do about it here, and nothing worth stopping for.
+    }
+  }
 
   if ((await signInWithPassword(email, password)) !== 'ok') redirect('/signin');
   redirect(look ? '/org?kept=1' : '/org?welcome=1');
