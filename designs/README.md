@@ -68,12 +68,27 @@ colour of its own — see the note at the top of `src/lib/pillars.ts`.
 
 ## Where this set stands
 
-As of 12 September 2026 `npm run designs:check` reports:
+Twenty-two screens, from the export Kris pushed to GitHub on 12 September 2026.
+`npm run designs:check` reports one thing outstanding, and it is a fault in the
+design rather than a missing file:
 
-```
-INCOMPLETE — 1 screen(s) missing, 2 exports mixed together.
-```
+**SPEC My Scorecard has a broken back link.** Its `← Back to my page` points at
+`SPEC Today.dc.html`, a screen that no longer exists — the label was updated to
+"my page" and the href was not. Repointing it at `SPEC My Page.dc.html` clears
+the last INCOMPLETE line.
 
-Three screens (Admin, Board Pack, Connections) came from a later export than
-the other fourteen, and `SPEC My Page.dc.html` has never been received at all.
-Re-exporting the whole project clears both at once.
+### Two screens were renamed, and it matters
+
+| Was | Is now |
+|---|---|
+| SPEC Today | **SPEC My Page** |
+| SPEC Role | **SPEC My Scorecard** |
+
+The first is the one with consequences. The Build Checklist records screen 5
+being reopened deliberately: it was the home screen, it is now My Page, and the
+separate chat page proposed as screen 16 is folded into it. The product still
+serves this at `/today`, built to the older design.
+
+**SPEC Logo Concepts** and **SPEC Mascot** are kept from the previous export.
+They are reference pages rather than product screens and were not included in
+the handoff.

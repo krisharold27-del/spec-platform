@@ -55,21 +55,13 @@ function brandPrint(html) {
   const brand = /<a\b[^>]*class="nav-brand"[^>]*>([\s\S]*?)<\/a>/i.exec(html);
   if (!brand) return null;
   const markup = brand[1].replace(/\s+/g, ' ').trim();
-  const kind = /<svg/i.test(markup) ? 'inline SVG mark' : /<img/i.test(markup) ? 'image file mark' : 'text only';
+  // Only a DRAWN mark dates a screen. Sign In sets the brand as plain words, and a screen with no
+  // artwork in its header cannot disagree with one that has it — treating "no mark" as a rival
+  // export reported a single sign-in page as a whole second export of the project.
+  if (!/<svg|<img/i.test(markup)) return null;
+  const kind = /<svg/i.test(markup) ? 'inline SVG mark' : 'image file mark';
   return { hash: createHash('sha1').update(markup).digest('hex').slice(0, 8), kind };
 }
-
-/** Every screen the project links to, whether or not it was sent. */
-function referenced() {
-  const found = new Set();
-  for (const file of screens) {
-    for (const m of read(file).matchAll(/href="([^"]*\.dc\.html)"/g)) found.add(m[1]);
-  }
-  return [...found].sort();
-}
-
-// ── Is anything missing? ────────────────────────────────────────────────────────────────────────
-const missing = referenced().filter(name => !existsSync(join(DESIGNS, name)));
 
 // ── Is everything from the same export? ─────────────────────────────────────────────────────────
 const byBrand = new Map();
@@ -80,6 +72,28 @@ for (const file of screens) {
   if (!byBrand.has(print.hash)) byBrand.set(print.hash, { kind: print.kind, screens: [] });
   byBrand.get(print.hash).screens.push(basename(file, '.dc.html'));
 }
+
+/**
+ * Every screen the CURRENT export links to, whether or not it was sent.
+ *
+ * Read from the newest export only, and that restriction is the point. A reference page kept from
+ * an earlier export still links to screens that have since been renamed or retired — this folder
+ * keeps two such pages, and both still point at "SPEC Today", which became My Page. Scanning them
+ * reported a retired screen as one that had never been sent, which is a false alarm about the
+ * exact thing this script exists to detect.
+ */
+function referenced(current) {
+  const found = new Set();
+  for (const file of current) {
+    for (const m of read(file).matchAll(/href="([^"]*\.dc\.html)"/g)) found.add(m[1]);
+  }
+  return [...found].sort();
+}
+
+// ── Is anything missing? ────────────────────────────────────────────────────────────────────────
+const newest = [...byBrand.values()].sort((a, b) => b.screens.length - a.screens.length)[0];
+const current = newest ? newest.screens.map(n => `${n}.dc.html`) : screens;
+const missing = referenced(current).filter(name => !existsSync(join(DESIGNS, name)));
 
 const groups = [...byBrand.values()].sort((a, b) => b.screens.length - a.screens.length);
 

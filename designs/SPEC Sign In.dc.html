@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh; display: flex; flex-direction: column;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Landing.dc.html" class="nav-brand" style="text-decoration: none;">SPEC</a>
+    <a href="SPEC Landing.dc.html" style="margin-left: auto;">Back to overview</a>
+  </nav>
+
+  <div style="flex: 1; display: grid; place-items: center; padding: 32px 20px 64px;">
+    <div style="width: 100%; max-width: 400px; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(32px,5vw,44px);">
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 26px; line-height: 1.2; margin: 0;">Sign in to SPEC</h1>
+      <p style="font-size: 14.5px; line-height: 23px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">One login, one business — the way SPEC works.</p>
+
+      <div style="display: grid; gap: 14px; margin-top: 28px;">
+        <label style="display: grid; gap: 6px;">
+          <span style="font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Email</span>
+          <input class="input" type="email" value="{{ email }}" onChange="{{ setEmail }}" onInput="{{ setEmail }}" placeholder="you@yourbusiness.com" style="min-height: 44px;" />
+        </label>
+        <label style="display: grid; gap: 6px;">
+          <span style="font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Password</span>
+          <input class="input" type="password" value="{{ password }}" onChange="{{ setPassword }}" onInput="{{ setPassword }}" onKeyDown="{{ onKeyDown }}" placeholder="••••••••" style="min-height: 44px;" />
+        </label>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-block" onClick="{{ signIn }}" style="margin-top: 22px;">Sign in</button>
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-top: 18px; font-size: 13.5px;">
+        <a href="#">Forgot password?</a>
+        <a href="SPEC My Page.dc.html">New here? Start free →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:900}}">
+// PLACEHOLDER AUTH — sign-in is visual only; "Sign in" navigates straight to My Page.
+// For Claude Code: wire real auth here (email/password check, session/token, error states),
+// then route to My Page on success. One login = one business, per the product decision.
+class Component extends DCLogic {
+  state = { email: '', password: '' };
+  renderVals() {
+    return {
+      email: this.state.email,
+      setEmail: e => this.setState({ email: e.target.value }),
+      password: this.state.password,
+      setPassword: e => this.setState({ password: e.target.value }),
+      onKeyDown: e => { if (e.key === 'Enter') { e.preventDefault(); window.location.href = 'SPEC My Page.dc.html'; } },
+      signIn: () => { window.location.href = 'SPEC My Page.dc.html'; },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

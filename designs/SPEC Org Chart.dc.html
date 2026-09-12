@@ -21,8 +21,36 @@
 <div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;" onClick="{{ closeMenu }}">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
-    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 9px;"><img src="logo.svg" alt="" width="26" height="26" style="display: block; flex: none;" />SPEC</a>
-    <a href="SPEC Today.dc.html">Today</a>
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
     <a href="#" style="color: var(--color-text); font-weight: 700;">Org chart</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
@@ -125,7 +153,7 @@
             <div style="{{ l.style }}"></div>
           </sc-for>
           <sc-for list="{{ cards }}" as="c" hint-placeholder-count="7">
-            <div draggable="true" onClick="{{ c.select }}" onContextMenu="{{ c.contextMenu }}" onDragStart="{{ c.dragStart }}" onDragOver="{{ c.dragOver }}" onDragLeave="{{ c.dragLeave }}" onDrop="{{ c.drop }}" style="{{ c.style }}">
+            <div draggable="true" onClick="{{ c.select }}" onDoubleClick="{{ c.openScorecard }}" onContextMenu="{{ c.contextMenu }}" onDragStart="{{ c.dragStart }}" onDragEnd="{{ c.dragEnd }}" onDragOver="{{ c.dragOver }}" onDragLeave="{{ c.dragLeave }}" onDrop="{{ c.drop }}" style="{{ c.style }}">
               <p style="{{ c.titleStyle }}">{{ c.title }}</p>
               <span draggable="{{ c.personDraggable }}" onDragStart="{{ c.personDragStart }}" style="{{ c.personStyle }}">{{ c.person }}</span>
               <div style="display: flex; gap: 7px; justify-content: center; margin-top: 10px;">
@@ -379,15 +407,17 @@ class Component extends DCLogic {
   decorate(node, level) {
     const sel = this.state.selectedId === node.id;
     const dropping = this.state.dropId === node.id;
-    const fills = ['var(--color-accent-100)', 'var(--color-surface, #fff)', 'var(--color-accent-2-100)', 'var(--color-accent-2-100)'];
+    const dragging = this.state.dragId === node.id;
+    const fills = ['var(--color-bg)', 'var(--color-bg)', 'var(--color-bg)', 'var(--color-bg)'];
     const sizes = [{ min: 210, pad: '18px 24px', r: 22, d: 13, t: 19 }, { min: 176, pad: '16px 20px', r: 20, d: 12, t: 16 }, { min: 148, pad: '13px 17px', r: 18, d: 10, t: 14 }];
     const z = sizes[Math.min(level, 2)];
     let style = 'cursor:grab;user-select:none;text-align:center;box-sizing:border-box;'
-      + 'min-width:' + z.min + 'px;padding:' + z.pad + ';border-radius:' + z.r + 'px;'
-      + 'background:' + fills[Math.min(level, 3)] + ';transition:box-shadow 120ms,transform 120ms;';
-    if (level <= 1) style += 'box-shadow:var(--shadow-sm);';
+      + 'min-width:' + z.min + 'px;padding:' + z.pad + ';border-radius:' + (z.r + 6) + 'px;'
+      + 'background:' + fills[Math.min(level, 3)] + ';transition:box-shadow 150ms,transform 150ms,opacity 150ms;';
+    style += 'box-shadow:0 0 0 2.5px var(--color-accent-400),var(--shadow-md);';
     if (sel) style += 'box-shadow:0 0 0 2px var(--color-accent),var(--shadow-md);transform:translateY(-1px);';
-    if (dropping) style += 'box-shadow:0 0 0 3px ' + GREEN + ';transform:translateY(-2px);';
+    if (dropping) style += 'box-shadow:0 0 0 3px ' + GREEN + ',0 12px 22px -8px rgba(0,0,0,0.28);transform:translateY(-4px) scale(1.035);background:color-mix(in srgb, ' + GREEN + ' 10%, ' + fills[Math.min(level, 3)] + ');';
+    if (dragging) style += 'opacity:0.4;transform:scale(0.94) rotate(-1.5deg);cursor:grabbing;';
 
     return {
       ...node,
@@ -409,8 +439,10 @@ class Component extends DCLogic {
       dotE: tile(node.e, z.d),
       dotC: tile(node.c, z.d),
       select: () => this.setState({ selectedId: node.id, menu: null }),
+      openScorecard: () => { window.location.href = 'SPEC My Scorecard.dc.html'; },
       contextMenu: e => this.openMenu(e, node.id),
       dragStart: e => { if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; this.setState({ dragId: node.id, dragKind: 'role' }); },
+      dragEnd: () => this.setState({ dragId: null, dropId: null, dragKind: null }),
       dragOver: e => { e.preventDefault(); if (this.state.dropId !== node.id) this.setState({ dropId: node.id }); },
       dragLeave: () => { if (this.state.dropId === node.id) this.setState({ dropId: null }); },
       drop: e => {
@@ -451,13 +483,13 @@ class Component extends DCLogic {
         const right = Math.max.apply(null, childCentres);
         const avgOf = n => Math.round((n.s + n.p + n.e + n.c) / 4);
         const worstKid = Math.min.apply(null, kids.map(avgOf));
-        lines.push({ style: 'position:absolute;left:' + (centre - 1.5) + 'px;top:' + bottom + 'px;width:3px;height:28px;border-radius:999px;background:' + rag(avgOf(node)) + ';' });
+        lines.push({ style: 'position:absolute;left:' + (centre - 2.5) + 'px;top:' + bottom + 'px;width:5px;height:28px;border-radius:999px;background:' + rag(avgOf(node)) + ';' });
         if (kids.length > 1) {
-          lines.push({ style: 'position:absolute;left:' + left + 'px;top:' + (railY - 1) + 'px;width:' + (right - left) + 'px;height:3px;border-radius:999px;background:' + rag(worstKid) + ';' });
+          lines.push({ style: 'position:absolute;left:' + left + 'px;top:' + (railY - 2) + 'px;width:' + (right - left) + 'px;height:5px;border-radius:999px;background:' + rag(worstKid) + ';' });
         }
         kids.forEach(k => {
           const cx = placed.find(p => p.node.id === k.id).centre;
-          lines.push({ style: 'position:absolute;left:' + (cx - 1.5) + 'px;top:' + railY + 'px;width:3px;height:' + (y + ROW - railY) + 'px;border-radius:999px;background:' + rag(avgOf(k)) + ';' });
+          lines.push({ style: 'position:absolute;left:' + (cx - 2.5) + 'px;top:' + railY + 'px;width:5px;height:' + (y + ROW - railY) + 'px;border-radius:999px;background:' + rag(avgOf(k)) + ';' });
         });
       }
       return centre;
@@ -515,7 +547,7 @@ class Component extends DCLogic {
       ? (menuState.nodeId
         ? [
           { label: 'Add a direct report', action: () => this.addRole(menuState.nodeId), style: menuItemStyle },
-          { label: 'Open scorecard', action: () => this.setState({ selectedId: menuState.nodeId, menu: null }), style: menuItemStyle },
+          { label: 'Rename role & person', action: () => this.setState({ selectedId: menuState.nodeId, menu: null }), style: menuItemStyle },
           { label: 'Break the link', action: () => { const id = menuState.nodeId; this.setState(s => ({ nodes: s.nodes.map(n => (n.id === id && !n.root ? { ...n, parent: null } : n)), menu: null })); }, style: menuItemStyle },
           { label: 'Make this role vacant', action: () => { const id = menuState.nodeId; this.setState(s => ({ nodes: s.nodes.map(n => (n.id === id ? { ...n, person: '' } : n)), menu: null })); }, style: menuItemStyle },
           { label: 'Remove role', action: () => this.removeById(menuState.nodeId), style: menuItemStyle + 'color:' + RED + ';' },

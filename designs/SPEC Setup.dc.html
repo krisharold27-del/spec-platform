@@ -21,8 +21,36 @@
 <div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
-    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 9px;"><img src="logo.svg" alt="" width="26" height="26" style="display: block; flex: none;" />SPEC</a>
-    <a href="SPEC Today.dc.html">Today</a>
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
@@ -182,6 +210,28 @@
           </div>
         </sc-if>
 
+        <sc-if value="{{ isBilling }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; margin-bottom: 20px;">
+            <sc-for list="{{ plans }}" as="pl" hint-placeholder-count="2">
+              <button type="button" onClick="{{ pl.select }}" style="{{ pl.style }}">{{ pl.label }}</button>
+            </sc-for>
+          </div>
+          <div style="background: var(--color-bg); border-radius: 20px; padding: 20px 22px; margin-bottom: 20px;">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+              <span style="font-size: 14.5px; line-height: 21px;">{{ billingSeatLine }}</span>
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px;">{{ billingTotal }}</span>
+            </div>
+            <p style="font-size: 12.5px; line-height: 19px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Only scored roles carry a seat. Checklist crew and vacancies are free — this recalculates as you fill roles.</p>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px;">
+            <input class="input" type="text" placeholder="Name on card" aria-label="Name on card" style="min-height: 42px;" />
+            <input class="input" type="text" placeholder="Card number" aria-label="Card number" style="min-height: 42px;" />
+            <input class="input" type="text" placeholder="MM / YY" aria-label="Expiry" style="min-height: 42px;" />
+            <input class="input" type="text" placeholder="CVC" aria-label="CVC" style="min-height: 42px;" />
+          </div>
+          <p style="font-size: 12.5px; line-height: 19px; margin: 14px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Billed monthly, cancel any time. You are not charged until the first period is scored.</p>
+        </sc-if>
+
         <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 28px;">
           <button type="button" class="btn btn-primary" onClick="{{ next }}" style="flex: none; white-space: nowrap;">{{ nextLabel }}</button>
           <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ stepFooter }}</span>
@@ -232,9 +282,10 @@ const dotOf = tone => 'width:12px;height:12px;border-radius:50%;display:block;fl
 const STEPS = [
   { key: 'business', kicker: 'Step 1', label: 'The business' },
   { key: 'roles', kicker: 'Step 2', label: 'Roles it needs' },
-  { key: 'kpis', kicker: 'Step 3', label: 'Two KPIs per pillar' },
-  { key: 'people', kicker: 'Step 4', label: 'People into roles' },
-  { key: 'cascade', kicker: 'Step 5', label: 'Cascade to managers' },
+  { key: 'billing', kicker: 'Step 3', label: 'Set up billing' },
+  { key: 'kpis', kicker: 'Step 4', label: 'Two KPIs per pillar' },
+  { key: 'people', kicker: 'Step 5', label: 'People into roles' },
+  { key: 'cascade', kicker: 'Step 6', label: 'Cascade to managers' },
 ];
 
 const ROLES = [
@@ -314,6 +365,7 @@ class Component extends DCLogic {
     invited: {},
     sent: {},
     extra: {},
+    plan: 'advanced',
   };
 
   renderVals() {
@@ -341,6 +393,13 @@ class Component extends DCLogic {
         footer: roleList.length + ' roles kept',
         claude: 'Proposing the structure an electrical contractor of this size usually needs to hold all four pillars.',
         steps: ['Six roles proposed, each with a reason', 'Anything you remove is remembered, not re-proposed', 'The chart is drawn as you go', 'Roles with no individual scorecard cannot reach Ace'],
+      },
+      billing: {
+        title: 'Pick a plan and set up billing',
+        body: 'Basic is the platform with every number typed by hand. Advanced connects your systems and puts Claude on every page. Change plan any time.',
+        footer: roleList.length + ' seats at this stage',
+        claude: 'Working out what a seat will cost from the roles you have kept so far.',
+        steps: ['A seat is a scored role, not a person', 'Checklist crew and vacancies are free', 'Recalculates live as roles are added or removed', 'Nothing is charged until the first period is scored'],
       },
       kpis: {
         title: 'Two KPIs per pillar to start',
@@ -384,6 +443,18 @@ class Component extends DCLogic {
       stepTitle: copy.title,
       stepBody: copy.body,
       stepFooter: copy.footer,
+      isBilling: step === 'billing',
+      plans: [
+        { key: 'basic', label: 'Basic · A$26/seat', price: 26 },
+        { key: 'advanced', label: 'Advanced · A$44/seat', price: 44 },
+      ].map(pl => ({
+        label: pl.label,
+        select: () => this.setState({ plan: pl.key }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:10px 18px;font-family:var(--font-body);font-size:13.5px;white-space:nowrap;'
+          + (this.state.plan === pl.key ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+      })),
+      billingSeatLine: roleList.length + ' seats · ' + (this.state.plan === 'basic' ? 'Basic' : 'Advanced'),
+      billingTotal: 'A$' + (roleList.length * (this.state.plan === 'basic' ? 26 : 44)) + ' / month',
       claudeNote: copy.claude,
       claudeSteps: copy.steps.map(s => ({ label: s, dot: dotOf(GREEN) })),
 

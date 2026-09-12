@@ -21,22 +21,83 @@
 <div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
-    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 9px;"><img src="logo.svg" alt="" width="26" height="26" style="display: block; flex: none;" />SPEC</a>
-    <a href="#" style="color: var(--color-text); font-weight: 700;">Today</a>
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="#" style="color: var(--color-text); font-weight: 700;">My page</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
     <a href="SPEC Connections.dc.html">Connections</a>
     <a href="SPEC Home.dc.html">All pages</a>
+    <button type="button" onClick="{{ toggleNotifs }}" style="{{ notifButtonStyle }}" title="Notifications">🔔<sc-if value="{{ hasNotifs }}" hint-placeholder-val="{{ false }}"><span style="{{ notifDotStyle }}"></span></sc-if></button>
+    <sc-if value="{{ notifsOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position: relative;">
+        <div style="position: absolute; top: 8px; right: 0; background: var(--color-surface, #fff); box-shadow: var(--shadow-md); border-radius: 16px; padding: 10px; width: min(320px, calc(100vw - 40px)); z-index: 20;">
+          <div style="padding: 6px 10px 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">Notifications</div>
+          <sc-for list="{{ notifItems }}" as="n" hint-placeholder-count="3">
+            <div style="padding: 10px; border-radius: 10px; background: var(--color-bg); margin-bottom: 6px;">
+              <p style="font-size: 13px; line-height: 19px; margin: 0;">{{ n.text }}</p>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noNotifs }}" hint-placeholder-val="{{ false }}">
+            <p style="padding: 10px; font-size: 13px; color: color-mix(in srgb, var(--color-text) 60%, transparent); margin: 0;">Nothing waiting on you right now.</p>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+    <button type="button" onClick="{{ toggleBizMenu }}" style="{{ bizButtonStyle }}" title="Business — placeholder, one login per business today">{{ bizName }} ▾</button>
+    <sc-if value="{{ bizMenuOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position: relative; margin-left: -8px;">
+        <div style="position: absolute; top: 8px; right: 0; background: var(--color-surface, #fff); box-shadow: var(--shadow-md); border-radius: 16px; padding: 8px; width: min(220px, calc(100vw - 40px)); z-index: 20;">
+          <div style="padding: 8px 12px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">JBI Electrical</div>
+          <div style="padding: 10px 12px; border-radius: 10px; font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 55%, transparent);">Add another business — coming soon</div>
+          <a href="SPEC Sign In.dc.html" style="display: block; padding: 10px 12px; border-radius: 10px; font-size: 13.5px;">Sign out</a>
+        </div>
+      </div>
+    </sc-if>
   </nav>
 
   <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
 
     <header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding: clamp(28px,4vw,44px) 0 20px;">
-      <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700);">{{ dateLine }} · your SPEC sheet for the day</span>
+      <span style="display: flex; align-items: center; gap: 14px;">
+        <span style="display: grid; place-content: center; width: 46px; height: 46px; border-radius: 50%; background: var(--color-accent); color: #fff; font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; flex: none;">{{ nameInitials }}</span>
+        <span style="display: grid; gap: 2px;">
+          <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 19px; line-height: 1.2;">{{ personName }}</span>
+          <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700);">{{ dateLine }} · your SPEC sheet for the day</span>
+        </span>
+      </span>
       <sc-if value="{{ isChecklist }}" hint-placeholder-val="{{ false }}">
         <span style="font-size: 13px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Checklist view · this role is not individually scored</span>
       </sc-if>
+
       <span style="display: flex; flex-wrap: wrap; gap: 8px;">
         <sc-for list="{{ personas }}" as="pr" hint-placeholder-count="3">
           <button type="button" onClick="{{ pr.select }}" style="{{ pr.style }}">{{ pr.label }}</button>
@@ -44,9 +105,160 @@
       </span>
     </header>
 
+    <sc-if value="{{ hasNotifications }}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Waiting on you" style="background: color-mix(in srgb, #a63b26 10%, transparent); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 20px; border-left: 5px solid #a63b26;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 1.3; margin: 0;">{{ notifyHeading }}</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <sc-for list="{{ notifications }}" as="n" hint-placeholder-count="1">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: var(--color-surface, #fff); border-radius: 16px; padding: 14px 16px;">
+              <span style="font-size: 14.5px; line-height: 22px;">{{ n.text }}</span>
+              <span style="display: flex; gap: 8px; flex: none;">
+                <button type="button" class="btn btn-primary" onClick="{{ n.accept }}" style="flex: none; white-space: nowrap;">Accept</button>
+                <button type="button" class="btn btn-ghost" onClick="{{ n.deny }}" style="flex: none; white-space: nowrap;">Deny</button>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ attendsCogs }}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Snap Score" style="{{ powerCardStyle }}">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 22px;">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 22px;">
+            <svg viewBox="0 0 100 100" width="72" height="72" role="img" aria-label="Snap Score" style="flex: none;">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-accent-100)" stroke-width="11"/>
+              <circle cx="50" cy="50" r="42" fill="none" stroke="{{ powerColour }}" stroke-width="11" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="{{ powerOffset }}" transform="rotate(-90 50 50)"/>
+              <text x="50" y="58" text-anchor="middle" style="font-family: var(--font-heading); font-size: 24px; fill: var(--color-text);">{{ powerPct }}</text>
+            </svg>
+            <div>
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 19px; line-height: 1.3; margin: 0;">{{ snapLabel }}</p>
+              <p style="font-size: 12.5px; line-height: 19px; margin: 3px 0 0; color: var(--color-accent-700); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700;">Snap it in line</p>
+              <p style="font-size: 14px; line-height: 22px; margin: 8px 0 0; max-width: 52ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ snapNote }}</p>
+            </div>
+          </div>
+          <button type="button" onClick="{{ toggleImprovement }}" style="{{ improvementTabStyle }}">{{ improvementTabLabel }}</button>
+        </div>
+      </section>
+    </sc-if>
+
+        <sc-if value="{{ improvementOpen }}" hint-placeholder-val="{{ false }}">
+        <section style="background: #3a3a38; border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0; color: #f0eee8;">Improvement opportunity</h2>
+            <button type="button" onClick="{{ closeImprovement }}" style="cursor:pointer;border:0;background:transparent;color:#cfcbc0;font-size:13px;white-space:nowrap;">Close ✕</button>
+          </div>
+          <p style="font-size: 14.5px; line-height: 24px; margin: 12px 0 0; max-width: 56ch; color: #c3bfb4;">Not for every day — this is for when you stumble onto something real. Type it in plain words, an ongoing one, not a one-off, and SPEC works out what's really going on and where it starts.</p>
+          <div style="margin-top: 18px;">
+            <textarea aria-label="Describe an ongoing improvement opportunity" placeholder="e.g. our best apprentice just quit and it's the second one this year" value="{{ problem }}" onChange="{{ setProblem }}" onInput="{{ setProblem }}" onKeyDown="{{ onProblemKeyDown }}" style="width: 100%; box-sizing: border-box; min-height: 84px; border-radius: 20px; border: 1px solid #55524c; background: #2c2c2a; color: #f0eee8; font-family: var(--font-body); font-size: 15.5px; padding: 16px 18px; resize: vertical;"></textarea>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+              <button type="button" onClick="{{ useExample }}" style="cursor:pointer;border:0;border-radius:999px;padding:7px 14px;font-size:12.5px;background:#4a4a46;color:#cfcbc0;white-space:nowrap;">Try the example</button>
+              <button type="button" onClick="{{ useExampleAgain }}" style="cursor:pointer;border:0;border-radius:999px;padding:7px 14px;font-size:12.5px;background:#4a4a46;color:#cfcbc0;white-space:nowrap;">Try it rephrased</button>
+            </div>
+            <button type="button" class="btn btn-primary" onClick="{{ runDiagnosis }}" style="flex: none; white-space: nowrap; margin-top: 14px;">{{ diagButtonLabel }}</button>
+            <sc-if value="{{ hasDiagError }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size: 14px; margin: 12px 0 0; color: #e08a6a;">{{ diagError }}</p>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ hasDiag }}" hint-placeholder-val="{{ false }}">
+            <div style="background: var(--color-bg); color: var(--color-text); border-radius: 20px; padding: 22px 24px; margin-top: 20px;">
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <sc-for list="{{ diagBloom }}" as="b" hint-placeholder-count="3">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;">
+                    <span style="{{ b.style }}">{{ b.letter }} · {{ b.label }}</span>
+                    <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ b.why }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="font-size: 15.5px; line-height: 25px; margin: 16px 0 0;">{{ diagErrorLine }}</p>
+              <sc-if value="{{ diagNoOwner }}" hint-placeholder-val="{{ false }}">
+                <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 1.3; margin: 16px 0 0; color: #7a8a5e;">Of course we can address this — and it starts with the people.</p>
+                <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Right now no one owns it, so that's logged below with no owner. Finding who owns it is the COGS meeting's first job on it — not a reason to wait.</p>
+              </sc-if>
+              <sc-if value="{{ diagHasOwner }}" hint-placeholder-val="{{ false }}">
+                <div style="display: grid; gap: 8px; margin-top: 16px;">
+                  <sc-for list="{{ diagChain }}" as="ch" hint-placeholder-count="3">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <span style="{{ ch.tileStyle }}">{{ ch.letter }}</span>
+                      <span style="font-size: 14px; line-height: 21px;">{{ ch.why }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <p style="font-size: 14.5px; line-height: 24px; margin: 16px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ diagSolutionLine }}</p>
+            </div>
+          </sc-if>
+          <p style="font-size: 13px; line-height: 21px; margin: 16px 0 0; color: #8f8b81;">Don't stress about this one — it's logged, and it goes to the COGS meeting to be actioned. Follow it in the <a href="#problem-register" style="color: #f0a35c;">improvement register below ↓</a> — that's where it gets assigned, accepted and signed off.</p>
+        </section>
+
+        <sc-if value="{{ hasRegister }}" hint-placeholder-val="{{ false }}">
+          <section id="problem-register" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); scroll-margin-top: 20px;">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Improvement register</h2>
+              <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ registerLine }}</span>
+            </div>
+            <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">You see what you logged and what your direct reports logged or own — not the whole business. Ranked by impact — harm first, then money, then people, then everything else. Nothing here is deleted; closed problems become history you can look back on.</p>
+
+            <div style="display: grid; gap: 14px; margin-top: 22px;">
+              <sc-for list="{{ registerItems }}" as="e" hint-placeholder-count="2">
+                <div style="{{ e.cardStyle }}">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="{{ e.numberStyle }}">{{ e.number }}</span>
+                    <span style="{{ e.priorityChip }}">{{ e.priorityLabel }}</span>
+                  </div>
+                  <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16.5px; line-height: 23px; margin: 10px 0 0;">{{ e.text }}</p>
+                  <sc-if value="{{ e.hasRecurrence }}" hint-placeholder-val="{{ false }}">
+                    <p style="font-size: 13px; line-height: 20px; margin: 8px 0 0; color: #a63b26; font-weight: 600;">{{ e.recurrenceLine }}</p>
+                  </sc-if>
+                  <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px;">
+                    <sc-for list="{{ e.bloom }}" as="b" hint-placeholder-count="2">
+                      <span style="{{ b.style }}">{{ b.letter }}</span>
+                    </sc-for>
+                    <span style="{{ e.statusChip }}">{{ e.statusLabel }}</span>
+                  </div>
+                  <p style="font-size: 13.5px; line-height: 21px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ e.metaLine }}</p>
+
+                  <sc-if value="{{ e.needsAssign }}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                      <input class="input" type="text" placeholder="Assign to — a seat on the org chart" value="{{ e.ownerDraft }}" onChange="{{ e.setOwnerDraft }}" onInput="{{ e.setOwnerDraft }}" aria-label="Assign to" style="flex: 1 1 180px; min-height: 38px;" />
+                      <input class="input" type="date" value="{{ e.deadlineDraft }}" onChange="{{ e.setDeadlineDraft }}" aria-label="Deadline" style="flex: none; min-height: 38px;" />
+                      <button type="button" class="btn btn-secondary" onClick="{{ e.assign }}" style="flex: none; white-space: nowrap;">Assign</button>
+                    </div>
+                    <sc-if value="{{ e.showToast }}" hint-placeholder-val="{{ false }}">
+                      <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: #4f7a3f;">{{ e.toastText }}</p>
+                    </sc-if>
+                  </sc-if>
+
+                  <sc-if value="{{ e.needsAcceptance }}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                      <button type="button" class="btn btn-primary" onClick="{{ e.accept }}" style="flex: none; white-space: nowrap;">Accept</button>
+                      <button type="button" class="btn btn-ghost" onClick="{{ e.deny }}" style="flex: none; white-space: nowrap;">Deny — not mine</button>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ e.canClaim }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" class="btn btn-secondary" onClick="{{ e.claim }}" style="flex: none; white-space: nowrap; margin-top: 14px;">Mark done</button>
+                  </sc-if>
+                  <sc-if value="{{ e.canValidate }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" class="btn btn-primary" onClick="{{ e.validate }}" style="flex: none; white-space: nowrap; margin-top: 14px;">Validate in COGS — sign it off</button>
+                  </sc-if>
+                  <sc-if value="{{ e.canReopen }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" class="btn btn-ghost" onClick="{{ e.reopen }}" style="flex: none; white-space: nowrap; margin-top: 14px;">{{ e.reopenLabel }}</button>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-if>
+
+        </sc-if>
+
+
+
     <section aria-label="My four pillars" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 188px), 1fr)); gap: 16px; padding-bottom: 32px;">
       <sc-for list="{{ myPillars }}" as="p" hint-placeholder-count="4">
-        <a href="SPEC Role.dc.html" style="{{ p.cardStyle }}">
+        <a href="SPEC My Scorecard.dc.html" style="{{ p.cardStyle }}">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
             <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ p.name }}</span>
             <span style="{{ p.dot }}"></span>
@@ -63,7 +275,6 @@
       <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
 
         <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
-          <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(26px,3vw,34px); line-height: 1.15; margin: 0 0 8px;">{{ greeting }}</h1>
           <p style="font-size: 15.5px; line-height: 25px; margin: 0 0 24px; max-width: 54ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ standing }}</p>
           <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
             <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">What needs me today</h2>
@@ -171,19 +382,6 @@
 
       <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
 
-        <section style="{{ aceStyle }}">
-          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
-            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">{{ aceHeading }}</h2>
-            <span style="{{ aceChip }}">{{ aceState }}</span>
-          </div>
-          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ aceBody }}</p>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
-            <sc-for list="{{ aceMonths }}" as="am" hint-placeholder-count="3">
-              <span style="{{ am.style }}">{{ am.label }}</span>
-            </sc-for>
-          </div>
-        </section>
-
         <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
           <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Ask anything</h2>
           <p style="font-size: 14.5px; line-height: 24px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ assistantLine }}</p>
@@ -258,6 +456,19 @@
             <button type="button" class="btn btn-secondary" onClick="{{ logMeeting }}" style="flex: none; white-space: nowrap; margin-top: 16px;">{{ meetingButtonLabel }}</button>
           </div>
           <p style="font-size: 13px; line-height: 20px; margin: 14px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Logging the meeting is what keeps the month scoreable.</p>
+        </section>
+
+        <section style="{{ aceStyle }}">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">{{ aceHeading }}</h2>
+            <span style="{{ aceChip }}">{{ aceState }}</span>
+          </div>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ aceBody }}</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+            <sc-for list="{{ aceMonths }}" as="am" hint-placeholder-count="3">
+              <span style="{{ am.style }}">{{ am.label }}</span>
+            </sc-for>
+          </div>
         </section>
 
         <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
@@ -513,12 +724,142 @@ const MESSAGES = [
   { from: 'SPEC', when: 'Yesterday', subject: 'September scoring closes on the 30th', unread: false },
 ];
 
+const DIAG_PILLAR_NAMES = { S: 'Safety', P: 'People', E: 'Earnings', C: 'Compliance' };
+const DIAG_PILLAR_COLOURS = { S: '#4f7a3f', P: '#a63b26', E: '#35617a', C: '#c08a2e' };
+const DIAG_SYSTEM_PROMPT = `You are the SPEC diagnostic engine. A business owner has typed ONE ongoing problem in plain words. Your job has two parts.
+
+JOB 1 — bloom-out: read the actual story and find the true causal chain of pillars behind the headline (Safety=S, People=P, Earnings=E, Compliance=C). Mark each as "definite" (certain from the words typed) or "possible" (could be, not asserted). Do NOT pad — no Safety on a resignation, nobody was hurt. The chain length is whatever the story supports, nothing more. HARD RULE: People (P) is never "possible". Almost every ongoing problem is a people problem underneath — if P appears in the bloom at all, it is always "definite", never hedged.
+
+DO NOT CONFUSE HARM WITH PEOPLE: physical or psychological harm to a person (an injury, a back strain, a near miss, stress-related harm) is always Safety (S), never People (P). People (P) means the org-chart and management side — who holds the seat, are they capable, are they trained, does someone own it — not the fact that a human being was hurt. A back injury is S, full stop; it only touches P if the story also shows nobody owns fixing the cause.
+
+JOB 2 — the fix: the solution has ONE fixed order, always — People, then Compliance, then Earnings (P → C → E). Never any other order, never P alone at the end, never E before C. People first because the org chart and the KPI are the mechanism; Compliance second because it locks the standard in place; Earnings last because it is always the result, never the lever. If a pillar genuinely doesn't feature in this story, skip it and keep the rest in that order — do not reorder around it. First question is always "who's responsible for this?" — if the story gives no clear owner, do NOT invent a solution: set noOwner true and the fix becomes finding out who owns it (a gap in the org chart), nothing else. Write with total certainty — this is the one proven sequence, not a suggestion.
+
+SPEC's method is always the same two tools: the ORG CHART (is there a seat for this, who holds it, who do they report to) and KPI DESIGN (is the right number being measured against that seat, so the problem shows up in a score instead of staying invisible). Every "why" and every solution line must cash out through one or both of these — never a vague "improve communication" or "build a better culture" type answer.
+
+GROUND IT IN THE ACTUAL INDUSTRY, NOT GENERIC ADVICE: infer the sector from what they typed and use its real operational practices, cadences and terms — not abstractions. Example: a trades or transport business raising a vehicle or plant issue is both a Safety problem (a poorly maintained work vehicle is a hazard) and a Compliance/People problem (vehicle checks are typically a weekly requirement, signed off by a supervisor and regularly audited) — say that specifically, with the real cadence (weekly checks, weekly audit), not "maintain your fleet better". Do this for every sector: aged care staffing ratios, hospitality food safety checks, manufacturing plant isolations, construction site inductions — name the actual recurring practice the industry runs on, and tie the KPI to it (e.g. "vehicle inspection completed and signed off, weekly", not "vehicle condition tracked").
+
+GROUND IT IN THE REAL REGULATION, DEFAULT AUSTRALIA: name the actual legislation and regulator that governs the problem, unless the story clearly names another country — then use that country's equivalent. Default assumption is Australia. Safety issues sit under the Work Health and Safety Act and the state WorkSafe / SafeWork regulator (name the right one if the state is given — WorkSafe Victoria, SafeWork NSW, WorkSafe Queensland, and so on; otherwise say "WorkSafe / SafeWork" generically). People issues touching pay, hours, unfair treatment or termination sit under the Fair Work Act and the Fair Work Ombudsman or Fair Work Commission. A vehicle or fleet issue in transport also touches Chain of Responsibility (CoR) under the Heavy Vehicle National Law. Compliance issues cite the specific licence, registration or industry code that applies (trade licensing, food safety certification, aged care standards, and so on). Use the real name, not "the relevant regulator" — and only cite what is actually relevant to the story, never padded on for effect.
+
+Respond with ONLY this JSON, no markdown fences, no other text:
+{
+  "bloom": [{"pillar":"S|P|E|C","certainty":"definite|possible","why":"one short clause, specific to their story, in plain words"}],
+  "errorLine": "one to two sentences naming the symptom they've been treating and the deeper root, specific to what they typed",
+  "noOwner": true|false,
+  "chain": [{"pillar":"P","why":"one short clause on what happens at this step — name the org-chart seat or the KPI involved"}],
+  "solutionLine": "two to three sentences, P-first, explicit about the org-chart seat and the KPI that would make this measurable, ending on the outcome. Ground it in the real operational practice for this industry, with its real cadence, not generic advice. Plain owner-facing language, never clinical."
+}`;
+
+const powerScoreOf = register => {
+  if (register.length < 3) return { pct: 0, tone: '#8c8681', early: true };
+  const total = register.length;
+  const closed = register.filter(r => r.status === 'closed').length;
+  const reopens = register.reduce((t, r) => t + (r.reopenCount || 0), 0);
+  const recurring = register.filter(r => r.recurrenceCount > 1).length;
+  const pct = Math.max(8, Math.min(97, Math.round(55 + (closed / total) * 40 - reopens * 8 - recurring * 6)));
+  return { pct, tone: pct >= 75 ? '#4f7a3f' : pct >= 45 ? '#c67139' : '#a63b26' };
+};
+
+const visibleTo = (entry, myName, myReports) =>
+  entry.createdBy === myName || entry.owner === myName || myReports.indexOf(entry.owner) > -1 || myReports.indexOf(entry.createdBy) > -1;
+
+const REG_KEY = 'spec_register';
+const HANDOFF_KEY = 'spec_handoff';
+const AUDIT_DAYS = 60;
+
+const normalise = t => t.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w.length > 3);
+const similar = (a, b) => {
+  const wa = new Set(normalise(a)), wb = new Set(normalise(b));
+  if (!wa.size || !wb.size) return false;
+  let hits = 0;
+  wa.forEach(w => { if (wb.has(w)) hits++; });
+  return hits / Math.min(wa.size, wb.size) >= 0.5;
+};
+
+const priorityOf = e => {
+  const letters = (e.bloom || []).filter(b => b.certainty === 'definite').map(b => b.pillar);
+  if (letters.includes('S')) return 1;
+  if (letters.includes('E')) return 2;
+  if (letters.includes('P')) return 3;
+  return 4;
+};
+const PRIORITY_LABEL = { 1: 'Harm — act now', 2: 'Losing money', 3: 'Losing people', 4: 'Everything else' };
+const PRIORITY_TONE = { 1: '#a63b26', 2: '#c08a2e', 3: '#35617a', 4: '#8c8681' };
+
 class Component extends DCLogic {
-  state = { persona: 'ops', done: {}, question: '', answer: null, acknowledged: {}, meetingLogged: false, toolboxDone: false, clockedIn: false };
+  state = { persona: 'ops', done: {}, question: '', answer: null, acknowledged: {}, meetingLogged: false, toolboxDone: false, clockedIn: false, problem: '', diagLoading: false, diag: null, diagError: '', register: [], ownerDrafts: {}, deadlineDrafts: {}, assignToast: '', improvementOpen: false, bizMenuOpen: false, notifsOpen: false };
+  // Notifications are computed live from the register (assigned/overdue/approved/denied), no push.
+  // For Claude Code: replace with real email/SMS dispatch on these same events, per the user's
+  // preferences set on the Admin page (notif_email / notif_sms toggles below).
+  // Business switcher is a visual placeholder — one login per business today.
+  // For Claude Code: back this with real accounts (list of businesses the user belongs to,
+  // an active-business id in session/localStorage, and route switching through it).
+
+  componentDidMount() {
+    let register = [];
+    try { register = JSON.parse(localStorage.getItem(REG_KEY) || '[]'); } catch (e) {}
+
+    try {
+      const raw = localStorage.getItem(HANDOFF_KEY);
+      if (raw) {
+        const handoff = JSON.parse(raw);
+        if (handoff && handoff.problem && handoff.diag) {
+          const already = register.some(r => r.text === handoff.problem);
+          if (!already) {
+            register.unshift(this.makeEntry(handoff.problem, handoff.diag, PERSONAS[this.state.persona].name));
+          }
+        }
+        localStorage.removeItem(HANDOFF_KEY);
+      }
+    } catch (e) {}
+
+    this.setState({ register });
+    this.saveRegister(register, true);
+  }
+
+  makeEntry(text, diag, createdBy) {
+    return {
+      id: 'r' + Date.now() + Math.floor(Math.random() * 1000),
+      createdBy: createdBy || null,
+      text,
+      bloom: diag.bloom,
+      errorLine: diag.errorLine,
+      solutionLine: diag.solutionLine,
+      chain: diag.chain,
+      noOwner: !!diag.noOwner,
+      status: 'open',
+      owner: null,
+      accepted: null,
+      manager: null,
+      deadline: null,
+      recurrenceCount: 1,
+      reopenCount: 0,
+      signedOffAt: null,
+      createdAt: Date.now(),
+    };
+  }
+
+  saveRegister(register, skipSetState) {
+    try { localStorage.setItem(REG_KEY, JSON.stringify(register)); } catch (e) {}
+    if (!skipSetState) this.setState({ register });
+  }
+
+  updateEntry(id, patch) {
+    const register = this.state.register.map(e => e.id === id ? { ...e, ...patch } : e);
+    this.saveRegister(register);
+  }
 
   renderVals() {
     const key = this.state.persona;
     const p = PERSONAS[key];
+    const myName = p.name;
+    const myReports = (p.team || []).map(m => m.person).filter(Boolean);
+    const notifList = [];
+    this.state.register.forEach(e => {
+      if (e.owner === myName && e.accepted === null) notifList.push({ text: e.owner + ', a new item was assigned to you: "' + e.text + '"' });
+      if (e.owner === myName && e.status === 'boardApproved') notifList.push({ text: 'Board approved: "' + e.text + '"' });
+      if (e.deniedByBoard && e.createdBy === myName) notifList.push({ text: 'Board sent back for a new owner: "' + e.text + '"' });
+      if (e.deadline && e.status !== 'closed' && new Date(e.deadline) < new Date()) notifList.push({ text: 'Overdue: "' + e.text + '" was due ' + e.deadline });
+    });
     const doneCount = p.tasks.filter(t => this.state.done[t.id]).length;
     const answer = this.state.answer;
     const worst = Math.min.apply(null, p.pillars.map(x => x.score));
@@ -624,6 +965,176 @@ class Component extends DCLogic {
       hasAnswer: !!answer,
       answerSource: answer ? answer[0] : '',
       answer: answer ? answer[1] : '',
+
+      problem: this.state.problem,
+      setProblem: e => this.setState({ problem: e.target.value }),
+      useExample: () => this.setState({ problem: 'Our best apprentice just quit and it\u2019s the second one this year' }),
+      useExampleAgain: () => this.setState({ problem: 'Another good tradesperson has handed in their notice, third one this year' }),
+      onProblemKeyDown: e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this.runDiagnosis();
+        }
+      },
+      diagButtonLabel: this.state.diagLoading ? 'Reading it…' : this.state.diag ? 'Fix another one' : 'Let\u2019s fix it',
+      hasDiagError: !!this.state.diagError,
+      diagError: this.state.diagError,
+      runDiagnosis: this.runDiagnosis || (this.runDiagnosis = async () => {
+        const text = this.state.problem.trim();
+        if (!text) { this.setState({ diagError: 'Type an improvement opportunity in the box first — an ongoing one, not a one-off.' }); return; }
+        if (this.state.diagLoading) return;
+        this.setState({ diagLoading: true, diagError: '', diag: null });
+        try {
+          const raw = await window.claude.complete({
+            model: 'claude-sonnet-4-5',
+            system: DIAG_SYSTEM_PROMPT,
+            messages: [{ role: 'user', content: text }],
+            max_tokens: 800,
+          });
+          const cleaned = raw.trim().replace(/^```json?/i, '').replace(/```$/, '').trim();
+          const parsed = JSON.parse(cleaned);
+          this.setState({ diag: parsed, diagLoading: false, problem: '' });
+
+          const existing = this.state.register.find(r => similar(r.text, text));
+          let register;
+          if (existing) {
+            register = this.state.register.map(r => r.id === existing.id ? { ...r, recurrenceCount: r.recurrenceCount + 1 } : r);
+          } else {
+            register = [this.makeEntry(text, parsed, PERSONAS[this.state.persona].name), ...this.state.register];
+          }
+          this.saveRegister(register);
+        } catch (e) {
+          this.setState({ diagLoading: false, diagError: 'Could not read that one — try describing it in a sentence or two.' });
+        }
+      }),
+      hasDiag: !!this.state.diag,
+      diagBloom: this.state.diag ? this.state.diag.bloom.map(b => ({
+        letter: b.pillar,
+        label: DIAG_PILLAR_NAMES[b.pillar] + (b.certainty === 'possible' ? ' — could be' : ''),
+        why: b.why || '',
+        style: 'display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 14px;font-size:13px;font-family:var(--font-heading);font-weight:var(--font-heading-weight);white-space:nowrap;'
+          + (b.certainty === 'possible'
+            ? 'background:transparent;color:' + DIAG_PILLAR_COLOURS[b.pillar] + ';box-shadow:inset 0 0 0 1.5px ' + DIAG_PILLAR_COLOURS[b.pillar] + ';opacity:0.75;'
+            : 'background:' + DIAG_PILLAR_COLOURS[b.pillar] + ';color:#fff;'),
+      })) : [],
+      diagErrorLine: this.state.diag ? this.state.diag.errorLine : '',
+      diagNoOwner: this.state.diag ? !!this.state.diag.noOwner : false,
+      diagHasOwner: this.state.diag ? !this.state.diag.noOwner : false,
+      diagSolutionLine: this.state.diag ? this.state.diag.solutionLine : '',
+      diagChain: this.state.diag && this.state.diag.chain ? this.state.diag.chain.map(c => ({
+        letter: c.pillar,
+        why: c.why || '',
+        tileStyle: 'display:grid;place-content:center;width:32px;height:32px;border-radius:10px;background:' + DIAG_PILLAR_COLOURS[c.pillar] + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:14px;flex:none;',
+      })) : [],
+
+      attendsCogs: !p.checklist,
+      improvementOpen: this.state.improvementOpen,
+      toggleImprovement: () => this.setState(s => ({ improvementOpen: !s.improvementOpen })),
+      bizName: 'JBI Electrical',
+      bizMenuOpen: this.state.bizMenuOpen,
+      toggleBizMenu: () => this.setState(s => ({ bizMenuOpen: !s.bizMenuOpen })),
+      bizButtonStyle: 'cursor:pointer;border:0;background:var(--color-bg);border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13.5px;color:var(--color-text);white-space:nowrap;margin-left:auto;',
+
+      hasNotifs: notifList.length > 0,
+      notifsOpen: this.state.notifsOpen,
+      toggleNotifs: () => this.setState(s => ({ notifsOpen: !s.notifsOpen, bizMenuOpen: false })),
+      notifButtonStyle: 'position:relative;cursor:pointer;border:0;background:var(--color-bg);border-radius:999px;width:38px;height:38px;font-size:16px;',
+      notifDotStyle: 'position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:50%;background:#a63b26;display:block;',
+      notifItems: notifList,
+      noNotifs: notifList.length === 0,
+      closeImprovement: () => this.setState({ improvementOpen: false }),
+      improvementTabLabel: this.state.improvementOpen ? 'Close ✕' : '💡 Improvement opportunity',
+      improvementTabStyle: 'cursor:pointer;border:0;border-radius:999px;padding:16px 26px;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:16px;white-space:nowrap;flex:none;box-shadow:0 4px 14px rgba(198,113,57,0.35);'
+        + (this.state.improvementOpen ? 'background:#3a3a38;color:#f0eee8;' : 'background:var(--color-accent);color:#fff;'),
+      hasNotifications: this.state.register.some(r => r.owner === myName && r.accepted === null),
+      notifyHeading: this.state.register.filter(r => r.owner === myName && r.accepted === null).length + ' assigned to you, waiting on your answer',
+      notifications: this.state.register.filter(r => r.owner === myName && r.accepted === null).map(r => ({
+        text: r.text,
+        accept: () => this.updateEntry(r.id, { accepted: true }),
+        deny: () => this.updateEntry(r.id, { accepted: false, owner: null }),
+      })),
+      personName: p.name + ' · ' + p.label,
+      nameInitials: p.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+
+      powerPct: powerScoreOf(this.state.register).pct,
+      powerOffset: Math.round(264 - (264 * powerScoreOf(this.state.register).pct) / 100),
+      powerColour: powerScoreOf(this.state.register).tone,
+      powerCardStyle: 'background:var(--color-surface, #fff);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:22px 26px;margin-bottom:20px;border-left:5px solid ' + powerScoreOf(this.state.register).tone + ';',
+      snapLabel: powerScoreOf(this.state.register).early ? 'Snap Score — waiting for improvement opportunities' : 'Snap Score — ' + powerScoreOf(this.state.register).pct + '%',
+      snapNote: powerScoreOf(this.state.register).early
+        ? 'Log a few and this reads the engine — closed, staying closed, not reopening.'
+        : 'Not a count of problems — a read of the engine. Visible to whoever attends the COGS meeting.',
+
+      hasRegister: this.state.register.filter(r => visibleTo(r, myName, myReports)).length > 0,
+      registerLine: this.state.register.filter(r => visibleTo(r, myName, myReports)).length + ' visible to you',
+      registerItems: this.state.register.filter(r => visibleTo(r, myName, myReports)).sort((a, b) => {
+        const pa = priorityOf(a), pb = priorityOf(b);
+        if (pa !== pb) return pa - pb;
+        if (b.recurrenceCount !== a.recurrenceCount) return b.recurrenceCount - a.recurrenceCount;
+        return b.createdAt - a.createdAt;
+      }).map((e, i) => {
+        const pr = priorityOf(e);
+        const now = Date.now();
+        const overdue = e.deadline && e.status === 'open' && new Date(e.deadline).getTime() < now;
+        const auditDue = e.status === 'closed' && e.signedOffAt && (now - e.signedOffAt) / 86400000 > AUDIT_DAYS;
+        const daysAgo = e.signedOffAt ? Math.round((now - e.signedOffAt) / 86400000) : 0;
+
+        const statusInfo = {
+          open: { label: e.owner ? (e.accepted === false ? 'Denied — unassigned' : e.accepted ? 'Accepted, in progress' : 'Waiting on acceptance') : 'No owner yet', tone: e.owner && e.accepted ? '#4f7a3f' : '#c67139' },
+          claimed: { label: 'Claimed done — awaiting COGS', tone: '#c67139' },
+          closed: { label: auditDue ? 'Signed off ' + daysAgo + 'd ago — still solved?' : 'Closed, signed off', tone: auditDue ? '#c08a2e' : '#4f7a3f' },
+          reopened: { label: 'Reopened', tone: '#a63b26' },
+        }[e.status] || { label: e.status, tone: '#8c8681' };
+
+        return {
+          number: i === 0 ? 'Opportunity #1' : 'Opportunity #' + (i + 1),
+          numberStyle: 'font-size:12px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;color:color-mix(in srgb, var(--color-text) 70%, transparent);',
+          priorityLabel: PRIORITY_LABEL[pr],
+          priorityChip: chip(PRIORITY_TONE[pr]),
+          text: e.text,
+          hasRecurrence: e.recurrenceCount > 1,
+          recurrenceLine: 'This is the ' + e.recurrenceCount + (e.recurrenceCount === 2 ? 'nd' : e.recurrenceCount === 3 ? 'rd' : 'th') + ' time this has come up — treat it as systemic, not a one-off.',
+          bloom: (e.bloom || []).map(b => ({
+            letter: b.pillar,
+            style: 'display:grid;place-content:center;width:26px;height:26px;border-radius:8px;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:12px;'
+              + (b.certainty === 'possible'
+                ? 'background:transparent;color:' + DIAG_PILLAR_COLOURS[b.pillar] + ';box-shadow:inset 0 0 0 1.5px ' + DIAG_PILLAR_COLOURS[b.pillar] + ';opacity:0.7;'
+                : 'background:' + DIAG_PILLAR_COLOURS[b.pillar] + ';color:#fff;'),
+          })),
+          statusLabel: statusInfo.label,
+          statusChip: chip(statusInfo.tone),
+          cardStyle: 'background:var(--color-bg);border-radius:20px;padding:18px 20px;border-left:4px solid ' + (overdue ? '#a63b26' : PRIORITY_TONE[pr]) + ';',
+          metaLine: (e.owner ? 'Owner: ' + e.owner + (e.manager ? ' · escalates to ' + e.manager : '') : 'No one owns this yet.') + (e.deadline ? ' · due ' + e.deadline + (overdue ? ' — overdue' : '') : ''),
+
+          needsAssign: e.status === 'open' && !e.owner,
+          showToast: !!this.state.assignToast && this.state.lastAssignedId === e.id,
+          toastText: this.state.assignToast,
+          ownerDraft: this.state.ownerDrafts[e.id] || '',
+          setOwnerDraft: ev => this.setState(s => ({ ownerDrafts: { ...s.ownerDrafts, [e.id]: ev.target.value } })),
+          deadlineDraft: this.state.deadlineDrafts[e.id] || '',
+          setDeadlineDraft: ev => this.setState(s => ({ deadlineDrafts: { ...s.deadlineDrafts, [e.id]: ev.target.value } })),
+          assign: () => {
+            const owner = (this.state.ownerDrafts[e.id] || '').trim();
+            if (!owner) return;
+            const p = PERSONAS[this.state.persona];
+            this.updateEntry(e.id, { owner, accepted: null, manager: p ? p.reportsTo.replace('You report to the ', '').replace('. Your scorecard rolls into theirs.', '').replace('. Your work rolls into their Safety and People numbers.', '') : null, deadline: this.state.deadlineDrafts[e.id] || null });
+            this.setState({ assignToast: owner + ' will see this waiting for them next time they open their page.', lastAssignedId: e.id });
+            setTimeout(() => this.setState({ assignToast: '' }), 4000);
+          },
+
+          needsAcceptance: e.status === 'open' && !!e.owner && e.accepted === null,
+          accept: () => this.updateEntry(e.id, { accepted: true }),
+          deny: () => this.updateEntry(e.id, { accepted: false, owner: null }),
+
+          canClaim: e.status === 'open' && e.accepted === true,
+          claim: () => this.updateEntry(e.id, { status: 'claimed' }),
+          canValidate: e.status === 'claimed',
+          validate: () => this.updateEntry(e.id, { status: 'closed', signedOffAt: Date.now() }),
+          canReopen: e.status === 'closed' || e.status === 'reopened',
+          reopenLabel: auditDue ? 'Reopen — hasn\u2019t stayed fixed' : 'Reopen',
+          reopen: () => this.updateEntry(e.id, { status: 'reopened', reopenCount: (e.reopenCount || 0) + 1 }),
+        };
+      }),
 
       changesLine: CHANGES.filter(c => !this.state.acknowledged[c.title]).length + ' new',
       changes: CHANGES.map(c => {

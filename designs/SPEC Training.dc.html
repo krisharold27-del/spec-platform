@@ -21,8 +21,36 @@
 <div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
-    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 9px;"><img src="logo.svg" alt="" width="26" height="26" style="display: block; flex: none;" />SPEC</a>
-    <a href="SPEC Today.dc.html">Today</a>
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
@@ -38,7 +66,8 @@
         <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">{{ headline }}</h1>
         <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ subhead }}</p>
       </div>
-      <div style="display: flex; gap: 8px;">
+      <div style="{{ tabTrackStyle }}">
+        <span style="{{ tabIndicatorStyle }}"></span>
         <sc-for list="{{ modes }}" as="m" hint-placeholder-count="2">
           <button type="button" onClick="{{ m.select }}" style="{{ m.style }}">{{ m.label }}</button>
         </sc-for>
@@ -221,6 +250,45 @@
         </div>
       </div>
     </sc-if>
+
+    <sc-if value="{{ isImpact }}" hint-placeholder-val="{{ false }}">
+      <p style="font-size: 13px; line-height: 20px; margin: 0 0 16px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Labour efficiency is a management and board view — it never appears below a manager.</p>
+      <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(28px,4vw,44px);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: clamp(24px,4vw,44px); align-items: start;">
+          <div>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(52px,7vw,88px); line-height: 1; margin: 0; color: var(--color-accent-2-900);">{{ gapPct }}</p>
+            <p style="font-size: 15px; line-height: 24px; margin: 10px 0 0; max-width: 34ch;">of the labour component, not of revenue, is what training this team to Ace closes.</p>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(26px,3vw,34px); line-height: 1.15; margin: 14px 0 0;">{{ gapValue }} a year</p>
+            <div style="display: grid; gap: 18px; margin-top: 26px; max-width: 340px;">
+              <label style="display: grid; gap: 8px;">
+                <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ revenueLabel }}</span>
+                <input type="range" min="1" max="60" value="{{ revenueValue }}" onChange="{{ setRevenue }}" onInput="{{ setRevenue }}" aria-label="Annual revenue" style="width: 100%; accent-color: var(--color-accent);" />
+              </label>
+              <label style="display: grid; gap: 8px;">
+                <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ headsLabel }}</span>
+                <input type="range" min="5" max="200" value="{{ headsValue }}" onChange="{{ setHeads }}" onInput="{{ setHeads }}" aria-label="Headcount" style="width: 100%; accent-color: var(--color-accent);" />
+              </label>
+              <label style="display: grid; gap: 8px;">
+                <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ labourLabel }}</span>
+                <input type="range" min="10" max="60" value="{{ labourValue }}" onChange="{{ setLabour }}" onInput="{{ setLabour }}" aria-label="Labour as a share of revenue" style="width: 100%; accent-color: var(--color-accent);" />
+              </label>
+              <label style="display: grid; gap: 8px;">
+                <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ improveLabel }}</span>
+                <input type="range" min="10" max="30" value="{{ improveValue }}" onChange="{{ setImprove }}" onInput="{{ setImprove }}" aria-label="Improvement from alignment and training" style="width: 100%; accent-color: var(--color-accent);" />
+              </label>
+            </div>
+          </div>
+          <div>
+            <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-2-900); margin: 0 0 8px;">What finishing this path is worth</span>
+            <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1.1; margin: 0; color: #4f7a3f;">{{ recoveredValue }}</p>
+              <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Recoverable once the team is trained to Ace and holding 90% for three months straight.</p>
+              <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0;">{{ gapPerHead }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </sc-if>
   </div>
 </div>
 
@@ -254,7 +322,7 @@
   </div>
 </section>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200},&quot;isManager&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Access&quot;}}">
 const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
 const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
 const dotOf = tone => 'width:12px;height:12px;border-radius:50%;display:block;flex:none;background:' + tone + ';';
@@ -306,6 +374,13 @@ const TEAM = [
   { person: 'Amrit Kaur', role: 'Scheduler', pct: 45, note: 'Started 2 Sep.', signable: false },
 ];
 
+const fmt = n => {
+  const v = Math.round(n);
+  if (v >= 1000000) return '$' + (v / 1000000).toFixed(v >= 10000000 ? 1 : 2) + 'm';
+  if (v >= 1000) return '$' + Math.round(v / 1000) + 'k';
+  return '$' + v;
+};
+
 const DUE = [
   { what: 'Psychosocial safety basics', who: 'Dane Whitmore · Operations Manager', when: 'Due 30 Sep', tone: AMBER },
   { what: 'Clear to Work, end to end', who: 'Tom Alderson · Site Supervisor', when: 'Overdue 14 days', tone: RED },
@@ -313,13 +388,20 @@ const DUE = [
 ];
 
 class Component extends DCLogic {
-  state = { mode: 'learner', progress: {}, role: 'Operations Manager', assigned: DEFAULT_ASSIGNED, signed: { 'Priya Raman': true } };
+  state = { mode: 'learner', progress: {}, role: 'Operations Manager', assigned: DEFAULT_ASSIGNED, signed: { 'Priya Raman': true }, revenue: 12, heads: 40, labour: 30, improve: 20 };
 
   pctFor(m) { return this.state.progress[m.id] !== undefined ? this.state.progress[m.id] : m.pct; }
 
   renderVals() {
     const learner = this.state.mode === 'learner';
     const mods = MODULES.map(m => ({ ...m, done: this.pctFor(m) }));
+
+    const rev = this.state.revenue * 1000000;
+    const heads = this.state.heads;
+    const labourCost = rev * (this.state.labour / 100);
+    const sharePct = this.state.improve;
+    const gap = labourCost * (sharePct / 100);
+    const recovered = gap * 0.55;
     const complete = mods.filter(m => m.done === 100).length;
     const overall = Math.round(mods.reduce((t, m) => t + m.done, 0) / mods.length);
     const pathComplete = complete === mods.length;
@@ -327,21 +409,53 @@ class Component extends DCLogic {
     const assigned = this.state.assigned[role] || [];
 
     return {
-      headline: learner ? 'Trained on the role, not the software' : 'Assign the path to the role',
+      headline: learner ? 'Trained on the role, not the software' : this.state.mode === 'impact' ? 'What finishing training is worth' : 'Assign the path to the role',
       subhead: learner
         ? 'SPEC\u2019s own training, done on the job. Every module is tied to a KPI on your scorecard, and the path has to be finished and signed off before the role can run at Ace.'
+        : this.state.mode === 'impact'
+        ? 'The same gap you saw before signing up, now tied to this team\u2019s own training path.'
         : 'Pick what each role must complete. Whoever holds the role inherits it, and their manager signs it off when the path is done.',
       modes: [
         { key: 'learner', label: 'My training' },
         { key: 'manager', label: 'Assign curriculum' },
-      ].map(m => ({
+        { key: 'impact', label: 'Impact of alignment', managerOnly: true },
+      ].filter(m => !m.managerOnly || this.props.isManager !== false)
+        .map((m, i, arr) => ({ ...m, i, n: arr.length }))
+        .map(m => ({
         label: m.label,
         select: () => this.setState({ mode: m.key }),
-        style: 'cursor:pointer;border:0;border-radius:999px;padding:10px 20px;font-family:var(--font-body);font-size:13.5px;white-space:nowrap;'
-          + (this.state.mode === m.key ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);box-shadow:var(--shadow-sm);'),
+        style: 'cursor:pointer;border:0;background:transparent;border-radius:999px;padding:10px 14px;font-family:var(--font-body);font-size:13.5px;white-space:nowrap;text-align:center;position:relative;z-index:1;transition:color 0.25s;'
+          + (this.state.mode === m.key ? 'color:#fff;' : 'color:var(--color-text);'),
       })),
+      tabTrackStyle: (() => {
+        const visible = ['learner', 'manager'].concat(this.props.isManager !== false ? ['impact'] : []);
+        return 'position:relative;display:grid;grid-template-columns:repeat(' + visible.length + ', 1fr);gap:4px;background:var(--color-bg);border-radius:999px;padding:4px;';
+      })(),
+      tabIndicatorStyle: (() => {
+        const visible = ['learner', 'manager'].concat(this.props.isManager !== false ? ['impact'] : []);
+        const idx = Math.max(0, visible.indexOf(this.state.mode));
+        const n = visible.length;
+        return 'position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px) / ' + n + ');border-radius:999px;background:var(--color-accent);transition:transform 0.25s cubic-bezier(.4,0,.2,1);transform:translateX(calc(' + idx + ' * 100%));';
+      })(),
       isLearner: learner,
-      isManager: !learner,
+      isManager: !learner && this.state.mode === 'manager',
+      isImpact: this.state.mode === 'impact',
+      gapPct: sharePct + '%',
+      gapValue: fmt(gap) + ' of labour',
+      gapPerHead: 'That is ' + fmt(gap / heads) + ' per person per year, across ' + heads + ' people.',
+      recoveredValue: fmt(recovered),
+      revenueLabel: '$' + this.state.revenue + 'm revenue',
+      revenueValue: this.state.revenue,
+      setRevenue: e => this.setState({ revenue: Number(e.target.value) }),
+      headsLabel: heads + ' people',
+      headsValue: heads,
+      setHeads: e => this.setState({ heads: Number(e.target.value) }),
+      labourLabel: 'Labour is ' + this.state.labour + '% of revenue · ' + fmt(labourCost),
+      labourValue: this.state.labour,
+      setLabour: e => this.setState({ labour: Number(e.target.value) }),
+      improveLabel: 'Improvement from alignment and training · ' + this.state.improve + '%',
+      improveValue: this.state.improve,
+      setImprove: e => this.setState({ improve: Number(e.target.value) }),
 
       pathStyle: 'border-radius:var(--radius-lg);padding:clamp(22px,3vw,30px) clamp(24px,3vw,34px);background:' + (pathComplete ? 'color-mix(in srgb, ' + GREEN + ' 12%, transparent)' : 'var(--color-accent-100)') + ';',
       pathTitle: 'Operations Manager path · Dane Whitmore',

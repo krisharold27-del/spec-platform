@@ -21,8 +21,36 @@
 <div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
-    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 9px;"><img src="logo.svg" alt="" width="26" height="26" style="display: block; flex: none;" />SPEC</a>
-    <a href="SPEC Today.dc.html">Today</a>
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
@@ -33,7 +61,7 @@
   <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
 
     <header style="padding: clamp(28px,4vw,44px) 0 24px;">
-      <a href="SPEC Today.dc.html" style="font-size: 13.5px;">← Back to today</a>
+      <a href="SPEC Today.dc.html" style="font-size: 13.5px;">← Back to my page</a>
       <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,48px); line-height: 1.1; margin: 18px 0 0;">GM SPEC Scorecard</h1>
       <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 62ch;">Safety · People · Earnings · Compliance — the four things this business is run on, in that order, every month.</p>
     </header>
@@ -101,6 +129,7 @@
                     <th style="text-align: left;">{{ resultHeading }}</th>
                     <th style="text-align: left;">Status</th>
                     <th style="text-align: left;">Source</th>
+                    <th style="text-align: left;"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -114,12 +143,18 @@
                       <td><span style="{{ r.resultStyle }}">{{ r.result }}</span></td>
                       <td><span style="{{ r.statusStyle }}">{{ r.status }}</span></td>
                       <td><span style="font-size: 13px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ r.source }}</span></td>
+                      <td><button type="button" onClick="{{ r.remove }}" style="cursor:pointer;border:0;background:none;color:#a63b26;font-size:13px;white-space:nowrap;">Remove</button></td>
                     </tr>
                   </sc-for>
                 </tbody>
               </table>
             </div>
           </sc-if>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+            <input class="input" type="text" value="{{ kpiName }}" onChange="{{ setKpiName }}" onInput="{{ setKpiName }}" aria-label="New KPI name" placeholder="New KPI" style="flex: 1 1 200px; min-height: 40px;" />
+            <input class="input" type="text" value="{{ kpiTarget }}" onChange="{{ setKpiTarget }}" onInput="{{ setKpiTarget }}" aria-label="Target" placeholder="Target" style="flex: 1 1 140px; min-height: 40px;" />
+            <button type="button" class="btn btn-secondary" onClick="{{ addKpi }}" style="flex: none; white-space: nowrap;">Add KPI</button>
+          </div>
 
           <sc-if value="{{ needsRows }}" hint-placeholder-val="{{ false }}">
             <div style="background: var(--color-bg); border-radius: 20px; padding: 22px 24px; margin-top: 26px;">
@@ -337,7 +372,7 @@ const PILLARS = {
 const statusTone = s => (s === 'Confirmed' ? GREEN : s === 'Not tracked' ? GREY : AMBER);
 
 class Component extends DCLogic {
-  state = { pillar: 'Safety', draft: '', added: {}, oneToOnes: {}, locked: false };
+  state = { pillar: 'Safety', draft: '', added: {}, oneToOnes: {}, locked: false, removedKpi: {}, addedKpi: {}, kpiName: '', kpiTarget: '' };
 
   renderVals() {
     const active = this.state.pillar;
@@ -371,9 +406,9 @@ class Component extends DCLogic {
       activeMarkStyle: mark(data.tone),
       activeQuestion: data.question,
       resultHeading: 'August result',
-      hasRows: data.rows.length > 0,
-      needsRows: data.rows.length === 0,
-      rows: data.rows.map(r => ({
+      hasRows: (data.rows.length + (this.state.addedKpi[active] || []).length - (this.state.removedKpi[active] || []).length) > 0,
+      needsRows: (data.rows.length + (this.state.addedKpi[active] || []).length - (this.state.removedKpi[active] || []).length) === 0,
+      rows: data.rows.filter((r, i) => !(this.state.removedKpi[active] || []).includes(i)).map((r, i) => ({
         name: r.name,
         sub: r.sub || '',
         subStyle: r.sub ? 'display:block;font-size:13px;line-height:19px;margin-top:2px;color:color-mix(in srgb, var(--color-text) 70%, transparent);' : 'display:none;',
@@ -384,7 +419,32 @@ class Component extends DCLogic {
         status: r.status,
         statusStyle: chip(statusTone(r.status)),
         source: r.source,
-      })),
+        remove: () => this.setState(s => ({ removedKpi: { ...s.removedKpi, [active]: (s.removedKpi[active] || []).concat(data.rows.indexOf(r)) } })),
+      })).concat((this.state.addedKpi[active] || []).map((r, i) => ({
+        name: r.name,
+        sub: '',
+        subStyle: 'display:none;',
+        target: r.target,
+        targetStyle: mono + 'color:var(--color-text);',
+        result: '—',
+        resultStyle: mono + 'color:color-mix(in srgb, var(--color-text) 55%, transparent);',
+        status: 'Not started',
+        statusStyle: chip(statusTone('Not tracked')),
+        source: 'Manual entry',
+        remove: () => this.setState(s => ({ addedKpi: { ...s.addedKpi, [active]: s.addedKpi[active].filter((_, k) => k !== i) } })),
+      }))),
+      kpiName: this.state.kpiName,
+      setKpiName: e => this.setState({ kpiName: e.target.value }),
+      kpiTarget: this.state.kpiTarget,
+      setKpiTarget: e => this.setState({ kpiTarget: e.target.value }),
+      addKpi: () => {
+        const name = this.state.kpiName.trim();
+        if (!name) return;
+        this.setState(s => ({
+          addedKpi: { ...s.addedKpi, [active]: (s.addedKpi[active] || []).concat([{ name, target: s.kpiTarget.trim() || 'Set a target' }]) },
+          kpiName: '', kpiTarget: '',
+        }));
+      },
 
       commentsLine: comments.length + ' on ' + active,
       comments,
