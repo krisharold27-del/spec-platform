@@ -8,9 +8,10 @@ import { getCurrentUser, canManage } from '@/lib/auth';
 import { getScorecard } from '@/lib/queries';
 import { currentPeriod } from '@/lib/period';
 import { getScope, scoredRolesInScope, isTopOfChart } from '@/lib/scope';
-import { queue, ageLabel, type DerivedInputs } from '@/lib/inbox';
+import { queue, ageLabel, handled, type DerivedInputs } from '@/lib/inbox';
+import { NOTIFY_LEVELS, NOTIFY_ALWAYS, NOTIFY_SENDS_TODAY, notifyLevelOf } from '@/lib/notify';
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
-import { approve, decline } from './actions';
+import { approve, decline, setNotifyLevel } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,6 +98,32 @@ export default async function Inbox() {
   }
 
   const items = queue(stored, { submittedPeriod, trainingSignoffs, vacancies, targetChanges });
+
+  /*
+    What SPEC did without asking. Read from what actually happened — a problem that carries a
+    reading, a pack whose author was Claude — never from a log of intentions. See lib/inbox.
+  */
+  const readings = await db.select({
+    text: schema.registerEntries.text,
+    createdAt: schema.registerEntries.createdAt,
+    errorLine: schema.registerEntries.errorLine,
+  }).from(schema.registerEntries).where(eq(schema.registerEntries.tenantId, user.tenantId));
+  const packs = await db.select({
+    period: schema.periods.period,
+    generatedBy: schema.boardOutputs.generatedBy,
+    approvedBy: schema.boardOutputs.approvedBy,
+    createdAt: schema.boardOutputs.createdAt,
+  })
+    .from(schema.boardOutputs)
+    .innerJoin(schema.periods, eq(schema.periods.id, schema.boardOutputs.periodId))
+    .where(eq(schema.periods.tenantId, user.tenantId));
+  const byClaude = handled({ readings, packs });
+  // Read from the row rather than from the session: the loudness is a setting, not an identity, and
+  // CurrentUser is deliberately the four things every page needs and nothing else.
+  const [me] = await db.select({ notifyLevel: schema.users.notifyLevel })
+    .from(schema.users).where(eq(schema.users.id, user.id));
+  const notify = notifyLevelOf(me?.notifyLevel);
+
   const decided = stored.filter(a => a.state !== 'waiting')
     .sort((a, b) => (b.decidedAt ?? '').localeCompare(a.decidedAt ?? ''))
     .slice(0, 8);
@@ -165,6 +192,74 @@ export default async function Inbox() {
           </p>
         </div>
       )}
+
+      {/*
+        The queue's opposite number. Everything above needs a person; this is what did not.
+
+        Shown even when empty, because "SPEC has done nothing on its own" is the answer to the
+        question people bring here, and an absent section reads as a hidden one.
+      */}
+      <section className="card mt-10">
+        <h2 className="font-serif text-xl text-ink">What Claude handled</h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-light">
+          Routine things that did not need a person. None of it changed a score, moved money or told
+          anybody anything — each one is an opinion or a draft, and the line beneath says what
+          overrides it.
+        </p>
+        {byClaude.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-light">
+            Nothing yet. SPEC does not act on its own until there is something to read.
+          </p>
+        ) : (
+          <ul className="mt-4 grid gap-2">
+            {byClaude.map((h, i) => (
+              <li key={`${h.when}-${i}`} className="card-inset">
+                <Link href={h.href} className="text-sm text-ink hover:text-rust">{h.what}</Link>
+                <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-xs text-ink-light">{h.supersededBy}</span>
+                  <span className="text-xs text-ink-light">{h.when.slice(0, 10)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/*
+        One choice, three positions, and one thing that is not adjustable.
+
+        Twenty switches means everything is on, everything is ignored, and the message that mattered
+        went the same way as the other forty. What SPEC actually sends today is listed underneath so
+        the setting is not a promise about mail that does not exist yet.
+      */}
+      <section className="card mt-6">
+        <h2 className="font-serif text-xl text-ink">How you are notified</h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-light">
+          SPEC does not send everything everywhere. Pick the loudness once.
+        </p>
+        <form action={setNotifyLevel} className="mt-4 grid gap-2">
+          {NOTIFY_LEVELS.map(l => (
+            <label
+              key={l.id}
+              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${
+                notify === l.id ? 'border-rust bg-rust-100/40' : 'border-ink/10 bg-surface'
+              }`}
+            >
+              <input type="radio" name="level" value={l.id} defaultChecked={notify === l.id} className="mt-1" />
+              <span className="grid gap-0.5">
+                <span className="text-sm text-ink">{l.label}</span>
+                <span className="text-xs text-ink-light">{l.note}</span>
+              </span>
+            </label>
+          ))}
+          <SubmitButton className="btn-secondary mt-1 justify-self-start" pending="Saving…">Save</SubmitButton>
+        </form>
+        <p className="mt-4 text-xs text-ink-light">{NOTIFY_ALWAYS}</p>
+        <p className="mt-3 text-xs text-ink-light">
+          What SPEC sends by email today, in full: {NOTIFY_SENDS_TODAY.join(' ')} Everything else is
+          on this page, where you come to look.
+        </p>
+      </section>
 
       {decided.length > 0 && (
         <section className="card mt-10">

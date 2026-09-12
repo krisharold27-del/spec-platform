@@ -38,10 +38,28 @@ function walk(dir, out = []) {
  * as built. Words scattered across unrelated files are not a rewording of anything. Per file, they
  * have to at least occur together.
  */
+/**
+ * Punctuation is not a missing feature.
+ *
+ * "Yes, it's me" was reported as not built for two runs. It IS built — it is the first button on
+ * the front door — but the code writes the apostrophe as `&rsquo;` while the design writes it as
+ * `'`, so the exact match failed; and every word in the phrase is three letters or shorter, so the
+ * word-by-word fallback had nothing left to work with and returned "not found" too.
+ *
+ * A check that cries wolf gets ignored, and this one had already done it twice for other reasons.
+ * So both sides are reduced to bare words before being compared: entities out, punctuation to
+ * spaces. What survives is what a person would read aloud, which is the thing actually being asked
+ * about.
+ */
+const bareWords = s =>
+  s.toLowerCase()
+    .replace(/&[a-z]+;/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ');
+
 function productFiles() {
   return walk(SRC)
     .filter(p => ['.ts', '.tsx', '.css'].includes(extname(p)))
-    .map(p => readFileSync(p, 'utf8').toLowerCase());
+    .map(p => bareWords(readFileSync(p, 'utf8')));
 }
 
 /** Flatten one element's inner markup down to the words a person reads. */
@@ -125,7 +143,7 @@ function labels(html) {
  * counts when the code says "What needs you today".
  */
 function present(phrase, files) {
-  const clean = phrase.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const clean = bareWords(phrase).replace(/\s+/g, ' ').trim();
   if (!clean) return true;
   if (files.some(f => f.includes(clean))) return 'exact';
   // The four letter badges sit as four sibling elements, so they arrive here as "S P E C". The

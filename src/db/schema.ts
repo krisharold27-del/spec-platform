@@ -87,6 +87,14 @@ export const users = pgTable('users', {
   seatToken: text('seat_token'),
   seatTokenExpires: text('seat_token_expires'),
   acceptedAt: text('accepted_at'),
+  /**
+   * quiet | normal | everything — how much SPEC interrupts this person. See lib/notify.
+   *
+   * Null means never chosen, which reads as `normal`. Stored against the person rather than the
+   * business because the answer is genuinely personal: the setting that keeps a site supervisor
+   * informed buries a managing director.
+   */
+  notifyLevel: text('notify_level'),
 }, t => [uniqueIndex('users_tenant_email').on(t.tenantId, t.email), index('users_auth_user').on(t.authUserId)]).enableRLS();
 
 /**
@@ -458,6 +466,17 @@ export const boardOutputs = pgTable('board_outputs', {
   markdown: text('markdown').notNull(),
   generatedBy: text('generated_by').notNull().default('claude'),
   approvedBy: text('approved_by'),
+  /**
+   * Sent back rather than approved, and what the board wants changed.
+   *
+   * A board that can only approve is not reviewing anything. The pack is the month's account of
+   * itself, and a director who thinks it is wrong needs somewhere to say so that is not a phone
+   * call nobody else hears — so a refusal is recorded on the pack, with a reason, and the leader
+   * sees exactly what to fix.
+   */
+  sentBackBy: text('sent_back_by'),
+  sentBackAt: text('sent_back_at'),
+  sentBackReason: text('sent_back_reason'),
   createdAt: text('created_at').notNull(),
 }).enableRLS();
 

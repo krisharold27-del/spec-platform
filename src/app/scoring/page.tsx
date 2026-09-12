@@ -97,6 +97,20 @@ export default async function MonthlyScoring() {
       title={`Monthly scoring · ${period.period}`}
       subtitle="Close the month. Then nobody argues about it."
     >
+      {/*
+        What closing the month changes, said BEFORE they do it. Locking is irreversible and files a
+        performance record against every person in the business — a leader should meet that fact
+        here rather than discover it afterwards.
+      */}
+      <section className="callout mb-6 max-w-3xl">
+        <div className="font-serif text-lg text-ink">What closing the month changes</div>
+        <ul className="mt-2 grid gap-1 text-sm text-ink-light">
+          <li>Every card becomes a dated performance record — what was expected, what happened, and who marked it.</li>
+          <li>Nothing can be quietly rewritten afterwards. A correction is an amendment, shown beside the original.</li>
+          <li>The board pack is generated from it, and the next month opens with the same roles, KPIs and targets.</li>
+          <li>Lock what you know. A number still waiting on the P&amp;L stays pending and arrives later as an amendment.</li>
+        </ul>
+      </section>
       <section className="card">
         <div className="flex flex-wrap items-center gap-3">
           {(['open', 'submitted', 'locked'] as PeriodStatus[]).map(s => {

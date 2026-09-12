@@ -9,7 +9,7 @@ import { renderMarkdown } from '@/lib/markdown';
 import { getTeamRollup, getGates, PILLARS } from '@/lib/queries';
 import { snapshotFor } from '@/lib/board-output';
 import { governanceChecks, cadenceOf, governanceStatus, CADENCE } from '@/lib/governance';
-import { approveBoardOutput } from '@/app/period/actions';
+import { approveBoardOutput, sendBackBoardOutput } from '@/app/period/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +46,8 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
   // The pack is the whole business, so it is the one lawful exception to "only me and above" — and
   // it reaches only the people it is addressed to. Until board seats exist (BUILD_SPEC §1.6), that
   // is an administrator or the top of the chart; never any seat.
-  if (!(user.access === 'administrator' || isTopOfChart(await getScope(user)))) {
+  const atTheTop = isTopOfChart(await getScope(user));
+  if (!(user.access === 'administrator' || atTheTop)) {
     return <Shell title="Board pack"><p className="text-sm text-ink-light">The board pack is read by the board and the top of the business. Your own card is on <a className="text-rust underline" href="/me">My scorecard</a>.</p></Shell>;
   }
 
@@ -258,11 +259,66 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
         </p>
       )}
 
+      {/*
+        A decision has two answers.
+
+        Until now the only button here was "Approve", which made the pack a formality: a director who
+        thought a month's figures were wrong had nowhere to say so except outside the product, and the
+        pack went to the board approved anyway. Sending it back is the other half — it reopens the
+        month, records who sent it back and why, and that reason is what the person who owns the
+        figures actually reads.
+
+        Approving is open to anyone who can manage. Sending back is not: it undoes a month for the
+        whole business, so it belongs to the top of the chart alone. The server action checks this
+        again — this only decides whether the button is worth showing.
+      */}
       {bo && !bo.approvedBy && canManage(user.access) && (
-        <form action={approveBoardOutput} className="mt-4">
-          <input type="hidden" name="periodId" value={periodId} />
-          <button className="rounded-full bg-rust px-5 py-2 text-cream hover:bg-rust-600">Approve for the board</button>
-        </form>
+        <div className="mt-4 flex flex-wrap items-start gap-3">
+          <form action={approveBoardOutput}>
+            <input type="hidden" name="periodId" value={periodId} />
+            <button className="rounded-full bg-rust px-5 py-2 text-cream hover:bg-rust-600">Approve for the board</button>
+          </form>
+
+          {atTheTop && (
+            <details className="rounded-lg border border-ink/10 bg-surface">
+              <summary className="cursor-pointer list-none px-5 py-2 text-sm font-medium text-ink hover:text-rust">
+                Send it back instead
+              </summary>
+              <form action={sendBackBoardOutput} className="border-t border-ink/10 p-4">
+                <input type="hidden" name="periodId" value={periodId} />
+                <label className="block text-sm text-ink" htmlFor="send-back-reason">
+                  What needs to change before this goes to the board?
+                </label>
+                <textarea
+                  id="send-back-reason"
+                  name="reason"
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="The safety figure does not match the incidents we logged in March."
+                  className="mt-2 w-full max-w-md rounded-lg border border-ink/15 bg-cream p-3 text-sm text-ink placeholder:text-ink-light"
+                />
+                <p className="mt-2 max-w-md text-xs text-ink-light">
+                  The month reopens and the people who own these figures see what you wrote.
+                </p>
+                <button className="mt-3 rounded-full border border-rust px-5 py-2 text-sm text-rust hover:bg-rust hover:text-cream">
+                  Send it back
+                </button>
+              </form>
+            </details>
+          )}
+        </div>
+      )}
+
+      {/*
+        Already sent back: the reason is the point, so it is shown where the decision is made rather
+        than filed somewhere nobody opens.
+      */}
+      {bo && !bo.approvedBy && bo.sentBackBy && (
+        <div className="mt-4 rounded-lg border border-rust/30 bg-rust-100/40 p-4 text-sm">
+          <p className="font-medium text-ink">Sent back by {bo.sentBackBy}</p>
+          {bo.sentBackReason && <p className="mt-1 text-ink-light">“{bo.sentBackReason}”</p>}
+          <p className="mt-2 text-ink-light">Put it right, then approve it again.</p>
+        </div>
       )}
     </Shell>
   );

@@ -94,6 +94,39 @@ export default async function Sectors({ searchParams }: { searchParams: Promise<
         </section>
 
         {/*
+          The number on its own invites the obvious question.
+
+          Every page on this site claims ten to thirty per cent of wasted labour comes back. A
+          percentage with nothing behind it is a slogan, and the people worth selling to treat it as
+          one. This says where the waste actually sits in THEIR industry — and the shares add to a
+          hundred because they are a breakdown of the waste, not of the wage bill.
+        */}
+        <section className="mt-10 rounded-lg bg-surface p-6">
+          <h2 className="font-serif text-2xl text-ink">Where the labour leaks in this sector</h2>
+          <p className="mt-2 max-w-2xl text-sm text-ink-light">
+            Same principle, different shape. Ten per cent is the floor, thirty is what a well run
+            rollout reaches.
+          </p>
+          <div className="mt-5 grid max-w-3xl gap-3">
+            {sector.leaks.map(l => (
+              <div key={l.what} className="grid gap-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm text-ink">{l.what}</span>
+                  <span className="font-serif text-base text-ink">{l.share}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-rust-100">
+                  <div className="h-full rounded-full bg-rust" style={{ width: `${l.share}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-5 max-w-2xl text-xs text-ink-light">
+            A starting shape, not your figures. SPEC measures your own within the first two months and
+            the shape usually turns out different — which is the point of measuring it.
+          </p>
+        </section>
+
+        {/*
           The charter belongs on this page more than anywhere else on the site. The whole argument
           here is that the four questions do not change and only the measures do — and the charter is
           the sharpest form of that: four commitments that are word-for-word identical in a workshop,

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
@@ -12,6 +12,7 @@ import { moneyLabel } from '@/lib/pricing';
 import { PERMISSIONS, LEVELS, stateOf, STATE_LABEL, levelOf } from '@/lib/permissions';
 import { cadenceOf, CADENCE } from '@/lib/governance';
 import { LIGHT_COLOUR } from '@/lib/today';
+import { adminActivity } from '@/lib/admin-activity';
 import { setCadence, setTier } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -44,6 +45,35 @@ export default async function Settings() {
     .where(eq(schema.approvals.tenantId, user.tenantId))
     .orderBy(desc(schema.approvals.requestedAt));
 
+  /*
+    Read from the rows that already carry the marks, rather than from an audit table SPEC does not
+    keep. See lib/admin-activity for why a second copy of the truth is the wrong thing to build.
+  */
+  const packs = await db.select({
+    period: schema.periods.period,
+    approvedBy: schema.boardOutputs.approvedBy,
+    sentBackBy: schema.boardOutputs.sentBackBy,
+    sentBackAt: schema.boardOutputs.sentBackAt,
+    createdAt: schema.boardOutputs.createdAt,
+  })
+    .from(schema.boardOutputs)
+    .innerJoin(schema.periods, eq(schema.periods.id, schema.boardOutputs.periodId))
+    .where(eq(schema.periods.tenantId, user.tenantId));
+  const months = await db.select().from(schema.periods).where(eq(schema.periods.tenantId, user.tenantId));
+  // The business's connections only. A person's own mailbox is theirs, and an activity feed the
+  // whole business reads is exactly the place it must not appear. See PERSONAL_CATEGORIES.
+  const connections = await db.select().from(schema.systemConnections)
+    .where(and(
+      eq(schema.systemConnections.tenantId, user.tenantId),
+      isNull(schema.systemConnections.personalFor),
+    ));
+
+  const activity = adminActivity({
+    seats, directors, packs, connections,
+    approvals: decided,
+    periods: months,
+  });
+
   const billable = seats.filter(u => u.invitedAt || u.acceptedAt || u.authUserId);
   const chartOnly = scope.roles.filter(r => {
     const holder = r.holder?.email;
@@ -70,6 +100,15 @@ export default async function Settings() {
 
   return (
     <Shell title="Administration" subtitle="Administration, not management — your scope still decides what you manage.">
+      {/*
+        The sentence that stops the most common misunderstanding: people ask for "access for Jo",
+        and what they mean is a seat on a role. Move Jo and what she can see moves with her.
+      */}
+      <p className="-mt-4 mb-6 max-w-2xl text-base text-ink-light">
+        <b className="text-ink">Permissions follow the role, not the person.</b> What somebody can
+        see is decided by where they sit on the chart — move them and it moves with them, the same
+        minute, in both directions.
+      </p>
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <section className="card">
           <h2 className="font-serif text-xl text-ink">Seats and billing</h2>
@@ -176,7 +215,7 @@ export default async function Settings() {
 
       {decided.length > 0 && (
         <section className="card mt-6">
-          <h2 className="font-serif text-xl text-ink">Activity</h2>
+          <h2 className="font-serif text-xl text-ink">Waiting on a decision</h2>
           <p className="mt-1 text-sm text-ink-light">Who asked for what, and who decided it.</p>
           <ul className="mt-4 grid gap-2">
             {decided.slice(0, 12).map(a => (
@@ -199,6 +238,33 @@ export default async function Settings() {
           </ul>
         </section>
       )}
+
+      {/*
+        Always shown, including when it is empty.
+
+        An activity list that appears only once there is activity is useless for the question people
+        actually bring to it — "did somebody change something?" — because the answer "no" looks
+        identical to the feature not existing. Saying nothing has happened is an answer.
+      */}
+      <section className="card mt-6">
+        <h2 className="font-serif text-xl text-ink">Recent admin activity</h2>
+        <p className="mt-1 text-sm text-ink-light">
+          Every change to who is in this business, what it reports, and what it is connected to —
+          taken from the records themselves, so it cannot disagree with them.
+        </p>
+        {activity.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-light">Nothing has been changed yet.</p>
+        ) : (
+          <ul className="mt-4 grid gap-3">
+            {activity.map((a, i) => (
+              <li key={`${a.when}-${i}`} className="grid gap-0.5 border-b border-ink/10 pb-3 last:border-0 last:pb-0">
+                <span className="text-sm text-ink">{a.what}</span>
+                <span className="text-xs text-ink-light">{a.who} · {a.when.slice(0, 10)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </Shell>
   );
 }

@@ -204,3 +204,74 @@ export function ageLabel(days: number): string {
   const weeks = Math.floor(days / 7);
   return `waiting ${weeks} weeks`;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────────────────────────
+   What Claude handled
+   ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+   The queue above is what needs a person. This is its opposite number: the things SPEC did on its
+   own, said out loud.
+
+   The rule that decides what may appear here is narrow and worth stating, because the tempting
+   version of this feature is the dangerous one. **Nothing in this list changed a score, moved money,
+   or told anybody anything.** Every entry is either a reading — an opinion SPEC formed, which a
+   person is free to ignore — or a draft nobody has approved yet. That is why it can be shown
+   without an undo button beside each row: there is nothing to undo, only something to disagree
+   with, and the disagreement happens where the decision is made.
+
+   If SPEC ever does acquire the power to act — to send, to close, to pay — this list is where that
+   has to surface, and those entries will need a real undo. Until then, claiming a person "reversed"
+   something would be theatre.
+*/
+
+export interface HandledItem {
+  what: string;
+  when: string;
+  /** Where a person goes to disagree with it. */
+  href: string;
+  /** What overrides it, in plain words. */
+  supersededBy: string;
+}
+
+export interface HandledInputs {
+  readings: { text: string; createdAt: string; errorLine: string | null }[];
+  packs: { period: string; generatedBy: string; approvedBy: string | null; createdAt: string }[];
+}
+
+/** Trim a person's own words to something that fits a line, without cutting mid-word. */
+const shorten = (s: string, n = 70): string => {
+  const clean = s.replace(/\s+/g, ' ').trim();
+  if (clean.length <= n) return clean;
+  const cut = clean.slice(0, n);
+  return `${cut.slice(0, cut.lastIndexOf(' ') > 20 ? cut.lastIndexOf(' ') : n)}…`;
+};
+
+export function handled(input: HandledInputs, limit = 6): HandledItem[] {
+  const rows: HandledItem[] = [];
+
+  for (const r of input.readings) {
+    // No errorLine means nothing was read — a Basic entry the person classified themselves. Listing
+    // it as something Claude handled would be a straight falsehood.
+    if (!r.errorLine) continue;
+    rows.push({
+      what: `Read “${shorten(r.text)}” and worked out where it starts`,
+      when: r.createdAt,
+      href: '/today',
+      supersededBy: 'Whoever owns it decides what actually happens.',
+    });
+  }
+
+  for (const p of input.packs) {
+    if (p.generatedBy !== 'claude') continue;
+    rows.push({
+      what: `Wrote the ${p.period} board pack from the month's own figures`,
+      when: p.createdAt,
+      href: '/journey',
+      supersededBy: p.approvedBy
+        ? `Approved by ${p.approvedBy}.`
+        : 'It goes nowhere until somebody approves it.',
+    });
+  }
+
+  return rows.sort((a, b) => (a.when < b.when ? 1 : a.when > b.when ? -1 : 0)).slice(0, limit);
+}

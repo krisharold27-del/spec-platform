@@ -10,6 +10,7 @@ import { getScope } from '@/lib/scope';
 import { tierOf, TIER } from '@/lib/plan';
 import { CATEGORIES, categoryName, isSensitive, STATUS_LABEL, SENSITIVE_NOTE } from '@/lib/systems';
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
+import { propose } from '@/lib/mapping';
 import { connectSystem, disconnectSystem, markLive } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,12 @@ export const dynamic = 'force-dynamic';
  *
  * Nothing here is required. Manual is a complete, permanent way to run SPEC.
  */
-export default async function Connections() {
+export default async function Connections({
+  searchParams,
+}: {
+  searchParams: Promise<{ ask?: string }>;
+}) {
+  const { ask } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
@@ -43,6 +49,17 @@ export default async function Connections() {
 
   const live = connections.filter(c => c.status === 'live');
   const authorised = scope.canAdminister;
+
+  /*
+    Described in their own words, mapped by SPEC, approved by a person.
+
+    Done on a GET rather than through a client component and an API route, on purpose. It means the
+    proposal is computed where every other decision on this page is computed — on the server, with
+    the same scope check above it — and there is no new authenticated surface to get wrong. The
+    proposal is never written anywhere: until somebody presses Approve it exists only in this
+    render, and Discard is a link back to the page.
+  */
+  const proposal = authorised && ask?.trim() ? await propose(ask) : null;
 
   if (tier === 'basic') {
     return (
@@ -67,6 +84,10 @@ export default async function Connections() {
       title="Connections"
       subtitle={`${live.length} of ${connections.length} feeding numbers · ${tenant.name}`}
     >
+      {/* Kris's own description of running JBI, and the sharpest promise the product makes. */}
+      <p className="-mt-4 mb-6 max-w-2xl font-serif text-xl text-ink">
+        You talk to Claude. The systems talk to each other.
+      </p>
       {!authorised && (
         <div className="callout mb-6">
           <p className="text-sm text-ink-light">
@@ -152,6 +173,58 @@ export default async function Connections() {
             </select>
             <SubmitButton className="btn-primary shrink-0" pending="Adding…">Add it</SubmitButton>
           </form>
+          {/*
+            The two questions the form above asks — what is it called, and which of seven kinds is
+            it — are the two a person running a business cannot reliably answer. They know what they
+            do each morning. So this takes the sentence instead, and proposes the rest.
+          */}
+          <div className="mt-6 rounded-lg bg-cream p-4">
+            <h3 className="font-serif text-base text-ink">Not sure which one it is?</h3>
+            <p className="mt-1 text-sm text-ink-light">
+              Describe it the way you would say it out loud. Nothing is created until you approve it.
+            </p>
+            <form method="get" className="mt-3 grid gap-2">
+              <textarea
+                className="input min-h-24"
+                name="ask"
+                defaultValue={ask ?? ''}
+                maxLength={2000}
+                aria-label="Describe a system"
+                placeholder="We log plant checks in a shared spreadsheet the yard fills in each morning."
+              />
+              <SubmitButton className="btn-primary justify-self-start" pending="Working it out…">
+                Ask Claude to work it out
+              </SubmitButton>
+            </form>
+
+            {proposal && (
+              <div className="mt-4 rounded-lg bg-surface p-4">
+                <span className="label-caps text-rust-700">Proposed mapping</span>
+                <p className="mt-2 text-sm text-ink">
+                  <b>{proposal.name}</b> — {categoryName(proposal.category)}. {proposal.because}
+                </p>
+                <p className="mt-3 text-xs text-ink-light">What it would feed:</p>
+                <ul className="mt-1 grid gap-0.5 text-xs text-ink-light">
+                  {proposal.feeds.map(f => <li key={f}>· {f}</li>)}
+                </ul>
+                {proposal.needsBoard && (
+                  <p className="mt-3 text-xs text-rust-700">
+                    This kind goes to the board rather than being switched on. Approving it sends the
+                    request, with its data scope written on it.
+                  </p>
+                )}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <form action={connectSystem}>
+                    <input type="hidden" name="name" value={proposal.name} />
+                    <input type="hidden" name="category" value={proposal.category} />
+                    <SubmitButton className="btn" pending="Approving…">Approve mapping</SubmitButton>
+                  </form>
+                  <Link href="/connections" className="btn">Discard</Link>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {CATEGORIES.map(c => (
               <div key={c.id} className="card-inset">

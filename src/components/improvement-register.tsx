@@ -1,4 +1,5 @@
 import { SubmitButton } from './submit-button';
+import { ExampleChips } from './example-chips';
 import { PILLAR_META } from '@/lib/pillars';
 import { PILLARS } from '@/lib/scoring';
 import { LIGHT_COLOUR, LIGHT_INK, pillTone } from '@/lib/today';
@@ -37,6 +38,7 @@ export function ImprovementBox({ canWrite, read }: { canWrite: boolean; read: bo
       {canWrite ? (
         <form action={logImprovement} className="mt-4 grid gap-2">
           <textarea
+            id="improvement-text"
             className="input min-h-[84px] rounded-lg"
             name="text"
             required
@@ -45,6 +47,8 @@ export function ImprovementBox({ canWrite, read }: { canWrite: boolean; read: bo
             aria-label="What keeps happening?"
             placeholder="The yard is a mess every Monday morning and the crew lose an hour finding gear."
           />
+          {/* Two tellings of one problem — see components/example-chips for why there are two. */}
+          <ExampleChips target="improvement-text" />
           {/*
             Basic has no AI in it, so nothing is read for them. The entry is identical in every
             other way — ranked the same, assigned the same, signed off the same. The difference

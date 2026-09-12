@@ -62,6 +62,9 @@ body { @apply bg-cream font-sans text-ink antialiased; }
   /* Ghost button — accent text, no fill until hovered. */
   .btn-ghost { @apply rounded-full px-3 py-2 text-sm font-medium text-rust-700 transition-colors hover:bg-rust/10 active:bg-rust/20; }
 
+  /* A small pressable suggestion — an example to try, not a decision. Quieter than any button. */
+  .chip { @apply rounded-full bg-ink/5 px-3 py-1.5 text-xs text-ink-light transition-colors hover:bg-ink/10 hover:text-ink; }
+
   /* Status pill, e.g. Confirmed / Pending / Pass / Fail */
   .pill { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold; }
   .pill-confirmed { @apply bg-sage-200 text-sage-800; }

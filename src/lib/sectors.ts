@@ -22,6 +22,15 @@ export interface Sector {
   systems: string[];
   /** What each pillar is actually measured by here. */
   measures: Record<Pillar, string[]>;
+  /**
+   * Where the labour actually goes when it is wasted, in this industry.
+   *
+   * `share` is the portion of the total waste, not a portion of the wage bill — they add to a
+   * hundred. The claim SPEC makes is that ten per cent of wasted labour is the floor a business
+   * recovers and thirty is what a well run rollout reaches; this says where that ten to thirty
+   * comes FROM, which is the question anybody serious asks next.
+   */
+  leaks: { what: string; share: number }[];
 }
 
 export const SECTORS: Sector[] = [
@@ -38,6 +47,12 @@ export const SECTORS: Sector[] = [
       earnings: ['Margin against quote', 'Billable utilisation', 'Work in progress against plan'],
       compliance: ['Tickets and licences current', 'Contract obligations met', 'Records producible on request'],
     },
+    leaks: [
+      { what: 'Waiting — for materials, access, a decision or another trade', share: 34 },
+      { what: 'Rework, and the travel back to site to do it', share: 26 },
+      { what: 'Chasing paperwork that should have been captured once', share: 22 },
+      { what: 'Jobs scheduled around the crew rather than the crew around the jobs', share: 18 },
+    ],
   },
   {
     key: 'manufacturing',
@@ -52,6 +67,12 @@ export const SECTORS: Sector[] = [
       earnings: ['Output per hour', 'Unplanned downtime', 'Scrap and rework rate'],
       compliance: ['Calibration current', 'Certifications in date', 'Audit findings closed'],
     },
+    leaks: [
+      { what: 'Unplanned downtime, and the restart that follows it', share: 38 },
+      { what: 'Changeovers run longer than the standard', share: 24 },
+      { what: 'Scrap and rework absorbing hours already paid for', share: 22 },
+      { what: 'Shift handovers where what was known is not passed on', share: 16 },
+    ],
   },
   {
     key: 'professional',
@@ -66,6 +87,12 @@ export const SECTORS: Sector[] = [
       earnings: ['Realisation against standard rate', 'Write-offs', 'Recovery on fixed fees'],
       compliance: ['Professional registrations current', 'Conflicts checked', 'File notes complete'],
     },
+    leaks: [
+      { what: 'Work done and never billed, because it was never written down', share: 31 },
+      { what: 'Rework from a brief that was never agreed properly', share: 27 },
+      { what: 'Internal administration a system should be doing', share: 24 },
+      { what: 'Capable people held on work below their rate', share: 18 },
+    ],
   },
   {
     key: 'healthcare',
@@ -80,6 +107,12 @@ export const SECTORS: Sector[] = [
       earnings: ['Occupancy or utilisation', 'Agency spend against plan', 'Funding claimed against delivered'],
       compliance: ['Registrations and checks current', 'Mandatory training complete', 'Accreditation actions closed'],
     },
+    leaks: [
+      { what: 'Roster gaps filled at agency rates', share: 35 },
+      { what: 'Documentation duplicated across systems that do not speak', share: 28 },
+      { what: 'Handover and travel between sites', share: 21 },
+      { what: 'Mandatory training repeated because the record was lost', share: 16 },
+    ],
   },
   {
     key: 'retail',
@@ -94,6 +127,12 @@ export const SECTORS: Sector[] = [
       earnings: ['Wage cost as a share of sales', 'Sales against plan', 'Stock loss'],
       compliance: ['Licences current', 'Award and agreement obligations met', 'Records producible on request'],
     },
+    leaks: [
+      { what: 'Hours rostered against a forecast nobody corrected', share: 33 },
+      { what: 'Training a new starter who leaves inside ninety days', share: 26 },
+      { what: 'Stock handling done twice — received, then found again', share: 23 },
+      { what: 'Managers on the floor covering shifts instead of managing', share: 18 },
+    ],
   },
 ];
 

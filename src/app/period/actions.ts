@@ -86,3 +86,26 @@ export async function approveBoardOutput(formData: FormData) {
   await db.update(schema.boardOutputs).set({ approvedBy: user.email }).where(eq(schema.boardOutputs.periodId, period.id));
   revalidatePath(`/board/${periodId}`); revalidatePath('/journey');
 }
+
+/**
+ * Deny — send back.
+ *
+ * The other half of a review, and it was missing: the pack could only ever be approved, which
+ * makes the board a rubber stamp with extra steps. Sending it back clears any approval, records
+ * who did it and why, and leaves the month itself untouched — the numbers are not in dispute, the
+ * account of them is.
+ */
+export async function sendBackBoardOutput(formData: FormData) {
+  const user = await getCurrentUser(); if (!user || !canManage(user.access)) redirect('/signin');
+  if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
+  await assertWritable(user.tenantId);
+  const periodId = String(formData.get('periodId'));
+  const reason = String(formData.get('reason') ?? '').trim().slice(0, 1000);
+  const [period] = await db.select().from(schema.periods)
+    .where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId)));
+  if (!period) redirect('/');
+  await db.update(schema.boardOutputs)
+    .set({ approvedBy: null, sentBackBy: user.email, sentBackAt: new Date().toISOString(), sentBackReason: reason || null })
+    .where(eq(schema.boardOutputs.periodId, period.id));
+  revalidatePath(`/board/${periodId}`); revalidatePath('/journey');
+}
