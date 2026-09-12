@@ -2,7 +2,7 @@
  * The deployment journey — docs/SPEC_Deployment_Journey.md made executable.
  * Each step has a check that computes its real status from the data, so the journey can't be ticked off by hand.
  */
-import { eq, and, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '../db';
 import diagnostic from '../../seed/diagnostic.json';
 import { DOSES, doseQuestionKeys, type SeedSection } from './doses';
@@ -359,7 +359,17 @@ export function minutesLeft(steps: { status: StepStatus; minutes: number; option
 export async function businessShape(tenantId: string) {
   const roles = await activeRoles(tenantId);
   const staff = await db.select().from(schema.staff).where(eq(schema.staff.tenantId, tenantId));
-  const assignments = await db.select().from(schema.roleAssignments);
+  /*
+    Scoped through this business's own roles rather than read whole and filtered afterwards.
+
+    The filter that used to follow was correct, but "read everything, then keep ours" is the exact
+    shape that leaked in boards-data — one clause written slightly wrong and another company's rows
+    are in the result. It also grows with every customer SPEC ever signs.
+  */
+  const ourRoleIds = roles.map(r => r.id);
+  const assignments = ourRoleIds.length
+    ? await db.select().from(schema.roleAssignments).where(inArray(schema.roleAssignments.roleId, ourRoleIds))
+    : [];
   const roleIds = new Set(roles.map(r => r.id));
   const open = assignments.filter(a => roleIds.has(a.roleId) && !a.toDate);
   const scorable = roles.filter(r => r.level !== 'staff');

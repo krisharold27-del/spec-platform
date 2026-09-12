@@ -126,11 +126,26 @@ export async function getCurve(user: CurrentUser): Promise<CurveInput> {
     closedMonths.push({ period: p.period, overall: rollup.scoredCount ? rollup.team.overall : null });
   }
 
-  // The chart: the earliest placement anybody made.
-  const assignments = await db.select().from(schema.roleAssignments).orderBy(asc(schema.roleAssignments.fromDate));
-  const staff = await db.select().from(schema.staff).where(eq(schema.staff.tenantId, user.tenantId));
-  const staffIds = new Set(staff.map(s => s.id));
-  const ours = assignments.filter(a => (a.staffId && staffIds.has(a.staffId)) || a.userId);
+  /*
+    The chart: the earliest placement anybody in THIS business made.
+
+    Scoped through the tenant's own roles. It previously read every assignment in the database and
+    filtered them in memory with `(a.staffId && staffIds.has(a.staffId)) || a.userId` — and that
+    second clause matched any assignment anywhere that had a user on it. A business could therefore
+    be told its chart was drawn on a date belonging to a different company, usually one earlier than
+    its own existence. The leak was a date rather than a name, which is exactly why nobody would
+    have noticed it.
+
+    roleAssignments has no tenantId of its own; it hangs off roles. So the scoping has to come from
+    the role ids, and there is no version of this that is safe to do by filtering afterwards.
+  */
+  const ourRoleIds = (await db.select({ id: schema.roles.id }).from(schema.roles)
+    .where(eq(schema.roles.tenantId, user.tenantId))).map(r => r.id);
+  const ours = ourRoleIds.length
+    ? await db.select().from(schema.roleAssignments)
+        .where(inArray(schema.roleAssignments.roleId, ourRoleIds))
+        .orderBy(asc(schema.roleAssignments.fromDate))
+    : [];
   const chartDrawnAt = ours.length ? ours[0].fromDate : null;
 
   // The picture: the first time anything was actually marked against a KPI. Roles and criteria are

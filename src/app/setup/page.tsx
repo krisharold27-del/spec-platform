@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { eq, isNull } from 'drizzle-orm';
+import { eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
@@ -29,7 +29,17 @@ export default async function Setup() {
   const scope = await getScope(user);
   const tier = tierOf(tenant.tier);
 
-  const criteria = await db.select().from(schema.criteria);
+  /*
+    Scoped through this business's own roles rather than read whole and filtered afterwards.
+
+    The filter that used to follow was correct, but "read everything, then keep ours" is the exact
+    shape that leaked in boards-data — one clause written slightly wrong and another company's rows
+    are in the result. It also grows with every customer SPEC ever signs.
+  */
+  const ourRoleIds = scope.roles.map(r => r.id);
+  const criteria = ourRoleIds.length
+    ? await db.select().from(schema.criteria).where(inArray(schema.criteria.roleId, ourRoleIds))
+    : [];
   const assignments = await db.select().from(schema.roleAssignments).where(isNull(schema.roleAssignments.toDate));
   const seats = await db.select().from(schema.users).where(eq(schema.users.tenantId, user.tenantId));
 

@@ -1,3 +1,4 @@
+import { inArray } from 'drizzle-orm';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { db, schema } from '@/db';
@@ -31,7 +32,17 @@ export default async function OrgChart() {
   const period = await currentPeriod(tenant.id);
   const manage = canManage(user.access);
 
-  const criteria = await db.select().from(schema.criteria);
+  /*
+    Scoped through this business's own roles rather than read whole and filtered afterwards.
+
+    The filter that used to follow was correct, but "read everything, then keep ours" is the exact
+    shape that leaked in boards-data — one clause written slightly wrong and another company's rows
+    are in the result. It also grows with every customer SPEC ever signs.
+  */
+  const ourRoleIds = scope.roles.map(r => r.id);
+  const criteria = ourRoleIds.length
+    ? await db.select().from(schema.criteria).where(inArray(schema.criteria.roleId, ourRoleIds))
+    : [];
   const roles: ChartRole[] = [];
   for (const r of scope.roles) {
     const own = criteria.filter(c => c.roleId === r.id && c.active);

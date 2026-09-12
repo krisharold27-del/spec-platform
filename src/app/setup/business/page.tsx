@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { Shell, PILLAR_META } from '@/components/ui';
@@ -46,7 +46,17 @@ export default async function Business({ searchParams }: { searchParams: Promise
     .where(and(eq(schema.roles.tenantId, user.tenantId), eq(schema.roles.active, true)))
     .orderBy(schema.roles.sortOrder);
   const staffRows = await db.select().from(schema.staff).where(eq(schema.staff.tenantId, user.tenantId));
-  const allAssignments = await db.select().from(schema.roleAssignments);
+  /*
+    Scoped through this business's own roles rather than read whole and filtered afterwards.
+
+    The filter that used to follow was correct, but "read everything, then keep ours" is the exact
+    shape that leaked in boards-data — one clause written slightly wrong and another company's rows
+    are in the result. It also grows with every customer SPEC ever signs.
+  */
+  const ourRoleIds = roleRows.map(r => r.id);
+  const allAssignments = ourRoleIds.length
+    ? await db.select().from(schema.roleAssignments).where(inArray(schema.roleAssignments.roleId, ourRoleIds))
+    : [];
   const users = await db.select().from(schema.users).where(eq(schema.users.tenantId, user.tenantId));
 
   const roleIds = new Set(roleRows.map(r => r.id));
