@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  daysWaiting, toneFor, fromStored, derived, queue, ageLabel,
+  daysWaiting, toneFor, fromStored, derived, queue, ageLabel, handled,
   type StoredApproval, type DerivedInputs,
 } from '../src/lib/inbox';
 
@@ -148,5 +148,70 @@ describe('ageLabel', () => {
     expect(ageLabel(1)).toBe('waiting 1 day');
     expect(ageLabel(12)).toBe('waiting 12 days');
     expect(ageLabel(63)).toBe('waiting 9 weeks');
+  });
+});
+
+describe('what Claude handled', () => {
+  const reading = { text: 'The yard is a mess every Monday', createdAt: '2026-03-01T09:00:00Z', errorLine: 'It starts with People.' };
+
+  it('lists a reading, and says what overrides it', () => {
+    const rows = handled({ readings: [reading], packs: [] });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].what).toContain('The yard is a mess every Monday');
+    expect(rows[0].supersededBy).toMatch(/owns it decides/);
+  });
+
+  /*
+    The rule the whole section rests on: nothing is claimed that was not done. A Basic entry the
+    person classified themselves has no reading, and listing it here would be a straight falsehood.
+  */
+  it('never claims a problem nobody read', () => {
+    expect(handled({ readings: [{ ...reading, errorLine: null }], packs: [] })).toEqual([]);
+  });
+
+  it('never claims a pack a person wrote', () => {
+    const rows = handled({
+      readings: [],
+      packs: [{ period: '2026-02', generatedBy: 'a-person@x.test', approvedBy: null, createdAt: '2026-03-01T09:00:00Z' }],
+    });
+    expect(rows).toEqual([]);
+  });
+
+  it('says an unapproved pack has gone nowhere', () => {
+    const [row] = handled({
+      readings: [],
+      packs: [{ period: '2026-02', generatedBy: 'claude', approvedBy: null, createdAt: '2026-03-01T09:00:00Z' }],
+    });
+    expect(row.supersededBy).toMatch(/goes nowhere until somebody approves/);
+  });
+
+  it('names the approver once there is one', () => {
+    const [row] = handled({
+      readings: [],
+      packs: [{ period: '2026-02', generatedBy: 'claude', approvedBy: 'chair@x.test', createdAt: '2026-03-01T09:00:00Z' }],
+    });
+    expect(row.supersededBy).toBe('Approved by chair@x.test.');
+  });
+
+  it('shortens somebody’s own words without cutting mid-word', () => {
+    const long = 'We keep losing the good young blokes about eighteen months in and it always lands on the same two supervisors';
+    const [row] = handled({ readings: [{ text: long, createdAt: '2026-03-01T09:00:00Z', errorLine: 'x' }], packs: [] });
+    expect(row.what).toMatch(/…/);
+    // The character before the ellipsis is the end of a word, never the middle of one.
+    const quoted = row.what.match(/“(.+)…”/)![1];
+    expect(long.startsWith(quoted)).toBe(true);
+    expect(long[quoted.length]).toBe(' ');
+  });
+
+  it('puts the most recent first and keeps to the limit', () => {
+    const rows = handled({
+      readings: [
+        { text: 'old', createdAt: '2026-01-01T09:00:00Z', errorLine: 'x' },
+        { text: 'new', createdAt: '2026-05-01T09:00:00Z', errorLine: 'x' },
+      ],
+      packs: [],
+    }, 1);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].what).toContain('new');
   });
 });

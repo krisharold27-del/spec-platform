@@ -29,7 +29,7 @@ export type Light = 'green' | 'amber' | 'red' | 'pending';
  * is held to. Green is the 90% every pillar of the roll-up has to hold. Amber is close enough to
  * recover inside the month. Null has no light at all: it is an absence, not a red.
  */
-export function light(score: Score, threshold = 0.9, watch = 0.75): Light {
+export function light(score: Score, threshold = 0.9, watch = 0.5): Light {
   if (score === null) return 'pending';
   if (score >= threshold) return 'green';
   if (score >= watch) return 'amber';
@@ -43,6 +43,35 @@ export const LIGHT_COLOUR: Record<Light, string> = {
   // The design system's grey for not-applicable, not-tracked and excluded. Warm, and never red.
   pending: '#8c8681',
 };
+
+/**
+ * The same four lights, dark enough to read as words — see the note on SCORE_INK in lib/pillars.
+ * A light you LOOK at takes LIGHT_COLOUR; a light you READ takes this one.
+ */
+export const LIGHT_INK: Record<Light, string> = {
+  green: '#56633f',
+  amber: '#8c491a',
+  red: '#8c3220',
+  pending: '#645c50',
+};
+
+/**
+ * A status pill: the light as a wash behind, and as words in front.
+ *
+ * This exact pair — a 14% tint of the colour, with the colour itself as the text — was written out
+ * by hand in seven places, and every one of them was unreadable at amber and at pending. One
+ * function so there is one place to be right, and so the next pill is right without anyone
+ * remembering the rule.
+ */
+export function pillTone(l: Light | 'grey'): { background: string; color: string } {
+  // Half the product calls the fourth band 'pending' and half calls it 'grey'. They are the same
+  // band; accepting both here is cheaper and safer than a rename that touches every screen.
+  const band = l === 'grey' ? 'pending' : l;
+  return {
+    background: `color-mix(in srgb, ${LIGHT_COLOUR[band]} 14%, transparent)`,
+    color: LIGHT_INK[band],
+  };
+}
 
 export const LIGHT_LABEL: Record<Light, string> = {
   green: 'At the standard',

@@ -12,10 +12,43 @@ export const CATEGORIES = [
   { id: 'safety', name: 'Safety and compliance', asks: 'Where are incidents, inductions and training records kept?' },
   { id: 'crm', name: 'Clients and sales', asks: 'Where do quotes, conversions and client records live?' },
   { id: 'payroll', name: 'People and payroll', asks: 'Where are staff records, leave and turnover kept?' },
+  { id: 'communications', name: 'Mail', asks: 'Where does your work email live? Outlook, Gmail, or something else.' },
   { id: 'other', name: 'Something else', asks: 'Anything else that holds a number you want on a scorecard.' },
 ] as const;
 
 export type CategoryId = typeof CATEGORIES[number]['id'];
+
+/**
+ * Mail is the one category a person connects for themselves.
+ *
+ * Every other connection belongs to the business: an administrator turns it on, the sensitive ones
+ * go to the board, and what comes back lands on somebody's scorecard. **A mailbox belongs to a
+ * person**, so nobody else gets to switch it on for them — and it stays entirely optional, because
+ * a business that connects no mail loses nothing but a convenience.
+ *
+ * What it is for is narrow on purpose: mail that matches something already on this person's card —
+ * a KPI, an action, a named job, somebody on their team. Never an inbox and never a thread list.
+ * The test is that the list ends; anything that did not match stays in the mail system it came
+ * from, untouched.
+ */
+/**
+ * What a person can point SPEC at. Named as the person would name it, never as a vendor list —
+ * the same rule the business connections follow.
+ *
+ * Kept here rather than beside the database work so a page can offer the list without pulling a
+ * connection to Postgres in behind it.
+ */
+export const MAIL_PROVIDERS = [
+  { id: 'outlook', name: 'Outlook', note: 'Microsoft 365 or Exchange' },
+  { id: 'gmail', name: 'Gmail', note: 'Google Workspace or a personal account' },
+  { id: 'other', name: 'Something else', note: 'Any mailbox you can reach by IMAP' },
+] as const;
+
+export type MailProviderId = typeof MAIL_PROVIDERS[number]['id'];
+
+export const PERSONAL_CATEGORIES: readonly CategoryId[] = ['communications'];
+
+export const isPersonal = (id: string) => PERSONAL_CATEGORIES.includes(id as CategoryId);
 
 export function categoryName(id: string) {
   return CATEGORIES.find(c => c.id === id)?.name ?? 'Other';

@@ -34,7 +34,11 @@ export async function createClient() {
         getAll() { return cookieStore.getAll(); },
         setAll(cookiesToSet) {
           try {
-            for (const { name, value, options } of cookiesToSet) cookieStore.set(name, value, options);
+            // A year, not a browser session — see the note in ./middleware. Nobody should be signed
+            // out because they closed their laptop.
+            for (const { name, value, options } of cookiesToSet) {
+              cookieStore.set(name, value, { maxAge: 60 * 60 * 24 * 365, ...options });
+            }
           } catch {
             // Called from a Server Component — middleware handles the actual refresh.
           }

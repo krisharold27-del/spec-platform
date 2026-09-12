@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="padding: clamp(28px,4vw,44px) 0 24px;">
+      <a href="SPEC Today.dc.html" style="font-size: 13.5px;">← Back to my page</a>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,48px); line-height: 1.1; margin: 18px 0 0;">GM SPEC Scorecard</h1>
+      <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 62ch;">Safety · People · Earnings · Compliance — the four things this business is run on, in that order, every month.</p>
+    </header>
+
+    <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(22px,2.6vw,30px) clamp(24px,3vw,36px); margin-bottom: clamp(20px,3vw,28px);">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 22px clamp(20px,3vw,40px);">
+        <div>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Prepared by</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px; margin: 8px 0 0;">Kristopher Harold, GM</p>
+        </div>
+        <div>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">For sign-off by</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px; margin: 8px 0 0;">Justin Bussell, Director</p>
+        </div>
+        <div>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Period</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px; margin: 8px 0 0;">1–31 Aug 2026</p>
+        </div>
+        <div>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Cadence</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px; margin: 8px 0 0;">Reports the prior closed month</p>
+        </div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; border-top: 1px solid var(--color-accent-100); margin-top: 24px; padding-top: 20px;">
+        <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ lockLine }}</span>
+        <span style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <button type="button" class="btn btn-ghost" style="flex: none; white-space: nowrap;">Justin Bussell, Director</button>
+          <button type="button" class="btn btn-secondary" onClick="{{ lock }}" style="flex: none; white-space: nowrap;">{{ lockLabel }}</button>
+        </span>
+      </div>
+    </section>
+
+    <section aria-label="The four pillars" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; margin-bottom: clamp(20px,3vw,28px);">
+      <sc-for list="{{ pillarCards }}" as="pc" hint-placeholder-count="4">
+        <button type="button" onClick="{{ pc.select }}" style="{{ pc.style }}">
+          <span style="display: flex; align-items: center; gap: 12px;">
+            <span style="{{ pc.markStyle }}">{{ pc.letter }}</span>
+            <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px;">{{ pc.name }}</span>
+          </span>
+          <span style="display: block; font-size: 13.5px; line-height: 21px; margin-top: 12px; text-align: left; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ pc.summary }}</span>
+        </button>
+      </sc-for>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); min-width: 0;">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="display: flex; align-items: center; gap: 14px;">
+              <span style="{{ activeMarkStyle }}">{{ activeLetter }}</span>
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 0;">{{ activeName }}</h2>
+            </span>
+            <span style="font-size: 14px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ activeQuestion }}</span>
+          </div>
+
+          <sc-if value="{{ hasRows }}" hint-placeholder-val="{{ true }}">
+            <div style="overflow-x: auto; margin-top: 26px;">
+              <table class="table" style="width: 100%; min-width: 620px;">
+                <thead>
+                  <tr>
+                    <th style="text-align: left;">KPI</th>
+                    <th style="text-align: left;">Target</th>
+                    <th style="text-align: left;">{{ resultHeading }}</th>
+                    <th style="text-align: left;">Status</th>
+                    <th style="text-align: left;">Source</th>
+                    <th style="text-align: left;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
+                    <tr>
+                      <td>
+                        <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px; line-height: 21px;">{{ r.name }}</span>
+                        <span style="{{ r.subStyle }}">{{ r.sub }}</span>
+                      </td>
+                      <td><span style="{{ r.targetStyle }}">{{ r.target }}</span></td>
+                      <td><span style="{{ r.resultStyle }}">{{ r.result }}</span></td>
+                      <td><span style="{{ r.statusStyle }}">{{ r.status }}</span></td>
+                      <td><span style="font-size: 13px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ r.source }}</span></td>
+                      <td><button type="button" onClick="{{ r.remove }}" style="cursor:pointer;border:0;background:none;color:#a63b26;font-size:13px;white-space:nowrap;">Remove</button></td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </sc-if>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+            <input class="input" type="text" value="{{ kpiName }}" onChange="{{ setKpiName }}" onInput="{{ setKpiName }}" aria-label="New KPI name" placeholder="New KPI" style="flex: 1 1 200px; min-height: 40px;" />
+            <input class="input" type="text" value="{{ kpiTarget }}" onChange="{{ setKpiTarget }}" onInput="{{ setKpiTarget }}" aria-label="Target" placeholder="Target" style="flex: 1 1 140px; min-height: 40px;" />
+            <button type="button" class="btn btn-secondary" onClick="{{ addKpi }}" style="flex: none; white-space: nowrap;">Add KPI</button>
+          </div>
+
+          <sc-if value="{{ needsRows }}" hint-placeholder-val="{{ false }}">
+            <div style="background: var(--color-bg); border-radius: 20px; padding: 22px 24px; margin-top: 26px;">
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 24px; margin: 0;">{{ activeName }} KPI rows not loaded here yet</p>
+              <p style="font-size: 14.5px; line-height: 23px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Send me the {{ activeName }} rows as they appear on your scorecard — KPI, target, result, status, source — and this table will read exactly like Safety does.</p>
+            </div>
+          </sc-if>
+
+          <p style="font-size: 13px; line-height: 21px; margin: 22px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Anything without a system behind it is marked not tracked rather than scored.</p>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Comments</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ commentsLine }}</span>
+          </div>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Comments sit against {{ activeName }} for this period and travel with it to sign-off.</p>
+
+          <div style="display: grid; gap: 14px; margin-top: 22px;">
+            <sc-for list="{{ comments }}" as="c" hint-placeholder-count="2">
+              <div style="display: grid; gap: 6px; background: var(--color-bg); border-radius: 20px; padding: 16px 20px;">
+                <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                  <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px;">{{ c.author }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ c.when }}</span>
+                </div>
+                <p style="font-size: 14.5px; line-height: 23px; margin: 0;">{{ c.body }}</p>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: grid; gap: 10px; margin-top: 20px;">
+            <textarea class="input" value="{{ draft }}" onChange="{{ setDraft }}" onInput="{{ setDraft }}" aria-label="Add a comment" placeholder="What is behind this number, and what happens next?" style="width: 100%; box-sizing: border-box; min-height: 92px; border-radius: 20px; padding: 14px 18px; font-family: var(--font-body); font-size: 14.5px; line-height: 22px; resize: vertical;"></textarea>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+              <button type="button" class="btn btn-primary" onClick="{{ addComment }}" style="flex: none; white-space: nowrap;">Add comment</button>
+              <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Visible to you, the Director and the board pack.</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+
+        <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">My staff</h2>
+            <span style="font-size: 13.5px; color: var(--color-accent-2-900);">{{ staffLine }}</span>
+          </div>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ activeName }} for the roles that report to you this period.</p>
+
+          <div style="display: grid; gap: 12px; margin-top: 22px;">
+            <sc-for list="{{ staff }}" as="st" hint-placeholder-count="3">
+              <div style="{{ st.style }}">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+                  <span style="display: grid; gap: 3px;">
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">{{ st.person }}</span>
+                    <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ st.title }}</span>
+                  </span>
+                  <span style="{{ st.statusStyle }}">{{ st.status }}</span>
+                </div>
+                <p style="font-size: 13.5px; line-height: 21px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ st.note }}</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                  <button type="button" onClick="{{ st.oneToOne }}" style="{{ st.actionStyle }}">{{ st.oneToOneLabel }}</button>
+                  <a href="#" style="border-radius: 999px; padding: 8px 16px; font-size: 13px; background: var(--color-bg); color: var(--color-text); text-decoration: none;">Open scorecard</a>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.2; margin: 0;">Where these numbers come from</h2>
+          <div style="display: grid; gap: 10px; margin-top: 18px;">
+            <sc-for list="{{ sources }}" as="s" hint-placeholder-count="3">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-accent-200); padding-bottom: 10px;">
+                <span style="font-size: 14.5px;">{{ s.name }}</span>
+                <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ s.detail }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size: 13px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Manual entries carry the name of whoever confirmed them.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<section style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); padding: 8px clamp(20px,5vw,72px) 72px;">
+  <div style="max-width: 1320px; margin: 0 auto;">
+    <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,2.8vw,32px); line-height: 1.2; margin: 0; max-width: 24ch;">What the scorecard changes</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-top: 24px;">
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Underperformance drags on for months</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · noticed in month six, argued about on feel, and by then it is a dismissal conversation.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · amber the month it happens, on a named KPI, with the source and a written comment against it. Month two is support, not surprise.</p>
+        </div>
+      </div>
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Pay and reward feel arbitrary</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · a raise decided in a corridor, and everyone else guessing what earned it.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · Sales Ace and Ops Ace. Trained on the job, signed off, 90% or better on the KPI board three months in a row, and the increased incentive follows automatically.</p>
+        </div>
+      </div>
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Grievances handled with no record</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · a conversation nobody wrote down, remembered differently by both sides a year later.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · comments sit against the role and the period, visible to the person, their manager and the pack, and the period locks so nothing is rewritten afterwards.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', GREY = '#8c8681';
+
+const mono = 'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;line-height:20px;';
+
+const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;'
+  + 'background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+const PILLARS = {
+  Safety: {
+    letter: 'S',
+    tone: GREEN,
+    question: 'Are we doing it safely?',
+    summary: '4 of 5 confirmed clean — TRIFR pending Safety Minder',
+    rows: [
+      { name: 'Zero Incidents', target: '0 (non-negotiable)', result: '0', status: 'Confirmed', source: 'Manual — GM confirmation' },
+      { name: 'Zero Workers Compensation Claims', target: '0', result: '0', status: 'Confirmed', source: 'Manual — GM confirmation' },
+      { name: 'LTI / MTI Count', target: '0 (non-negotiable)', result: '0', status: 'Confirmed', source: 'Manual — GM confirmation' },
+      { name: 'TRIFR', target: 'Downward trend', result: 'N/A this month', status: 'Not tracked', source: 'Pending Safety Minder connection — closed out for Aug without a system to measure it' },
+      { name: 'Days Without Harm', sub: 'physical & psychosocial', target: 'Uninterrupted', result: 'Uninterrupted', status: 'Confirmed', source: 'Manual — GM confirmation' },
+    ],
+    sources: [
+      { name: 'Manual — GM confirmation', detail: 'Kristopher Harold, GM' },
+      { name: 'Safety Minder', detail: 'Not connected yet' },
+      { name: 'Zero Harm gate', detail: 'Pass for 1–31 Aug 2026' },
+    ],
+    staff: [
+      { person: 'Dane Whitmore', title: 'Site Supervisor', status: 'Confirmed', tone: GREEN, note: 'Nothing to report for August. All inspections signed off.' },
+      { person: 'Amrit Kaur', title: 'Scheduler', status: 'Confirmed', tone: GREEN, note: 'Toolbox talks scheduled without prompting.' },
+      { person: 'Vacant', title: 'Yard Lead', status: 'Not tracked', tone: GREY, note: 'Role unfilled — the crew is covering inspections.' },
+    ],
+    comments: [
+      { author: 'Justin Bussell, Director', when: '2 days ago', body: 'Four clean is fine. Get Safety Minder connected so TRIFR is measured rather than closed out.' },
+      { author: 'Kristopher Harold, GM', when: '5 days ago', body: 'TRIFR has no system behind it this month, so it is marked not tracked rather than scored.' },
+    ],
+  },
+  People: {
+    letter: 'P',
+    tone: AMBER,
+    question: 'Does everyone love coming to work?',
+    summary: '1 of 3 confirmed — engagement & NPS not yet collected',
+    rows: [],
+    sources: [
+      { name: 'Manual — GM confirmation', detail: 'Kristopher Harold, GM' },
+      { name: 'Engagement survey', detail: 'Not collected for August' },
+      { name: 'Employee NPS', detail: 'Not collected for August' },
+    ],
+    staff: [
+      { person: 'Dane Whitmore', title: 'Site Supervisor', status: 'Watch', tone: AMBER, note: 'One-to-one not held for August.' },
+      { person: 'Amrit Kaur', title: 'Scheduler', status: 'Confirmed', tone: GREEN, note: 'All one-to-ones held.' },
+      { person: 'Vacant', title: 'Yard Lead', status: 'Not tracked', tone: GREY, note: 'Role unfilled — crew has no direct manager.' },
+    ],
+    comments: [
+      { author: 'Justin Bussell, Director', when: 'Yesterday', body: 'Engagement and NPS need a collection method before September closes.' },
+    ],
+  },
+  Earnings: {
+    letter: 'E',
+    tone: AMBER,
+    question: 'Are we making money?',
+    summary: 'Plain Xero actuals, refreshed 9 Sep — revenue watch at 94%, gross margin watch, net margin behind target',
+    rows: [],
+    sources: [
+      { name: 'Xero', detail: 'Actuals refreshed 9 Sep' },
+      { name: 'Revenue against plan', detail: '94% — watch' },
+      { name: 'Net margin', detail: 'Behind target' },
+    ],
+    staff: [
+      { person: 'Dane Whitmore', title: 'Site Supervisor', status: 'Watch', tone: AMBER, note: 'Two jobs came in under quoted margin on rework.' },
+      { person: 'Amrit Kaur', title: 'Scheduler', status: 'Confirmed', tone: GREEN, note: 'Utilisation up on last month.' },
+      { person: 'Vacant', title: 'Yard Lead', status: 'Not tracked', tone: GREY, note: 'Yard rework is the largest single cost this month.' },
+    ],
+    comments: [
+      { author: 'Kristopher Harold, GM', when: '4 days ago', body: 'Numbers are plain Xero actuals, no adjustments. Net margin gap is rework, not pricing.' },
+    ],
+  },
+  Compliance: {
+    letter: 'C',
+    tone: GREEN,
+    question: 'Are we clear to work?',
+    summary: 'On target — electrical licences clear; other gaps are a Sep focus',
+    rows: [],
+    sources: [
+      { name: 'Electrical licences', detail: 'Clear for August' },
+      { name: 'Manual — GM confirmation', detail: 'Kristopher Harold, GM' },
+      { name: 'Clear to Work gate', detail: 'Pass for 1–31 Aug 2026' },
+    ],
+    staff: [
+      { person: 'Dane Whitmore', title: 'Site Supervisor', status: 'Confirmed', tone: GREEN, note: 'Clear to work. One ticket expires in 21 days.' },
+      { person: 'Amrit Kaur', title: 'Scheduler', status: 'Confirmed', tone: GREEN, note: 'Clear to work.' },
+      { person: 'Vacant', title: 'Yard Lead', status: 'Not tracked', tone: GREY, note: 'No holder, nothing to certify.' },
+    ],
+    comments: [
+      { author: 'Justin Bussell, Director', when: '2 days ago', body: 'Licences are clear. The remaining gaps are a September focus, not an August problem.' },
+    ],
+  },
+};
+
+const statusTone = s => (s === 'Confirmed' ? GREEN : s === 'Not tracked' ? GREY : AMBER);
+
+class Component extends DCLogic {
+  state = { pillar: 'Safety', draft: '', added: {}, oneToOnes: {}, locked: false, removedKpi: {}, addedKpi: {}, kpiName: '', kpiTarget: '' };
+
+  renderVals() {
+    const active = this.state.pillar;
+    const data = PILLARS[active];
+    const comments = (this.state.added[active] || []).concat(data.comments);
+    const mark = tone => 'width:34px;height:34px;flex:none;border-radius:12px;display:grid;place-content:center;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:15px;'
+      + 'background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+    return {
+      lockLine: this.state.locked ? 'Locked and archived · 1–31 Aug 2026' : 'Period: 1–31 Aug 2026',
+      lockLabel: this.state.locked ? 'Locked ✓' : 'Lock & Archive',
+      lock: () => this.setState(s => ({ locked: !s.locked })),
+
+      pillarCards: Object.keys(PILLARS).map(key => {
+        const p = PILLARS[key];
+        const on = key === active;
+        return {
+          name: key,
+          letter: p.letter,
+          summary: p.summary,
+          markStyle: mark(p.tone),
+          select: () => this.setState({ pillar: key, draft: '' }),
+          style: 'cursor:pointer;border:0;display:block;text-align:left;width:100%;border-radius:var(--radius-lg);padding:20px 22px;font-family:var(--font-body);color:var(--color-text);'
+            + 'background:var(--color-surface, #fff);border-left:4px solid ' + p.tone + ';'
+            + (on ? 'box-shadow:0 0 0 2px var(--color-accent),var(--shadow-sm);' : 'box-shadow:var(--shadow-sm);'),
+        };
+      }),
+
+      activeName: active,
+      activeLetter: data.letter,
+      activeMarkStyle: mark(data.tone),
+      activeQuestion: data.question,
+      resultHeading: 'August result',
+      hasRows: (data.rows.length + (this.state.addedKpi[active] || []).length - (this.state.removedKpi[active] || []).length) > 0,
+      needsRows: (data.rows.length + (this.state.addedKpi[active] || []).length - (this.state.removedKpi[active] || []).length) === 0,
+      rows: data.rows.filter((r, i) => !(this.state.removedKpi[active] || []).includes(i)).map((r, i) => ({
+        name: r.name,
+        sub: r.sub || '',
+        subStyle: r.sub ? 'display:block;font-size:13px;line-height:19px;margin-top:2px;color:color-mix(in srgb, var(--color-text) 70%, transparent);' : 'display:none;',
+        target: r.target,
+        targetStyle: mono + 'color:' + (r.status === 'Not tracked' ? 'color-mix(in srgb, var(--color-text) 55%, transparent)' : 'var(--color-text)') + ';',
+        result: r.result,
+        resultStyle: mono + 'color:' + (r.status === 'Not tracked' ? 'color-mix(in srgb, var(--color-text) 55%, transparent)' : 'var(--color-text)') + ';text-decoration:' + (r.status === 'Not tracked' ? 'none' : 'underline dotted color-mix(in srgb, var(--color-text) 30%, transparent)') + ';',
+        status: r.status,
+        statusStyle: chip(statusTone(r.status)),
+        source: r.source,
+        remove: () => this.setState(s => ({ removedKpi: { ...s.removedKpi, [active]: (s.removedKpi[active] || []).concat(data.rows.indexOf(r)) } })),
+      })).concat((this.state.addedKpi[active] || []).map((r, i) => ({
+        name: r.name,
+        sub: '',
+        subStyle: 'display:none;',
+        target: r.target,
+        targetStyle: mono + 'color:var(--color-text);',
+        result: '—',
+        resultStyle: mono + 'color:color-mix(in srgb, var(--color-text) 55%, transparent);',
+        status: 'Not started',
+        statusStyle: chip(statusTone('Not tracked')),
+        source: 'Manual entry',
+        remove: () => this.setState(s => ({ addedKpi: { ...s.addedKpi, [active]: s.addedKpi[active].filter((_, k) => k !== i) } })),
+      }))),
+      kpiName: this.state.kpiName,
+      setKpiName: e => this.setState({ kpiName: e.target.value }),
+      kpiTarget: this.state.kpiTarget,
+      setKpiTarget: e => this.setState({ kpiTarget: e.target.value }),
+      addKpi: () => {
+        const name = this.state.kpiName.trim();
+        if (!name) return;
+        this.setState(s => ({
+          addedKpi: { ...s.addedKpi, [active]: (s.addedKpi[active] || []).concat([{ name, target: s.kpiTarget.trim() || 'Set a target' }]) },
+          kpiName: '', kpiTarget: '',
+        }));
+      },
+
+      commentsLine: comments.length + ' on ' + active,
+      comments,
+      draft: this.state.draft,
+      setDraft: e => this.setState({ draft: e.target.value }),
+      addComment: () => {
+        const body = this.state.draft.trim();
+        if (!body) return;
+        this.setState(s => ({
+          added: { ...s.added, [active]: [{ author: 'Kristopher Harold, GM', when: 'Just now', body }].concat(s.added[active] || []) },
+          draft: '',
+        }));
+      },
+
+      staffLine: '3 roles report to you',
+      staff: data.staff.map(st => {
+        const booked = !!this.state.oneToOnes[active + st.person];
+        return {
+          person: st.person,
+          title: st.title,
+          note: st.note,
+          status: st.status,
+          statusStyle: chip(st.tone),
+          style: 'background:var(--color-surface, #fff);border-radius:20px;padding:18px 20px;border-left:4px solid ' + st.tone + ';',
+          oneToOneLabel: booked ? 'One-to-one booked ✓' : 'Book a one-to-one',
+          oneToOne: () => this.setState(s => ({ oneToOnes: { ...s.oneToOnes, [active + st.person]: !s.oneToOnes[active + st.person] } })),
+          actionStyle: 'cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13px;flex:none;white-space:nowrap;'
+            + (booked ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+        };
+      }),
+
+      sources: data.sources,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

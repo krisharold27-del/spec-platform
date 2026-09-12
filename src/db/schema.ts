@@ -14,6 +14,15 @@ export const tenants = pgTable('tenants', {
   startDate: text('start_date').notNull(),
   status: text('status').notNull().default('active'), // active | paused | closed
   plan: text('plan').notNull().default('trial'),      // trial | basic (self-serve, ~$100/yr) | program (rollout + training, principal on site) | lapsed
+  /**
+   * A secret token while this business is an unclaimed LOOK-AROUND, and null once it is somebody's.
+   *
+   * Somebody who has not signed up can be given a real business to walk through — the house is
+   * viewed before it is bought. Their browser holds this token and nothing else; it is the only
+   * thing that opens this tenant without a sign-in. Clearing it at sign-up is what stops an old
+   * browser from still reaching a business once it belongs to a real customer.
+   */
+  lookId: text('look_id'),
   programRequestedAt: text('program_requested_at'),
   stripeCustomerId: text('stripe_customer_id'),        // set on first Checkout Session; reused for the billing portal
   stripeSubscriptionId: text('stripe_subscription_id'), // set on checkout.session.completed; used to match invoice/subscription webhooks back to a tenant
@@ -67,7 +76,25 @@ export const users = pgTable('users', {
    */
   access: text('access').notNull().default('readonly'),
   invitedAt: text('invited_at'),
+  /**
+   * The "take your seat" link, which the engine requires to be single use, expiring, and bound to
+   * one address (designs/the-rules.md §11).
+   *
+   * The invitation used to be a bare link to /signin, which is none of those three: anybody who saw
+   * the email could follow it, it never stopped working, and it proved nothing about who was
+   * holding it. A token here makes the seat the invitation is for the seat they actually take.
+   */
+  seatToken: text('seat_token'),
+  seatTokenExpires: text('seat_token_expires'),
   acceptedAt: text('accepted_at'),
+  /**
+   * quiet | normal | everything — how much SPEC interrupts this person. See lib/notify.
+   *
+   * Null means never chosen, which reads as `normal`. Stored against the person rather than the
+   * business because the answer is genuinely personal: the setting that keeps a site supervisor
+   * informed buries a managing director.
+   */
+  notifyLevel: text('notify_level'),
 }, t => [uniqueIndex('users_tenant_email').on(t.tenantId, t.email), index('users_auth_user').on(t.authUserId)]).enableRLS();
 
 /**
@@ -91,6 +118,13 @@ export const systemConnections = pgTable('system_connections', {
   ownerName: text('owner_name'),
   ownerEmail: text('owner_email'),
   ownerIsSelf: boolean('owner_is_self').notNull().default(true),
+  /**
+   * Set when this connection belongs to ONE PERSON rather than to the business — mail, and only
+   * mail. A mailbox is not the company's to switch on, so a personal connection is made by the
+   * person themselves, visible only to them, and withdrawn by them. Null is the ordinary case: a
+   * business connection an administrator turned on.
+   */
+  personalFor: text('personal_for').references(() => users.id),
   status: text('status').notNull().default('requested'), // requested | invited | live | broken
   lastSyncAt: text('last_sync_at'),
   lastErrorAt: text('last_error_at'),
@@ -136,6 +170,68 @@ export const staff = pgTable('staff', {
   userId: text('user_id').references(() => users.id),
   createdAt: text('created_at').notNull(),
 }, t => [index('staff_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * The tickets, licences, checks and signed papers a person or a role is obliged to hold.
+ *
+ * This is the evidence under the Clear to Work gate. Until now the gate could only be failed by an
+ * overdue training module, which meant a business could pass it with an expired forklift licence in
+ * a drawer — the exact situation the gate exists to catch. An obligation with a date in the past
+ * blocks the person, in the same pass-or-fail way and with no percentage anywhere near it.
+ *
+ * Held against a PERSON or a ROLE, never both:
+ *
+ *   A person holds their own licence — it travels with them between jobs and between businesses.
+ *   A role carries what the job requires — an insurance certificate, a signed authority — and
+ *   whoever holds the role inherits it, the same way the training path does.
+ *
+ * `expiresAt` may be null, and that is not a gap: a signed employment contract does not expire.
+ * What is never allowed is a date SPEC invented, which is why nothing is defaulted here.
+ */
+export const obligations = pgTable('obligations', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** What it is, in the words the business uses. "White card", not "certification type 3". */
+  what: text('what').notNull(),
+  staffId: text('staff_id').references(() => staff.id),
+  userId: text('user_id').references(() => users.id),
+  roleId: text('role_id').references(() => roles.id),
+  /** Null means it does not expire — a signed contract, an induction that stands. */
+  expiresAt: text('expires_at'),
+  /** Where the paper actually lives, in their words. Never a file SPEC holds. */
+  evidence: text('evidence'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('obligations_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * Who is away, and when.
+ *
+ * Deliberately not a leave management system. SPEC does not calculate entitlements, does not hold
+ * balances and does not replace payroll — the business already has something that does. What it
+ * holds is the one thing the four questions need and payroll will not tell them: **who is not here,
+ * and what that leaves uncovered.**
+ *
+ * That is a People question and an Earnings question at once. A supervisor away for a fortnight
+ * with nobody signed off to cover the role is a gap in the chart, and the chart is the thing SPEC
+ * actually reasons about.
+ */
+export const leaveEntries = pgTable('leave_entries', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  staffId: text('staff_id').references(() => staff.id),
+  userId: text('user_id').references(() => users.id),
+  /** annual | sick | unpaid | parental | other — their words for it, from a short fixed list. */
+  kind: text('kind').notNull().default('annual'),
+  fromDate: text('from_date').notNull(),
+  toDate: text('to_date').notNull(),
+  /** requested | approved | declined. A decline is a real outcome with a name against it. */
+  state: text('state').notNull().default('requested'),
+  decidedBy: text('decided_by'),
+  decidedAt: text('decided_at'),
+  /** Who is covering, if anybody is. Free text: it is usually a name, sometimes "nobody yet". */
+  coveredBy: text('covered_by'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('leave_tenant').on(t.tenantId)]).enableRLS();
 
 /**
  * Who holds a role, over time. Assignments are opened and closed, never deleted, so the chart can
@@ -351,6 +447,51 @@ export const candidates = pgTable('candidates', {
   createdAt: text('created_at').notNull(),
 }, t => [index('candidates_tenant_role').on(t.tenantId, t.roleId)]).enableRLS();
 
+/**
+ * The improvement register — a problem somebody said out loud, and what happened to it.
+ *
+ * The same row whether it was typed by a stranger on the front door or by a supervisor on My Page,
+ * which is the point: a problem raised before anybody had an account is not a different kind of
+ * thing from one raised in month six.
+ *
+ * Nothing here is ever deleted. A closed problem becomes history a business can look back on, and
+ * the count of how many times one came back is the number worth being frightened by — see
+ * `recurrenceCount` and `reopenCount`. Both are the signal a business is least able to see about
+ * itself, because each individual raising feels small at the time.
+ *
+ * People are held as NAMES rather than staff ids on purpose. An entry outlives the person who
+ * raised it, the role they held, and sometimes the org chart itself; pointing at a row that can be
+ * moved or removed would mean history quietly changing, which every other rule in SPEC forbids.
+ */
+export const registerEntries = pgTable('register_entries', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** What the person typed, in their own words. Never rewritten, never tidied. */
+  text: text('text').notNull(),
+  createdBy: text('created_by'),
+  createdAt: text('created_at').notNull(),
+
+  /** The causal chain, as JSON [{pillar, certainty}]. Order is the chain, not a ranking. */
+  bloom: text('bloom').notNull().default('[]'),
+  /** The fix, as JSON pillar names, always in People → Compliance → Earnings order. */
+  chain: text('chain').notNull().default('[]'),
+  /** What the diagnosis said, in one line each, for the card. */
+  errorLine: text('error_line'),
+  solutionLine: text('solution_line'),
+  /** The story gave no clear owner, so the only honest fix is finding one. */
+  noOwner: boolean('no_owner').notNull().default(false),
+
+  /** open | done | closed. Done is marked by the owner; closed is signed off in the weekly meeting. */
+  status: text('status').notNull().default('open'),
+  owner: text('owner'),
+  /** null = not answered, true = accepted, false = denied as not theirs. */
+  accepted: boolean('accepted'),
+  deadline: text('deadline'),
+  recurrenceCount: integer('recurrence_count').notNull().default(1),
+  reopenCount: integer('reopen_count').notNull().default(0),
+  signedOffAt: text('signed_off_at'),
+}, t => [index('register_tenant_status').on(t.tenantId, t.status)]).enableRLS();
+
 export const diagnostics = pgTable('diagnostics', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),
@@ -387,6 +528,17 @@ export const boardOutputs = pgTable('board_outputs', {
   markdown: text('markdown').notNull(),
   generatedBy: text('generated_by').notNull().default('claude'),
   approvedBy: text('approved_by'),
+  /**
+   * Sent back rather than approved, and what the board wants changed.
+   *
+   * A board that can only approve is not reviewing anything. The pack is the month's account of
+   * itself, and a director who thinks it is wrong needs somewhere to say so that is not a phone
+   * call nobody else hears — so a refusal is recorded on the pack, with a reason, and the leader
+   * sees exactly what to fix.
+   */
+  sentBackBy: text('sent_back_by'),
+  sentBackAt: text('sent_back_at'),
+  sentBackReason: text('sent_back_reason'),
   createdAt: text('created_at').notNull(),
 }).enableRLS();
 

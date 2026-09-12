@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <span class="nav-brand" style="display: flex; align-items: center; gap: 9px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</span>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="#" style="color: var(--color-text); font-weight: 700;">All pages</a>
+  </nav>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="padding: clamp(28px,4vw,48px) 0 28px;">
+      <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">SPEC Business Solutions · every screen</span>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">The whole system, in the order it is used</h1>
+      <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Sell it, set it up, run the day, close the month, report it. Every screen below is live and clickable.</p>
+    </header>
+
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+      <section style="padding: 0 0 clamp(24px,3vw,36px);">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">{{ g.name }}</h2>
+          <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ g.note }}</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; margin-top: 18px;">
+          <sc-for list="{{ g.pages }}" as="pg" hint-placeholder-count="3">
+            <a href="{{ pg.href }}" style="{{ pg.style }}">
+              <span style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 18px; line-height: 24px;">{{ pg.name }}</span>
+                <span style="{{ pg.chip }}">{{ pg.who }}</span>
+              </span>
+              <span style="display: block; font-size: 14px; line-height: 22px; margin-top: 12px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ pg.what }}</span>
+              <span style="display: block; font-size: 13px; line-height: 20px; margin-top: 12px; color: var(--color-accent-700);">Open →</span>
+            </a>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+
+    <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+      <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Still to design</h2>
+      <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Named here so nothing is quietly forgotten.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+        <sc-for list="{{ todo }}" as="td" hint-placeholder-count="4">
+          <span style="display: inline-flex; align-items: center; border-radius: 999px; padding: 9px 16px; font-size: 13px; background: var(--color-surface, #fff); color: var(--color-text);">{{ td.label }}</span>
+        </sc-for>
+      </div>
+    </section>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', GREY = '#8c8681';
+const chip = tone => 'display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:12px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+const GROUPS = [
+  {
+    name: 'Before they buy',
+    note: 'Public pages',
+    pages: [
+      { name: 'Overview', href: 'SPEC Landing.dc.html', who: 'Anyone', tone: AMBER, what: 'The four pillars, the alignment story, and the sliding calculator that shows what the labour bill has left to give.' },
+      { name: 'Sectors', href: 'SPEC Sectors.dc.html', who: 'Buyer', tone: AMBER, what: 'What the four questions look like in electrical, care, hospitality, professional services and manufacturing.' },
+      { name: 'Pricing', href: 'SPEC Pricing.dc.html', who: 'Buyer', tone: AMBER, what: 'SPEC Basic and SPEC Advanced, priced per seat by region, against what the improvement returns.' },
+    ],
+  },
+  {
+    name: 'Getting started',
+    note: 'Week one',
+    pages: [
+      { name: 'Set up', href: 'SPEC Setup.dc.html', who: 'Leader', tone: GREEN, what: 'Name the business, answer the one AI question, keep the roles Claude proposes, agree the KPIs, put people in, hand the step to each manager.' },
+      { name: 'Org chart', href: 'SPEC Org Chart.dc.html', who: 'Leader', tone: GREEN, what: 'Import or paste your structure, drag to link and re-link, move a person between roles, and watch Link, Flow and Grow turn green.' },
+      { name: 'Connections', href: 'SPEC Connections.dc.html', who: 'Authorised', tone: GREEN, what: 'Connect Simpro, Xero, HubSpot, Groundplan and Pylon. Sensitive systems go to the board for approval first.' },
+    ],
+  },
+  {
+    name: 'Every day',
+    note: 'What everyone opens',
+    pages: [
+      { name: 'My page', href: 'SPEC My Page.dc.html', who: 'Everyone', tone: GREEN, what: 'One page for the whole day. Switch between Operations Manager, Site Supervisor, BD Manager and an apprentice on the checklist view.' },
+      { name: 'My scorecard', href: 'SPEC My Scorecard.dc.html', who: 'Scored roles', tone: GREEN, what: 'The real KPI table by pillar, with targets, results, status, source, comments and the staff below you.' },
+      { name: 'Approvals', href: 'SPEC Inbox.dc.html', who: 'Anyone deciding', tone: AMBER, what: 'One queue for everything waiting on a person, each item naming what it blocks, plus what Claude handled without you.' },
+    ],
+  },
+  {
+    name: 'The rhythm',
+    note: 'Weekly and monthly',
+    pages: [
+      { name: 'Weekly meeting', href: 'SPEC Weekly Meeting.dc.html', who: 'Managers', tone: GREEN, what: 'Three items picked by the data, carried actions, decisions logged with a name, twenty minutes.' },
+      { name: 'Monthly scoring', href: 'SPEC Monthly Scoring.dc.html', who: 'Managers', tone: GREEN, what: 'Score each role, confirm the manual numbers, pass or fail the hard gates, submit and lock the period.' },
+      { name: 'Group', href: 'SPEC Group.dc.html', who: 'Group board', tone: AMBER, what: 'Five entities read side by side. Unlocked entities are excluded and named, never averaged in.' },
+      { name: 'Board pack', href: 'SPEC Board Pack.dc.html', who: 'Board', tone: AMBER, what: 'Generated from the data: the verdict, the pillars, what the board is asked to do, and what the data cannot support.' },
+    ],
+  },
+  {
+    name: 'On site',
+    note: 'The phone',
+    pages: [
+      { name: 'On site', href: 'SPEC Mobile.dc.html', who: 'Crews', tone: GREEN, what: 'The phone view: sign on, report a hazard, log hours, ask. Four big targets, works with no signal.' },
+    ],
+  },
+  {
+    name: 'Running it',
+    note: 'Owner and admin',
+    pages: [
+      { name: 'Admin', href: 'SPEC Admin.dc.html', who: 'Owner', tone: AMBER, what: 'Permissions that follow the role, company settings, seats and billing, and what happens to your data.' },
+    ],
+  },
+  {
+    name: 'People',
+    note: 'HR, recruitment and training',
+    pages: [
+      { name: 'People', href: 'SPEC People.dc.html', who: 'Manager / HR', tone: GREEN, what: 'The HR system if you do not have one, and recruitment run off the role scorecard with region rules applied.' },
+      { name: 'Training', href: 'SPEC Training.dc.html', who: 'Everyone', tone: GREEN, what: 'The role path on the job, tied to the KPI each module moves, with manager sign-off that unlocks the Ace run.' },
+    ],
+  },
+];
+
+const TODO = [
+  'Staff directory and profile pages',
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      groups: GROUPS.map(g => ({
+        name: g.name,
+        note: g.note,
+        pages: g.pages.map(p => ({
+          name: p.name,
+          href: p.href,
+          what: p.what,
+          who: p.who,
+          chip: chip(p.tone),
+          style: 'display:block;text-decoration:none;color:var(--color-text);background:var(--color-surface, #fff);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:22px 24px;border-top:4px solid ' + p.tone + ';',
+        })),
+      })),
+      todo: TODO.map(t => ({ label: t })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

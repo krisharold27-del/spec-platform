@@ -2,11 +2,12 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { randomUUID } from 'node:crypto';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser, canManage, emailConfirmed } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
 import { sendInviteEmail } from '@/lib/email';
+import { newSeatToken, seatTokenExpiry } from '@/lib/seat';
 import { roleChangeFor, type AssignmentRow, type RoleRow, type StaffRow } from '@/lib/staff';
 
 const now = () => new Date().toISOString();
@@ -21,7 +22,17 @@ async function requireLeader() {
 async function chartFor(tenantId: string) {
   const roles = await db.select().from(schema.roles).where(and(eq(schema.roles.tenantId, tenantId), eq(schema.roles.active, true)));
   const staff = await db.select().from(schema.staff).where(eq(schema.staff.tenantId, tenantId));
-  const assignments = await db.select().from(schema.roleAssignments);
+  /*
+    Scoped through this business's own roles rather than read whole and filtered afterwards.
+
+    The filter that used to follow was correct, but "read everything, then keep ours" is the exact
+    shape that leaked in boards-data — one clause written slightly wrong and another company's rows
+    are in the result. It also grows with every customer SPEC ever signs.
+  */
+  const ourRoleIds = roles.map(r => r.id);
+  const assignments = ourRoleIds.length
+    ? await db.select().from(schema.roleAssignments).where(inArray(schema.roleAssignments.roleId, ourRoleIds))
+    : [];
   const roleIds = new Set(roles.map(r => r.id));
   return {
     roles: roles as unknown as RoleRow[],
@@ -189,7 +200,14 @@ export async function invite(formData: FormData) {
 
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0];
   if (tenant && !existing?.invitedAt) {
-    await sendInviteEmail({ to: email, name: person.name, businessName: tenant.name, roleTitle: roleRow.title });
+    // A fresh token per invitation: single use, expiring, bound to this address. See lib/seat.
+    const token = newSeatToken();
+    await db.update(schema.users)
+      .set({ seatToken: token, seatTokenExpires: seatTokenExpiry() })
+      .where(eq(schema.users.id, userId));
+    await sendInviteEmail({
+      to: email, name: person.name, businessName: tenant.name, roleTitle: roleRow.title, token,
+    });
   }
 
   done(['/setup/business', '/org', '/journey', '/team']);

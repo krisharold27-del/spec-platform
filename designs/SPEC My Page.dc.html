@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="#" style="color: var(--color-text); font-weight: 700;">My page</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+    <button type="button" onClick="{{ toggleNotifs }}" style="{{ notifButtonStyle }}" title="Notifications">🔔<sc-if value="{{ hasNotifs }}" hint-placeholder-val="{{ false }}"><span style="{{ notifDotStyle }}"></span></sc-if></button>
+    <sc-if value="{{ notifsOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position: relative;">
+        <div style="position: absolute; top: 8px; right: 0; background: var(--color-surface, #fff); box-shadow: var(--shadow-md); border-radius: 16px; padding: 10px; width: min(320px, calc(100vw - 40px)); z-index: 20;">
+          <div style="padding: 6px 10px 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">Notifications</div>
+          <sc-for list="{{ notifItems }}" as="n" hint-placeholder-count="3">
+            <div style="padding: 10px; border-radius: 10px; background: var(--color-bg); margin-bottom: 6px;">
+              <p style="font-size: 13px; line-height: 19px; margin: 0;">{{ n.text }}</p>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noNotifs }}" hint-placeholder-val="{{ false }}">
+            <p style="padding: 10px; font-size: 13px; color: color-mix(in srgb, var(--color-text) 60%, transparent); margin: 0;">Nothing waiting on you right now.</p>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+    <button type="button" onClick="{{ toggleBizMenu }}" style="{{ bizButtonStyle }}" title="Business — placeholder, one login per business today">{{ bizName }} ▾</button>
+    <sc-if value="{{ bizMenuOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position: relative; margin-left: -8px;">
+        <div style="position: absolute; top: 8px; right: 0; background: var(--color-surface, #fff); box-shadow: var(--shadow-md); border-radius: 16px; padding: 8px; width: min(220px, calc(100vw - 40px)); z-index: 20;">
+          <div style="padding: 8px 12px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">JBI Electrical</div>
+          <div style="padding: 10px 12px; border-radius: 10px; font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 55%, transparent);">Add another business — coming soon</div>
+          <a href="SPEC Sign In.dc.html" style="display: block; padding: 10px 12px; border-radius: 10px; font-size: 13.5px;">Sign out</a>
+        </div>
+      </div>
+    </sc-if>
+  </nav>
+
+  <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding: clamp(28px,4vw,44px) 0 20px;">
+      <span style="display: flex; align-items: center; gap: 14px;">
+        <span style="display: grid; place-content: center; width: 46px; height: 46px; border-radius: 50%; background: var(--color-accent); color: #fff; font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; flex: none;">{{ nameInitials }}</span>
+        <span style="display: grid; gap: 2px;">
+          <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 19px; line-height: 1.2;">{{ personName }}</span>
+          <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700);">{{ dateLine }} · your SPEC sheet for the day</span>
+        </span>
+      </span>
+      <sc-if value="{{ isChecklist }}" hint-placeholder-val="{{ false }}">
+        <span style="font-size: 13px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Checklist view · this role is not individually scored</span>
+      </sc-if>
+
+      <span style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <sc-for list="{{ personas }}" as="pr" hint-placeholder-count="3">
+          <button type="button" onClick="{{ pr.select }}" style="{{ pr.style }}">{{ pr.label }}</button>
+        </sc-for>
+      </span>
+    </header>
+
+    <sc-if value="{{ hasNotifications }}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Waiting on you" style="background: color-mix(in srgb, #a63b26 10%, transparent); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 20px; border-left: 5px solid #a63b26;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 1.3; margin: 0;">{{ notifyHeading }}</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <sc-for list="{{ notifications }}" as="n" hint-placeholder-count="1">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: var(--color-surface, #fff); border-radius: 16px; padding: 14px 16px;">
+              <span style="font-size: 14.5px; line-height: 22px;">{{ n.text }}</span>
+              <span style="display: flex; gap: 8px; flex: none;">
+                <button type="button" class="btn btn-primary" onClick="{{ n.accept }}" style="flex: none; white-space: nowrap;">Accept</button>
+                <button type="button" class="btn btn-ghost" onClick="{{ n.deny }}" style="flex: none; white-space: nowrap;">Deny</button>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ attendsCogs }}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Snap Score" style="{{ powerCardStyle }}">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 22px;">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 22px;">
+            <svg viewBox="0 0 100 100" width="72" height="72" role="img" aria-label="Snap Score" style="flex: none;">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-accent-100)" stroke-width="11"/>
+              <circle cx="50" cy="50" r="42" fill="none" stroke="{{ powerColour }}" stroke-width="11" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="{{ powerOffset }}" transform="rotate(-90 50 50)"/>
+              <text x="50" y="58" text-anchor="middle" style="font-family: var(--font-heading); font-size: 24px; fill: var(--color-text);">{{ powerPct }}</text>
+            </svg>
+            <div>
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 19px; line-height: 1.3; margin: 0;">{{ snapLabel }}</p>
+              <p style="font-size: 12.5px; line-height: 19px; margin: 3px 0 0; color: var(--color-accent-700); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700;">Snap it in line</p>
+              <p style="font-size: 14px; line-height: 22px; margin: 8px 0 0; max-width: 52ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ snapNote }}</p>
+            </div>
+          </div>
+          <button type="button" onClick="{{ toggleImprovement }}" style="{{ improvementTabStyle }}">{{ improvementTabLabel }}</button>
+        </div>
+      </section>
+    </sc-if>
+
+        <sc-if value="{{ improvementOpen }}" hint-placeholder-val="{{ false }}">
+        <section style="background: #3a3a38; border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0; color: #f0eee8;">Improvement opportunity</h2>
+            <button type="button" onClick="{{ closeImprovement }}" style="cursor:pointer;border:0;background:transparent;color:#cfcbc0;font-size:13px;white-space:nowrap;">Close ✕</button>
+          </div>
+          <p style="font-size: 14.5px; line-height: 24px; margin: 12px 0 0; max-width: 56ch; color: #c3bfb4;">Not for every day — this is for when you stumble onto something real. Type it in plain words, an ongoing one, not a one-off, and SPEC works out what's really going on and where it starts.</p>
+          <div style="margin-top: 18px;">
+            <textarea aria-label="Describe an ongoing improvement opportunity" placeholder="e.g. our best apprentice just quit and it's the second one this year" value="{{ problem }}" onChange="{{ setProblem }}" onInput="{{ setProblem }}" onKeyDown="{{ onProblemKeyDown }}" style="width: 100%; box-sizing: border-box; min-height: 84px; border-radius: 20px; border: 1px solid #55524c; background: #2c2c2a; color: #f0eee8; font-family: var(--font-body); font-size: 15.5px; padding: 16px 18px; resize: vertical;"></textarea>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+              <button type="button" onClick="{{ useExample }}" style="cursor:pointer;border:0;border-radius:999px;padding:7px 14px;font-size:12.5px;background:#4a4a46;color:#cfcbc0;white-space:nowrap;">Try the example</button>
+              <button type="button" onClick="{{ useExampleAgain }}" style="cursor:pointer;border:0;border-radius:999px;padding:7px 14px;font-size:12.5px;background:#4a4a46;color:#cfcbc0;white-space:nowrap;">Try it rephrased</button>
+            </div>
+            <button type="button" class="btn btn-primary" onClick="{{ runDiagnosis }}" style="flex: none; white-space: nowrap; margin-top: 14px;">{{ diagButtonLabel }}</button>
+            <sc-if value="{{ hasDiagError }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size: 14px; margin: 12px 0 0; color: #e08a6a;">{{ diagError }}</p>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ hasDiag }}" hint-placeholder-val="{{ false }}">
+            <div style="background: var(--color-bg); color: var(--color-text); border-radius: 20px; padding: 22px 24px; margin-top: 20px;">
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <sc-for list="{{ diagBloom }}" as="b" hint-placeholder-count="3">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;">
+                    <span style="{{ b.style }}">{{ b.letter }} · {{ b.label }}</span>
+                    <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ b.why }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="font-size: 15.5px; line-height: 25px; margin: 16px 0 0;">{{ diagErrorLine }}</p>
+              <sc-if value="{{ diagNoOwner }}" hint-placeholder-val="{{ false }}">
+                <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 1.3; margin: 16px 0 0; color: #7a8a5e;">Of course we can address this — and it starts with the people.</p>
+                <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Right now no one owns it, so that's logged below with no owner. Finding who owns it is the COGS meeting's first job on it — not a reason to wait.</p>
+              </sc-if>
+              <sc-if value="{{ diagHasOwner }}" hint-placeholder-val="{{ false }}">
+                <div style="display: grid; gap: 8px; margin-top: 16px;">
+                  <sc-for list="{{ diagChain }}" as="ch" hint-placeholder-count="3">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <span style="{{ ch.tileStyle }}">{{ ch.letter }}</span>
+                      <span style="font-size: 14px; line-height: 21px;">{{ ch.why }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <p style="font-size: 14.5px; line-height: 24px; margin: 16px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ diagSolutionLine }}</p>
+            </div>
+          </sc-if>
+          <p style="font-size: 13px; line-height: 21px; margin: 16px 0 0; color: #8f8b81;">Don't stress about this one — it's logged, and it goes to the COGS meeting to be actioned. Follow it in the <a href="#problem-register" style="color: #f0a35c;">improvement register below ↓</a> — that's where it gets assigned, accepted and signed off.</p>
+        </section>
+
+        <sc-if value="{{ hasRegister }}" hint-placeholder-val="{{ false }}">
+          <section id="problem-register" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); scroll-margin-top: 20px;">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Improvement register</h2>
+              <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ registerLine }}</span>
+            </div>
+            <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">You see what you logged and what your direct reports logged or own — not the whole business. Ranked by impact — harm first, then money, then people, then everything else. Nothing here is deleted; closed problems become history you can look back on.</p>
+
+            <div style="display: grid; gap: 14px; margin-top: 22px;">
+              <sc-for list="{{ registerItems }}" as="e" hint-placeholder-count="2">
+                <div style="{{ e.cardStyle }}">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="{{ e.numberStyle }}">{{ e.number }}</span>
+                    <span style="{{ e.priorityChip }}">{{ e.priorityLabel }}</span>
+                  </div>
+                  <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16.5px; line-height: 23px; margin: 10px 0 0;">{{ e.text }}</p>
+                  <sc-if value="{{ e.hasRecurrence }}" hint-placeholder-val="{{ false }}">
+                    <p style="font-size: 13px; line-height: 20px; margin: 8px 0 0; color: #a63b26; font-weight: 600;">{{ e.recurrenceLine }}</p>
+                  </sc-if>
+                  <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px;">
+                    <sc-for list="{{ e.bloom }}" as="b" hint-placeholder-count="2">
+                      <span style="{{ b.style }}">{{ b.letter }}</span>
+                    </sc-for>
+                    <span style="{{ e.statusChip }}">{{ e.statusLabel }}</span>
+                  </div>
+                  <p style="font-size: 13.5px; line-height: 21px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ e.metaLine }}</p>
+
+                  <sc-if value="{{ e.needsAssign }}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                      <input class="input" type="text" placeholder="Assign to — a seat on the org chart" value="{{ e.ownerDraft }}" onChange="{{ e.setOwnerDraft }}" onInput="{{ e.setOwnerDraft }}" aria-label="Assign to" style="flex: 1 1 180px; min-height: 38px;" />
+                      <input class="input" type="date" value="{{ e.deadlineDraft }}" onChange="{{ e.setDeadlineDraft }}" aria-label="Deadline" style="flex: none; min-height: 38px;" />
+                      <button type="button" class="btn btn-secondary" onClick="{{ e.assign }}" style="flex: none; white-space: nowrap;">Assign</button>
+                    </div>
+                    <sc-if value="{{ e.showToast }}" hint-placeholder-val="{{ false }}">
+                      <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: #4f7a3f;">{{ e.toastText }}</p>
+                    </sc-if>
+                  </sc-if>
+
+                  <sc-if value="{{ e.needsAcceptance }}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                      <button type="button" class="btn btn-primary" onClick="{{ e.accept }}" style="flex: none; white-space: nowrap;">Accept</button>
+                      <button type="button" class="btn btn-ghost" onClick="{{ e.deny }}" style="flex: none; white-space: nowrap;">Deny — not mine</button>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ e.canClaim }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" class="btn btn-secondary" onClick="{{ e.claim }}" style="flex: none; white-space: nowrap; margin-top: 14px;">Mark done</button>
+                  </sc-if>
+                  <sc-if value="{{ e.canValidate }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" class="btn btn-primary" onClick="{{ e.validate }}" style="flex: none; white-space: nowrap; margin-top: 14px;">Validate in COGS — sign it off</button>
+                  </sc-if>
+                  <sc-if value="{{ e.canReopen }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" class="btn btn-ghost" onClick="{{ e.reopen }}" style="flex: none; white-space: nowrap; margin-top: 14px;">{{ e.reopenLabel }}</button>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-if>
+
+        </sc-if>
+
+
+
+    <section aria-label="My four pillars" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 188px), 1fr)); gap: 16px; padding-bottom: 32px;">
+      <sc-for list="{{ myPillars }}" as="p" hint-placeholder-count="4">
+        <a href="SPEC My Scorecard.dc.html" style="{{ p.cardStyle }}">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ p.name }}</span>
+            <span style="{{ p.dot }}"></span>
+          </div>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 40px; line-height: 1; margin: 16px 0 0;">{{ p.score }}</p>
+          <p style="font-size: 13.5px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ p.note }}</p>
+          <span style="display: block; font-size: 13px; line-height: 20px; margin: 12px 0 0; color: var(--color-accent-700);">Open my KPIs →</span>
+        </a>
+      </sc-for>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <p style="font-size: 15.5px; line-height: 25px; margin: 0 0 24px; max-width: 54ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ standing }}</p>
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">What needs me today</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ tasksLine }}</span>
+          </div>
+          <div style="display: grid; gap: 10px; margin-top: 22px;">
+            <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="4">
+              <button type="button" onClick="{{ t.toggle }}" style="{{ t.style }}">
+                <span style="{{ t.boxStyle }}">{{ t.mark }}</span>
+                <span style="display: grid; gap: 3px; text-align: left;">
+                  <span style="{{ t.labelStyle }}">{{ t.label }}</span>
+                  <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ t.meta }}</span>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+        </section>
+
+        <sc-if value="{{ hasJobs }}" hint-placeholder-val="{{ false }}">
+          <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Today's jobs</h2>
+              <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ jobsLine }}</span>
+            </div>
+            <div style="display: grid; gap: 10px; margin-top: 22px;">
+              <sc-for list="{{ jobs }}" as="j" hint-placeholder-count="3">
+                <div style="{{ j.style }}">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="display: grid; gap: 3px;">
+                      <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">{{ j.site }}</span>
+                      <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ j.crew }}</span>
+                    </span>
+                    <span style="{{ j.chip }}">{{ j.state }}</span>
+                  </div>
+                  <p style="font-size: 13.5px; line-height: 21px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ j.note }}</p>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;">
+              <button type="button" onClick="{{ toolbox }}" style="{{ toolboxStyle }}">{{ toolboxLabel }}</button>
+              <button type="button" class="btn btn-ghost" style="flex: none; white-space: nowrap;">Report a hazard</button>
+              <button type="button" onClick="{{ clockIn }}" style="{{ clockStyle }}">{{ clockLabel }}</button>
+            </div>
+          </section>
+        </sc-if>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">{{ teamHeading }}</h2>
+            <a href="SPEC Org Chart.dc.html">Open the org chart</a>
+          </div>
+          <p style="font-size: 14.5px; line-height: 24px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ teamLine }}</p>
+          <div style="display: grid; gap: 10px; margin-top: 22px;">
+            <sc-for list="{{ team }}" as="m" hint-placeholder-count="3">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; background: var(--color-bg); border-radius: 20px; padding: 16px 20px;">
+                <span style="display: grid; gap: 3px;">
+                  <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">{{ m.title }}</span>
+                  <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ m.person }}</span>
+                </span>
+                <span style="display: flex; align-items: center; gap: 14px;">
+                  <span style="display: flex; gap: 7px;">
+                    <span style="{{ m.dotS }}">S</span>
+                    <span style="{{ m.dotP }}">P</span>
+                    <span style="{{ m.dotE }}">E</span>
+                    <span style="{{ m.dotC }}">C</span>
+                  </span>
+                  <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent); min-width: 12ch;">{{ m.flag }}</span>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size: 13.5px; line-height: 22px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ reportsToLine }}</p>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">KPI reports from connected systems</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ systemsLine }}</span>
+          </div>
+          <div style="display: grid; gap: 12px; margin-top: 22px;">
+            <sc-for list="{{ reports }}" as="r" hint-placeholder-count="4">
+              <div style="display: grid; gap: 10px; background: var(--color-bg); border-radius: 20px; padding: 18px 20px;">
+                <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                  <span style="display: flex; align-items: center; gap: 10px;">
+                    <span style="{{ r.dot }}"></span>
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">{{ r.name }}</span>
+                  </span>
+                  <span style="display: flex; align-items: baseline; gap: 10px;">
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px;">{{ r.value }}</span>
+                    <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ r.target }}</span>
+                  </span>
+                </div>
+                <div style="height: 8px; border-radius: 999px; background: var(--color-accent-100); overflow: hidden;">
+                  <div style="{{ r.barStyle }}"></div>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between;">
+                  <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ r.source }}</span>
+                  <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ r.updated }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+
+        <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Ask anything</h2>
+          <p style="font-size: 14.5px; line-height: 24px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ assistantLine }}</p>
+          <p style="font-size: 13px; line-height: 20px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Using {{ assistantProvider }}. You can point SPEC at your own assistant instead.</p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+            <input class="input" type="text" value="{{ question }}" onChange="{{ setQuestion }}" onInput="{{ setQuestion }}" aria-label="Ask a question" placeholder="Why is my People light amber?" style="flex: 1 1 200px; min-height: 40px;" />
+            <button type="button" class="btn btn-primary" onClick="{{ ask }}" style="flex: none; white-space: nowrap; min-height: 40px;">Ask</button>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;">
+            <sc-for list="{{ prompts }}" as="q" hint-placeholder-count="3">
+              <button type="button" onClick="{{ q.use }}" style="cursor: pointer; border: 0; background: var(--color-surface, #fff); border-radius: 999px; padding: 9px 16px; font-family: var(--font-body); font-size: 13px; color: var(--color-text);">{{ q.label }}</button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ hasAnswer }}" hint-placeholder-val="{{ false }}">
+            <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 18px 20px; margin-top: 18px;">
+              <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 8px; color: var(--color-accent-700);">{{ answerSource }}</p>
+              <p style="font-size: 14.5px; line-height: 24px; margin: 0;">{{ answer }}</p>
+            </div>
+          </sc-if>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Changes you should know about</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ changesLine }}</span>
+          </div>
+          <div style="display: grid; gap: 12px; margin-top: 20px;">
+            <sc-for list="{{ changes }}" as="ch" hint-placeholder-count="3">
+              <div style="{{ ch.style }}">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="{{ ch.dot }}"></span>
+                  <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ ch.kind }}</span>
+                </div>
+                <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px; margin: 10px 0 0;">{{ ch.title }}</p>
+                <p style="font-size: 13.5px; line-height: 21px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ ch.body }}</p>
+                <button type="button" onClick="{{ ch.acknowledge }}" style="{{ ch.buttonStyle }}">{{ ch.buttonLabel }}</button>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Messages</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ messagesLine }}</span>
+          </div>
+          <div style="display: grid; gap: 4px; margin-top: 18px;">
+            <sc-for list="{{ messages }}" as="ms" hint-placeholder-count="3">
+              <div style="display: grid; gap: 4px; padding: 14px 0; border-bottom: 1px solid var(--color-accent-100);">
+                <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                  <span style="{{ ms.fromStyle }}">{{ ms.from }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ ms.when }}</span>
+                </div>
+                <span style="font-size: 14px; line-height: 21px;">{{ ms.subject }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px;">
+            <button type="button" class="btn btn-ghost" style="flex: none; white-space: nowrap;">Open in Outlook</button>
+            <button type="button" class="btn btn-ghost" style="flex: none; white-space: nowrap;">Open in Gmail</button>
+          </div>
+          <p style="font-size: 13px; line-height: 20px; margin: 14px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Headlines only. SPEC does not become your inbox.</p>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Weekly meeting</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ meetingStatus }}</span>
+          </div>
+          <div style="{{ meetingStyle }}">
+            <p style="font-size: 14.5px; line-height: 23px; margin: 0;">{{ meetingItems }}</p>
+            <button type="button" class="btn btn-secondary" onClick="{{ logMeeting }}" style="flex: none; white-space: nowrap; margin-top: 16px;">{{ meetingButtonLabel }}</button>
+          </div>
+          <p style="font-size: 13px; line-height: 20px; margin: 14px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Logging the meeting is what keeps the month scoreable.</p>
+        </section>
+
+        <section style="{{ aceStyle }}">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">{{ aceHeading }}</h2>
+            <span style="{{ aceChip }}">{{ aceState }}</span>
+          </div>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ aceBody }}</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+            <sc-for list="{{ aceMonths }}" as="am" hint-placeholder-count="3">
+              <span style="{{ am.style }}">{{ am.label }}</span>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">My training</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ trainingLine }}</span>
+          </div>
+          <div style="display: grid; gap: 14px; margin-top: 20px;">
+            <sc-for list="{{ training }}" as="tr" hint-placeholder-count="3">
+              <div style="display: grid; gap: 8px;">
+                <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                  <span style="font-size: 14.5px; line-height: 22px;">{{ tr.name }}</span>
+                  <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px;">{{ tr.status }}</span>
+                </div>
+                <div style="height: 8px; border-radius: 999px; background: var(--color-surface, #fff); overflow: hidden;">
+                  <div style="{{ tr.barStyle }}"></div>
+                </div>
+                <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ tr.note }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <a href="SPEC Training.dc.html" class="btn btn-secondary" style="display: inline-flex; margin-top: 22px; text-decoration: none;">Continue training</a>
+        </section>
+      </div>
+    </div>
+
+    <p style="font-size: 15.5px; line-height: 26px; margin: 40px 0 0; max-width: 52ch; color: color-mix(in srgb, var(--color-text) 70%, transparent);">That is the whole day. Nothing else to open.</p>
+  </div>
+</div>
+
+
+<section style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); padding: 8px clamp(20px,5vw,72px) 72px;">
+  <div style="max-width: 1320px; margin: 0 auto;">
+    <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,2.8vw,32px); line-height: 1.2; margin: 0; max-width: 24ch;">What this page changes</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-top: 24px;">
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Nobody knows what is expected of them</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · expectations live in a manager's head and surface once a year, usually when something has already gone wrong.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · eight numbers for the role, on the page every person opens at the start of the day, with today's list saying which one each task moves.</p>
+        </div>
+      </div>
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Performance conversations get avoided</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · the hard conversation is the one nobody schedules, so it happens late and personally.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · the weekly meeting arrives with three items the data picked, and logging it is what keeps the month scoreable. The conversation is about a number, not a person.</p>
+        </div>
+      </div>
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">People never get to 100%</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · effort goes into whatever shouted loudest that morning.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · four lights, and the one action that turns the amber one green is at the top of the list before anything else is opened.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320},&quot;aiProvider&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Claude, through SPEC&quot;,&quot;your own assistant&quot;],&quot;default&quot;:&quot;Claude, through SPEC&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
+const rag = v => (v >= 90 ? GREEN : v >= 75 ? AMBER : RED);
+const dot = (v, size) => 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:block;flex:none;background:' + rag(v) + ';';
+const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 90 ? '#4f7a3f' : v >= 75 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
+const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+const PERSONAS = {
+  ops: {
+    label: 'Operations Manager',
+    name: 'Dane Whitmore',
+    reportsTo: 'You report to the Managing Director. Your scorecard rolls into theirs.',
+    pillars: [
+      { name: 'Safety', score: 92, note: '8 of 8 inspections done. One action open.' },
+      { name: 'People', score: 85, note: '6 of 7 one-to-ones held this month.' },
+      { name: 'Earnings', score: 89, note: 'Margin 30% against a 32% target.' },
+      { name: 'Compliance', score: 100, note: 'All tickets current. Clear to work.' },
+    ],
+    tasks: [
+      { id: 't1', label: 'Hold the missed one-to-one with Tom Alderson', meta: 'People · lifts the role from 72% to 88%' },
+      { id: 't2', label: 'Close the open corrective action from the yard inspection', meta: 'Safety · due today' },
+      { id: 't3', label: 'Book two ticket renewals before month end', meta: 'Compliance · hard gate' },
+      { id: 't4', label: 'Log the weekly meeting', meta: 'Every pillar · 5 minutes' },
+    ],
+    teamHeading: 'My team',
+    teamLine: 'Three roles report to you. Lights are Safety, People, Earnings, Compliance.',
+    team: [
+      { title: 'Site Supervisor', person: 'Tom Alderson', s: 96, p: 72, e: 94, c: 100, flag: 'People at 72%' },
+      { title: 'Scheduler', person: 'Amrit Kaur', s: 93, p: 90, e: 90, c: 100, flag: 'All green' },
+      { title: 'Yard Lead', person: 'Vacant', s: 88, p: 80, e: 86, c: 100, flag: 'Role unfilled' },
+    ],
+    reports: [
+      { name: 'Labour utilisation', value: '88%', target: 'target 90%', pct: 88, source: 'Simpro · scheduled vs billable', updated: 'Synced 6:04am' },
+      { name: 'Margin against quote', value: '30%', target: 'target 32%', pct: 82, source: 'Simpro · job actual vs quoted', updated: 'Synced 6:04am' },
+      { name: 'Corrective actions on time', value: '92%', target: 'target 95%', pct: 92, source: 'Manual — pending Safety Minder', updated: 'Confirmed 5:58am' },
+      { name: 'Tickets current', value: '100%', target: 'target 100%', pct: 100, source: 'Pylon · certifications', updated: 'Synced 5:58am' },
+    ],
+    meeting: 'Three items this week: the open safety action, the 2% margin gap against quote, and the unfilled Yard Lead role.',
+    ace: { heading: 'Ops Ace run', months: ['Jul ✓', 'Aug ✓', 'Sep —'], hit: 2, body: 'Trained on the job, signed off, and a minimum 90% on the KPI board three months in a row. People at 85% breaks this month\u2019s run.' },
+    training: [
+      { name: 'Scoring the four pillars', pct: 60, status: '60%', note: 'Two modules left. About 25 minutes.' },
+      { name: 'Psychosocial safety basics', pct: 0, status: 'Not started', note: 'Due before 30 September.' },
+      { name: 'Leading the weekly meeting', pct: 100, status: 'Complete', note: 'Passed 26 August.' },
+    ],
+    prompts: {
+      'Why is my People light amber?': ['People, this month', 'One-to-ones are 6 of 7 and Site Supervisor sits at 72%. Holding the missed one-to-one this week lifts the role to 88% and your People light to green.'],
+      'What do I take to the weekly meeting?': ['Weekly meeting pack', 'Three items: the open safety action, the 2% margin gap against quote, and the unfilled Yard Lead role. Everything else is green.'],
+      'What breaks my Ops Ace run?': ['Ace run', 'People at 85%. The board needs every pillar at 90% or better for three months straight, so September resets the count unless People recovers before lock.'],
+    },
+  },
+  sup: {
+    label: 'Site Supervisor',
+    name: 'Tom Alderson',
+    reportsTo: 'You report to the Operations Manager. Your scorecard rolls into theirs.',
+    pillars: [
+      { name: 'Safety', score: 96, note: 'Four toolbox talks held. No open hazards.' },
+      { name: 'People', score: 72, note: '3 of 5 crew one-to-ones held.' },
+      { name: 'Earnings', score: 94, note: 'Jobs completed on time at 94%.' },
+      { name: 'Compliance', score: 100, note: 'Crew clear to work. One ticket expires in 21 days.' },
+    ],
+    tasks: [
+      { id: 's1', label: 'Run the toolbox talk before the crew leaves the yard', meta: 'Safety · 10 minutes' },
+      { id: 's2', label: 'Two crew one-to-ones still to hold this month', meta: 'People · the only thing holding you at 72%' },
+      { id: 's3', label: 'Book Jai\u2019s ticket renewal — expires in 21 days', meta: 'Compliance · hard gate' },
+      { id: 's4', label: 'Submit yesterday\u2019s timesheet', meta: 'Earnings · feeds utilisation' },
+    ],
+    teamHeading: 'My crew',
+    teamLine: 'Four on the tools today. Lights are Safety, People, Earnings, Compliance.',
+    team: [
+      { title: 'Leading hand', person: 'Jai Fenton', s: 100, p: 88, e: 96, c: 92, flag: 'Ticket in 21 days' },
+      { title: 'Electrician', person: 'Marcus Bly', s: 100, p: 90, e: 94, c: 100, flag: 'Clear to work' },
+      { title: 'Apprentice', person: 'Sione Tui', s: 96, p: 84, e: 88, c: 100, flag: 'One-to-one due' },
+      { title: 'Apprentice', person: 'Ruby Chen', s: 100, p: 92, e: 90, c: 100, flag: 'Clear to work' },
+    ],
+    reports: [
+      { name: 'Jobs completed on time', value: '94%', target: 'target 90%', pct: 100, source: 'Simpro · completion date', updated: 'Synced 6:04am' },
+      { name: 'Toolbox talks held', value: '4 / 4', target: 'target 4', pct: 100, source: 'Simpro · sign-on records', updated: 'Synced 6:04am' },
+      { name: 'Hazards closed', value: '96%', target: 'target 100%', pct: 96, source: 'Manual — supervisor confirmation', updated: 'Confirmed yesterday' },
+      { name: 'Crew clear to work', value: '100%', target: 'target 100%', pct: 100, source: 'Pylon · certifications', updated: 'Synced 5:58am' },
+    ],
+    meeting: 'Two items this week: the two outstanding crew one-to-ones, and Jai\u2019s ticket renewal before it expires.',
+    ace: { heading: 'Ace eligibility', months: ['Jul —', 'Aug ✓', 'Sep —'], hit: 1, body: 'The run cannot start until the role\u2019s on-the-job training is signed off. Your path is complete and waiting on the Operations Manager.' },
+    training: [
+      { name: 'Clear to Work, end to end', pct: 100, status: 'Complete', note: 'Passed 4 September.' },
+      { name: 'Running a toolbox talk', pct: 100, status: 'Complete', note: 'Passed 19 August.' },
+      { name: 'Psychosocial safety basics', pct: 40, status: '40%', note: 'Due before 30 September.' },
+    ],
+    prompts: {
+      'What is stopping my crew being clear to work?': ['Compliance', 'Nothing today. Jai Fenton\u2019s ticket expires in 21 days — book it and the gate stays pass for October.'],
+      'Why is my People light red?': ['People, this month', 'Three of five crew one-to-ones held. Two more before the 30th takes the role from 72% to 95%.'],
+      'What do I say in the toolbox talk?': ['Toolbox talk', 'Yesterday\u2019s near miss at the switchboard, the two apprentices working at height today, and the ticket renewal so the crew hears it once.'],
+    },
+    jobs: [
+      { site: 'Northline warehouse · switchboard upgrade', crew: 'Jai, Marcus · 7:00am–3:30pm', state: 'On site', tone: GREEN, note: 'Permit signed. Isolation confirmed with the client last night.' },
+      { site: 'Harbourview fitout · stage 2 rough-in', crew: 'Sione, Ruby · 8:00am–4:00pm', state: 'Travelling', tone: AMBER, note: 'Materials picked up from the yard. Running 20 minutes behind.' },
+      { site: 'Kelvin Rd service call', crew: 'Unassigned · 1:00pm', state: 'Needs a crew', tone: RED, note: 'Client called this morning. Nobody assigned yet.' },
+    ],
+  },
+  crew: {
+    label: 'Apprentice (no scorecard)',
+    name: 'Sione Tui',
+    reportsTo: 'You report to the Site Supervisor. Your work rolls into their Safety and People numbers.',
+    checklist: true,
+    pillars: [
+      { name: 'Safety', score: 100, note: 'Signed on to today\u2019s toolbox talk.' },
+      { name: 'People', score: 100, note: 'One-to-one held on the 4th.' },
+      { name: 'Earnings', score: 100, note: 'Yesterday\u2019s timesheet submitted.' },
+      { name: 'Compliance', score: 100, note: 'Tickets current. Clear to work.' },
+    ],
+    tasks: [
+      { id: 'c1', label: 'Sign on to the toolbox talk before you start', meta: 'Safety · takes 30 seconds' },
+      { id: 'c2', label: 'Harbourview stage 2 rough-in with Ruby', meta: '8:00am–4:00pm · materials already picked up' },
+      { id: 'c3', label: 'Log today\u2019s hours before you leave site', meta: 'Feeds your supervisor\u2019s utilisation number' },
+      { id: 'c4', label: 'Finish psychosocial safety basics', meta: 'Training · due before 30 September' },
+    ],
+    teamHeading: 'Who I work with',
+    teamLine: 'Your crew today. You are not scored on these numbers — your supervisor is.',
+    team: [
+      { title: 'Site Supervisor', person: 'Tom Alderson', s: 98, p: 72, e: 100, c: 100, flag: 'Your manager' },
+      { title: 'Apprentice', person: 'Ruby Chen', s: 100, p: 92, e: 90, c: 100, flag: 'On site with you' },
+    ],
+    reports: [
+      { name: 'Hours logged this week', value: '31.5', target: 'of 38', pct: 83, source: 'Simpro · timesheets', updated: 'Synced 6:04am' },
+      { name: 'Toolbox talks signed', value: '4 / 4', target: 'target 4', pct: 100, source: 'Simpro · sign-on records', updated: 'Synced 6:04am' },
+      { name: 'Tickets current', value: '100%', target: 'target 100%', pct: 100, source: 'Pylon · certifications', updated: 'Synced 5:58am' },
+      { name: 'Apprentice hours signed', value: '100%', target: 'target 100%', pct: 100, source: 'Manual — supervisor confirmation', updated: 'Confirmed 4 Sep' },
+    ],
+    meeting: 'Your crew meeting is Thursday morning. Bring anything that slowed you down this week.',
+    ace: { heading: 'No scorecard for this role', months: ['—', '—', '—'], hit: 0, body: 'Ace is for roles with an individual KPI scorecard. Yours is a checklist role — you keep people safe, log your hours and finish your training. If you move into a scored role, the run can start then.' },
+    training: [
+      { name: 'How SPEC works', pct: 100, status: 'Complete', note: 'Passed 11 August.' },
+      { name: 'Working at heights', pct: 100, status: 'Complete', note: 'Current to March 2027.' },
+      { name: 'Psychosocial safety basics', pct: 40, status: '40%', note: 'Due before 30 September.' },
+    ],
+    prompts: {
+      'What am I on today?': ['Today', 'Harbourview stage 2 rough-in with Ruby, 8:00am to 4:00pm. Materials were picked up from the yard last night.'],
+      'Am I clear to work?': ['Compliance', 'Yes. Every ticket you hold is current and nothing expires in the next 90 days.'],
+      'What training do I still owe?': ['Training', 'Psychosocial safety basics, 40% done, due before the 30th. About twenty minutes left.'],
+    },
+  },
+  bd: {
+    label: 'BD Manager',
+    name: 'Priya Raman',
+    reportsTo: 'You report to the Managing Director. Your scorecard rolls into theirs.',
+    pillars: [
+      { name: 'Safety', score: 100, note: 'Site inductions done before every quote.' },
+      { name: 'People', score: 92, note: 'All one-to-ones held this month.' },
+      { name: 'Earnings', score: 100, note: 'Quoted work won at 41% against 35%.' },
+      { name: 'Compliance', score: 100, note: 'Every quote carries a signed scope.' },
+    ],
+    tasks: [
+      { id: 'b1', label: 'Send the Northline stage 3 quote — priced yesterday', meta: 'Earnings · sits in the 41% win rate' },
+      { id: 'b2', label: 'Confirm estimating accuracy on the Harbourview take-off', meta: 'Earnings · Groundplan vs installed' },
+      { id: 'b3', label: 'Site induction booked before Kelvin Rd quoting', meta: 'Safety · before anyone attends' },
+      { id: 'b4', label: 'Log the weekly meeting', meta: 'Every pillar · 5 minutes' },
+    ],
+    teamHeading: 'My team',
+    teamLine: 'Two roles report to you. Lights are Safety, People, Earnings, Compliance.',
+    team: [
+      { title: 'Estimator', person: 'Nadia Cole', s: 100, p: 90, e: 96, c: 100, flag: 'All green' },
+      { title: 'BD Coordinator', person: 'Liam Ward', s: 100, p: 88, e: 92, c: 100, flag: 'People at 88%' },
+    ],
+    reports: [
+      { name: 'Quoted work won', value: '41%', target: 'target 35%', pct: 100, source: 'HubSpot · deals won / quoted', updated: 'Synced hourly' },
+      { name: 'Pipeline against plan', value: '112%', target: 'target 100%', pct: 100, source: 'HubSpot · stage weighted', updated: 'Synced hourly' },
+      { name: 'Estimating accuracy', value: '96%', target: 'target 95%', pct: 100, source: 'Groundplan · take-off vs installed', updated: 'Synced 6:00am' },
+      { name: 'Quotes with signed scope', value: '100%', target: 'target 100%', pct: 100, source: 'Simpro · quote status', updated: 'Synced 6:04am' },
+    ],
+    meeting: 'Two items this week: the Northline stage 3 quote, and whether the 32% margin target holds for October quoting.',
+    ace: { heading: 'Sales Ace run', months: ['Jul ✓', 'Aug ✓', 'Sep ✓'], hit: 3, body: 'Trained on the job, signed off, and above 90% on the KPI board three months in a row. The increased incentive applies from October.' },
+    training: [
+      { name: 'How SPEC works', pct: 100, status: 'Complete', note: 'Passed 3 July.' },
+      { name: 'Margin against quote', pct: 100, status: 'Complete', note: 'Passed 21 July.' },
+      { name: 'Leading the weekly meeting', pct: 100, status: 'Complete', note: 'Passed 2 August.' },
+    ],
+    prompts: {
+      'What is in my pipeline this week?': ['HubSpot · pipeline', 'Eleven live quotes worth 112% of plan. Northline stage 3 is the largest and has been priced but not sent.'],
+      'Am I still a Sales Ace next month?': ['Ace run', 'Yes if October holds above 90% on every pillar. Win rate and pipeline have the most room; People is the one to watch at 92%.'],
+      'Which quotes are at risk?': ['Earnings', 'Two quotes older than 21 days with no client contact logged. Both sit in the 41% win rate until they are closed out.'],
+    },
+  },
+};
+
+const CHANGES = [
+  { kind: 'KPI change', level: 78, title: 'Your Earnings target moves to 32% from 1 October', body: 'Agreed with the Managing Director in last month\u2019s review. Nothing else on your scorecard changed.' },
+  { kind: 'Structure', level: 95, title: 'Yard Lead now reports to the Operations Manager', body: 'Moved in the org chart yesterday. The role is unfilled, so its lights count against the team roll-up.' },
+  { kind: 'Compliance', level: 60, title: 'Two crew tickets expire in 21 days', body: 'Jai Fenton and one other. Compliance is a hard gate, so book the renewals before month end.' },
+];
+
+const MESSAGES = [
+  { from: 'Managing Director', when: '7:12am', subject: 'Monday numbers before the 9am', unread: true },
+  { from: 'Amrit Kaur', when: 'Yesterday', subject: 'Two jobs moved to Thursday', unread: true },
+  { from: 'SPEC', when: 'Yesterday', subject: 'September scoring closes on the 30th', unread: false },
+];
+
+const DIAG_PILLAR_NAMES = { S: 'Safety', P: 'People', E: 'Earnings', C: 'Compliance' };
+const DIAG_PILLAR_COLOURS = { S: '#4f7a3f', P: '#a63b26', E: '#35617a', C: '#c08a2e' };
+const DIAG_SYSTEM_PROMPT = `You are the SPEC diagnostic engine. A business owner has typed ONE ongoing problem in plain words. Your job has two parts.
+
+JOB 1 — bloom-out: read the actual story and find the true causal chain of pillars behind the headline (Safety=S, People=P, Earnings=E, Compliance=C). Mark each as "definite" (certain from the words typed) or "possible" (could be, not asserted). Do NOT pad — no Safety on a resignation, nobody was hurt. The chain length is whatever the story supports, nothing more. HARD RULE: People (P) is never "possible". Almost every ongoing problem is a people problem underneath — if P appears in the bloom at all, it is always "definite", never hedged.
+
+DO NOT CONFUSE HARM WITH PEOPLE: physical or psychological harm to a person (an injury, a back strain, a near miss, stress-related harm) is always Safety (S), never People (P). People (P) means the org-chart and management side — who holds the seat, are they capable, are they trained, does someone own it — not the fact that a human being was hurt. A back injury is S, full stop; it only touches P if the story also shows nobody owns fixing the cause.
+
+JOB 2 — the fix: the solution has ONE fixed order, always — People, then Compliance, then Earnings (P → C → E). Never any other order, never P alone at the end, never E before C. People first because the org chart and the KPI are the mechanism; Compliance second because it locks the standard in place; Earnings last because it is always the result, never the lever. If a pillar genuinely doesn't feature in this story, skip it and keep the rest in that order — do not reorder around it. First question is always "who's responsible for this?" — if the story gives no clear owner, do NOT invent a solution: set noOwner true and the fix becomes finding out who owns it (a gap in the org chart), nothing else. Write with total certainty — this is the one proven sequence, not a suggestion.
+
+SPEC's method is always the same two tools: the ORG CHART (is there a seat for this, who holds it, who do they report to) and KPI DESIGN (is the right number being measured against that seat, so the problem shows up in a score instead of staying invisible). Every "why" and every solution line must cash out through one or both of these — never a vague "improve communication" or "build a better culture" type answer.
+
+GROUND IT IN THE ACTUAL INDUSTRY, NOT GENERIC ADVICE: infer the sector from what they typed and use its real operational practices, cadences and terms — not abstractions. Example: a trades or transport business raising a vehicle or plant issue is both a Safety problem (a poorly maintained work vehicle is a hazard) and a Compliance/People problem (vehicle checks are typically a weekly requirement, signed off by a supervisor and regularly audited) — say that specifically, with the real cadence (weekly checks, weekly audit), not "maintain your fleet better". Do this for every sector: aged care staffing ratios, hospitality food safety checks, manufacturing plant isolations, construction site inductions — name the actual recurring practice the industry runs on, and tie the KPI to it (e.g. "vehicle inspection completed and signed off, weekly", not "vehicle condition tracked").
+
+GROUND IT IN THE REAL REGULATION, DEFAULT AUSTRALIA: name the actual legislation and regulator that governs the problem, unless the story clearly names another country — then use that country's equivalent. Default assumption is Australia. Safety issues sit under the Work Health and Safety Act and the state WorkSafe / SafeWork regulator (name the right one if the state is given — WorkSafe Victoria, SafeWork NSW, WorkSafe Queensland, and so on; otherwise say "WorkSafe / SafeWork" generically). People issues touching pay, hours, unfair treatment or termination sit under the Fair Work Act and the Fair Work Ombudsman or Fair Work Commission. A vehicle or fleet issue in transport also touches Chain of Responsibility (CoR) under the Heavy Vehicle National Law. Compliance issues cite the specific licence, registration or industry code that applies (trade licensing, food safety certification, aged care standards, and so on). Use the real name, not "the relevant regulator" — and only cite what is actually relevant to the story, never padded on for effect.
+
+Respond with ONLY this JSON, no markdown fences, no other text:
+{
+  "bloom": [{"pillar":"S|P|E|C","certainty":"definite|possible","why":"one short clause, specific to their story, in plain words"}],
+  "errorLine": "one to two sentences naming the symptom they've been treating and the deeper root, specific to what they typed",
+  "noOwner": true|false,
+  "chain": [{"pillar":"P","why":"one short clause on what happens at this step — name the org-chart seat or the KPI involved"}],
+  "solutionLine": "two to three sentences, P-first, explicit about the org-chart seat and the KPI that would make this measurable, ending on the outcome. Ground it in the real operational practice for this industry, with its real cadence, not generic advice. Plain owner-facing language, never clinical."
+}`;
+
+const powerScoreOf = register => {
+  if (register.length < 3) return { pct: 0, tone: '#8c8681', early: true };
+  const total = register.length;
+  const closed = register.filter(r => r.status === 'closed').length;
+  const reopens = register.reduce((t, r) => t + (r.reopenCount || 0), 0);
+  const recurring = register.filter(r => r.recurrenceCount > 1).length;
+  const pct = Math.max(8, Math.min(97, Math.round(55 + (closed / total) * 40 - reopens * 8 - recurring * 6)));
+  return { pct, tone: pct >= 75 ? '#4f7a3f' : pct >= 45 ? '#c67139' : '#a63b26' };
+};
+
+const visibleTo = (entry, myName, myReports) =>
+  entry.createdBy === myName || entry.owner === myName || myReports.indexOf(entry.owner) > -1 || myReports.indexOf(entry.createdBy) > -1;
+
+const REG_KEY = 'spec_register';
+const HANDOFF_KEY = 'spec_handoff';
+const AUDIT_DAYS = 60;
+
+const normalise = t => t.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w.length > 3);
+const similar = (a, b) => {
+  const wa = new Set(normalise(a)), wb = new Set(normalise(b));
+  if (!wa.size || !wb.size) return false;
+  let hits = 0;
+  wa.forEach(w => { if (wb.has(w)) hits++; });
+  return hits / Math.min(wa.size, wb.size) >= 0.5;
+};
+
+const priorityOf = e => {
+  const letters = (e.bloom || []).filter(b => b.certainty === 'definite').map(b => b.pillar);
+  if (letters.includes('S')) return 1;
+  if (letters.includes('E')) return 2;
+  if (letters.includes('P')) return 3;
+  return 4;
+};
+const PRIORITY_LABEL = { 1: 'Harm — act now', 2: 'Losing money', 3: 'Losing people', 4: 'Everything else' };
+const PRIORITY_TONE = { 1: '#a63b26', 2: '#c08a2e', 3: '#35617a', 4: '#8c8681' };
+
+class Component extends DCLogic {
+  state = { persona: 'ops', done: {}, question: '', answer: null, acknowledged: {}, meetingLogged: false, toolboxDone: false, clockedIn: false, problem: '', diagLoading: false, diag: null, diagError: '', register: [], ownerDrafts: {}, deadlineDrafts: {}, assignToast: '', improvementOpen: false, bizMenuOpen: false, notifsOpen: false };
+  // Notifications are computed live from the register (assigned/overdue/approved/denied), no push.
+  // For Claude Code: replace with real email/SMS dispatch on these same events, per the user's
+  // preferences set on the Admin page (notif_email / notif_sms toggles below).
+  // Business switcher is a visual placeholder — one login per business today.
+  // For Claude Code: back this with real accounts (list of businesses the user belongs to,
+  // an active-business id in session/localStorage, and route switching through it).
+
+  componentDidMount() {
+    let register = [];
+    try { register = JSON.parse(localStorage.getItem(REG_KEY) || '[]'); } catch (e) {}
+
+    try {
+      const raw = localStorage.getItem(HANDOFF_KEY);
+      if (raw) {
+        const handoff = JSON.parse(raw);
+        if (handoff && handoff.problem && handoff.diag) {
+          const already = register.some(r => r.text === handoff.problem);
+          if (!already) {
+            register.unshift(this.makeEntry(handoff.problem, handoff.diag, PERSONAS[this.state.persona].name));
+          }
+        }
+        localStorage.removeItem(HANDOFF_KEY);
+      }
+    } catch (e) {}
+
+    this.setState({ register });
+    this.saveRegister(register, true);
+  }
+
+  makeEntry(text, diag, createdBy) {
+    return {
+      id: 'r' + Date.now() + Math.floor(Math.random() * 1000),
+      createdBy: createdBy || null,
+      text,
+      bloom: diag.bloom,
+      errorLine: diag.errorLine,
+      solutionLine: diag.solutionLine,
+      chain: diag.chain,
+      noOwner: !!diag.noOwner,
+      status: 'open',
+      owner: null,
+      accepted: null,
+      manager: null,
+      deadline: null,
+      recurrenceCount: 1,
+      reopenCount: 0,
+      signedOffAt: null,
+      createdAt: Date.now(),
+    };
+  }
+
+  saveRegister(register, skipSetState) {
+    try { localStorage.setItem(REG_KEY, JSON.stringify(register)); } catch (e) {}
+    if (!skipSetState) this.setState({ register });
+  }
+
+  updateEntry(id, patch) {
+    const register = this.state.register.map(e => e.id === id ? { ...e, ...patch } : e);
+    this.saveRegister(register);
+  }
+
+  renderVals() {
+    const key = this.state.persona;
+    const p = PERSONAS[key];
+    const myName = p.name;
+    const myReports = (p.team || []).map(m => m.person).filter(Boolean);
+    const notifList = [];
+    this.state.register.forEach(e => {
+      if (e.owner === myName && e.accepted === null) notifList.push({ text: e.owner + ', a new item was assigned to you: "' + e.text + '"' });
+      if (e.owner === myName && e.status === 'boardApproved') notifList.push({ text: 'Board approved: "' + e.text + '"' });
+      if (e.deniedByBoard && e.createdBy === myName) notifList.push({ text: 'Board sent back for a new owner: "' + e.text + '"' });
+      if (e.deadline && e.status !== 'closed' && new Date(e.deadline) < new Date()) notifList.push({ text: 'Overdue: "' + e.text + '" was due ' + e.deadline });
+    });
+    const doneCount = p.tasks.filter(t => this.state.done[t.id]).length;
+    const answer = this.state.answer;
+    const worst = Math.min.apply(null, p.pillars.map(x => x.score));
+
+    return {
+      personas: Object.keys(PERSONAS).map(k => ({
+        label: PERSONAS[k].label,
+        select: () => this.setState({ persona: k, answer: null, question: '' }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:9px 18px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
+          + (k === key ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);box-shadow:var(--shadow-sm);'),
+      })),
+
+      initials: p.name.split(' ').map(w => w.slice(0, 1)).join(''),
+      roleLine: p.name + ' · ' + p.label,
+      dateLine: 'Monday 14 September',
+      greeting: 'Good morning, ' + p.name.split(' ')[0] + '.',
+      isChecklist: !!p.checklist,
+      standing: doneCount === p.tasks.length
+        ? 'Everything on today\u2019s list is done. Your four lights are as good as they get this month.'
+        : (p.tasks.length - doneCount) + ' things need you today' + (worst < 90 ? ', and one of them moves a light to green.' : '.'),
+
+      myPillars: p.pillars.map(x => ({
+        name: x.name,
+        score: x.score + '%',
+        note: x.note,
+        dot: dot(x.score, 14),
+        cardStyle: 'display:block;text-decoration:none;color:var(--color-text);border-radius:var(--radius-lg);padding:24px;background:var(--color-surface, #fff);box-shadow:var(--shadow-sm);border-top:4px solid ' + rag(x.score) + ';',
+      })),
+
+      tasksLine: doneCount + ' of ' + p.tasks.length + ' done',
+      tasks: p.tasks.map(t => {
+        const done = !!this.state.done[t.id];
+        return {
+          label: t.label,
+          meta: t.meta,
+          mark: done ? '✓' : '',
+          toggle: () => this.setState(s => ({ done: { ...s.done, [t.id]: !s.done[t.id] } })),
+          style: 'cursor:pointer;border:0;width:100%;display:flex;align-items:flex-start;gap:14px;padding:16px 20px;border-radius:20px;font-family:var(--font-body);background:' + (done ? 'color-mix(in srgb, ' + GREEN + ' 10%, transparent)' : 'var(--color-bg)') + ';',
+          boxStyle: 'flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-content:center;font-size:13px;color:#fff;background:' + (done ? GREEN : 'transparent') + ';box-shadow:inset 0 0 0 2px ' + (done ? GREEN : 'var(--color-accent-200)') + ';',
+          labelStyle: 'font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:15.5px;line-height:22px;' + (done ? 'text-decoration:line-through;opacity:0.55;' : ''),
+        };
+      }),
+
+      hasJobs: !!p.jobs,
+      jobsLine: p.jobs ? p.jobs.length + ' jobs · 1 needs a crew' : '',
+      jobs: (p.jobs || []).map(j => ({
+        site: j.site,
+        crew: j.crew,
+        note: j.note,
+        state: j.state,
+        chip: chip(j.tone),
+        style: 'background:var(--color-bg);border-radius:20px;padding:18px 20px;border-left:4px solid ' + j.tone + ';',
+      })),
+      toolboxLabel: this.state.toolboxDone ? 'Toolbox talk signed ✓' : 'Run the toolbox talk',
+      toolboxStyle: 'cursor:pointer;border:0;border-radius:999px;padding:10px 20px;font-family:var(--font-body);font-size:13.5px;white-space:nowrap;flex:none;'
+        + (this.state.toolboxDone ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+      toolbox: () => this.setState(s => ({ toolboxDone: !s.toolboxDone })),
+      clockLabel: this.state.clockedIn ? 'Clocked in ✓' : 'Clock in',
+      clockStyle: 'cursor:pointer;border:0;border-radius:999px;padding:10px 20px;font-family:var(--font-body);font-size:13.5px;white-space:nowrap;flex:none;'
+        + (this.state.clockedIn ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-bg);color:var(--color-text);'),
+      clockIn: () => this.setState(s => ({ clockedIn: !s.clockedIn })),
+
+      teamHeading: p.teamHeading,
+      teamLine: p.teamLine,
+      reportsToLine: p.reportsTo,
+      team: p.team.map(m => ({
+        title: m.title,
+        person: m.person || 'Vacant',
+        flag: m.flag,
+        dotS: tile(m.s, 11), dotP: tile(m.p, 11), dotE: tile(m.e, 11), dotC: tile(m.c, 11),
+      })),
+
+      systemsLine: '10 systems connected',
+      reports: p.reports.map(r => ({
+        ...r,
+        dot: dot(r.pct, 12),
+        barStyle: 'height:100%;border-radius:999px;width:' + r.pct + '%;background:' + rag(r.pct) + ';',
+      })),
+
+      aceHeading: p.ace.heading,
+      aceState: p.ace.hit === 3 ? 'Ace' : p.ace.hit + ' of 3 months',
+      aceChip: chip(p.ace.hit === 3 ? GREEN : p.ace.hit === 2 ? AMBER : GREY),
+      aceBody: p.ace.body,
+      aceStyle: 'border-radius:var(--radius-lg);padding:clamp(24px,3vw,36px);background:' + (p.ace.hit === 3 ? 'color-mix(in srgb, ' + GREEN + ' 12%, transparent)' : 'var(--color-accent-100)') + ';',
+      aceMonths: p.ace.months.map(m => ({
+        label: m,
+        style: 'display:inline-flex;align-items:center;border-radius:999px;padding:7px 16px;font-size:13px;white-space:nowrap;'
+          + (m.indexOf('✓') > -1 ? 'background:color-mix(in srgb, ' + GREEN + ' 16%, transparent);color:' + GREEN + ';' : 'background:var(--color-surface, #fff);color:color-mix(in srgb, var(--color-text) 60%, transparent);'),
+      })),
+
+      assistantLine: 'Claude is connected through SPEC and can see your scorecard, your team and the systems above.',
+      assistantProvider: this.props.aiProvider ?? 'Claude, through SPEC',
+      question: this.state.question,
+      setQuestion: e => this.setState({ question: e.target.value }),
+      prompts: Object.keys(p.prompts).map(q => ({
+        label: q,
+        use: () => this.setState({ question: q, answer: p.prompts[q] }),
+      })),
+      ask: () => {
+        const q = this.state.question.trim();
+        this.setState({ answer: p.prompts[q] || ['Answer', 'SPEC will answer from your scorecard, your team\u2019s scores and the connected systems. This is a design placeholder.'] });
+      },
+      hasAnswer: !!answer,
+      answerSource: answer ? answer[0] : '',
+      answer: answer ? answer[1] : '',
+
+      problem: this.state.problem,
+      setProblem: e => this.setState({ problem: e.target.value }),
+      useExample: () => this.setState({ problem: 'Our best apprentice just quit and it\u2019s the second one this year' }),
+      useExampleAgain: () => this.setState({ problem: 'Another good tradesperson has handed in their notice, third one this year' }),
+      onProblemKeyDown: e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this.runDiagnosis();
+        }
+      },
+      diagButtonLabel: this.state.diagLoading ? 'Reading it…' : this.state.diag ? 'Fix another one' : 'Let\u2019s fix it',
+      hasDiagError: !!this.state.diagError,
+      diagError: this.state.diagError,
+      runDiagnosis: this.runDiagnosis || (this.runDiagnosis = async () => {
+        const text = this.state.problem.trim();
+        if (!text) { this.setState({ diagError: 'Type an improvement opportunity in the box first — an ongoing one, not a one-off.' }); return; }
+        if (this.state.diagLoading) return;
+        this.setState({ diagLoading: true, diagError: '', diag: null });
+        try {
+          const raw = await window.claude.complete({
+            model: 'claude-sonnet-4-5',
+            system: DIAG_SYSTEM_PROMPT,
+            messages: [{ role: 'user', content: text }],
+            max_tokens: 800,
+          });
+          const cleaned = raw.trim().replace(/^```json?/i, '').replace(/```$/, '').trim();
+          const parsed = JSON.parse(cleaned);
+          this.setState({ diag: parsed, diagLoading: false, problem: '' });
+
+          const existing = this.state.register.find(r => similar(r.text, text));
+          let register;
+          if (existing) {
+            register = this.state.register.map(r => r.id === existing.id ? { ...r, recurrenceCount: r.recurrenceCount + 1 } : r);
+          } else {
+            register = [this.makeEntry(text, parsed, PERSONAS[this.state.persona].name), ...this.state.register];
+          }
+          this.saveRegister(register);
+        } catch (e) {
+          this.setState({ diagLoading: false, diagError: 'Could not read that one — try describing it in a sentence or two.' });
+        }
+      }),
+      hasDiag: !!this.state.diag,
+      diagBloom: this.state.diag ? this.state.diag.bloom.map(b => ({
+        letter: b.pillar,
+        label: DIAG_PILLAR_NAMES[b.pillar] + (b.certainty === 'possible' ? ' — could be' : ''),
+        why: b.why || '',
+        style: 'display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 14px;font-size:13px;font-family:var(--font-heading);font-weight:var(--font-heading-weight);white-space:nowrap;'
+          + (b.certainty === 'possible'
+            ? 'background:transparent;color:' + DIAG_PILLAR_COLOURS[b.pillar] + ';box-shadow:inset 0 0 0 1.5px ' + DIAG_PILLAR_COLOURS[b.pillar] + ';opacity:0.75;'
+            : 'background:' + DIAG_PILLAR_COLOURS[b.pillar] + ';color:#fff;'),
+      })) : [],
+      diagErrorLine: this.state.diag ? this.state.diag.errorLine : '',
+      diagNoOwner: this.state.diag ? !!this.state.diag.noOwner : false,
+      diagHasOwner: this.state.diag ? !this.state.diag.noOwner : false,
+      diagSolutionLine: this.state.diag ? this.state.diag.solutionLine : '',
+      diagChain: this.state.diag && this.state.diag.chain ? this.state.diag.chain.map(c => ({
+        letter: c.pillar,
+        why: c.why || '',
+        tileStyle: 'display:grid;place-content:center;width:32px;height:32px;border-radius:10px;background:' + DIAG_PILLAR_COLOURS[c.pillar] + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:14px;flex:none;',
+      })) : [],
+
+      attendsCogs: !p.checklist,
+      improvementOpen: this.state.improvementOpen,
+      toggleImprovement: () => this.setState(s => ({ improvementOpen: !s.improvementOpen })),
+      bizName: 'JBI Electrical',
+      bizMenuOpen: this.state.bizMenuOpen,
+      toggleBizMenu: () => this.setState(s => ({ bizMenuOpen: !s.bizMenuOpen })),
+      bizButtonStyle: 'cursor:pointer;border:0;background:var(--color-bg);border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13.5px;color:var(--color-text);white-space:nowrap;margin-left:auto;',
+
+      hasNotifs: notifList.length > 0,
+      notifsOpen: this.state.notifsOpen,
+      toggleNotifs: () => this.setState(s => ({ notifsOpen: !s.notifsOpen, bizMenuOpen: false })),
+      notifButtonStyle: 'position:relative;cursor:pointer;border:0;background:var(--color-bg);border-radius:999px;width:38px;height:38px;font-size:16px;',
+      notifDotStyle: 'position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:50%;background:#a63b26;display:block;',
+      notifItems: notifList,
+      noNotifs: notifList.length === 0,
+      closeImprovement: () => this.setState({ improvementOpen: false }),
+      improvementTabLabel: this.state.improvementOpen ? 'Close ✕' : '💡 Improvement opportunity',
+      improvementTabStyle: 'cursor:pointer;border:0;border-radius:999px;padding:16px 26px;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:16px;white-space:nowrap;flex:none;box-shadow:0 4px 14px rgba(198,113,57,0.35);'
+        + (this.state.improvementOpen ? 'background:#3a3a38;color:#f0eee8;' : 'background:var(--color-accent);color:#fff;'),
+      hasNotifications: this.state.register.some(r => r.owner === myName && r.accepted === null),
+      notifyHeading: this.state.register.filter(r => r.owner === myName && r.accepted === null).length + ' assigned to you, waiting on your answer',
+      notifications: this.state.register.filter(r => r.owner === myName && r.accepted === null).map(r => ({
+        text: r.text,
+        accept: () => this.updateEntry(r.id, { accepted: true }),
+        deny: () => this.updateEntry(r.id, { accepted: false, owner: null }),
+      })),
+      personName: p.name + ' · ' + p.label,
+      nameInitials: p.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+
+      powerPct: powerScoreOf(this.state.register).pct,
+      powerOffset: Math.round(264 - (264 * powerScoreOf(this.state.register).pct) / 100),
+      powerColour: powerScoreOf(this.state.register).tone,
+      powerCardStyle: 'background:var(--color-surface, #fff);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:22px 26px;margin-bottom:20px;border-left:5px solid ' + powerScoreOf(this.state.register).tone + ';',
+      snapLabel: powerScoreOf(this.state.register).early ? 'Snap Score — waiting for improvement opportunities' : 'Snap Score — ' + powerScoreOf(this.state.register).pct + '%',
+      snapNote: powerScoreOf(this.state.register).early
+        ? 'Log a few and this reads the engine — closed, staying closed, not reopening.'
+        : 'Not a count of problems — a read of the engine. Visible to whoever attends the COGS meeting.',
+
+      hasRegister: this.state.register.filter(r => visibleTo(r, myName, myReports)).length > 0,
+      registerLine: this.state.register.filter(r => visibleTo(r, myName, myReports)).length + ' visible to you',
+      registerItems: this.state.register.filter(r => visibleTo(r, myName, myReports)).sort((a, b) => {
+        const pa = priorityOf(a), pb = priorityOf(b);
+        if (pa !== pb) return pa - pb;
+        if (b.recurrenceCount !== a.recurrenceCount) return b.recurrenceCount - a.recurrenceCount;
+        return b.createdAt - a.createdAt;
+      }).map((e, i) => {
+        const pr = priorityOf(e);
+        const now = Date.now();
+        const overdue = e.deadline && e.status === 'open' && new Date(e.deadline).getTime() < now;
+        const auditDue = e.status === 'closed' && e.signedOffAt && (now - e.signedOffAt) / 86400000 > AUDIT_DAYS;
+        const daysAgo = e.signedOffAt ? Math.round((now - e.signedOffAt) / 86400000) : 0;
+
+        const statusInfo = {
+          open: { label: e.owner ? (e.accepted === false ? 'Denied — unassigned' : e.accepted ? 'Accepted, in progress' : 'Waiting on acceptance') : 'No owner yet', tone: e.owner && e.accepted ? '#4f7a3f' : '#c67139' },
+          claimed: { label: 'Claimed done — awaiting COGS', tone: '#c67139' },
+          closed: { label: auditDue ? 'Signed off ' + daysAgo + 'd ago — still solved?' : 'Closed, signed off', tone: auditDue ? '#c08a2e' : '#4f7a3f' },
+          reopened: { label: 'Reopened', tone: '#a63b26' },
+        }[e.status] || { label: e.status, tone: '#8c8681' };
+
+        return {
+          number: i === 0 ? 'Opportunity #1' : 'Opportunity #' + (i + 1),
+          numberStyle: 'font-size:12px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;color:color-mix(in srgb, var(--color-text) 70%, transparent);',
+          priorityLabel: PRIORITY_LABEL[pr],
+          priorityChip: chip(PRIORITY_TONE[pr]),
+          text: e.text,
+          hasRecurrence: e.recurrenceCount > 1,
+          recurrenceLine: 'This is the ' + e.recurrenceCount + (e.recurrenceCount === 2 ? 'nd' : e.recurrenceCount === 3 ? 'rd' : 'th') + ' time this has come up — treat it as systemic, not a one-off.',
+          bloom: (e.bloom || []).map(b => ({
+            letter: b.pillar,
+            style: 'display:grid;place-content:center;width:26px;height:26px;border-radius:8px;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:12px;'
+              + (b.certainty === 'possible'
+                ? 'background:transparent;color:' + DIAG_PILLAR_COLOURS[b.pillar] + ';box-shadow:inset 0 0 0 1.5px ' + DIAG_PILLAR_COLOURS[b.pillar] + ';opacity:0.7;'
+                : 'background:' + DIAG_PILLAR_COLOURS[b.pillar] + ';color:#fff;'),
+          })),
+          statusLabel: statusInfo.label,
+          statusChip: chip(statusInfo.tone),
+          cardStyle: 'background:var(--color-bg);border-radius:20px;padding:18px 20px;border-left:4px solid ' + (overdue ? '#a63b26' : PRIORITY_TONE[pr]) + ';',
+          metaLine: (e.owner ? 'Owner: ' + e.owner + (e.manager ? ' · escalates to ' + e.manager : '') : 'No one owns this yet.') + (e.deadline ? ' · due ' + e.deadline + (overdue ? ' — overdue' : '') : ''),
+
+          needsAssign: e.status === 'open' && !e.owner,
+          showToast: !!this.state.assignToast && this.state.lastAssignedId === e.id,
+          toastText: this.state.assignToast,
+          ownerDraft: this.state.ownerDrafts[e.id] || '',
+          setOwnerDraft: ev => this.setState(s => ({ ownerDrafts: { ...s.ownerDrafts, [e.id]: ev.target.value } })),
+          deadlineDraft: this.state.deadlineDrafts[e.id] || '',
+          setDeadlineDraft: ev => this.setState(s => ({ deadlineDrafts: { ...s.deadlineDrafts, [e.id]: ev.target.value } })),
+          assign: () => {
+            const owner = (this.state.ownerDrafts[e.id] || '').trim();
+            if (!owner) return;
+            const p = PERSONAS[this.state.persona];
+            this.updateEntry(e.id, { owner, accepted: null, manager: p ? p.reportsTo.replace('You report to the ', '').replace('. Your scorecard rolls into theirs.', '').replace('. Your work rolls into their Safety and People numbers.', '') : null, deadline: this.state.deadlineDrafts[e.id] || null });
+            this.setState({ assignToast: owner + ' will see this waiting for them next time they open their page.', lastAssignedId: e.id });
+            setTimeout(() => this.setState({ assignToast: '' }), 4000);
+          },
+
+          needsAcceptance: e.status === 'open' && !!e.owner && e.accepted === null,
+          accept: () => this.updateEntry(e.id, { accepted: true }),
+          deny: () => this.updateEntry(e.id, { accepted: false, owner: null }),
+
+          canClaim: e.status === 'open' && e.accepted === true,
+          claim: () => this.updateEntry(e.id, { status: 'claimed' }),
+          canValidate: e.status === 'claimed',
+          validate: () => this.updateEntry(e.id, { status: 'closed', signedOffAt: Date.now() }),
+          canReopen: e.status === 'closed' || e.status === 'reopened',
+          reopenLabel: auditDue ? 'Reopen — hasn\u2019t stayed fixed' : 'Reopen',
+          reopen: () => this.updateEntry(e.id, { status: 'reopened', reopenCount: (e.reopenCount || 0) + 1 }),
+        };
+      }),
+
+      changesLine: CHANGES.filter(c => !this.state.acknowledged[c.title]).length + ' new',
+      changes: CHANGES.map(c => {
+        const seen = !!this.state.acknowledged[c.title];
+        return {
+          kind: c.kind,
+          title: c.title,
+          body: c.body,
+          dot: dot(c.level, 12),
+          style: 'border-radius:20px;padding:18px 20px;background:' + (seen ? 'var(--color-bg)' : 'color-mix(in srgb, ' + rag(c.level) + ' 9%, transparent)') + ';',
+          buttonLabel: seen ? 'Acknowledged' : 'Got it',
+          buttonStyle: 'margin-top:14px;cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13px;background:' + (seen ? 'transparent' : 'var(--color-surface, #fff)') + ';color:' + (seen ? 'color-mix(in srgb, var(--color-text) 60%, transparent)' : 'var(--color-text)') + ';',
+          acknowledge: () => this.setState(s => ({ acknowledged: { ...s.acknowledged, [c.title]: true } })),
+        };
+      }),
+
+      messagesLine: MESSAGES.filter(m => m.unread).length + ' unread',
+      messages: MESSAGES.map(m => ({
+        from: m.from,
+        when: m.when,
+        subject: m.subject,
+        fromStyle: 'font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:15px;' + (m.unread ? '' : 'opacity:0.6;'),
+      })),
+
+      meetingItems: p.meeting,
+      meetingStatus: this.state.meetingLogged ? 'Logged for this week' : 'Not logged yet',
+      meetingButtonLabel: this.state.meetingLogged ? 'Logged ✓' : 'Log this week\u2019s meeting',
+      meetingStyle: 'border-radius:20px;padding:18px 20px;margin-top:16px;background:' + (this.state.meetingLogged ? 'color-mix(in srgb, ' + GREEN + ' 10%, transparent)' : 'var(--color-bg)') + ';',
+      logMeeting: () => this.setState(s => ({ meetingLogged: !s.meetingLogged })),
+
+      trainingLine: p.training.filter(t => t.pct === 100).length + ' of ' + p.training.length + ' complete',
+      training: p.training.map(t => ({
+        name: t.name,
+        status: t.status,
+        note: t.note,
+        barStyle: 'height:100%;border-radius:999px;width:' + Math.max(t.pct, 2) + '%;background:' + (t.pct === 100 ? GREEN : t.pct > 0 ? AMBER : RED) + ';',
+      })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

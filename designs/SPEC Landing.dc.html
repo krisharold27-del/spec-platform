@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<script src="./image-slot.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; overflow-x: clip; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg);">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="#" style="color: var(--color-text); font-weight: 700;">Overview</a>
+    <a href="SPEC Sectors.dc.html">Sectors</a>
+    <a href="SPEC Pricing.dc.html">Pricing</a>
+    <a href="SPEC My Page.dc.html" class="btn btn-primary" style="flex: none; white-space: nowrap; margin-left: auto; text-decoration: none;">Start free</a>
+  </nav>
+
+  <section aria-label="Problem" style="background: #3a3a38; padding: clamp(48px,8vw,96px) clamp(20px,5vw,72px) clamp(64px,9vw,112px);">
+    <div style="max-width: 760px; margin: 0 auto; text-align: center;">
+      <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,44px); line-height: 1.2; margin: 0; color: #f0eee8;">Got problems? We'll fix them.</p>
+      <p style="font-size: 17px; line-height: 26px; margin: 14px 0 0; color: #c3bfb4;">Tell us about one — as long as it's <strong style="color: #f0a35c; font-weight: 800;">ongoing</strong>.</p>
+
+      <div style="margin-top: 28px;">
+        <textarea aria-label="Describe an ongoing problem" placeholder="e.g. our best apprentice just quit and it's the second one this year" value="{{ problem }}" onChange="{{ setProblem }}" onInput="{{ setProblem }}" onKeyDown="{{ onKeyDown }}" style="width: 100%; box-sizing: border-box; min-height: 96px; border-radius: 20px; border: 1px solid #55524c; background: #2c2c2a; color: #f0eee8; font-family: var(--font-body); font-size: 16px; padding: 18px 20px; resize: vertical;"></textarea>
+        <button type="button" class="btn btn-primary" onClick="{{ runDiagnosis }}" style="flex: none; white-space: nowrap; margin-top: 16px;">{{ buttonLabel }}</button>
+        <sc-if value="{{ hasError }}" hint-placeholder-val="{{ false }}">
+          <p style="font-size: 14px; margin: 14px 0 0; color: #e08a6a;">{{ errorMsg }}</p>
+        </sc-if>
+      </div>
+    </div>
+  </section>
+
+  <sc-if value="{{ hasResult }}" hint-placeholder-val="{{ false }}">
+    <section aria-label="Solution" style="background: var(--color-bg); color: var(--color-text); padding: clamp(48px,8vw,96px) clamp(20px,5vw,72px);">
+      <div style="max-width: 820px; margin: 0 auto;">
+        <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 16px;">What's really going on</span>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px;">
+          <sc-for list="{{ bloom }}" as="b" hint-placeholder-count="3">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px;">
+              <span style="{{ b.style }}">{{ b.letter }} · {{ b.label }}</span>
+              <span style="font-size: 14px; line-height: 21px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ b.why }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <p style="font-size: 17px; line-height: 28px; max-width: 62ch; margin: 0;">{{ errorLine }}</p>
+
+        <sc-if value="{{ noOwner }}" hint-placeholder-val="{{ false }}">
+          <div style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: 24px 26px; margin-top: 28px;">
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 19px; line-height: 1.3; margin: 0;">Of course we can address this — and it starts with the people.</p>
+            <p style="font-size: 15px; line-height: 25px; margin: 12px 0 0; max-width: 58ch;">{{ solutionLine }}</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasOwner }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top: 28px;">
+            <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 14px;">The fix — People, then Compliance, then Earnings. Every time.</span>
+            <div style="display: grid; gap: 10px;">
+              <sc-for list="{{ chain }}" as="ch" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <span style="{{ ch.tileStyle }}">{{ ch.letter }}</span>
+                  <span style="font-size: 14.5px; line-height: 22px; max-width: 52ch;">{{ ch.why }}</span>
+                  <sc-if value="{{ ch.hasArrow }}" hint-placeholder-val="{{ true }}">
+                    <span style="color: color-mix(in srgb, var(--color-text) 40%, transparent); font-size: 16px; flex: none;">↓</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <p style="font-size: 15.5px; line-height: 26px; max-width: 62ch; margin: 20px 0 0;">{{ solutionLine }}</p>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 1.4; max-width: 60ch; margin: 20px 0 0; color: var(--color-accent-2-900);">You're already working flat out — this is exactly what SPEC does, every day, to point that effort at the right thing.</p>
+          </div>
+        </sc-if>
+
+        <div style="margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--color-accent-100);">
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.3; margin: 0;">Would you like to solve some problems in your business?</p>
+          <div style="display: flex; gap: 10px; margin-top: 18px;">
+            <button type="button" class="btn btn-primary" onClick="{{ sayYes }}" style="flex: none; white-space: nowrap;">Yes</button>
+            <button type="button" class="btn btn-ghost" onClick="{{ sayNo }}" style="flex: none; white-space: nowrap;">No</button>
+          </div>
+          <sc-if value="{{ saidYes }}" hint-placeholder-val="{{ false }}">
+            <div style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: 22px 24px; margin-top: 20px;">
+              <sc-if value="{{ showBizName }}" hint-placeholder-val="{{ true }}">
+                <p style="font-size: 15px; line-height: 25px; margin: 0;">Can you give me your business name? Your page is waiting, with this problem already sitting in the middle of it.</p>
+                <input class="input" type="text" placeholder="Business name" aria-label="Business name" value="{{ bizName }}" onChange="{{ setBizName }}" onInput="{{ setBizName }}" onKeyDown="{{ onBizNameKeyDown }}" style="width: 100%; box-sizing: border-box; margin-top: 14px; min-height: 42px;" />
+                <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Press Enter — takes about two minutes to set the business up, then this problem is waiting in your page.</p>
+              </sc-if>
+
+              <sc-if value="{{ showRoute }}" hint-placeholder-val="{{ false }}">
+                <p style="font-size: 15px; line-height: 25px; margin: 0;">Who is the leader of these solutions — is it you?</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;">
+                  <button type="button" class="btn btn-primary" onClick="{{ routeMe }}" style="flex: none; white-space: nowrap;">Yes, it's me</button>
+                  <button type="button" class="btn btn-secondary" onClick="{{ routeAssign }}" style="flex: none; white-space: nowrap;">No, allocate someone</button>
+                  <button type="button" class="btn btn-ghost" onClick="{{ routeHelp }}" style="flex: none; white-space: nowrap;">I can't do this, it's too hard</button>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ showAssignForm }}" hint-placeholder-val="{{ false }}">
+                <p style="font-size: 15px; line-height: 25px; margin: 0;">Fine — allocate a person to run this. Who is it?</p>
+                <div style="display: grid; gap: 10px; margin-top: 14px; max-width: 380px;">
+                  <input class="input" type="text" placeholder="Their name" value="{{ assigneeName }}" onChange="{{ setAssigneeName }}" onInput="{{ setAssigneeName }}" aria-label="Their name" style="min-height: 40px;" />
+                  <input class="input" type="text" placeholder="Their title" value="{{ assigneeTitle }}" onChange="{{ setAssigneeTitle }}" onInput="{{ setAssigneeTitle }}" aria-label="Their title" style="min-height: 40px;" />
+                  <input class="input" type="email" placeholder="Their email" value="{{ assigneeEmail }}" onChange="{{ setAssigneeEmail }}" onInput="{{ setAssigneeEmail }}" aria-label="Their email" style="min-height: 40px;" />
+                </div>
+                <button type="button" class="btn btn-primary" onClick="{{ submitAssign }}" style="flex: none; white-space: nowrap; margin-top: 14px;">Continue</button>
+              </sc-if>
+
+              <sc-if value="{{ showHelp }}" hint-placeholder-val="{{ false }}">
+                <p style="font-size: 15px; line-height: 25px; margin: 0;">No problem — a SPEC specialist will talk you through it, no self-service required.</p>
+                <a href="mailto:manager@specbizhq.com" class="btn btn-primary" style="display: inline-flex; text-decoration: none; margin-top: 14px;">Talk to SPEC</a>
+              </sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{ saidNo }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size: 14.5px; line-height: 24px; margin-top: 16px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">No problem. The box is here whenever one becomes worth solving.</p>
+          </sc-if>
+        </div>
+      </div>
+    </section>
+  </sc-if>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px);">
+
+    <section aria-label="The cost" style="padding: clamp(48px,7vw,72px) 0 64px;">
+      <div style="background: var(--color-accent-2-100); border-radius: 32px; padding: clamp(28px,4vw,48px) clamp(24px,4vw,56px); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: clamp(24px,4vw,48px); align-items: center;">
+        <div>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.35; margin: 0; max-width: 30ch;">Are you getting the best out of your people? SPEC shows you in one place, for free, before you connect anything.</p>
+          <a href="SPEC My Page.dc.html" class="btn btn-primary" style="flex: none; white-space: nowrap; margin-top: 24px; text-decoration: none;">Start free</a>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: clamp(16px,3vw,28px);">
+          <p style="font-size: 16px; line-height: 26px; margin: 0; max-width: 26ch; flex: 1 1 220px;">Average productivity improvement for businesses using SPEC.</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(52px,7vw,88px); line-height: 1; margin: 0; color: var(--color-accent-2-900); flex: none;">20%</p>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding: 0 0 64px;">
+      <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 24px;">Four questions. Answer honestly.</span>
+      <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(28px,3.2vw,40px); line-height: 1.18; margin: 0; max-width: 26ch;">One yes is enough to need a system.</h2>
+      <p style="font-size: 16px; line-height: 28px; margin: 20px 0 0; max-width: 54ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Safety, people, earnings, compliance — yes to any one of them and you need a system. Then you find out why, and that's where SPEC helps.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-top: 32px; max-width: 760px;">
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm);">
+          <p style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Safety</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 24px; margin: 8px 0 0;">Do you have safety issues?</p>
+        </div>
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm);">
+          <p style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">People</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 24px; margin: 8px 0 0;">Do you have people issues?</p>
+        </div>
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm);">
+          <p style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Earnings</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 24px; margin: 8px 0 0;">Do you have earnings issues?</p>
+        </div>
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm);">
+          <p style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Compliance</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 24px; margin: 8px 0 0;">Do you have compliance issues?</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing" style="padding: 0 0 64px;">
+      <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 24px;">Pricing</span>
+      <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(28px,3.2vw,40px); line-height: 1.18; margin: 0 0 12px; max-width: 22ch;">Per seat, per month, in your own currency</h2>
+      <p style="font-size: 16px; line-height: 28px; margin: 0 0 36px; max-width: 52ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">A price is set for your region and never moves because an exchange rate did. You are billed where the business is.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; max-width: 820px;">
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 32px; box-shadow: var(--shadow-sm);">
+          <p style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">SPEC Basic</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 44px; line-height: 1.1; margin: 14px 0 0;">{{ seatPrice }}</p>
+          <p style="font-size: 14px; line-height: 24px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">per seat, per month</p>
+          <p style="font-size: 15.5px; line-height: 28px; margin: 20px 0 0;">The platform with no AI support: org chart, roles, monthly scoring, hard gates and the board pack. Every number typed by hand.</p>
+          <a href="SPEC My Page.dc.html" class="btn btn-secondary" style="flex: none; white-space: nowrap; margin-top: 24px; text-decoration: none;">Start free</a>
+        </div>
+        <div style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: 32px;">
+          <p style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: var(--color-accent-2-800);">SPEC Advanced</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 44px; line-height: 1.1; margin: 14px 0 0;">{{ trainingPrice }}</p>
+          <p style="font-size: 14px; line-height: 24px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">per seat, per month</p>
+          <p style="font-size: 15.5px; line-height: 28px; margin: 20px 0 0;">Everything in Basic, plus the connectors, KPIs fed from your systems, Claude on every page, and the AI paid for through SPEC.</p>
+          <button type="button" class="btn btn-primary" style="flex: none; white-space: nowrap; margin-top: 24px;">Talk to us</button>
+        </div>
+      </div>
+      <p style="font-size: 14px; line-height: 28px; margin: 24px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Building the business and setting the KPIs is free. Seats are charged once you start scoring.</p>
+    </section>
+
+    <section style="padding: 0 0 56px;">
+      <div style="background: var(--color-accent-2-100); border-radius: 32px; padding: clamp(32px,5vw,56px) clamp(24px,4vw,64px);">
+        <h3 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px; line-height: 34px; margin: 0; max-width: 24ch;">Your dashboard opens as soon as a role has its KPIs</h3>
+        <p style="font-size: 15.5px; line-height: 28px; margin: 14px 0 0; max-width: 54ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Set two numbers per pillar for one role and the executive summary fills in. Start with a work email.</p>
+        <div style="display: flex; gap: var(--space-3); align-items: stretch; flex-wrap: wrap; max-width: 480px; margin-top: 28px;">
+          <input class="input" type="email" placeholder="you@company.com" aria-label="Work email" style="flex: 1 1 220px; min-height: 36px;" />
+          <a href="SPEC My Page.dc.html" class="btn btn-primary" style="flex: none; white-space: nowrap; min-height: 36px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Start free</a>
+        </div>
+        <p style="font-size: 14px; line-height: 28px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Already on SPEC? <a href="SPEC Sign In.dc.html">Sign in</a></p>
+      </div>
+    </section>
+
+    <footer style="display: flex; flex-wrap: wrap; gap: 20px; padding: 0 0 48px; font-size: 13px; line-height: 28px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">
+      <span>SPEC Business Solutions</span>
+      <a href="#">Terms</a>
+      <a href="#">Privacy</a>
+      <a href="#">Get help</a>
+    </footer>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;currency&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;AUD&quot;,&quot;NZD&quot;,&quot;GBP&quot;,&quot;EUR&quot;,&quot;USD&quot;,&quot;CAD&quot;],&quot;default&quot;:&quot;AUD&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Pricing&quot;}}">
+const PRICES = {
+  AUD: { seat: 26, withTraining: 44, symbol: 'A$' },
+  NZD: { seat: 35, withTraining: 53, symbol: 'NZ$' },
+  GBP: { seat: 17, withTraining: 26, symbol: '£' },
+  EUR: { seat: 26, withTraining: 44, symbol: '€' },
+  USD: { seat: 26, withTraining: 44, symbol: 'US$' },
+  CAD: { seat: 35, withTraining: 53, symbol: 'CA$' },
+};
+
+const PILLAR_NAMES = { S: 'Safety', P: 'People', E: 'Earnings', C: 'Compliance' };
+const PILLAR_COLOURS = { S: '#4f7a3f', P: '#a63b26', E: '#35617a', C: '#c08a2e' };
+
+const SYSTEM_PROMPT = `You are the SPEC diagnostic engine. A business owner has typed ONE ongoing problem in plain words. Your job has two parts.
+
+JOB 1 — bloom-out: read the actual story and find the true causal chain of pillars behind the headline (Safety=S, People=P, Earnings=E, Compliance=C). Mark each as "definite" (certain from the words typed) or "possible" (could be, not asserted). Do NOT pad — no Safety on a resignation, nobody was hurt. The chain length is whatever the story supports, nothing more. HARD RULE: People (P) is never "possible". Almost every ongoing problem is a people problem underneath — if P appears in the bloom at all, it is always "definite", never hedged.
+
+DO NOT CONFUSE HARM WITH PEOPLE: physical or psychological harm to a person (an injury, a back strain, a near miss, stress-related harm) is always Safety (S), never People (P). People (P) means the org-chart and management side — who holds the seat, are they capable, are they trained, does someone own it — not the fact that a human being was hurt. A back injury is S, full stop; it only touches P if the story also shows nobody owns fixing the cause.
+
+JOB 2 — the fix: the solution has ONE fixed order, always — People, then Compliance, then Earnings (P → C → E). Never any other order, never P alone at the end, never E before C. People first because the org chart and the KPI are the mechanism; Compliance second because it locks the standard in place; Earnings last because it is always the result, never the lever. If a pillar genuinely doesn't feature in this story, skip it and keep the rest in that order — do not reorder around it. First question is always "who's responsible for this?" — if the story gives no clear owner, do NOT invent a solution: set noOwner true and the fix becomes finding out who owns it (a gap in the org chart), nothing else. Write with total certainty — this is the one proven sequence, not a suggestion.
+
+SPEC's method is always the same two tools: the ORG CHART (is there a seat for this, who holds it, who do they report to) and KPI DESIGN (is the right number being measured against that seat, so the problem shows up in a score instead of staying invisible). Every "why" and every solution line must cash out through one or both of these — never a vague "improve communication" or "build a better culture" type answer.
+
+GROUND IT IN THE ACTUAL INDUSTRY, NOT GENERIC ADVICE: infer the sector from what they typed and use its real operational practices, cadences and terms — not abstractions. Example: a trades or transport business raising a vehicle or plant issue is both a Safety problem (a poorly maintained work vehicle is a hazard) and a Compliance/People problem (vehicle checks are typically a weekly requirement, signed off by a supervisor and regularly audited) — say that specifically, with the real cadence (weekly checks, weekly audit), not "maintain your fleet better". Do this for every sector: aged care staffing ratios, hospitality food safety checks, manufacturing plant isolations, construction site inductions — name the actual recurring practice the industry runs on, and tie the KPI to it (e.g. "vehicle inspection completed and signed off, weekly", not "vehicle condition tracked").
+
+GROUND IT IN THE REAL REGULATION, DEFAULT AUSTRALIA: name the actual legislation and regulator that governs the problem, unless the story clearly names another country — then use that country's equivalent. Default assumption is Australia. Safety issues sit under the Work Health and Safety Act and the state WorkSafe / SafeWork regulator (name the right one if the state is given — WorkSafe Victoria, SafeWork NSW, WorkSafe Queensland, and so on; otherwise say "WorkSafe / SafeWork" generically). People issues touching pay, hours, unfair treatment or termination sit under the Fair Work Act and the Fair Work Ombudsman or Fair Work Commission. A vehicle or fleet issue in transport also touches Chain of Responsibility (CoR) under the Heavy Vehicle National Law. Compliance issues cite the specific licence, registration or industry code that applies (trade licensing, food safety certification, aged care standards, and so on). Use the real name, not "the relevant regulator" — and only cite what is actually relevant to the story, never padded on for effect.
+
+Respond with ONLY this JSON, no markdown fences, no other text:
+{
+  "bloom": [{"pillar":"S|P|E|C","certainty":"definite|possible","why":"one short clause, specific to their story, in plain words"}],
+  "errorLine": "one to two sentences naming the symptom they've been treating and the deeper root, specific to what they typed",
+  "noOwner": true|false,
+  "chain": [{"pillar":"P","why":"one short clause on what happens at this step — name the org-chart seat or the KPI involved"}],
+  "solutionLine": "two to three sentences, P-first, explicit about the org-chart seat and the KPI that would make this measurable, ending on the outcome. Ground it in the real operational practice for this industry, with its real cadence, not generic advice. Plain owner-facing language, never clinical."
+}`;
+
+class Component extends DCLogic {
+  state = { problem: '', loading: false, result: null, error: '', yes: false, no: false, bizName: '', bizNameSubmitted: false, route: null, assigneeName: '', assigneeTitle: '', assigneeEmail: '' };
+
+  powerScore() {
+    let register = [];
+    try { register = JSON.parse(localStorage.getItem('spec_register') || '[]'); } catch (e) {}
+    if (register.length < 3) return { pct: 0, label: 'Not enough history yet to score — this reads real, closed-out problems over time, not day one.' };
+    const total = register.length;
+    const closed = register.filter(r => r.status === 'closed').length;
+    const reopens = register.reduce((t, r) => t + (r.reopenCount || 0), 0);
+    const recurring = register.filter(r => r.recurrenceCount > 1).length;
+    const pct = Math.max(8, Math.min(97, Math.round(55 + (closed / total) * 40 - reopens * 8 - recurring * 6)));
+    return { pct, label: closed + ' of ' + total + ' closed, ' + reopens + ' reopened, ' + recurring + ' recurring.' };
+  }
+
+  goToMyPage() {
+    try {
+      localStorage.setItem('spec_handoff', JSON.stringify({
+        bizName: this.state.bizName.trim(),
+        problem: this.state.problem,
+        diag: this.state.result,
+        at: Date.now(),
+      }));
+    } catch (err) {}
+    window.location.href = 'SPEC Setup.dc.html';
+  }
+
+  renderVals() {
+    const r = this.state.result;
+    const p = PRICES[this.props.currency] || PRICES.AUD;
+
+    return {
+      seatPrice: p.symbol + p.seat,
+      trainingPrice: p.symbol + p.withTraining,
+
+      problem: this.state.problem,
+      setProblem: e => this.setState({ problem: e.target.value }),
+      onKeyDown: e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this.runDiagnosis();
+        }
+      },
+      buttonLabel: this.state.loading ? 'Reading it…' : r ? 'Look below ↓' : 'Talk about it',
+      hasError: !!this.state.error,
+      errorMsg: this.state.error,
+      runDiagnosis: this.runDiagnosis || (this.runDiagnosis = async () => {
+        const text = this.state.problem.trim();
+        if (!text || this.state.loading) return;
+        this.setState({ loading: true, error: '', result: null, yes: false, no: false });
+        try {
+          const raw = await window.claude.complete({
+            model: 'claude-sonnet-4-5',
+            system: SYSTEM_PROMPT,
+            messages: [{ role: 'user', content: text }],
+            max_tokens: 800,
+          });
+          const cleaned = raw.trim().replace(/^```json?/i, '').replace(/```$/, '').trim();
+          const parsed = JSON.parse(cleaned);
+          this.setState({ result: parsed, loading: false });
+        } catch (e) {
+          this.setState({ loading: false, error: 'Could not read that one — try describing it in a sentence or two.' });
+        }
+      }),
+
+      hasResult: !!r,
+      bloom: r ? r.bloom.map(b => ({
+        letter: b.pillar,
+        label: PILLAR_NAMES[b.pillar] + (b.certainty === 'possible' ? ' — could be' : ''),
+        why: b.why || '',
+        style: 'display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:8px 16px;font-size:13.5px;font-family:var(--font-heading);font-weight:var(--font-heading-weight);white-space:nowrap;'
+          + (b.certainty === 'possible'
+            ? 'background:transparent;color:' + PILLAR_COLOURS[b.pillar] + ';box-shadow:inset 0 0 0 1.5px ' + PILLAR_COLOURS[b.pillar] + ';opacity:0.75;'
+            : 'background:' + PILLAR_COLOURS[b.pillar] + ';color:#fff;'),
+      })) : [],
+      errorLine: r ? r.errorLine : '',
+      noOwner: r ? !!r.noOwner : false,
+      hasOwner: r ? !r.noOwner : false,
+      solutionLine: r ? r.solutionLine : '',
+      chainLabel: r && r.chain ? r.chain.map(c => c.pillar).join('→') : '',
+      chain: r && r.chain ? r.chain.map((c, i) => ({
+        letter: c.pillar,
+        why: c.why || '',
+        hasArrow: i < r.chain.length - 1,
+        tileStyle: 'display:grid;place-content:center;width:38px;height:38px;border-radius:12px;background:' + PILLAR_COLOURS[c.pillar] + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:16px;flex:none;',
+      })) : [],
+
+      saidYes: this.state.yes,
+      saidNo: this.state.no,
+      sayYes: () => this.setState({ yes: true, no: false }),
+      sayNo: () => this.setState({ yes: false, no: true }),
+
+      bizName: this.state.bizName,
+      setBizName: e => this.setState({ bizName: e.target.value }),
+      bizNameSubmitted: this.state.bizNameSubmitted,
+      onBizNameKeyDown: e => {
+        if (e.key === 'Enter' && this.state.bizName.trim()) {
+          e.preventDefault();
+          this.setState({ bizNameSubmitted: true });
+        }
+      },
+      showBizName: !this.state.bizNameSubmitted,
+      showRoute: this.state.bizNameSubmitted && !this.state.route,
+      showAssignForm: this.state.route === 'assign',
+      showHelp: this.state.route === 'help',
+      routeMe: () => { this.setState({ route: 'me' }); this.goToMyPage(); },
+      routeAssign: () => this.setState({ route: 'assign' }),
+      routeHelp: () => this.setState({ route: 'help' }),
+      assigneeName: this.state.assigneeName,
+      setAssigneeName: e => this.setState({ assigneeName: e.target.value }),
+      assigneeTitle: this.state.assigneeTitle,
+      setAssigneeTitle: e => this.setState({ assigneeTitle: e.target.value }),
+      assigneeEmail: this.state.assigneeEmail,
+      setAssigneeEmail: e => this.setState({ assigneeEmail: e.target.value }),
+      submitAssign: () => { if (this.state.assigneeName.trim()) this.goToMyPage(); },
+
+      powerPct: this.powerScore().pct,
+      powerOffset: Math.round(264 - (264 * this.powerScore().pct) / 100),
+      powerColour: this.powerScore().pct >= 75 ? '#4f7a3f' : this.powerScore().pct >= 45 ? '#c67139' : '#a63b26',
+      powerLabel: this.powerScore().label,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

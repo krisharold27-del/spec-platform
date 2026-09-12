@@ -13,7 +13,7 @@ import { cadenceOf, CADENCE } from '@/lib/governance';
 import { validateWeights } from '@/lib/scoring';
 import { isScored } from '@/lib/today-data';
 import { summarise, provenance, preparedBy, unexplained } from '@/lib/scorecard';
-import { addComment } from './actions';
+import { addComment, addKpi } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -172,6 +172,40 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
           }))}
         />
       </div>
+
+      {/*
+        Adding a KPI belongs here, not only in the setup wizard.
+
+        The measures worth having are the ones somebody thinks of in March, looking at a month that
+        failed to measure the thing that actually went wrong. If the only way to add one is to walk
+        back through setup, nobody does, and the card stays wrong for a year.
+
+        Weights are not asked for. They must sum to 100% within a pillar, and making somebody do
+        that arithmetic to add one row is how a card ends up invalid — so the new one takes an equal
+        share and the rest are scaled to fit. See addKpi.
+      */}
+      {scored && period.status !== 'locked' && scope.canEdit(roleId) && (
+        <section className="card mt-6">
+          <h2 className="font-serif text-xl text-ink">Add a KPI</h2>
+          <p className="mt-1 max-w-2xl text-sm text-ink-light">
+            One measure, against one pillar. It joins {period.period} and every month after it —
+            closed months keep exactly what they were signed with.
+          </p>
+          <form action={addKpi} className="mt-4 grid gap-2 sm:grid-cols-[1.4fr_1fr_auto_auto]">
+            <input type="hidden" name="roleId" value={roleId} />
+            <input className="input" name="text" required maxLength={200} placeholder="New KPI" aria-label="New KPI" />
+            <input className="input" name="target" maxLength={80} placeholder="Target" aria-label="Target" />
+            <select className="input" name="pillar" defaultValue="safety" aria-label="Which pillar">
+              {PILLARS.map(p => <option key={p} value={p}>{PILLAR_META[p].name}</option>)}
+            </select>
+            <SubmitButton className="btn-secondary shrink-0" pending="Adding…">Add KPI</SubmitButton>
+          </form>
+          <p className="mt-3 text-xs text-ink-light">
+            Weights inside that pillar re-balance themselves — the new one takes an equal share and
+            the others keep their order of importance.
+          </p>
+        </section>
+      )}
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
         <section className="card">

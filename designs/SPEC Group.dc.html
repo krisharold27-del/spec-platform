@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; padding: clamp(28px,4vw,44px) 0 24px;">
+      <div>
+        <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Group · September 2026</span>
+        <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">{{ headline }}</h1>
+        <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Five businesses, one standard. A group figure is only worth reading if every entity answered the same four questions the same way, so an unlocked entity is shown as unlocked, not averaged in.</p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <sc-for list="{{ modes }}" as="m" hint-placeholder-count="2">
+          <button type="button" onClick="{{ m.select }}" style="{{ m.style }}">{{ m.label }}</button>
+        </sc-for>
+      </div>
+    </header>
+
+    <sc-if value="{{ byPillar }}" hint-placeholder-val="{{ true }}">
+      <section aria-label="Group pillars" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 196px), 1fr)); gap: 16px; padding-bottom: clamp(20px,3vw,28px);">
+        <sc-for list="{{ pillars }}" as="p" hint-placeholder-count="4">
+          <div style="{{ p.style }}">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ p.name }}</span>
+              <span style="{{ p.dot }}"></span>
+            </div>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 40px; line-height: 1; margin: 16px 0 0;">{{ p.score }}</p>
+            <p style="font-size: 13.5px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ p.spread }}</p>
+            <div style="display: grid; gap: 6px; margin-top: 16px;">
+              <sc-for list="{{ p.rows }}" as="pr" hint-placeholder-count="4">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+                  <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ pr.name }}</span>
+                  <span style="{{ pr.valueStyle }}">{{ pr.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ byEntity }}" hint-placeholder-val="{{ false }}">
+      <section aria-label="By entity" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; padding-bottom: clamp(20px,3vw,28px);">
+        <sc-for list="{{ entityCards }}" as="ec" hint-placeholder-count="5">
+          <div style="{{ ec.style }}">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px;">{{ ec.name }}</span>
+              <span style="{{ ec.chip }}">{{ ec.state }}</span>
+            </div>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 34px; line-height: 1; margin: 14px 0 0;">{{ ec.month }}</p>
+            <p style="font-size: 13px; line-height: 20px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ ec.meta }}</p>
+            <div style="display: grid; gap: 8px; margin-top: 16px;">
+              <sc-for list="{{ ec.rows }}" as="er" hint-placeholder-count="4">
+                <div>
+                  <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="font-size: 13px; line-height: 19px;">{{ er.name }}</span>
+                    <span style="{{ er.valueStyle }}">{{ er.value }}</span>
+                  </div>
+                  <div style="height: 6px; border-radius: 999px; background: var(--color-accent-100); overflow: hidden; margin-top: 5px;">
+                    <div style="{{ er.barStyle }}"></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <p style="font-size: 13px; line-height: 20px; margin: 14px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ ec.note }}</p>
+          </div>
+        </sc-for>
+      </section>
+    </sc-if>
+
+    <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); min-width: 0;">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Entities</h2>
+        <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ entityLine }}</span>
+      </div>
+      <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Tap an entity to leave it out of the group figure. Anything not locked is excluded automatically and named below.</p>
+
+      <div style="display: grid; gap: 12px; margin-top: 22px;">
+        <sc-for list="{{ entities }}" as="e" hint-placeholder-count="5">
+          <button type="button" onClick="{{ e.toggle }}" style="{{ e.style }}">
+            <span style="display: grid; gap: 3px; text-align: left; min-width: 180px;">
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16.5px;">{{ e.name }}</span>
+              <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ e.meta }}</span>
+            </span>
+            <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
+              <span style="display: flex; gap: 8px;">
+                <span style="{{ e.s }}">S</span>
+                <span style="{{ e.p }}">P</span>
+                <span style="{{ e.e }}">E</span>
+                <span style="{{ e.c }}">C</span>
+              </span>
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 18px; min-width: 4ch;">{{ e.month }}</span>
+              <span style="{{ e.chip }}">{{ e.state }}</span>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: clamp(20px,3vw,32px); margin-top: clamp(20px,3vw,28px); align-items: start;">
+
+      <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">What the group is asked to do</h2>
+        <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; max-width: 52ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Only what cannot be solved inside one entity.</p>
+        <div style="display: grid; gap: 12px; margin-top: 20px;">
+          <sc-for list="{{ asks }}" as="a" hint-placeholder-count="3">
+            <div style="{{ a.style }}">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px;">{{ a.what }}</span>
+                <span style="{{ a.chip }}">{{ a.where }}</span>
+              </div>
+              <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ a.why }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Comparable, not identical</h2>
+        <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Entities in different sectors score different KPIs. The pillars and the 90% rule are what make them comparable — the numbers underneath are not meant to match.</p>
+        <div style="display: grid; gap: 12px; margin-top: 20px;">
+          <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4">
+            <div style="background: var(--color-surface, #fff); border-radius: 18px; padding: 16px 18px;">
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15.5px; line-height: 22px; margin: 0;">{{ r.what }}</p>
+              <p style="font-size: 13.5px; line-height: 21px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ r.note }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+
+    <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px); margin-top: clamp(20px,3vw,28px);">
+      <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.2; margin: 0;">Group labour position</h2>
+      <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; max-width: 56ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Across the entities counted, at {{ improveLabel }} on the labour component.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; margin-top: 20px;">
+        <sc-for list="{{ money }}" as="m" hint-placeholder-count="3">
+          <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 20px 22px;">
+            <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ m.label }}</p>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1.05; margin: 12px 0 0;">{{ m.value }}</p>
+            <p style="font-size: 13px; line-height: 20px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ m.note }}</p>
+          </div>
+        </sc-for>
+      </div>
+      <label style="display: grid; gap: 8px; margin-top: 22px; max-width: 340px;">
+        <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Improvement on labour · {{ improveLabel }}</span>
+        <input type="range" min="10" max="30" value="{{ improveValue }}" onChange="{{ setImprove }}" onInput="{{ setImprove }}" aria-label="Improvement on labour" style="width: 100%; accent-color: var(--color-accent);" />
+      </label>
+    </section>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
+const rag = v => (v >= 90 ? GREEN : v >= 75 ? AMBER : RED);
+const dot = (v, size) => 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:block;flex:none;background:' + rag(v) + ';';
+const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 90 ? '#4f7a3f' : v >= 75 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
+const chip = tone => 'display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+const ENTITIES = [
+  { id: 'e1', name: 'JBI Electrical', meta: 'Electrical · 42 people · Sydney', s: 96, p: 84, e: 91, c: 100, locked: true, labour: 3600000 },
+  { id: 'e2', name: 'JBI Services QLD', meta: 'Electrical · 28 people · Brisbane', s: 92, p: 90, e: 88, c: 100, locked: true, labour: 2400000 },
+  { id: 'e3', name: 'Northline Data', meta: 'Communications · 16 people · Sydney', s: 98, p: 92, e: 94, c: 100, locked: true, labour: 1600000 },
+  { id: 'e4', name: 'Harbour Solar', meta: 'Renewables · 22 people · Newcastle', s: 88, p: 78, e: 82, c: 96, locked: true, labour: 1900000 },
+  { id: 'e5', name: 'JBI New Zealand', meta: 'Electrical · 11 people · Auckland', s: 94, p: 86, e: 90, c: 100, locked: false, labour: 1100000 },
+];
+
+const ASKS = [
+  { what: 'One safety system across all five', why: 'Four entities run different incident registers, so group TRIFR cannot be calculated. Safety Minder is approved for JBI Electrical only.', where: 'Group', tone: AMBER },
+  { what: 'Harbour Solar People at 78%', why: 'Two levels below the group standard for three months. The entity has no People lead and the GM is covering it.', where: 'Harbour Solar', tone: RED },
+  { what: 'New Zealand scoring is late', why: 'September not locked. The board figure below excludes it rather than estimating it.', where: 'JBI NZ', tone: AMBER },
+];
+
+const RULES = [
+  { what: 'The pillars are fixed, the KPIs are not', note: 'A solar entity and a comms entity answer the same four questions with different numbers underneath.' },
+  { what: 'Only locked periods count', note: 'An unlocked entity is named and excluded. Nothing is estimated into a group figure.' },
+  { what: 'Hard gates never average', note: 'One entity failing Zero Harm is reported on its own line, whatever the group score says.' },
+  { what: 'One entity, one board pack', note: 'Each entity still produces its own pack. The group view is the five of them read side by side.' },
+];
+
+const fmt = n => {
+  const v = Math.round(n);
+  if (v >= 1000000) return 'A$' + (v / 1000000).toFixed(v >= 10000000 ? 1 : 2) + 'm';
+  if (v >= 1000) return 'A$' + Math.round(v / 1000) + 'k';
+  return 'A$' + v;
+};
+
+class Component extends DCLogic {
+  state = { excluded: {}, mode: 'pillars', improve: 20 };
+
+  renderVals() {
+    const counted = ENTITIES.filter(e => e.locked && !this.state.excluded[e.id]);
+    const notCounted = ENTITIES.filter(e => !e.locked || this.state.excluded[e.id]);
+    const avg = key => counted.length ? Math.round(counted.reduce((t, e) => t + e[key], 0) / counted.length) : 0;
+    const spread = key => {
+      if (!counted.length) return 'nothing counted';
+      const vals = counted.map(e => e[key]);
+      return Math.min.apply(null, vals) + ' to ' + Math.max.apply(null, vals) + ' across entities';
+    };
+    const worst = Math.min.apply(null, ['s', 'p', 'e', 'c'].map(k => avg(k)));
+    const labour = counted.reduce((t, e) => t + e.labour, 0);
+    const gain = labour * (this.state.improve / 100);
+
+    return {
+      headline: counted.length
+        ? (worst >= 90 ? 'All four green across the group' : 'Group held back by ' + (avg('p') === worst ? 'People' : avg('e') === worst ? 'Earnings' : avg('s') === worst ? 'Safety' : 'Compliance') + ' at ' + worst + '%')
+        : 'Nothing counted this month',
+      modes: [
+        { key: 'pillars', label: 'By pillar' },
+        { key: 'entity', label: 'By entity' },
+      ].map(m => ({
+        label: m.label,
+        select: () => this.setState({ mode: m.key }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:10px 20px;font-family:var(--font-body);font-size:13.5px;white-space:nowrap;'
+          + (this.state.mode === m.key ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);box-shadow:var(--shadow-sm);'),
+      })),
+
+      byPillar: this.state.mode === 'pillars',
+      byEntity: this.state.mode === 'entity',
+
+      pillars: [
+        { name: 'Safety', key: 's' },
+        { name: 'People', key: 'p' },
+        { name: 'Earnings', key: 'e' },
+        { name: 'Compliance', key: 'c' },
+      ].map(p => {
+        const score = avg(p.key);
+        return {
+          name: p.name,
+          score: score + '%',
+          spread: spread(p.key),
+          dot: dot(score, 14),
+          style: 'background:var(--color-surface, #fff);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:24px;border-top:4px solid ' + rag(score) + ';',
+          rows: counted.map(e => ({
+            name: e.name,
+            value: e[p.key] + '%',
+            valueStyle: 'font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:13.5px;color:' + rag(e[p.key]) + ';',
+          })),
+        };
+      }),
+
+      entityCards: ENTITIES.map(e => {
+        const out = !e.locked || this.state.excluded[e.id];
+        const month = Math.round((e.s + e.p + e.e + e.c) / 4);
+        return {
+          name: e.name,
+          meta: e.meta,
+          month: month + '%',
+          state: !e.locked ? 'Not locked' : this.state.excluded[e.id] ? 'Excluded' : 'Counted',
+          chip: chip(!e.locked ? RED : this.state.excluded[e.id] ? GREY : GREEN),
+          style: 'background:var(--color-surface, #fff);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:22px 24px;border-top:4px solid ' + (out ? GREY : rag(month)) + ';' + (out ? 'opacity:0.65;' : ''),
+          note: out ? 'Not counted in the group figure.' : 'Lowest pillar ' + Math.min(e.s, e.p, e.e, e.c) + '%.',
+          rows: [
+            { name: 'Safety', v: e.s },
+            { name: 'People', v: e.p },
+            { name: 'Earnings', v: e.e },
+            { name: 'Compliance', v: e.c },
+          ].map(r => ({
+            name: r.name,
+            value: r.v + '%',
+            valueStyle: 'font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:13.5px;',
+            barStyle: 'height:100%;border-radius:999px;width:' + r.v + '%;background:' + rag(r.v) + ';',
+          })),
+        };
+      }),
+
+      entityLine: counted.length + ' of ' + ENTITIES.length + ' counted' + (notCounted.length ? ' · ' + notCounted.map(e => e.name).join(', ') + ' excluded' : ''),
+      entities: ENTITIES.map(e => {
+        const out = !e.locked || this.state.excluded[e.id];
+        const month = Math.round((e.s + e.p + e.e + e.c) / 4);
+        return {
+          name: e.name,
+          meta: e.meta + ' · ' + fmt(e.labour) + ' labour',
+          s: tile(e.s, 12), p: tile(e.p, 12), e: tile(e.e, 12), c: tile(e.c, 12),
+          month: month + '%',
+          state: !e.locked ? 'Not locked' : this.state.excluded[e.id] ? 'Excluded' : 'Counted',
+          chip: chip(!e.locked ? RED : this.state.excluded[e.id] ? GREY : GREEN),
+          style: 'cursor:pointer;border:0;width:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;background:var(--color-bg);border-radius:20px;padding:18px 20px;font-family:var(--font-body);color:var(--color-text);border-left:4px solid ' + (out ? GREY : rag(month)) + ';' + (out ? 'opacity:0.6;' : ''),
+          toggle: () => { if (e.locked) this.setState(s => ({ excluded: { ...s.excluded, [e.id]: !s.excluded[e.id] } })); },
+        };
+      }),
+
+      asks: ASKS.map(a => ({
+        what: a.what,
+        why: a.why,
+        where: a.where,
+        chip: chip(a.tone),
+        style: 'background:var(--color-bg);border-radius:20px;padding:18px 20px;border-left:4px solid ' + a.tone + ';',
+      })),
+
+      rules: RULES,
+
+      improveLabel: this.state.improve + '%',
+      improveValue: this.state.improve,
+      setImprove: e => this.setState({ improve: Number(e.target.value) }),
+      money: [
+        { label: 'Labour counted', value: fmt(labour), note: counted.length + ' entities, locked periods only' },
+        { label: 'Recoverable', value: fmt(gain), note: 'at ' + this.state.improve + '% on the labour component' },
+        { label: 'Per entity', value: fmt(gain / Math.max(counted.length, 1)), note: 'average across those counted' },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

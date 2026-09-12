@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; padding: clamp(28px,4vw,44px) 0 24px;">
+      <div>
+        <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Approvals · everything waiting on a person</span>
+        <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">{{ headline }}</h1>
+        <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">One queue, whatever it is about. Every item says what it blocks, so nothing sits here because nobody knew it mattered.</p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <sc-for list="{{ viewers }}" as="v" hint-placeholder-count="3">
+          <button type="button" onClick="{{ v.select }}" style="{{ v.style }}">{{ v.label }}</button>
+        </sc-for>
+      </div>
+    </header>
+
+    <section aria-label="Summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; padding-bottom: clamp(20px,3vw,28px);">
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+        <div style="{{ s.style }}">
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ s.label }}</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 36px; line-height: 1; margin: 14px 0 0;">{{ s.value }}</p>
+          <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ s.note }}</p>
+        </div>
+      </sc-for>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); min-width: 0;">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Waiting on you</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ queueLine }}</span>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+            <sc-for list="{{ filters }}" as="f" hint-placeholder-count="5">
+              <button type="button" onClick="{{ f.select }}" style="{{ f.style }}">{{ f.label }}</button>
+            </sc-for>
+          </div>
+
+          <div style="display: grid; gap: 12px; margin-top: 22px;">
+            <sc-for list="{{ items }}" as="it" hint-placeholder-count="5">
+              <div style="{{ it.style }}">
+                <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                  <span style="display: grid; gap: 3px;">
+                    <span style="font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ it.kind }} · {{ it.age }}</span>
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px;">{{ it.title }}</span>
+                  </span>
+                  <span style="{{ it.chip }}">{{ it.state }}</span>
+                </div>
+                <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ it.detail }}</p>
+                <p style="font-size: 13.5px; line-height: 21px; margin: 10px 0 0;">{{ it.blocks }}</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px;">
+                  <button type="button" onClick="{{ it.approve }}" style="{{ it.approveStyle }}">{{ it.approveLabel }}</button>
+                  <button type="button" onClick="{{ it.decline }}" style="{{ it.declineStyle }}">Decline</button>
+                  <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ it.from }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <p style="font-size: 13.5px; line-height: 21px; margin: 20px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ emptyLine }}</p>
+        </section>
+      </div>
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+        <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">What Claude handled</h2>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Routine things that did not need a person. Each one is reversible and logged against a name.</p>
+          <div style="display: grid; gap: 10px; margin-top: 20px;">
+            <sc-for list="{{ handled }}" as="h" hint-placeholder-count="4">
+              <div style="background: var(--color-surface, #fff); border-radius: 18px; padding: 16px 18px;">
+                <p style="font-size: 14.5px; line-height: 22px; margin: 0;">{{ h.what }}</p>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px;">
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ h.when }}</span>
+                  <button type="button" onClick="{{ h.undo }}" style="{{ h.undoStyle }}">{{ h.undoLabel }}</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Waiting on someone else</h2>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Yours to chase, not to decide.</p>
+          <div style="display: grid; gap: 12px; margin-top: 20px;">
+            <sc-for list="{{ elsewhere }}" as="el" hint-placeholder-count="3">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-accent-100); padding-bottom: 12px;">
+                <span style="display: grid; gap: 2px;">
+                  <span style="font-size: 14.5px; line-height: 21px;">{{ el.what }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ el.who }}</span>
+                </span>
+                <span style="{{ el.chip }}">{{ el.age }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.2; margin: 0;">How you are notified</h2>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">SPEC does not send everything everywhere. Pick the loudness once.</p>
+          <div style="display: grid; gap: 10px; margin-top: 20px;">
+            <sc-for list="{{ prefs }}" as="pf" hint-placeholder-count="4">
+              <button type="button" onClick="{{ pf.cycle }}" style="{{ pf.style }}">
+                <span style="display: grid; gap: 2px; text-align: left;">
+                  <span style="font-size: 14.5px; line-height: 21px;">{{ pf.label }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ pf.note }}</span>
+                </span>
+                <span style="{{ pf.chip }}">{{ pf.value }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <p style="font-size: 13px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Hard gates always notify immediately. That one is not adjustable.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); padding: 8px clamp(20px,5vw,72px) 72px;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,2.8vw,32px); line-height: 1.2; margin: 0; max-width: 24ch;">What one queue changes</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-top: 24px;">
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Decisions sit for weeks</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · an approval lives in someone's email under forty other things, and the person waiting has no idea where it is.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · one queue with an age on every item and a line saying what it is blocking, so the cost of waiting is visible to the person holding it up.</p>
+        </div>
+      </div>
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Leaders drown in noise</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · every system notifies everybody, so nobody reads any of it.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · Claude clears the routine, the queue holds only what needs a person, and hard gates are the only thing that always interrupts.</p>
+        </div>
+      </div>
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Nobody can see who is holding it up</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · the delay is discussed at the board meeting and blamed on the process.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · waiting on someone else is its own list, with a name and an age, and anything over two weeks reaches the board pack.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
+const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+const ITEMS = [
+  { id: 'i1', kind: 'Connection', viewer: 'director', title: 'Safety Minder connection', age: 'waiting 12 days', tone: RED, state: 'Board approval', from: 'Requested by Kristopher Harold, GM', detail: 'Scope is incident records and corrective actions, read only.', blocks: 'Blocks: TRIFR has been closed out unmeasured for two months and will be again in September.' },
+  { id: 'i2', kind: 'Spend', viewer: 'director', title: 'Yard Lead role — budget approval', age: 'waiting 9 weeks', tone: RED, state: 'Board decision', from: 'Requested by Dane Whitmore, Operations Manager', detail: 'A$78k–92k plus super, NSW band. Recruitment is already shortlisting.', blocks: 'Blocks: two 90-day departures and most of the rework trace to this crew having no manager.' },
+  { id: 'i3', kind: 'Scoring', viewer: 'director', title: 'Sign off September scoring', age: 'waiting 2 days', tone: AMBER, state: 'Sign-off', from: 'Submitted by Kristopher Harold, GM', detail: 'Four roles scored, two gates passed, three figures flagged as unmeasurable.', blocks: 'Blocks: the period cannot lock and the board pack cannot issue.' },
+  { id: 'i4', kind: 'Training', viewer: 'gm', title: 'Sign off Tom Alderson\u2019s training path', age: 'waiting 6 days', tone: AMBER, state: 'Manager sign-off', from: 'Completed by Tom Alderson, Site Supervisor', detail: 'Every module passed, including Clear to Work end to end.', blocks: 'Blocks: his Ace run cannot start until the path is signed.' },
+  { id: 'i5', kind: 'KPI change', viewer: 'gm', title: 'Margin target 32% for FY27', age: 'waiting 4 days', tone: AMBER, state: 'Agreement', from: 'Proposed by Justin Bussell, Director', detail: 'Held at 30% for three months. Either the target moves or the quoting rule does.', blocks: 'Blocks: October quoting starts on the 1st either way.' },
+  { id: 'i6', kind: 'Leave', viewer: 'manager', title: 'Amrit Kaur · annual leave 6–10 Oct', age: 'waiting 1 day', tone: GREEN, state: 'Leave', from: 'Requested by Amrit Kaur, Scheduler', detail: 'Five days. No other scheduler cover in that week.', blocks: 'Blocks: nothing yet. Utilisation usually drops four points when the role is uncovered.' },
+  { id: 'i7', kind: 'People', viewer: 'manager', title: 'Hemi Walker · move to interview', age: 'waiting 3 days', tone: AMBER, state: 'Recruitment', from: 'Shortlisted by the people agent', detail: 'Rated 4, 3, 4, 5 against the four pillars. Licence verified with NSW Fair Trading.', blocks: 'Blocks: the Yard Lead role has been open nine weeks.' },
+];
+
+const HANDLED = [
+  { id: 'h1', what: 'Rostered Marcus Bly onto Kelvin Rd after the service call came in. Crew was clear to work and available.', when: 'This morning, 7:41am' },
+  { id: 'h2', what: 'Chased two expiring tickets with the training provider and booked the earliest slots.', when: 'Yesterday' },
+  { id: 'h3', what: 'Reconciled Simpro job costs against Xero for the month and flagged one job with no cost code.', when: 'Yesterday' },
+  { id: 'h4', what: 'Drafted the Yard Lead ad from the role KPIs and held it for your review.', when: '2 days ago' },
+];
+
+const ELSEWHERE = [
+  { what: 'Yard Lead budget', who: 'With Justin Bussell, Director', age: '9 weeks', tone: RED },
+  { what: 'Safety Minder connection', who: 'With the board', age: '12 days', tone: RED },
+  { what: 'Psychosocial training completion', who: 'With Dane Whitmore', age: '5 days', tone: AMBER },
+];
+
+const VIEWERS = [
+  { key: 'director', label: 'Director' },
+  { key: 'gm', label: 'GM' },
+  { key: 'manager', label: 'Manager' },
+];
+
+const FILTERS = ['All', 'Connection', 'Spend', 'Scoring', 'Training', 'People', 'Leave', 'KPI change'];
+
+const PREF_STATES = ['Immediately', 'Daily digest', 'On my Today page'];
+
+class Component extends DCLogic {
+  state = { viewer: 'director', filter: 'All', decided: {}, undone: {}, prefs: { 'Approvals waiting on me': 0, 'Someone else is holding something up': 1, 'A light changes colour': 2, 'Board pack issued': 1 } };
+
+  renderVals() {
+    const viewer = this.state.viewer;
+    const mine = ITEMS.filter(i => i.viewer === viewer);
+    const visible = mine.filter(i => this.state.filter === 'All' || i.kind === this.state.filter);
+    const open = mine.filter(i => !this.state.decided[i.id]);
+    const oldest = open.length ? open[0].age : 'nothing waiting';
+
+    return {
+      headline: open.length ? open.length + ' things are waiting on you' : 'Nothing is waiting on you',
+      viewers: VIEWERS.map(v => ({
+        label: v.label,
+        select: () => this.setState({ viewer: v.key, filter: 'All' }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:10px 20px;font-family:var(--font-body);font-size:13.5px;white-space:nowrap;'
+          + (v.key === viewer ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);box-shadow:var(--shadow-sm);'),
+      })),
+
+      stats: [
+        { label: 'Waiting on you', value: String(open.length), note: 'oldest ' + oldest, tone: open.length ? AMBER : GREEN },
+        { label: 'Over two weeks', value: String(open.filter(i => i.tone === RED).length), note: 'these reach the board pack', tone: RED },
+        { label: 'Claude handled', value: String(HANDLED.length - Object.keys(this.state.undone).filter(k => this.state.undone[k]).length), note: 'routine, reversible, logged', tone: GREEN },
+        { label: 'With someone else', value: String(ELSEWHERE.length), note: 'yours to chase', tone: GREY },
+      ].map(s => ({
+        ...s,
+        style: 'background:var(--color-surface, #fff);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:22px 24px;border-top:4px solid ' + s.tone + ';',
+      })),
+
+      queueLine: visible.length + ' shown · ' + open.length + ' still open',
+      filters: FILTERS.map(f => ({
+        label: f,
+        select: () => this.setState({ filter: f }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
+          + (this.state.filter === f ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+      })),
+      items: visible.map(i => {
+        const decided = this.state.decided[i.id];
+        return {
+          kind: i.kind,
+          age: decided ? 'closed today' : i.age,
+          title: i.title,
+          detail: i.detail,
+          blocks: decided === 'declined' ? 'Declined. It stays blocked and the reason is in the log.' : i.blocks,
+          from: i.from,
+          state: decided === 'approved' ? 'Approved' : decided === 'declined' ? 'Declined' : i.state,
+          chip: chip(decided === 'approved' ? GREEN : decided === 'declined' ? GREY : i.tone),
+          style: 'background:var(--color-bg);border-radius:20px;padding:20px 22px;border-left:4px solid ' + (decided === 'approved' ? GREEN : decided === 'declined' ? GREY : i.tone) + ';' + (decided ? 'opacity:0.75;' : ''),
+          approveLabel: decided === 'approved' ? 'Approved ✓' : 'Approve',
+          approveStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 18px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
+            + (decided === 'approved' ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+          approve: () => this.setState(s => ({ decided: { ...s.decided, [i.id]: s.decided[i.id] === 'approved' ? null : 'approved' } })),
+          declineStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 18px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;background:var(--color-surface, #fff);color:var(--color-text);'
+            + (decided === 'declined' ? 'box-shadow:inset 0 0 0 2px ' + GREY + ';' : ''),
+          decline: () => this.setState(s => ({ decided: { ...s.decided, [i.id]: s.decided[i.id] === 'declined' ? null : 'declined' } })),
+        };
+      }),
+      emptyLine: visible.length ? 'Every item names what it blocks. Anything red has been waiting more than two weeks and appears in the board pack.' : 'Nothing in this filter. Claude clears the routine before it reaches you.',
+
+      handled: HANDLED.map(h => {
+        const undone = !!this.state.undone[h.id];
+        return {
+          what: undone ? h.what + ' — undone, now back with you.' : h.what,
+          when: h.when,
+          undoLabel: undone ? 'Undone' : 'Undo',
+          undoStyle: 'cursor:pointer;border:0;border-radius:999px;padding:7px 14px;font-family:var(--font-body);font-size:12.5px;white-space:nowrap;flex:none;'
+            + (undone ? 'background:var(--color-bg);color:color-mix(in srgb, var(--color-text) 55%, transparent);' : 'background:var(--color-bg);color:var(--color-text);'),
+          undo: () => this.setState(s => ({ undone: { ...s.undone, [h.id]: !s.undone[h.id] } })),
+        };
+      }),
+
+      elsewhere: ELSEWHERE.map(e => ({ ...e, chip: chip(e.tone) })),
+
+      prefs: Object.keys(this.state.prefs).map(k => {
+        const v = this.state.prefs[k];
+        return {
+          label: k,
+          note: v === 0 ? 'Interrupts you' : v === 1 ? 'Once a day, 6am' : 'Quiet until you look',
+          value: PREF_STATES[v],
+          chip: chip(v === 0 ? AMBER : v === 1 ? GREEN : GREY),
+          cycle: () => this.setState(s => ({ prefs: { ...s.prefs, [k]: (s.prefs[k] + 1) % PREF_STATES.length } })),
+          style: 'cursor:pointer;border:0;width:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;background:var(--color-surface, #fff);border-radius:18px;padding:16px 18px;font-family:var(--font-body);color:var(--color-text);',
+        };
+      }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

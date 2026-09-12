@@ -53,6 +53,20 @@ export const tierOf = (value: string | null | undefined): Tier => (value === 'ad
 export const hasConnectors = (tier: Tier) => tier === 'advanced';
 export const hasAssistant = (tier: Tier) => tier === 'advanced';
 
+/**
+ * Whether a problem gets READ for them — a different question from whether they can log one.
+ *
+ * Basic is "the platform with no AI support, every number typed by hand", so having Claude work out
+ * the causal chain is exactly the thing Basic is defined as not including. But the register itself
+ * is not AI: logging a problem, ranking it, giving it an owner, accepting it, signing it off — that
+ * is the method, and the method is what a business bought.
+ *
+ * So Basic gets the whole register and names its own pillars. The difference between the tiers is
+ * who does the thinking, never whether the feature exists — the same line the product draws
+ * everywhere else, where a business that connects nothing still gets all of it, with more typing.
+ */
+export const hasDiagnosis = (tier: Tier) => tier === 'advanced';
+
 export interface TenantPlan {
   id: string;
   plan: string;
@@ -149,6 +163,19 @@ export async function planStateFor(tenantId: string, currency: Currency = HOME_C
  * not only in the UI that hides the button.
  */
 export async function assertWritable(tenantId: string): Promise<void> {
+  /*
+    A look-around is read-only, and this is the single place that has to hold.
+
+    Every write in the product already comes through here, so putting the check anywhere else would
+    be putting it in the wrong place. Walking through a house does not include moving the furniture
+    — and read-only is also what guarantees a visitor can never send an email, invite anybody, or
+    reach anything that bills.
+  */
+  const { isLookTenant } = await import('./look');
+  if (await isLookTenant(tenantId)) {
+    throw new Error('This is a look around, so nothing is saved. Set up your own business to keep what you change — it takes about a minute.');
+  }
+
   const state = await planStateFor(tenantId);
   if (state.lapsed) throw new Error('This subscription has lapsed. Renew to keep making changes — nothing has been deleted.');
 }

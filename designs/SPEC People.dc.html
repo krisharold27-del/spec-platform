@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; padding: clamp(28px,4vw,44px) 0 24px;">
+      <div>
+        <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">People · one stop shop</span>
+        <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 19ch;">{{ headline }}</h1>
+        <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ subhead }}</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <sc-for list="{{ modes }}" as="m" hint-placeholder-count="2">
+          <button type="button" onClick="{{ m.select }}" style="{{ m.style }}">{{ m.label }}</button>
+        </sc-for>
+      </div>
+    </header>
+
+    <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(22px,3vw,30px) clamp(24px,3vw,34px); margin-bottom: clamp(20px,3vw,28px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 18px;">
+        <div style="max-width: 60ch;">
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.25; margin: 0;">Your people agent runs this, end to end</p>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">A vacancy in the org chart becomes an ad, a shortlist, an interview scorecard against the four pillars, an offer, an onboarding plan and a training path — without you opening another system. For a people business, this is the system.</p>
+        </div>
+        <span style="{{ agentChip }}">{{ agentState }}</span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+        <sc-for list="{{ agentTasks }}" as="at" hint-placeholder-count="4">
+          <span style="{{ at.style }}">{{ at.label }}</span>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-label="Summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; padding-bottom: clamp(20px,3vw,28px);">
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 22px 24px;">
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ s.label }}</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 36px; line-height: 1; margin: 14px 0 0;">{{ s.value }}</p>
+          <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ s.note }}</p>
+        </div>
+      </sc-for>
+    </section>
+
+    <sc-if value="{{ isHr }}" hint-placeholder-val="{{ true }}">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
+
+        <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+          <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); min-width: 0;">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Everyone</h2>
+              <input class="input" type="text" value="{{ query }}" onChange="{{ setQuery }}" onInput="{{ setQuery }}" aria-label="Search people" placeholder="Search" style="flex: 0 1 200px; min-height: 36px;" />
+            </div>
+
+            <div style="display: grid; gap: 12px; margin-top: 22px;">
+              <sc-for list="{{ staff }}" as="p" hint-placeholder-count="5">
+                <div style="{{ p.style }}">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+                    <span style="display: flex; align-items: center; gap: 12px;">
+                      <span style="{{ p.mark }}">{{ p.initials }}</span>
+                      <span style="display: grid; gap: 3px;">
+                        <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16.5px;">{{ p.name }}</span>
+                        <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ p.role }} · {{ p.basis }}</span>
+                      </span>
+                    </span>
+                    <span style="{{ p.chip }}">{{ p.state }}</span>
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 14px; margin-top: 16px;">
+                    <sc-for list="{{ p.facts }}" as="f" hint-placeholder-count="4">
+                      <div>
+                        <span style="display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ f.label }}</span>
+                        <span style="{{ f.valueStyle }}">{{ f.value }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;">
+                    <a href="SPEC My Scorecard.dc.html" style="border-radius: 999px; padding: 8px 16px; font-size: 13px; background: var(--color-bg); color: var(--color-text); text-decoration: none;">Open scorecard</a>
+                    <button type="button" onClick="{{ p.review }}" style="{{ p.reviewStyle }}">{{ p.reviewLabel }}</button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+
+        <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+          <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Leave and availability</h2>
+              <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ leaveLine }}</span>
+            </div>
+            <div style="display: grid; gap: 12px; margin-top: 20px;">
+              <sc-for list="{{ leave }}" as="lv" hint-placeholder-count="3">
+                <div style="{{ lv.style }}">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="display: grid; gap: 2px;">
+                      <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15.5px;">{{ lv.person }}</span>
+                      <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ lv.kind }} · {{ lv.dates }}</span>
+                    </span>
+                    <button type="button" onClick="{{ lv.decide }}" style="{{ lv.buttonStyle }}">{{ lv.buttonLabel }}</button>
+                  </div>
+                  <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ lv.impact }}</p>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Documents and obligations</h2>
+            <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Held against the person and the role. Anything expiring feeds the Clear to Work gate.</p>
+            <div style="display: grid; gap: 12px; margin-top: 20px;">
+              <sc-for list="{{ docs }}" as="d" hint-placeholder-count="4">
+                <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-accent-100); padding-bottom: 12px;">
+                  <span style="display: grid; gap: 2px;">
+                    <span style="font-size: 14.5px; line-height: 21px;">{{ d.what }}</span>
+                    <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ d.who }}</span>
+                  </span>
+                  <span style="{{ d.chip }}">{{ d.state }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.2; margin: 0;">Onboarding in progress</h2>
+            <div style="display: grid; gap: 14px; margin-top: 18px;">
+              <sc-for list="{{ onboarding }}" as="ob" hint-placeholder-count="2">
+                <div>
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="font-size: 14.5px; line-height: 21px;">{{ ob.person }}</span>
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px;">{{ ob.pct }}</span>
+                  </div>
+                  <div style="height: 8px; border-radius: 999px; background: var(--color-surface, #fff); overflow: hidden; margin-top: 8px;">
+                    <div style="{{ ob.barStyle }}"></div>
+                  </div>
+                  <span style="display: block; font-size: 13px; line-height: 20px; margin-top: 8px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ ob.next }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isRecruit }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
+
+        <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+          <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); min-width: 0;">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Hiring region</h2>
+              <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ regionLine }}</span>
+            </div>
+            <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">What is legal, what is competitive and where people actually look all change by region. Set it once and the ad, the pay band and the screening rules follow.</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+              <sc-for list="{{ regions }}" as="rg" hint-placeholder-count="4">
+                <button type="button" onClick="{{ rg.select }}" style="{{ rg.style }}">{{ rg.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px; margin-top: 20px;">
+              <sc-for list="{{ regionFacts }}" as="rf" hint-placeholder-count="4">
+                <div style="background: var(--color-bg); border-radius: 18px; padding: 16px 18px;">
+                  <span style="display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ rf.label }}</span>
+                  <span style="display: block; font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px; margin-top: 8px;">{{ rf.value }}</span>
+                  <span style="display: block; font-size: 13px; line-height: 20px; margin-top: 6px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ rf.note }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+              <sc-for list="{{ channels }}" as="cn" hint-placeholder-count="4">
+                <span style="{{ cn.style }}">{{ cn.label }}</span>
+              </sc-for>
+            </div>
+          </section>
+
+          <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); min-width: 0;">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Open roles</h2>
+              <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Taken from the vacancies in your org chart</span>
+            </div>
+
+            <div style="display: grid; gap: 12px; margin-top: 22px;">
+              <sc-for list="{{ openRoles }}" as="o" hint-placeholder-count="2">
+                <div style="{{ o.style }}">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="display: grid; gap: 3px;">
+                      <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px;">{{ o.role }}</span>
+                      <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ o.reports }} · open {{ o.open }}</span>
+                    </span>
+                    <span style="{{ o.chip }}">{{ o.stage }}</span>
+                  </div>
+                  <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ o.cost }}</p>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                    <button type="button" onClick="{{ o.draft }}" style="{{ o.draftStyle }}">{{ o.draftLabel }}</button>
+                    <button type="button" onClick="{{ o.select }}" style="{{ o.selectStyle }}">See candidates</button>
+                  </div>
+                  <sc-if value="{{ o.showAd }}" hint-placeholder-val="{{ false }}">
+                    <div style="background: var(--color-bg); border-radius: 18px; padding: 18px 20px; margin-top: 14px;">
+                      <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 8px; color: var(--color-accent-700);">Drafted from the role's KPIs</p>
+                      <p style="font-size: 14.5px; line-height: 23px; margin: 0;">{{ o.ad }}</p>
+                      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                        <button type="button" class="btn btn-secondary" style="flex: none; white-space: nowrap;">Post it</button>
+                        <button type="button" class="btn btn-ghost" style="flex: none; white-space: nowrap;">Edit the wording</button>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); min-width: 0;">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">{{ pipelineHeading }}</h2>
+              <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ pipelineLine }}</span>
+            </div>
+            <div style="display: grid; gap: 12px; margin-top: 22px;">
+              <sc-for list="{{ candidates }}" as="c" hint-placeholder-count="4">
+                <div style="{{ c.style }}">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+                    <span style="display: grid; gap: 3px;">
+                      <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16.5px;">{{ c.name }}</span>
+                      <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ c.from }}</span>
+                    </span>
+                    <span style="{{ c.chip }}">{{ c.stage }}</span>
+                  </div>
+                  <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ c.note }}</p>
+                  <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px;">
+                    <sc-for list="{{ c.pillars }}" as="cp" hint-placeholder-count="4">
+                      <span style="{{ cp.style }}">{{ cp.label }}</span>
+                    </sc-for>
+                  </div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                    <button type="button" onClick="{{ c.advance }}" style="{{ c.advanceStyle }}">{{ c.advanceLabel }}</button>
+                    <button type="button" onClick="{{ c.reject }}" style="{{ c.rejectStyle }}">Not this time</button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+
+        <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+          <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Interview scorecard</h2>
+            <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">The same four pillars the role is scored on once they hold it. No separate competency framework to invent.</p>
+            <div style="display: grid; gap: 12px; margin-top: 20px;">
+              <sc-for list="{{ interview }}" as="iv" hint-placeholder-count="4">
+                <div style="background: var(--color-surface, #fff); border-radius: 18px; padding: 16px 18px;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ iv.pillar }}</span>
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px;">{{ iv.rating }}</span>
+                  </div>
+                  <p style="font-size: 14px; line-height: 22px; margin: 8px 0 0;">{{ iv.question }}</p>
+                  <input type="range" min="1" max="5" value="{{ iv.value }}" onChange="{{ iv.set }}" onInput="{{ iv.set }}" aria-label="{{ iv.pillar }} rating" style="width: 100%; margin-top: 12px; accent-color: var(--color-accent);" />
+                </div>
+              </sc-for>
+            </div>
+            <p style="font-size: 13.5px; line-height: 21px; margin: 16px 0 0;">{{ interviewVerdict }}</p>
+          </section>
+
+          <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Offer to first day</h2>
+            <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">The agent carries it from yes to a scored role. Nothing is retyped.</p>
+            <div style="display: grid; gap: 12px; margin-top: 20px;">
+              <sc-for list="{{ offerSteps }}" as="os" hint-placeholder-count="6">
+                <div style="display: flex; align-items: flex-start; gap: 12px;">
+                  <span style="{{ os.dot }}"></span>
+                  <span style="display: grid; gap: 2px;">
+                    <span style="font-size: 14.5px; line-height: 21px;">{{ os.label }}</span>
+                    <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ os.note }}</span>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.2; margin: 0;">Already have an HR system?</h2>
+            <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Connect BambooHR or Employment Hero and SPEC reads from it instead. If you do not have one, this is it — no second system to buy.</p>
+            <a href="SPEC Connections.dc.html" class="btn btn-secondary" style="display: inline-flex; margin-top: 18px; text-decoration: none;">Open the connection centre</a>
+          </section>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+
+
+<section style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); padding: 8px clamp(20px,5vw,72px) 72px;">
+  <div style="max-width: 1320px; margin: 0 auto;">
+    <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,2.8vw,32px); line-height: 1.2; margin: 0; max-width: 26ch;">What changes for a people business</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-top: 24px;">
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Cannot attract great people</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · a generic ad, a stack of CVs, and a gut call on the day.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · the ad is written from the eight numbers the role is measured on, the region sets the licence and the pay band, and candidates are rated on the same four pillars they will be scored on in month one.</p>
+        </div>
+      </div>
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Good people leave inside 90 days</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · the exit interview explains it, and the same thing happens to the next person in that crew.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · onboarding is tracked, the scorecard is agreed in week one, and an unfilled manager role shows as a cost on the roll-up before the second person goes.</p>
+        </div>
+      </div>
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Culture is invisible until someone quits</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · everyone says the culture is good until the third resignation in a quarter.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · People is a scored pillar every month, with one-to-ones held and retention behind it, so a drift shows up as amber long before it shows up as a resignation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
+const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+const dotOf = tone => 'width:12px;height:12px;border-radius:50%;display:block;flex:none;margin-top:5px;background:' + tone + ';';
+const mark = tone => 'width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-content:center;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:14px;background:color-mix(in srgb, ' + tone + ' 16%, transparent);color:' + tone + ';';
+
+const STAFF = [
+  { name: 'Kristopher Harold', role: 'Managing Director', basis: 'Full time', state: 'Current', tone: GREEN, started: 'Mar 2019', leave: '12.5 days', review: 'Sep 2026', clear: 'Clear' },
+  { name: 'Dane Whitmore', role: 'Operations Manager', basis: 'Full time', state: 'Current', tone: GREEN, started: 'Jan 2022', leave: '8.0 days', review: 'Oct 2026', clear: 'Clear' },
+  { name: 'Priya Raman', role: 'BD Manager', basis: 'Full time', state: 'Sales Ace', tone: GREEN, started: 'Jul 2023', leave: '15.0 days', review: 'Nov 2026', clear: 'Clear' },
+  { name: 'Tom Alderson', role: 'Site Supervisor', basis: 'Full time', state: 'Ticket expiring', tone: AMBER, started: 'Aug 2021', leave: '4.5 days', review: 'Oct 2026', clear: '21 days' },
+  { name: 'Sione Tui', role: 'Apprentice · year 2', basis: 'Apprentice', state: 'Onboarding', tone: AMBER, started: 'Aug 2026', leave: '2.0 days', review: 'Dec 2026', clear: 'Clear' },
+];
+
+const LEAVE = [
+  { person: 'Amrit Kaur', kind: 'Annual leave', dates: '6–10 Oct', impact: 'Scheduler role uncovered for a week. Utilisation usually drops 4 points when it is.', tone: AMBER },
+  { person: 'Marcus Bly', kind: 'Sick leave', dates: 'Yesterday', impact: 'Recorded. No effect on the crew\u2019s Clear to Work.', tone: GREEN },
+  { person: 'Tom Alderson', kind: 'Annual leave', dates: '23–27 Dec', impact: 'Shutdown week. No crew on site.', tone: GREEN },
+];
+
+const DOCS = [
+  { what: 'Electrical licence', who: 'Jai Fenton · Leading hand', state: 'Expires 21 days', tone: AMBER },
+  { what: 'Employment agreement', who: 'Sione Tui · Apprentice', state: 'Signed 4 Aug', tone: GREEN },
+  { what: 'Apprentice training plan', who: 'Sione Tui · Apprentice', state: 'Awaiting sign', tone: RED },
+  { what: 'Working at heights', who: 'Ruby Chen · Apprentice', state: 'Current to Mar 2027', tone: GREEN },
+];
+
+const ONBOARDING = [
+  { person: 'Sione Tui · Apprentice', pct: 70, next: 'Next: psychosocial safety basics, then first scorecard walkthrough.' },
+  { person: 'Nadia Cole · Estimator', pct: 35, next: 'Next: Groundplan access and the role\u2019s eight KPIs agreed.' },
+];
+
+const OPEN_ROLES = [
+  {
+    id: 'o1', role: 'Yard Lead', reports: 'Reports to Operations Manager', open: '9 weeks', stage: 'Shortlisting', tone: AMBER,
+    cost: 'Unfilled since July. The crew has no direct manager, which is where both 90-day departures and most of the rework came from.',
+    ad: 'Yard Lead, JBI Electrical. You run the yard so the crews leave on time with what they need. Measured on four things: no harm in the yard, your crew\u2019s one-to-ones held, rework hours under 2%, and every plant check logged the day it happens. Full time, ticketed, reporting to the Operations Manager.',
+  },
+  {
+    id: 'o2', role: 'Estimator', reports: 'Reports to BD Manager', open: '2 weeks', stage: 'Offer out', tone: GREEN,
+    cost: 'Second estimator to hold quoting capacity as pipeline runs at 112% of plan.',
+    ad: 'Estimator, JBI Electrical. You price the work so the crews can win it and deliver it. Measured on estimating accuracy against installed quantities, quotes out within two days, and every quote carrying a signed scope. Groundplan and Simpro experience helps; we will train the rest.',
+  },
+];
+
+const CANDIDATES = {
+  o1: [
+    { id: 'c1', name: 'Hemi Walker', from: 'Applied 4 days ago · 11 years in yards', stage: 'Interview booked', tone: GREEN, note: 'Ran a yard of nine at a civil contractor. Strong on plant checks, light on one-to-ones.', pillars: [4, 3, 4, 5] },
+    { id: 'c2', name: 'Grace Mbeki', from: 'Applied 6 days ago · internal, leading hand', stage: 'Shortlisted', tone: AMBER, note: 'Already holds the tickets and knows the crews. Would need the supervision training path.', pillars: [5, 4, 3, 5] },
+    { id: 'c3', name: 'Daniel Roche', from: 'Applied 8 days ago', stage: 'Screening', tone: GREY, note: 'Warehouse background rather than trade. Would not hold Clear to Work without retraining.', pillars: [3, 3, 3, 2] },
+  ],
+  o2: [
+    { id: 'c4', name: 'Nadia Cole', from: 'Offer sent 2 days ago', stage: 'Offer out', tone: GREEN, note: 'Four years estimating for a mechanical contractor. Groundplan experience already.', pillars: [4, 4, 5, 4] },
+  ],
+};
+
+const INTERVIEW = [
+  { pillar: 'Safety', question: 'Tell me about a time you stopped work. What did it cost and would you do it again?' },
+  { pillar: 'People', question: 'How do you know when someone in your crew is not coping?' },
+  { pillar: 'Earnings', question: 'Where does money leak in a yard, and how would you see it in the first month?' },
+  { pillar: 'Compliance', question: 'How do you keep tickets and plant checks current without chasing everyone?' },
+];
+
+const OFFER_STEPS = [
+  { label: 'Offer generated from the role', note: 'Pay band, basis and start date carried from the org chart.', tone: GREEN },
+  { label: 'Agreement signed', note: 'Stored against the person and the role.', tone: GREEN },
+  { label: 'Tickets and licences verified', note: 'Checked before day one, so Clear to Work holds.', tone: AMBER },
+  { label: 'Role scorecard agreed', note: 'Eight KPIs, negotiated in week one, not imposed.', tone: GREY },
+  { label: 'Training path assigned', note: 'The role\u2019s path, inherited automatically.', tone: GREY },
+  { label: 'First month scored', note: 'The Ace run can only start once training is signed off.', tone: GREY },
+];
+
+const REGIONS = {
+  'NSW, Australia': {
+    licence: 'NSW electrical licence',
+    licenceNote: 'Fair Trading check runs at screening. No licence, no Clear to Work.',
+    band: 'A$78k–92k + super',
+    bandNote: 'Yard Lead band for Sydney metro, 11.5% super on top.',
+    award: 'Electrical, Electronic and Communications Contracting Award',
+    awardNote: 'Overtime and travel allowance are award-set, not negotiable.',
+    visa: 'Sponsorship viable',
+    visaNote: 'Electricians sit on the skills list. Adds about 8 weeks.',
+    channels: ['Seek', 'Indeed AU', 'Your own crew referrals', 'TAFE apprentice pipeline'],
+  },
+  'QLD, Australia': {
+    licence: 'QLD electrical work licence',
+    licenceNote: 'WorkSafe QLD verification at screening, plus a separate contractor licence.',
+    band: 'A$74k–88k + super',
+    bandNote: 'Brisbane band. Regional roles carry a site allowance.',
+    award: 'Same federal award, QLD site allowances',
+    awardNote: 'Remote and FIFO work changes the rate materially.',
+    visa: 'Sponsorship viable',
+    visaNote: 'Regional sponsorship is faster than metro.',
+    channels: ['Seek', 'Indeed AU', 'Local trade Facebook groups', 'Group training organisations'],
+  },
+  'New Zealand': {
+    licence: 'EWRB registration and practising licence',
+    licenceNote: 'Practising licence must be current, not just registration.',
+    band: 'NZ$85k–100k',
+    bandNote: 'Auckland band. KiwiSaver at 3% employer minimum.',
+    award: 'No award system — individual agreements',
+    awardNote: 'Terms are set in the agreement, so the pay band does more work.',
+    visa: 'Green list role',
+    visaNote: 'Straight to residence pathway for registered electricians.',
+    channels: ['Seek NZ', 'Trade Me Jobs', 'Crew referrals', 'Polytech apprentice pipeline'],
+  },
+  'United Kingdom': {
+    licence: 'ECS card and 18th Edition',
+    licenceNote: 'Card grade and qualification both checked before site access.',
+    band: '£42k–52k',
+    bandNote: 'Outside London. Pension auto-enrolment at 3% employer.',
+    award: 'JIB grading structure',
+    awardNote: 'JIB grade sets the rate, so the grade is the negotiation.',
+    visa: 'Skilled Worker route',
+    visaNote: 'Sponsor licence needed before you can advertise for it.',
+    channels: ['Indeed UK', 'Totaljobs', 'CheckaTrade networks', 'College apprentice pipeline'],
+  },
+};
+
+class Component extends DCLogic {
+  state = { mode: 'hr', query: '', role: 'o1', showAd: {}, stages: {}, ratings: {}, reviews: {}, leaveDecided: {}, region: 'NSW, Australia' };
+
+  renderVals() {
+    const hr = this.state.mode === 'hr';
+    const q = this.state.query.trim().toLowerCase();
+    const staff = STAFF.filter(p => !q || p.name.toLowerCase().includes(q) || p.role.toLowerCase().includes(q));
+    const roleId = this.state.role;
+    const open = OPEN_ROLES.find(r => r.id === roleId) || OPEN_ROLES[0];
+    const ratings = INTERVIEW.map((iv, i) => (this.state.ratings[i] !== undefined ? this.state.ratings[i] : 3));
+    const avg = Math.round((ratings.reduce((t, v) => t + v, 0) / ratings.length) * 10) / 10;
+
+    return {
+      headline: hr ? 'The HR system for people businesses' : 'Recruit against the scorecard they will hold',
+      subhead: hr
+        ? 'Records, leave, documents and onboarding, held against the role rather than a spreadsheet. If you already run an HR system, connect it and SPEC reads from that instead.'
+        : 'Every vacancy in the org chart is an open role here. The ad, the shortlist and the interview all come from the eight KPIs the person will actually be measured on.',
+      modes: [
+        { key: 'hr', label: 'HR' },
+        { key: 'recruit', label: 'Recruitment' },
+      ].map(m => ({
+        label: m.label,
+        select: () => this.setState({ mode: m.key }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:10px 22px;font-family:var(--font-body);font-size:13.5px;white-space:nowrap;'
+          + (this.state.mode === m.key ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);box-shadow:var(--shadow-sm);'),
+      })),
+      isHr: hr,
+      isRecruit: !hr,
+
+      agentChip: chip(GREEN),
+      agentState: 'Agent on',
+      agentTasks: [
+        'Drafted the Yard Lead ad from its KPIs',
+        'Screened 3 applicants against Clear to Work',
+        'Flagged a licence expiring in 21 days',
+        'Prepared Sione\u2019s onboarding plan',
+      ].map(t => ({ label: t, style: 'display:inline-flex;align-items:center;border-radius:999px;padding:8px 16px;font-size:13px;background:var(--color-surface, #fff);color:var(--color-text);' })),
+
+      stats: hr
+        ? [
+          { label: 'People', value: '14', note: '12 permanent, 2 apprentices' },
+          { label: 'Roles filled', value: '13 / 14', note: 'Yard Lead still open' },
+          { label: 'Clear to work', value: '100%', note: 'One licence expires in 21 days' },
+          { label: 'Reviews due', value: '2', note: 'October, tied to the scorecards' },
+        ]
+        : [
+          { label: 'Open roles', value: '2', note: 'Both from org chart vacancies' },
+          { label: 'Candidates', value: '4', note: 'Screened against the role KPIs' },
+          { label: 'Longest open', value: '9 wks', note: 'Yard Lead, since July' },
+          { label: 'Cost of vacancy', value: '2 exits', note: 'Both 90-day departures in that crew' },
+        ],
+
+      query: this.state.query,
+      setQuery: e => this.setState({ query: e.target.value }),
+      staff: staff.map(p => {
+        const reviewed = !!this.state.reviews[p.name];
+        return {
+          name: p.name,
+          role: p.role,
+          basis: p.basis,
+          state: p.state,
+          chip: chip(p.tone),
+          initials: p.name.split(' ').map(w => w.slice(0, 1)).join(''),
+          mark: mark(p.tone),
+          style: 'background:var(--color-bg);border-radius:20px;padding:20px 22px;border-left:4px solid ' + p.tone + ';',
+          facts: [
+            { label: 'Started', value: p.started, valueStyle: 'display:block;font-size:14.5px;line-height:21px;margin-top:4px;' },
+            { label: 'Leave owing', value: p.leave, valueStyle: 'display:block;font-size:14.5px;line-height:21px;margin-top:4px;' },
+            { label: 'Next review', value: p.review, valueStyle: 'display:block;font-size:14.5px;line-height:21px;margin-top:4px;' },
+            { label: 'Clear to work', value: p.clear, valueStyle: 'display:block;font-size:14.5px;line-height:21px;margin-top:4px;color:' + (p.clear === 'Clear' ? GREEN : AMBER) + ';' },
+          ],
+          reviewLabel: reviewed ? 'Review booked ✓' : 'Book the review',
+          reviewStyle: 'cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
+            + (reviewed ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+          review: () => this.setState(s => ({ reviews: { ...s.reviews, [p.name]: !s.reviews[p.name] } })),
+        };
+      }),
+
+      leaveLine: LEAVE.filter(l => !this.state.leaveDecided[l.person]).length + ' to action',
+      leave: LEAVE.map(l => {
+        const done = !!this.state.leaveDecided[l.person];
+        return {
+          person: l.person,
+          kind: l.kind,
+          dates: l.dates,
+          impact: l.impact,
+          style: 'background:var(--color-bg);border-radius:20px;padding:18px 20px;border-left:4px solid ' + (done ? GREEN : l.tone) + ';',
+          buttonLabel: done ? 'Approved ✓' : 'Approve',
+          buttonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
+            + (done ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+          decide: () => this.setState(s => ({ leaveDecided: { ...s.leaveDecided, [l.person]: !s.leaveDecided[l.person] } })),
+        };
+      }),
+
+      docs: DOCS.map(d => ({ ...d, chip: chip(d.tone) })),
+      onboarding: ONBOARDING.map(o => ({
+        person: o.person,
+        pct: o.pct + '%',
+        next: o.next,
+        barStyle: 'height:100%;border-radius:999px;width:' + o.pct + '%;background:' + (o.pct >= 70 ? GREEN : AMBER) + ';',
+      })),
+
+      regionLine: this.state.region + ' · rules applied to every open role',
+      regions: Object.keys(REGIONS).map(r => ({
+        label: r,
+        select: () => this.setState({ region: r }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
+          + (this.state.region === r ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+      })),
+      regionFacts: (() => {
+        const r = REGIONS[this.state.region];
+        return [
+          { label: 'Licence to work', value: r.licence, note: r.licenceNote },
+          { label: 'Pay band', value: r.band, note: r.bandNote },
+          { label: 'Award or grading', value: r.award, note: r.awardNote },
+          { label: 'Overseas hiring', value: r.visa, note: r.visaNote },
+        ];
+      })(),
+      channels: REGIONS[this.state.region].channels.map(c => ({
+        label: c,
+        style: 'display:inline-flex;align-items:center;border-radius:999px;padding:8px 16px;font-size:13px;background:var(--color-accent-2-100);color:var(--color-text);',
+      })),
+
+      openRoles: OPEN_ROLES.map(r => ({
+        role: r.role,
+        reports: r.reports,
+        open: r.open,
+        stage: r.stage,
+        cost: r.cost,
+        ad: r.ad,
+        chip: chip(r.tone),
+        style: 'background:var(--color-bg);border-radius:20px;padding:20px 22px;border-left:4px solid ' + (r.id === roleId ? 'var(--color-accent)' : r.tone) + ';',
+        showAd: !!this.state.showAd[r.id],
+        draftLabel: this.state.showAd[r.id] ? 'Hide the ad' : 'Draft the ad',
+        draftStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;background:var(--color-accent);color:#fff;',
+        draft: () => this.setState(s => ({ showAd: { ...s.showAd, [r.id]: !s.showAd[r.id] } })),
+        selectStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;background:var(--color-surface, #fff);color:var(--color-text);',
+        select: () => this.setState({ role: r.id }),
+      })),
+
+      pipelineHeading: open.role + ' candidates',
+      pipelineLine: (CANDIDATES[roleId] || []).length + ' in the pipeline',
+      candidates: (CANDIDATES[roleId] || []).map(c => {
+        const stage = this.state.stages[c.id] || c.stage;
+        const rejected = stage === 'Not this time';
+        return {
+          name: c.name,
+          from: c.from,
+          note: c.note,
+          stage,
+          chip: chip(rejected ? GREY : c.tone),
+          style: 'background:var(--color-bg);border-radius:20px;padding:20px 22px;border-left:4px solid ' + (rejected ? GREY : c.tone) + ';' + (rejected ? 'opacity:0.6;' : ''),
+          pillars: ['Safety', 'People', 'Earnings', 'Compliance'].map((p, i) => ({
+            label: p + ' ' + c.pillars[i] + '/5',
+            style: 'display:inline-flex;align-items:center;border-radius:999px;padding:6px 14px;font-size:12.5px;white-space:nowrap;'
+              + 'background:color-mix(in srgb, ' + (c.pillars[i] >= 4 ? GREEN : c.pillars[i] === 3 ? AMBER : RED) + ' 14%, transparent);color:' + (c.pillars[i] >= 4 ? GREEN : c.pillars[i] === 3 ? AMBER : RED) + ';',
+          })),
+          advanceLabel: stage === 'Offer out' ? 'Offer sent ✓' : 'Move forward',
+          advanceStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
+            + (stage === 'Offer out' ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
+          advance: () => {
+            const order = ['Screening', 'Shortlisted', 'Interview booked', 'Offer out'];
+            const i = order.indexOf(stage);
+            this.setState(s => ({ stages: { ...s.stages, [c.id]: order[Math.min(order.length - 1, i + 1)] } }));
+          },
+          rejectStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;background:var(--color-surface, #fff);color:var(--color-text);',
+          reject: () => this.setState(s => ({ stages: { ...s.stages, [c.id]: 'Not this time' } })),
+        };
+      }),
+
+      interview: INTERVIEW.map((iv, i) => ({
+        pillar: iv.pillar,
+        question: iv.question,
+        value: ratings[i],
+        rating: ratings[i] + ' / 5',
+        set: e => { const v = Number(e.target.value); this.setState(s => ({ ratings: { ...s.ratings, [i]: v } })); },
+      })),
+      interviewVerdict: avg >= 4
+        ? 'Average ' + avg + ' of 5. Strong enough to hold the role\u2019s scorecard from month one.'
+        : avg >= 3
+          ? 'Average ' + avg + ' of 5. Hireable with a training plan against the weakest pillar.'
+          : 'Average ' + avg + ' of 5. Would not hold the role\u2019s KPIs without significant support.',
+
+      offerSteps: OFFER_STEPS.map(o => ({ label: o.label, note: o.note, dot: dotOf(o.tone) })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

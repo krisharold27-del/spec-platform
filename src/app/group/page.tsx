@@ -9,6 +9,7 @@ import { currentPeriod } from '@/lib/period';
 import { PILLAR_META } from '@/lib/pillars';
 import { light, LIGHT_COLOUR } from '@/lib/today';
 import type { Score } from '@/lib/scoring';
+import { calculate, money, DEFAULTS } from '@/lib/calculator';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,12 @@ export const dynamic = 'force-dynamic';
  * sorted by score — a group that ranks its businesses against each other gets businesses that
  * manage the ranking.
  */
-export default async function Group() {
+export default async function Group({
+  searchParams,
+}: {
+  searchParams: Promise<{ revenue?: string; improve?: string }>;
+}) {
+  const q = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const businesses = await myBusinesses();
@@ -81,6 +87,24 @@ export default async function Group() {
     });
   }
 
+  /*
+    The group's labour position.
+
+    SPEC does not hold anybody's revenue and should not invent it, so this is the one figure the
+    person types — once, in the address bar, so nothing is stored about their money. Headcount is
+    not typed: it is the seats actually taken across the group, which SPEC does know.
+
+    Everything below it comes from lib/calculator, the same tested arithmetic the pricing page uses.
+    A second, differently-behaved version of the money claim is how a business ends up quoting two
+    numbers for the same thing.
+  */
+  const groupSeats = entities.reduce((t, e) => t + e.seatCount, 0);
+  const improve = Math.min(30, Math.max(10, Number(q.improve) || DEFAULTS.improvement));
+  const revenue = Math.max(0, Number(String(q.revenue ?? '').replace(/[^0-9.]/g, '')) || 0);
+  const labour = revenue
+    ? calculate({ ...DEFAULTS, revenue, headcount: Math.max(1, groupSeats), improvement: improve, seatCostAnnual: 0 })
+    : null;
+
   const scored = entities.filter(e => e.pillars);
   const groupAverages: Record<string, Score> = {};
   for (const p of PILLARS) {
@@ -93,6 +117,17 @@ export default async function Group() {
       title="Group"
       subtitle={`${entities.length} businesses · ${scored.length} with a score this month`}
     >
+      {/*
+        Said before the numbers, not after somebody has misread them. Two businesses in one group
+        are rarely doing the same work — the point of a group view is the shape of each, not a
+        league table.
+      */}
+      <p className="-mt-2 mb-6 max-w-2xl text-base text-ink-light">
+        <b className="text-ink">Comparable, not identical.</b> Each business is scored against what
+        it needs, so a lower number is not a worse business — it is a different one. Read the shape,
+        never the ranking.
+      </p>
+
       <section className="card">
         <h2 className="font-serif text-xl text-ink">Across the group</h2>
         <p className="mt-1 text-sm text-ink-light">
@@ -114,6 +149,85 @@ export default async function Group() {
             );
           })}
         </div>
+      </section>
+
+      {/*
+        The one number a group owner is actually asked for upstairs.
+
+        A group exists to allocate capital, so the group view that only shows scores is answering a
+        question nobody upstairs asked. This turns the same claim the marketing site makes into the
+        group's own figure — and refuses to guess: with no revenue given it asks for one rather than
+        showing a number that would be fiction.
+
+        Submitted as a GET so nothing about anybody's revenue is stored or posted anywhere. It sits
+        in the address bar for as long as the tab is open and nowhere else.
+      */}
+      <section className="mt-6 rounded-lg bg-surface p-6">
+        <h2 className="font-serif text-xl text-ink">Group labour position</h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-light">
+          Across the {entities.length} {entities.length === 1 ? 'entity' : 'entities'} counted, at{' '}
+          {improve}% on the labour component. Ten is the floor, thirty is what a well run rollout
+          reaches.
+        </p>
+
+        <form method="get" className="mt-4 flex flex-wrap items-end gap-3">
+          <label className="grid gap-1">
+            <span className="label-caps">Group annual revenue</span>
+            <input
+              className="input w-48"
+              name="revenue"
+              inputMode="numeric"
+              defaultValue={revenue || ''}
+              placeholder="24,000,000"
+              aria-label="Group annual revenue"
+            />
+          </label>
+          <label className="grid gap-1">
+            <span className="label-caps">Improvement on labour</span>
+            <select className="input w-32" name="improve" defaultValue={String(improve)} aria-label="Improvement on labour">
+              {[10, 15, 20, 25, 30].map(n => <option key={n} value={n}>{n}%</option>)}
+            </select>
+          </label>
+          <button className="btn-primary">Work it out</button>
+        </form>
+
+        {labour ? (
+          <>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="card-inset">
+                <span className="label-caps">Labour bill</span>
+                <span className="mt-2 block font-serif text-2xl text-ink">{money(labour.labourCost)}</span>
+                <span className="mt-1 block text-xs text-ink-light">
+                  At {DEFAULTS.labourShare}% of revenue, across {groupSeats} {groupSeats === 1 ? 'seat' : 'seats'}.
+                </span>
+              </div>
+              <div className="card-inset">
+                <span className="label-caps">Leaking</span>
+                <span className="mt-2 block font-serif text-2xl text-ink">{money(labour.gap)}</span>
+                <span className="mt-1 block text-xs text-ink-light">
+                  {labour.gapPctOfLabour.toFixed(0)}% of the labour bill · {labour.gapPctOfRevenue.toFixed(1)}% of revenue.
+                </span>
+              </div>
+              <div className="card-inset">
+                <span className="label-caps">Recoverable in year one</span>
+                <span className="mt-2 block font-serif text-2xl text-ink">{money(labour.recoverable)}</span>
+                <span className="mt-1 block text-xs text-ink-light">
+                  {money(labour.perPerson)} a person, before anything is recovered.
+                </span>
+              </div>
+            </div>
+            <p className="mt-4 max-w-2xl text-xs text-ink-light">
+              A position, not a forecast. It assumes labour is {DEFAULTS.labourShare}% of revenue
+              across the group — change that on <Link className="text-rust underline" href="/pricing">the calculator</Link> if
+              your own share is different. Nothing typed here is stored.
+            </p>
+          </>
+        ) : (
+          <p className="mt-4 max-w-2xl text-sm text-ink-light">
+            SPEC does not hold your revenue, and will not guess it. Put the group&rsquo;s annual
+            figure in and this becomes your number rather than an industry one.
+          </p>
+        )}
       </section>
 
       <section className="mt-6 grid gap-4">

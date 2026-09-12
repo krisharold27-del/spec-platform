@@ -31,7 +31,13 @@ describe('light — the 90% rule as a traffic light', () => {
   it('is amber close to it and red below', () => {
     expect(light(0.89)).toBe('amber');
     expect(light(0.75)).toBe('amber');
-    expect(light(0.749)).toBe('red');
+    // Fifty per cent is where behind starts, because that is the line the engine deducts on:
+    // 5% per pillar "under 50%" in a leader's chain. A pillar on 60% is a bad month, not a
+    // failure — painting it red would have the colour accusing somebody of something the money
+    // does not agree happened. designs/the-rules.md §5 and §7.
+    expect(light(0.6)).toBe('amber');
+    expect(light(0.5)).toBe('amber');
+    expect(light(0.499)).toBe('red');
     expect(light(0)).toBe('red');
   });
 

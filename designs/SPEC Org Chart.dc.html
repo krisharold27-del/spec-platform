@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;" onClick="{{ closeMenu }}">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="#" style="color: var(--color-text); font-weight: 700;">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 64px;">
+
+    <header style="padding: clamp(32px,5vw,56px) 0 28px;">
+      <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Interactive org chart</span>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(32px,4.2vw,54px); line-height: 1.1; margin: 0; max-width: 20ch;">Link it. Then it flows. Then it grows.</h1>
+      <p style="font-size: 17px; line-height: 28px; max-width: 58ch; margin: 20px 0 0;">Right-click anywhere to add a role. Drag it onto the role it reports to and the line is drawn. Have you ever been sure the business is linked, flowing and growing? Now you can be.</p>
+    </header>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; padding-bottom: 32px;">
+      <div style="{{ linkStage.style }}">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1; margin: 0;">Link</p>
+          <span style="{{ linkStage.dot }}"></span>
+        </div>
+        <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0;">Every role reports to someone. {{ linkStage.detail }}</p>
+      </div>
+      <div style="{{ flowStage.style }}">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1; margin: 0;">Flow</p>
+          <span style="{{ flowStage.dot }}"></span>
+        </div>
+        <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0;">Every role has its eight KPIs set. {{ flowStage.detail }}</p>
+      </div>
+      <div style="{{ growStage.style }}">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1; margin: 0;">Grow</p>
+          <span style="{{ growStage.dot }}"></span>
+        </div>
+        <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0;">All four pillars green across the chart. {{ growStage.detail }}</p>
+      </div>
+    </div>
+
+    <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); margin-bottom: clamp(20px,3vw,32px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 14px;">
+        <div>
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Start from what you already have</h2>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 10px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Nobody types their org chart twice. Bring it in from a document, a spreadsheet, or the system that already holds it.</p>
+        </div>
+        <button type="button" class="btn btn-ghost" onClick="{{ toggleImport }}" style="flex: none; white-space: nowrap;">{{ importToggleLabel }}</button>
+      </div>
+
+      <sc-if value="{{ importOpen }}" hint-placeholder-val="{{ true }}">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; margin-top: 26px;">
+
+          <div style="background: var(--color-bg); border-radius: 20px; padding: 22px 24px; display: grid; align-content: start; gap: 12px;">
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; margin: 0;">Upload a file</p>
+            <p style="font-size: 13.5px; line-height: 21px; margin: 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Word, Excel or CSV. SPEC reads the role, the person and who they report to, then asks you to confirm before anything is drawn.</p>
+            <label style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; background: var(--color-accent); color: #fff; border-radius: 999px; padding: 10px 20px; font-size: 13.5px; white-space: nowrap; justify-self: start;">
+              Choose a file
+              <input type="file" accept=".csv,.xlsx,.xls,.docx,.doc,.txt" onChange="{{ onFile }}" style="display: none;" />
+            </label>
+            <p style="font-size: 13px; line-height: 20px; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ fileStatus }}</p>
+          </div>
+
+          <div style="background: var(--color-bg); border-radius: 20px; padding: 22px 24px; display: grid; align-content: start; gap: 12px;">
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; margin: 0;">Paste it in</p>
+            <p style="font-size: 13.5px; line-height: 21px; margin: 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">One role per line: role, person, who they report to. Straight out of a document or a spreadsheet column.</p>
+            <textarea class="input" value="{{ importText }}" onChange="{{ setImportText }}" onInput="{{ setImportText }}" aria-label="Paste your structure" placeholder="Managing Director, Kris Harold&#10;Operations Manager, Dane Whitmore, Managing Director&#10;Scheduler, Amrit Kaur, Operations Manager" style="width: 100%; box-sizing: border-box; min-height: 120px; border-radius: 18px; padding: 14px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 20px; resize: vertical;"></textarea>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+              <button type="button" class="btn btn-primary" onClick="{{ buildFromText }}" style="flex: none; white-space: nowrap;">Build the chart</button>
+              <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ importStatus }}</span>
+            </div>
+          </div>
+
+          <div style="background: var(--color-bg); border-radius: 20px; padding: 22px 24px; display: grid; align-content: start; gap: 12px;">
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; margin: 0;">Connect a system</p>
+            <p style="font-size: 13.5px; line-height: 21px; margin: 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">The structure stays in step with the system that owns it. New starter there, new role here.</p>
+            <div style="display: grid; gap: 8px;">
+              <sc-for list="{{ connectors }}" as="cn" hint-placeholder-count="4">
+                <button type="button" onClick="{{ cn.connect }}" style="{{ cn.style }}">
+                  <span style="font-size: 14px;">{{ cn.name }}</span>
+                  <span style="font-size: 12.5px;">{{ cn.state }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
+
+      <div style="grid-column: 1 / -1; position: relative; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,44px); overflow-x: auto;" data-canvas="true" onContextMenu="{{ canvasContextMenu }}">
+        <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: center; padding-bottom: 28px;">
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #4f7a3f;"></span>90% and above</span>
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #c67139;"></span>75–89%</span>
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #a63b26;"></span>Below 75%, or not set</span>
+          <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ summaryLine }}</span>
+        </div>
+
+        <div style="{{ canvasInner }}">
+          <sc-for list="{{ lines }}" as="l" hint-placeholder-count="6">
+            <div style="{{ l.style }}"></div>
+          </sc-for>
+          <sc-for list="{{ cards }}" as="c" hint-placeholder-count="7">
+            <div draggable="true" onClick="{{ c.select }}" onDoubleClick="{{ c.openScorecard }}" onContextMenu="{{ c.contextMenu }}" onDragStart="{{ c.dragStart }}" onDragEnd="{{ c.dragEnd }}" onDragOver="{{ c.dragOver }}" onDragLeave="{{ c.dragLeave }}" onDrop="{{ c.drop }}" style="{{ c.style }}">
+              <p style="{{ c.titleStyle }}">{{ c.title }}</p>
+              <span draggable="{{ c.personDraggable }}" onDragStart="{{ c.personDragStart }}" style="{{ c.personStyle }}">{{ c.person }}</span>
+              <div style="display: flex; gap: 7px; justify-content: center; margin-top: 10px;">
+                <span style="{{ c.dotS }}">S</span>
+                <span style="{{ c.dotP }}">P</span>
+                <span style="{{ c.dotE }}">E</span>
+                <span style="{{ c.dotC }}">C</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ hasUnlinked }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top: 36px; border-top: 2px dashed var(--color-accent-200); padding-top: 24px;">
+            <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 14px; color: #a63b26;">Off the chart — drag onto the role it reports to. Anything below a detached role comes back with it, and none of it counts towards the board figures.</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+              <sc-for list="{{ unlinked }}" as="u" hint-placeholder-count="1">
+                <div draggable="true" onClick="{{ u.select }}" onContextMenu="{{ u.contextMenu }}" onDragStart="{{ u.dragStart }}" style="{{ u.chipStyle }}">
+                  <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px;">{{ u.title }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ u.person }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <p style="font-size: 13px; line-height: 22px; margin: 26px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Drag a card to re-report it. Drag the name pill off one card onto another to move the person into that role — if it is filled, the two swap. Right-click a role to break its link or make it vacant. Lights read left to right: Safety, People, Earnings, Compliance.</p>
+
+        <sc-if value="{{ menu.open }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ menu.style }}">
+            <sc-for list="{{ menu.items }}" as="mi" hint-placeholder-count="2">
+              <button type="button" onClick="{{ mi.action }}" style="{{ mi.style }}">{{ mi.label }}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <aside style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+        <span style="display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-2-900); margin: 0 0 14px;">Role scorecard</span>
+        <input class="input" type="text" value="{{ selectedTitle }}" onChange="{{ renameRole }}" aria-label="Role title" style="width: 100%; box-sizing: border-box; font-family: var(--font-heading); font-size: 19px; min-height: 44px;" />
+        <input class="input" type="text" value="{{ selectedPerson }}" onChange="{{ renamePerson }}" aria-label="Person in the role" placeholder="Vacant" style="width: 100%; box-sizing: border-box; margin-top: 10px; min-height: 40px;" />
+
+        <div style="display: grid; gap: 12px; margin-top: 22px;">
+          <sc-for list="{{ selectedPillars }}" as="pl" hint-placeholder-count="4">
+            <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 18px 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <span style="display: flex; align-items: center; gap: 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);"><span style="{{ pl.dot }}"></span>{{ pl.name }}</span>
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px;">{{ pl.score }}</span>
+              </div>
+              <div style="display: grid; gap: 6px; margin-top: 14px;">
+                <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ pl.kpi1 }}</span>
+                <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ pl.kpi2 }}</span>
+              </div>
+              <input type="range" min="0" max="100" value="{{ pl.value }}" onChange="{{ pl.set }}" onInput="{{ pl.set }}" aria-label="{{ pl.name }} score" style="width: 100%; margin-top: 14px; accent-color: var(--color-accent);" />
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px;">
+          <button type="button" class="btn btn-secondary" onClick="{{ addUnder }}">Add a direct report</button>
+          <button type="button" class="btn btn-ghost" onClick="{{ removeRole }}">Remove role</button>
+        </div>
+      </aside>
+
+      <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+        <span style="display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 14px;">What the board sees</span>
+        <p style="font-size: 15.5px; line-height: 26px; margin: 0 0 22px; max-width: 40ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Each pillar is the average of every role in the chart. Change the structure or a score and this moves with it.</p>
+        <div style="display: grid; gap: 14px;">
+          <sc-for list="{{ rollup }}" as="r" hint-placeholder-count="4">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <span style="display: flex; align-items: center; gap: 10px; font-size: 14.5px; line-height: 22px;"><span style="{{ r.dot }}"></span>{{ r.name }}</span>
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px;">{{ r.score }}</span>
+              </div>
+              <div style="height: 8px; border-radius: 999px; background: var(--color-accent-100); margin-top: 8px; overflow: hidden;">
+                <div style="{{ r.barStyle }}"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="{{ verdictStyle }}">
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 18px; line-height: 1.3; margin: 0;">{{ verdictTitle }}</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 8px 0 0;">{{ verdictBody }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<section style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); padding: 8px clamp(20px,5vw,72px) 72px;">
+  <div style="max-width: 1320px; margin: 0 auto;">
+    <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,2.8vw,32px); line-height: 1.2; margin: 0; max-width: 24ch;">What the chart changes</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-top: 24px;">
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Key-person risk</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · the business runs on what one or two people carry in their heads, and nobody finds out how much until they leave.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · the role is defined and measured separately from the person. Drag the name onto another card and the scorecard stays where it is.</p>
+        </div>
+      </div>
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Nobody ready to step up</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · succession is a conversation held after a resignation letter.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · a role's training path and Ace run say who is already holding the numbers one level down, and a vacant role sits on the chart as a visible cost until it is filled.</p>
+        </div>
+      </div>
+      <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Structure nobody agrees on</p>
+        <div style="display: grid; gap: 10px; margin-top: 14px;">
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #8c8681; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Before · three versions of the org chart, all out of date, none of them matching how the work actually flows.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; padding-left: 14px; border-left: 3px solid #4f7a3f;">After · one chart everyone sees, changed by dragging, with the four lights on every card so the structure and the performance are the same picture.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26';
+
+const PILLARS = [
+  { key: 's', name: 'Safety', kpi1: 'Inspections completed', kpi2: 'Corrective actions on time' },
+  { key: 'p', name: 'People', kpi1: 'One-to-ones held', kpi2: 'Retention against target' },
+  { key: 'e', name: 'Earnings', kpi1: 'Margin against quote', kpi2: 'Labour utilisation' },
+  { key: 'c', name: 'Compliance', kpi1: 'Tickets current', kpi2: 'Checks logged' },
+];
+
+const SEED = [
+  { id: 'n1', parent: null, root: true, title: 'Managing Director', person: 'Kris Harold', s: 94, p: 88, e: 91, c: 100 },
+  { id: 'n2', parent: 'n1', title: 'Operations Manager', person: '', s: 92, p: 85, e: 89, c: 100 },
+  { id: 'n3', parent: 'n1', title: 'Commercial Manager', person: '', s: 90, p: 91, e: 93, c: 100 },
+  { id: 'n4', parent: 'n1', title: 'Safety & Compliance Lead', person: '', s: 97, p: 90, e: 92, c: 100 },
+  { id: 'n5', parent: 'n2', title: 'Site Supervisor', person: '', s: 96, p: 72, e: 94, c: 100 },
+  { id: 'n6', parent: 'n2', title: 'Scheduler', person: '', s: 93, p: 90, e: 90, c: 100 },
+  { id: 'n7', parent: 'n3', title: 'Estimator', person: '', s: 91, p: 88, e: 92, c: 100 },
+];
+
+const rag = v => (v >= 90 ? GREEN : v >= 75 ? AMBER : RED);
+const dot = (v, size) => 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:block;flex:none;background:' + rag(v) + ';';
+const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 90 ? '#4f7a3f' : v >= 75 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
+const stageDot = ok => 'width:14px;height:14px;border-radius:50%;display:block;flex:none;background:' + (ok ? GREEN : AMBER) + ';';
+
+class Component extends DCLogic {
+  state = { nodes: SEED.map(n => ({ ...n })), selectedId: 'n2', dragId: null, dropId: null, dragKind: null, seq: 8, menu: null, importOpen: false, importText: '', importStatus: 'Or drag the roles in by hand.', fileStatus: 'Nothing uploaded yet.', connected: {} };
+
+  parseStructure(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const rows = lines.map(line => {
+      const parts = line.split(/[,;|\t]/).map(p => p.trim());
+      return { title: parts[0] || 'Role', person: parts[1] || '', boss: parts[2] || '' };
+    }).filter(r => r.title);
+    if (!rows.length) return null;
+
+    const nodes = rows.map((r, i) => ({
+      id: 'i' + i,
+      parent: null,
+      root: false,
+      title: r.title,
+      person: r.person,
+      s: 0, p: 0, e: 0, c: 0,
+      _boss: r.boss,
+    }));
+
+    const find = name => nodes.find(n => n.title.toLowerCase() === String(name).toLowerCase());
+    nodes.forEach(n => { const b = n._boss ? find(n._boss) : null; n.parent = b && b.id !== n.id ? b.id : null; delete n._boss; });
+
+    const tops = nodes.filter(n => !n.parent);
+    if (!tops.length) return null;
+    tops[0].root = true;
+    tops[0].parent = null;
+    return { nodes, linked: nodes.filter(n => n.parent || n.root).length, total: nodes.length };
+  }
+
+  applyStructure(text, label) {
+    const parsed = this.parseStructure(text);
+    if (!parsed) { this.setState({ importStatus: 'Nothing readable in that — one role per line.' }); return; }
+    this.setState({
+      nodes: parsed.nodes,
+      selectedId: parsed.nodes[0].id,
+      seq: parsed.nodes.length + 1,
+      menu: null,
+      importStatus: label + ' · ' + parsed.total + ' roles read, ' + (parsed.total - parsed.linked) + ' left to link.',
+    });
+  }
+
+  byId(id) { return this.state.nodes.find(n => n.id === id); }
+  kids(id) { return this.state.nodes.filter(n => n.parent === id); }
+  unlinkedNodes() { return this.state.nodes.filter(n => !n.root && !n.parent); }
+
+  isAncestor(candidate, id) {
+    let cur = this.byId(id);
+    while (cur && cur.parent) {
+      if (cur.parent === candidate) return true;
+      cur = this.byId(cur.parent);
+    }
+    return false;
+  }
+
+  movePerson(fromId, toId) {
+    if (!fromId || fromId === toId) return;
+    const from = this.byId(fromId), to = this.byId(toId);
+    if (!from || !to || !from.person) return;
+    this.setState(s => ({
+      nodes: s.nodes.map(n => {
+        if (n.id === toId) return { ...n, person: from.person };
+        if (n.id === fromId) return { ...n, person: to.person || '' };
+        return n;
+      }),
+      dragId: null, dropId: null, dragKind: null,
+    }));
+  }
+
+  move(dragId, targetId) {
+    if (!dragId || dragId === targetId) return;
+    const dragged = this.byId(dragId);
+    if (!dragged || dragged.root || this.isAncestor(dragId, targetId)) return;
+    this.setState(s => ({
+      nodes: s.nodes.map(n => (n.id === dragId ? { ...n, parent: targetId } : n)),
+      dragId: null, dropId: null,
+    }));
+  }
+
+  addRole(parentId) {
+    const id = 'n' + this.state.seq;
+    this.setState(s => ({
+      nodes: s.nodes.concat([{ id, parent: parentId, title: 'New role', person: '', s: 0, p: 0, e: 0, c: 0 }]),
+      seq: s.seq + 1, selectedId: id, menu: null,
+    }));
+  }
+
+  removeById(id) {
+    const node = this.byId(id);
+    if (!node || node.root) return;
+    this.setState(s => ({
+      nodes: s.nodes.filter(n => n.id !== id).map(n => (n.parent === id ? { ...n, parent: node.parent } : n)),
+      selectedId: node.parent || (s.nodes.find(n => n.root) || {}).id,
+      menu: null,
+    }));
+  }
+
+  openMenu(e, nodeId) {
+    e.preventDefault();
+    e.stopPropagation();
+    const host = e.currentTarget.closest('[data-canvas]') || e.currentTarget.offsetParent;
+    const box = host ? host.getBoundingClientRect() : { left: 0, top: 0 };
+    this.setState({ menu: { x: e.clientX - box.left, y: e.clientY - box.top, nodeId }, selectedId: nodeId || this.state.selectedId });
+  }
+
+  decorate(node, level) {
+    const sel = this.state.selectedId === node.id;
+    const dropping = this.state.dropId === node.id;
+    const dragging = this.state.dragId === node.id;
+    const fills = ['var(--color-bg)', 'var(--color-bg)', 'var(--color-bg)', 'var(--color-bg)'];
+    const sizes = [{ min: 210, pad: '18px 24px', r: 22, d: 13, t: 19 }, { min: 176, pad: '16px 20px', r: 20, d: 12, t: 16 }, { min: 148, pad: '13px 17px', r: 18, d: 10, t: 14 }];
+    const z = sizes[Math.min(level, 2)];
+    let style = 'cursor:grab;user-select:none;text-align:center;box-sizing:border-box;'
+      + 'min-width:' + z.min + 'px;padding:' + z.pad + ';border-radius:' + (z.r + 6) + 'px;'
+      + 'background:' + fills[Math.min(level, 3)] + ';transition:box-shadow 150ms,transform 150ms,opacity 150ms;';
+    style += 'box-shadow:0 0 0 2.5px var(--color-accent-400),var(--shadow-md);';
+    if (sel) style += 'box-shadow:0 0 0 2px var(--color-accent),var(--shadow-md);transform:translateY(-1px);';
+    if (dropping) style += 'box-shadow:0 0 0 3px ' + GREEN + ',0 12px 22px -8px rgba(0,0,0,0.28);transform:translateY(-4px) scale(1.035);background:color-mix(in srgb, ' + GREEN + ' 10%, ' + fills[Math.min(level, 3)] + ');';
+    if (dragging) style += 'opacity:0.4;transform:scale(0.94) rotate(-1.5deg);cursor:grabbing;';
+
+    return {
+      ...node,
+      style,
+      titleStyle: 'font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + z.t + 'px;line-height:1.25;margin:0;',
+      personStyle: 'display:inline-block;font-size:12.5px;line-height:18px;margin:5px 0 0;padding:2px 10px;border-radius:999px;'
+        + (node.person
+          ? 'cursor:grab;background:var(--color-bg);box-shadow:inset 0 0 0 1px var(--color-accent-200);color:color-mix(in srgb, var(--color-text) 85%, transparent);'
+          : 'color:color-mix(in srgb, var(--color-text) 55%, transparent);'),
+      person: node.person || 'Vacant',
+      personDraggable: !!node.person,
+      personDragStart: e => {
+        e.stopPropagation();
+        if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+        this.setState({ dragId: node.id, dragKind: 'person' });
+      },
+      dotS: tile(node.s, z.d),
+      dotP: tile(node.p, z.d),
+      dotE: tile(node.e, z.d),
+      dotC: tile(node.c, z.d),
+      select: () => this.setState({ selectedId: node.id, menu: null }),
+      openScorecard: () => { window.location.href = 'SPEC My Scorecard.dc.html'; },
+      contextMenu: e => this.openMenu(e, node.id),
+      dragStart: e => { if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; this.setState({ dragId: node.id, dragKind: 'role' }); },
+      dragEnd: () => this.setState({ dragId: null, dropId: null, dragKind: null }),
+      dragOver: e => { e.preventDefault(); if (this.state.dropId !== node.id) this.setState({ dropId: node.id }); },
+      dragLeave: () => { if (this.state.dropId === node.id) this.setState({ dropId: null }); },
+      drop: e => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.state.dragKind === 'person') this.movePerson(this.state.dragId, node.id);
+        else this.move(this.state.dragId, node.id);
+      },
+    };
+  }
+
+  layout(root) {
+    const SLOT = 200, ROW = 168, RAIL = 'var(--color-accent-200)';
+    const width = d => (d === 0 ? 226 : d === 1 ? 186 : 158);
+    const height = d => (d === 0 ? 108 : 100);
+    const placed = [];
+    const lines = [];
+    let slot = 0;
+
+    const walk = (node, depth) => {
+      const kids = this.kids(node.id);
+      let centre;
+      if (!kids.length) {
+        centre = slot * SLOT + SLOT / 2;
+        slot += 1;
+      } else {
+        const centres = kids.map(k => walk(k, depth + 1));
+        centre = (centres[0] + centres[centres.length - 1]) / 2;
+      }
+      const y = depth * ROW;
+      placed.push({ node, depth, centre, y, w: width(depth), h: height(depth) });
+
+      if (kids.length) {
+        const bottom = y + height(depth);
+        const railY = bottom + 28;
+        const childCentres = kids.map(k => placed.find(p => p.node.id === k.id).centre);
+        const left = Math.min.apply(null, childCentres);
+        const right = Math.max.apply(null, childCentres);
+        const avgOf = n => Math.round((n.s + n.p + n.e + n.c) / 4);
+        const worstKid = Math.min.apply(null, kids.map(avgOf));
+        lines.push({ style: 'position:absolute;left:' + (centre - 2.5) + 'px;top:' + bottom + 'px;width:5px;height:28px;border-radius:999px;background:' + rag(avgOf(node)) + ';' });
+        if (kids.length > 1) {
+          lines.push({ style: 'position:absolute;left:' + left + 'px;top:' + (railY - 2) + 'px;width:' + (right - left) + 'px;height:5px;border-radius:999px;background:' + rag(worstKid) + ';' });
+        }
+        kids.forEach(k => {
+          const cx = placed.find(p => p.node.id === k.id).centre;
+          lines.push({ style: 'position:absolute;left:' + (cx - 2.5) + 'px;top:' + railY + 'px;width:5px;height:' + (y + ROW - railY) + 'px;border-radius:999px;background:' + rag(avgOf(k)) + ';' });
+        });
+      }
+      return centre;
+    };
+
+    walk(root, 0);
+
+    const maxDepth = placed.reduce((m, p) => Math.max(m, p.depth), 0);
+    const cards = placed.map(p => {
+      const d = this.decorate(p.node, p.depth);
+      return {
+        ...d,
+        style: 'position:absolute;left:' + (p.centre - p.w / 2) + 'px;top:' + p.y + 'px;width:' + p.w + 'px;' + d.style,
+      };
+    });
+
+    return {
+      cards,
+      lines,
+      canvasInner: 'position:relative;width:' + Math.max(slot * SLOT, 680) + 'px;height:' + (maxDepth * ROW + 130) + 'px;margin:0 auto;',
+    };
+  }
+
+  renderVals() {
+    const nodes = this.state.nodes;
+    const root = nodes.find(n => n.root) || nodes[0];
+    const selected = this.byId(this.state.selectedId) || root;
+    const unlinked = this.unlinkedNodes();
+    const reachable = new Set();
+    const mark = id => { reachable.add(id); this.kids(id).forEach(k => mark(k.id)); };
+    mark(root.id);
+    const linked = nodes.filter(n => reachable.has(n.id));
+    const detachedCount = nodes.length - linked.length;
+    const descendants = id => { let t = 0; this.kids(id).forEach(k => { t += 1 + descendants(k.id); }); return t; };
+
+    const avg = key => Math.round(linked.reduce((t, n) => t + n[key], 0) / (linked.length || 1));
+    const rollup = PILLARS.map(p => {
+      const score = avg(p.key);
+      return {
+        name: p.name,
+        score: score + '%',
+        dot: dot(score, 12),
+        barStyle: 'height:100%;border-radius:999px;width:' + score + '%;background:' + rag(score) + ';transition:width 160ms;',
+      };
+    });
+
+    const worst = Math.min.apply(null, PILLARS.map(p => avg(p.key)));
+    const allGreen = worst >= 90;
+    const unset = linked.filter(n => Math.min(n.s, n.p, n.e, n.c) === 0);
+    const stageStyle = ok => 'border-radius:var(--radius-lg);padding:22px 24px;background:' + (ok ? 'color-mix(in srgb, ' + GREEN + ' 12%, transparent)' : 'var(--color-accent-100)') + ';';
+
+    const menuState = this.state.menu;
+    const menuItemStyle = 'display:block;width:100%;text-align:left;background:none;border:0;font-family:var(--font-body);font-size:14.5px;line-height:22px;padding:9px 16px;cursor:pointer;color:var(--color-text);border-radius:12px;';
+    const menuItems = menuState
+      ? (menuState.nodeId
+        ? [
+          { label: 'Add a direct report', action: () => this.addRole(menuState.nodeId), style: menuItemStyle },
+          { label: 'Rename role & person', action: () => this.setState({ selectedId: menuState.nodeId, menu: null }), style: menuItemStyle },
+          { label: 'Break the link', action: () => { const id = menuState.nodeId; this.setState(s => ({ nodes: s.nodes.map(n => (n.id === id && !n.root ? { ...n, parent: null } : n)), menu: null })); }, style: menuItemStyle },
+          { label: 'Make this role vacant', action: () => { const id = menuState.nodeId; this.setState(s => ({ nodes: s.nodes.map(n => (n.id === id ? { ...n, person: '' } : n)), menu: null })); }, style: menuItemStyle },
+          { label: 'Remove role', action: () => this.removeById(menuState.nodeId), style: menuItemStyle + 'color:' + RED + ';' },
+        ]
+        : [
+          { label: 'Add a new role', action: () => this.addRole(null), style: menuItemStyle },
+          { label: 'Reset structure', action: () => this.setState({ nodes: SEED.map(n => ({ ...n })), selectedId: 'n2', seq: 8, menu: null }), style: menuItemStyle },
+        ])
+      : [];
+
+    const setScore = key => e => {
+      const v = Number(e.target.value);
+      this.setState(s => ({ nodes: s.nodes.map(n => (n.id === selected.id ? { ...n, [key]: v } : n)) }));
+    };
+
+    return {
+      ...this.layout(root),
+      hasUnlinked: unlinked.length > 0,
+      unlinked: unlinked.map(n => {
+        const d = this.decorate(n, 1);
+        const below = descendants(n.id);
+        return {
+          ...d,
+          title: below ? n.title + '  +' + below + ' below' : n.title,
+          chipStyle: 'cursor:grab;user-select:none;display:grid;gap:2px;text-align:left;padding:14px 20px;border-radius:18px;background:var(--color-bg);box-shadow:0 0 0 2px ' + (this.state.selectedId === n.id ? 'var(--color-accent)' : RED) + ';',
+        };
+      }),
+      summaryLine: nodes.length + ' roles · ' + detachedCount + ' off the chart · ' + linked.filter(n => Math.min(n.s, n.p, n.e, n.c) >= 90).length + ' all green',
+      linkStage: {
+        style: stageStyle(detachedCount === 0),
+        dot: stageDot(detachedCount === 0),
+        detail: detachedCount === 0 ? 'The chart is complete.' : detachedCount + ' role' + (detachedCount === 1 ? '' : 's') + ' off the chart, in ' + unlinked.length + ' group' + (unlinked.length === 1 ? '' : 's') + '.',
+      },
+      flowStage: {
+        style: stageStyle(unset.length === 0),
+        dot: stageDot(unset.length === 0),
+        detail: unset.length === 0 ? 'Every role is measured.' : unset.length + ' still without KPIs.',
+      },
+      growStage: {
+        style: stageStyle(allGreen),
+        dot: stageDot(allGreen),
+        detail: allGreen ? 'Two months at this and the business is SPEC.' : 'Lowest pillar is at ' + worst + '%.',
+      },
+      selectedTitle: selected.title,
+      selectedPerson: selected.person,
+      selectedPillars: PILLARS.map(p => ({
+        name: p.name,
+        kpi1: p.kpi1,
+        kpi2: p.kpi2,
+        score: selected[p.key] + '%',
+        value: selected[p.key],
+        dot: dot(selected[p.key], 12),
+        set: setScore(p.key),
+      })),
+      rollup,
+      verdictStyle: 'margin-top:26px;border-radius:var(--radius-lg);padding:20px 22px;background:' + (allGreen ? 'color-mix(in srgb, ' + GREEN + ' 12%, transparent)' : worst >= 75 ? 'var(--color-accent-100)' : 'color-mix(in srgb, ' + RED + ' 10%, transparent)') + ';',
+      verdictTitle: allGreen ? 'All four green' : worst >= 75 ? 'Amber on the board' : 'Red on the board',
+      verdictBody: allGreen
+        ? 'Hold this for two consecutive months and the business is SPEC.'
+        : 'The board sees the pillar below target and the role it comes from. Nothing needs explaining.',
+      menu: {
+        open: !!menuState,
+        style: menuState ? 'position:absolute;left:' + menuState.x + 'px;top:' + menuState.y + 'px;z-index:20;background:var(--color-surface, #fff);border-radius:16px;box-shadow:var(--shadow-lg);padding:8px;min-width:200px;' : 'display:none;',
+        items: menuItems,
+      },
+      importOpen: this.state.importOpen,
+      importToggleLabel: this.state.importOpen ? 'Hide import' : 'Import your structure',
+      toggleImport: () => this.setState(s => ({ importOpen: !s.importOpen })),
+      importText: this.state.importText,
+      setImportText: e => this.setState({ importText: e.target.value }),
+      importStatus: this.state.importStatus,
+      buildFromText: () => this.applyStructure(this.state.importText, 'Pasted'),
+      fileStatus: this.state.fileStatus,
+      onFile: e => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const plain = /\.(csv|txt)$/i.test(file.name);
+        this.setState({ fileStatus: 'Reading ' + file.name + '…' });
+        if (!plain) {
+          this.setState({ fileStatus: file.name + ' — SPEC extracts the list and shows it for confirmation before drawing. Design placeholder.' });
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          const text = String(reader.result || '').replace(/^.*role.*report.*$/im, '');
+          this.applyStructure(text, file.name);
+          this.setState({ fileStatus: file.name + ' read.' });
+        };
+        reader.readAsText(file);
+      },
+      connectors: [
+        { name: 'BambooHR', key: 'bamboo' },
+        { name: 'Employment Hero', key: 'hero' },
+        { name: 'Xero Payroll', key: 'xero' },
+        { name: 'Microsoft Entra ID', key: 'entra' },
+      ].map(c => {
+        const on = !!this.state.connected[c.key];
+        return {
+          name: c.name,
+          state: on ? 'Connected ✓' : 'Connect',
+          connect: () => this.setState(s => ({ connected: { ...s.connected, [c.key]: !s.connected[c.key] } })),
+          style: 'cursor:pointer;border:0;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:999px;padding:11px 18px;font-family:var(--font-body);color:var(--color-text);'
+            + (on ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);' : 'background:var(--color-surface, #fff);box-shadow:inset 0 0 0 1px var(--color-accent-200);'),
+        };
+      }),
+      closeMenu: () => { if (this.state.menu) this.setState({ menu: null }); },
+      canvasContextMenu: e => this.openMenu(e, null),
+      renameRole: e => { const v = e.target.value; this.setState(s => ({ nodes: s.nodes.map(n => (n.id === selected.id ? { ...n, title: v } : n)) })); },
+      renamePerson: e => { const v = e.target.value; this.setState(s => ({ nodes: s.nodes.map(n => (n.id === selected.id ? { ...n, person: v } : n)) })); },
+      addUnder: () => this.addRole(selected.id),
+      removeRole: () => this.removeById(selected.id),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

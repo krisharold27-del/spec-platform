@@ -1,7 +1,7 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { randomUUID } from 'crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
@@ -48,7 +48,12 @@ export async function removeConnection(formData: FormData) {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   await assertWritable(user.tenantId);
   const id = String(formData.get('id') ?? '');
+  // A personal mailbox is removed by its owner on their own page, never from here.
   await db.delete(schema.systemConnections)
-    .where(and(eq(schema.systemConnections.id, id), eq(schema.systemConnections.tenantId, user.tenantId)));
+    .where(and(
+      eq(schema.systemConnections.id, id),
+      eq(schema.systemConnections.tenantId, user.tenantId),
+      isNull(schema.systemConnections.personalFor),
+    ));
   redirect('/setup/systems');
 }

@@ -2,18 +2,31 @@ import Link from 'next/link';
 import { SpecLockup } from './spec-mark';
 import { band, type Pillar, type Score } from '@/lib/scoring';
 import { myBusinesses } from '@/lib/auth';
-import { PILLAR_META, SCORE_COLOUR, scoreColour, pct } from '@/lib/pillars';
+import { currentLook } from '@/lib/look';
+import { doSignOut } from '@/app/signin/actions';
+import { LookBar } from './look-bar';
+import { PILLAR_META, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk, pct } from '@/lib/pillars';
 
 // Re-exported so existing pages keep importing them from here; they live in lib/pillars because a
 // client component must be able to reach them without pulling the server's request context in too.
-export { PILLAR_META, SCORE_COLOUR, scoreColour, pct };
+export { PILLAR_META, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk, pct };
 
 
 export async function Shell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   // Only someone with more than one business ever sees a way to switch.
   const businesses = await myBusinesses().catch(() => []);
+  /*
+    Ask lib/look directly rather than inferring it from the viewer.
+
+    A visitor is deliberately sat in the top role's real seat so every page has something to show
+    them, which means their user looks exactly like a customer's — there is nothing about the
+    viewer to test. The only thing that distinguishes a look-around is the token in the browser, so
+    that is what gets asked.
+  */
+  const looking = Boolean(await currentLook().catch(() => null));
   return (
     <div className="min-h-screen">
+      {looking && <LookBar />}
       <header className="border-b border-ink/10 bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           {/* Inside the product the mark is a wayfinder, not a brand statement, so it carries no
@@ -30,7 +43,7 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
             hydration, and it needs nothing shipped to the browser.
           */}
           <nav className="flex items-center gap-5 label-caps">
-            <Link href="/today" className="hover:text-rust">Today</Link>
+            <Link href="/today" className="hover:text-rust">My page</Link>
             <Link href="/meeting" className="hidden hover:text-rust sm:inline">This week</Link>
             <Link href="/scoring" className="hidden hover:text-rust sm:inline">The month</Link>
             <Link href="/inbox" className="hover:text-rust">Approvals</Link>
@@ -60,10 +73,23 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
                     {l.label}
                   </Link>
                 ))}
+                {/* Last, quiet, and out of the way. Nobody should sign out by accident on their way
+                    to something else — the point is to stay in all day and come back tomorrow. */}
+                <form action={doSignOut} className="mt-1 border-t border-ink/10 pt-1">
+                  <button type="submit" className="w-full rounded-full px-3 py-1.5 text-left text-ink-light/70 hover:bg-cream hover:text-rust">
+                    Sign out
+                  </button>
+                </form>
               </div>
             </details>
 
-            <Link href="/signout" className="normal-case tracking-normal text-ink-light/70 hover:text-rust">Sign out</Link>
+            {/* A visitor never signed in, so offering to sign them out is nonsense. They get the
+                way out of the look-around instead. */}
+            {looking ? (
+              <Link href="/look/decide" className="normal-case tracking-normal text-ink-light/70 hover:text-rust">
+                Finish looking
+              </Link>
+            ) : null}
           </nav>
         </div>
       </header>
@@ -103,12 +129,13 @@ export function StatusPill({ tone, children }: { tone: 'confirmed' | 'pending' |
  */
 export function Badge({ pillar, score = null, scored = false }: { pillar: Pillar; score?: Score; scored?: boolean }) {
   const m = PILLAR_META[pillar];
+  // The edge and the wash carry the signal; the letter has to be legible, so it takes the ink.
   const tone = scored ? scoreColour(score) : null;
   return (
     <span
       className="badge-letter"
       title={m.name}
-      style={tone ? { borderColor: tone, color: tone, backgroundColor: `${tone}14` } : undefined}
+      style={tone ? { borderColor: tone, color: scoreInk(score), backgroundColor: `${tone}14` } : undefined}
     >
       {m.letter}
     </span>
@@ -134,18 +161,20 @@ export function PillarTile({ pillar, score: raw, scored: anyScored, sub }: { pil
   const scored = score !== null;
   const status = BAND_LABEL[band(score)];
   // One colour on the card, and it is the score. The letter says which pillar.
+  // Two weights of that one colour: the bright one for the edge, the dark one for anything read.
   const tone = scoreColour(score);
+  const ink = scoreInk(score);
   return (
     <div className="card" style={{ borderTopColor: tone, borderTopWidth: 4 }}>
       <div className="flex items-center gap-2">
         <span
           className="badge-letter h-6 w-6 text-xs"
-          style={{ borderColor: tone, color: tone, backgroundColor: `${tone}14` }}
+          style={{ borderColor: tone, color: ink, backgroundColor: `${tone}14` }}
         >{m.letter}</span>
         <div className="label-caps">{m.name}</div>
       </div>
       <div className="mt-2 font-serif text-3xl text-ink">{scored ? pct(score) : '—'}</div>
-      <div className="mt-1 text-sm font-medium" style={{ color: tone }}>{status}</div>
+      <div className="mt-1 text-sm font-medium" style={{ color: ink }}>{status}</div>
       {sub && <div className="mt-2 text-xs text-ink-light">{sub}</div>}
     </div>
   );

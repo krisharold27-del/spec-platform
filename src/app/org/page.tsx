@@ -1,3 +1,4 @@
+import { inArray } from 'drizzle-orm';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { db, schema } from '@/db';
@@ -10,7 +11,7 @@ import { currentPeriod } from '@/lib/period';
 import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
 import { detachedBranches, stages, type ChartRole } from '@/lib/orgchart';
-import { LIGHT_COLOUR } from '@/lib/today';
+import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { addRole, importChart } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -31,7 +32,17 @@ export default async function OrgChart() {
   const period = await currentPeriod(tenant.id);
   const manage = canManage(user.access);
 
-  const criteria = await db.select().from(schema.criteria);
+  /*
+    Scoped through this business's own roles rather than read whole and filtered afterwards.
+
+    The filter that used to follow was correct, but "read everything, then keep ours" is the exact
+    shape that leaked in boards-data — one clause written slightly wrong and another company's rows
+    are in the result. It also grows with every customer SPEC ever signs.
+  */
+  const ourRoleIds = scope.roles.map(r => r.id);
+  const criteria = ourRoleIds.length
+    ? await db.select().from(schema.criteria).where(inArray(schema.criteria.roleId, ourRoleIds))
+    : [];
   const roles: ChartRole[] = [];
   for (const r of scope.roles) {
     const own = criteria.filter(c => c.roleId === r.id && c.active);
@@ -72,7 +83,19 @@ export default async function OrgChart() {
       title={`${tenant.name} — org chart`}
       subtitle="Roles report to roles. A role exists whether or not anybody holds it."
     >
-      <section className="grid gap-4 sm:grid-cols-3">
+      {/* The design leads this screen with the sequence rather than the diagram, because the
+          sequence is the part people get wrong: they chase a score before the chart is drawn. */}
+      <section className="callout max-w-3xl">
+        <div className="font-serif text-xl text-ink">Link it. Then it flows. Then it grows.</div>
+        <p className="mt-2 text-sm text-ink-light">
+          {manage
+            ? 'Add a role, then drag it onto the role it reports to and the line is drawn.'
+            : 'Every line here was drawn by someone in your business.'}{' '}
+          Have you ever been sure the business is linked, flowing and growing? Now you can be.
+        </p>
+      </section>
+
+      <section className="mt-6 grid gap-4 sm:grid-cols-3">
         {journey.map((s, i) => (
           <div
             key={s.key}
@@ -81,7 +104,7 @@ export default async function OrgChart() {
           >
             <div className="flex items-baseline justify-between gap-2">
               <span className="font-serif text-lg text-ink">{s.title}</span>
-              <span className="label-caps" style={{ color: s.met ? LIGHT_COLOUR.green : undefined }}>
+              <span className="label-caps" style={{ color: s.met ? LIGHT_INK.green : undefined }}>
                 {s.met ? 'Met' : `Step ${i + 1}`}
               </span>
             </div>

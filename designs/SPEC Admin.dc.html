@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; padding: clamp(28px,4vw,44px) 0 26px;">
+      <div>
+        <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Admin · who can do what</span>
+        <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">Permissions follow the role, not the person</h1>
+        <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Whoever holds a role inherits what it can see and do. Move someone and their access moves with the seat, not with them.</p>
+      </div>
+      <span style="{{ ownerChip }}">{{ ownerLabel }}</span>
+    </header>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); min-width: 0;">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Permissions</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ permLine }}</span>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+            <sc-for list="{{ levels }}" as="lv" hint-placeholder-count="5">
+              <button type="button" onClick="{{ lv.select }}" style="{{ lv.style }}">{{ lv.label }}</button>
+            </sc-for>
+          </div>
+
+          <div style="display: grid; gap: 10px; margin-top: 22px;">
+            <sc-for list="{{ permissions }}" as="pm" hint-placeholder-count="8">
+              <button type="button" onClick="{{ pm.toggle }}" style="{{ pm.style }}">
+                <span style="display: grid; gap: 3px; text-align: left;">
+                  <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15.5px; line-height: 21px;">{{ pm.label }}</span>
+                  <span style="font-size: 13px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ pm.note }}</span>
+                </span>
+                <span style="{{ pm.chip }}">{{ pm.state }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <p style="font-size: 13px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ lockedLine }}</p>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">People with access</h2>
+            <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ usersLine }}</span>
+          </div>
+          <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">The accounts that can log in — separate from what each level is allowed to do above.</p>
+          <div style="display: grid; gap: 10px; margin-top: 20px;">
+            <sc-for list="{{ users }}" as="u" hint-placeholder-count="5">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: var(--color-bg); border-radius: 18px; padding: 14px 18px;">
+                <span style="display: grid; gap: 2px;">
+                  <span style="font-size: 14.5px; line-height: 21px;">{{ u.name }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ u.email }} · {{ u.level }}</span>
+                </span>
+                <span style="display: flex; align-items: center; gap: 10px;">
+                  <span style="{{ u.statusChip }}">{{ u.status }}</span>
+                  <button type="button" onClick="{{ u.remove }}" style="cursor:pointer;border:0;border-radius:999px;padding:8px 14px;font-family:var(--font-body);font-size:12.5px;white-space:nowrap;background:transparent;color:color-mix(in srgb, var(--color-text) 60%, transparent);">Remove</button>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;">
+            <input class="input" type="text" value="{{ inviteEmail }}" onChange="{{ setInviteEmail }}" onInput="{{ setInviteEmail }}" aria-label="Invite by email" placeholder="name@business.com" style="flex: 1 1 220px; min-height: 40px;" />
+            <button type="button" class="btn btn-secondary" onClick="{{ sendInvite }}" style="flex: none; white-space: nowrap;">Send invite</button>
+          </div>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Notifications</h2>
+          <div style="display: grid; gap: 14px; margin-top: 20px;">
+            <sc-for list="{{ notifSettings }}" as="ns" hint-placeholder-count="2">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-accent-100); padding-bottom: 14px;">
+                <span style="display: grid; gap: 2px;">
+                  <span style="font-size: 14.5px; line-height: 21px;">{{ ns.label }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ ns.note }}</span>
+                </span>
+                <button type="button" onClick="{{ ns.cycle }}" style="{{ ns.buttonStyle }}">{{ ns.value }}</button>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Company settings</h2>
+          <div style="display: grid; gap: 14px; margin-top: 20px;">
+            <sc-for list="{{ settings }}" as="st" hint-placeholder-count="6">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-accent-100); padding-bottom: 14px;">
+                <span style="display: grid; gap: 2px;">
+                  <span style="font-size: 14.5px; line-height: 21px;">{{ st.label }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ st.note }}</span>
+                </span>
+                <button type="button" onClick="{{ st.cycle }}" style="{{ st.buttonStyle }}">{{ st.value }}</button>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+
+      <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
+        <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Seats and billing</h2>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">A seat is charged for a scored role from its first scored month. Checklist roles and vacancies are free.</p>
+          <div style="display: grid; gap: 12px; margin-top: 20px;">
+            <sc-for list="{{ seats }}" as="se" hint-placeholder-count="4">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; background: var(--color-surface, #fff); border-radius: 18px; padding: 16px 18px;">
+                <span style="display: grid; gap: 2px;">
+                  <span style="font-size: 14.5px; line-height: 21px;">{{ se.label }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ se.note }}</span>
+                </span>
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px;">{{ se.value }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <a href="SPEC Pricing.dc.html" class="btn btn-secondary" style="display: inline-flex; flex: none; white-space: nowrap; margin-top: 20px; text-decoration: none;">See pricing</a>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Data and records</h2>
+          <div style="display: grid; gap: 12px; margin-top: 20px;">
+            <sc-for list="{{ data }}" as="dt" hint-placeholder-count="4">
+              <div style="display: grid; gap: 4px; background: var(--color-bg); border-radius: 18px; padding: 16px 18px;">
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15.5px; line-height: 22px;">{{ dt.what }}</span>
+                <span style="font-size: 13.5px; line-height: 21px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ dt.note }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;">
+            <button type="button" class="btn btn-ghost" style="flex: none; white-space: nowrap;">Export everything</button>
+            <button type="button" class="btn btn-ghost" style="flex: none; white-space: nowrap;">Audit log</button>
+          </div>
+        </section>
+
+        <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.2; margin: 0;">Recent admin activity</h2>
+          <div style="display: grid; gap: 12px; margin-top: 18px;">
+            <sc-for list="{{ log }}" as="lg" hint-placeholder-count="4">
+              <div style="display: grid; gap: 3px; border-bottom: 1px solid var(--color-accent-200); padding-bottom: 12px;">
+                <span style="font-size: 14.5px; line-height: 21px;">{{ lg.what }}</span>
+                <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ lg.who }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', GREY = '#8c8681';
+const chip = tone => 'display:inline-flex;align-items:center;border-radius:999px;padding:6px 13px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+const LEVELS = [
+  { key: 'director', label: 'Director / board' },
+  { key: 'gm', label: 'Managing Director' },
+  { key: 'manager', label: 'Manager' },
+  { key: 'scored', label: 'Scored role' },
+  { key: 'checklist', label: 'Checklist role' },
+];
+
+const PERMS = [
+  { id: 'p1', label: 'See their own scorecard', note: 'Their role, their numbers, every month.', always: ['director', 'gm', 'manager', 'scored'], never: [] },
+  { id: 'p2', label: 'See the team below them', note: 'Direct reports and everything under those roles.', always: ['director', 'gm', 'manager'], never: ['checklist'] },
+  { id: 'p3', label: 'Score a role', note: 'Enter and confirm results for roles they manage.', always: ['gm', 'manager'], never: ['checklist', 'scored'] },
+  { id: 'p4', label: 'Change the org chart', note: 'Add, link, unlink and move roles.', always: ['gm'], never: ['checklist', 'scored'] },
+  { id: 'p5', label: 'Agree KPI targets', note: 'Negotiate and lock a target with the person holding the role.', always: ['gm', 'manager'], never: ['checklist'] },
+  { id: 'p6', label: 'Connect a system', note: 'Anything non-sensitive. Finance and people systems still go to the board.', always: ['gm'], never: ['manager', 'scored', 'checklist'] },
+  { id: 'p7', label: 'Approve a sensitive connector', note: 'Xero, HubSpot, payroll, BambooHR, Employment Hero.', always: ['director'], never: ['gm', 'manager', 'scored', 'checklist'] },
+  { id: 'p8', label: 'Sign off and lock a period', note: 'Ends the month. Nothing is editable afterwards.', always: ['director'], never: ['manager', 'scored', 'checklist'] },
+  { id: 'p9', label: 'See pay and personal records', note: 'HR records held against a person rather than a role.', always: ['director', 'gm'], never: ['scored', 'checklist'] },
+];
+
+const SETTING_VALUES = {
+  s1: ['1st of the month', 'Last Friday', 'Custom'],
+  s2: ['Prior closed month', 'Current month'],
+  s3: ['90% for two months', '90% for three months', '85% for two months'],
+  s4: ['Monday', 'Tuesday', 'Wednesday'],
+  s5: ['AUD · A$', 'NZD · NZ$', 'GBP · £'],
+  s6: ['On', 'Off'],
+};
+
+const SETTING_VALUES_NOTIF = { n1: ['On', 'Off'], n2: ['On', 'Off'] };
+const NOTIF_SETTINGS = [
+  { id: 'n1', label: 'Email notifications', note: 'Assigned, overdue, approved or sent back — placeholder for Claude Code to wire to real delivery.' },
+  { id: 'n2', label: 'SMS notifications', note: 'Same events, to the mobile number on file.' },
+];
+
+const SETTINGS = [
+  { id: 's1', label: 'Scoring opens', note: 'When the previous month becomes scoreable.' },
+  { id: 's2', label: 'Board pack reports', note: 'Which period the pack covers.' },
+  { id: 's3', label: 'The SPEC standard', note: 'What the business has to hold to be called SPEC.' },
+  { id: 's4', label: 'Weekly meeting day', note: 'Used to prompt and count logged meetings.' },
+  { id: 's5', label: 'Billing currency', note: 'Set for your region and fixed.' },
+  { id: 's6', label: 'Ace incentives', note: 'Whether reaching Ace triggers the increased incentive automatically.' },
+];
+
+const USERS = [
+  { name: 'Kristopher Harold', email: 'kris@jbielectrical.com.au', level: 'GM', status: 'Active' },
+  { name: 'Dane Whitmore', email: 'dane@jbielectrical.com.au', level: 'Manager', status: 'Active' },
+  { name: 'Tom Alderson', email: 'tom@jbielectrical.com.au', level: 'Scored role', status: 'Active' },
+  { name: 'Priya Raman', email: 'priya@jbielectrical.com.au', level: 'Scored role', status: 'Invited' },
+  { name: 'Justin Bussell', email: 'justin@jbielectrical.com.au', level: 'Director / board', status: 'Active' },
+];
+
+const SEATS = [
+  { label: 'Scored roles', note: 'Charged from the first scored month', value: '13' },
+  { label: 'Checklist roles', note: 'Crew without an individual scorecard', value: 'Free' },
+  { label: 'Vacant roles', note: 'On the chart, no seat charged', value: '1' },
+  { label: 'This month', note: 'SPEC Advanced · AUD', value: 'A$572' },
+];
+
+const DATA = [
+  { what: 'Locked periods are immutable', note: 'A correction is a noted adjustment in the next month, never an edit to a signed one.' },
+  { what: 'Comments travel with the role', note: 'Held against the role and the period, visible to the person, their manager and the pack.' },
+  { what: 'Every number keeps its source', note: 'A system name and a sync time, or the person who confirmed it.' },
+  { what: 'Your data leaves with you', note: 'Export the full history as a spreadsheet at any time, including locked periods.' },
+];
+
+const LOG = [
+  { what: 'Ace incentives switched on', who: 'Justin Bussell, Director · 9 Sep' },
+  { what: 'Yard Lead role added to the chart', who: 'Dane Whitmore, Operations Manager · 7 Sep' },
+  { what: 'Manager permission to change the org chart removed', who: 'Kristopher Harold, GM · 2 Sep' },
+  { what: 'September period opened for scoring', who: 'Automatic · 1 Sep' },
+];
+
+class Component extends DCLogic {
+  state = { level: 'manager', overrides: {}, settings: { s1: 0, s2: 0, s3: 0, s4: 0, s5: 0, s6: 0 }, notifSettings: { n1: 0, n2: 1 }, users: USERS, inviteEmail: '' };
+
+  renderVals() {
+    const level = this.state.level;
+    const levelName = (LEVELS.find(l => l.key === level) || {}).label;
+
+    const stateFor = p => {
+      if (p.never.indexOf(level) > -1) return 'never';
+      if (p.always.indexOf(level) > -1) return 'on';
+      const o = this.state.overrides[p.id + level];
+      return o ? 'on' : 'off';
+    };
+    const onCount = PERMS.filter(p => stateFor(p) === 'on').length;
+
+    return {
+      ownerChip: chip(GREEN),
+      ownerLabel: 'You are the owner · Kristopher Harold, GM',
+
+      permLine: onCount + ' of ' + PERMS.length + ' for ' + levelName,
+      levels: LEVELS.map(l => ({
+        label: l.label,
+        select: () => this.setState({ level: l.key }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:10px 18px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
+          + (l.key === level ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+      })),
+      permissions: PERMS.map(p => {
+        const st = stateFor(p);
+        const tone = st === 'on' ? GREEN : st === 'never' ? GREY : AMBER;
+        return {
+          label: p.label,
+          note: st === 'never' ? p.note + ' Not available to this level.' : st === 'on' && p.always.indexOf(level) > -1 ? p.note + ' Built into the level.' : p.note,
+          state: st === 'on' ? 'Allowed' : st === 'never' ? 'Not available' : 'Off',
+          chip: chip(tone),
+          style: 'cursor:' + (st === 'never' ? 'not-allowed' : 'pointer') + ';border:0;width:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;background:var(--color-bg);border-radius:20px;padding:16px 20px;font-family:var(--font-body);color:var(--color-text);border-left:4px solid ' + tone + ';' + (st === 'never' ? 'opacity:0.55;' : ''),
+          toggle: () => {
+            if (p.never.indexOf(level) > -1 || p.always.indexOf(level) > -1) return;
+            this.setState(s => ({ overrides: { ...s.overrides, [p.id + level]: !s.overrides[p.id + level] } }));
+          },
+        };
+      }),
+      lockedLine: 'Greyed rows cannot be granted at this level. Board approval of sensitive connectors and signing off a period are never delegable.',
+
+      notifSettings: NOTIF_SETTINGS.map(n => {
+        const vals = SETTING_VALUES_NOTIF[n.id];
+        const i = this.state.notifSettings[n.id];
+        return {
+          label: n.label,
+          note: n.note,
+          value: vals[i],
+          buttonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 18px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;background:var(--color-bg);color:var(--color-text);',
+          cycle: () => this.setState(st => ({ notifSettings: { ...st.notifSettings, [n.id]: (st.notifSettings[n.id] + 1) % vals.length } })),
+        };
+      }),
+      settings: SETTINGS.map(s => {
+        const vals = SETTING_VALUES[s.id];
+        const i = this.state.settings[s.id];
+        return {
+          label: s.label,
+          note: s.note,
+          value: vals[i],
+          buttonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 18px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;background:var(--color-bg);color:var(--color-text);',
+          cycle: () => this.setState(st => ({ settings: { ...st.settings, [s.id]: (st.settings[s.id] + 1) % vals.length } })),
+        };
+      }),
+
+      usersLine: this.state.users.length + ' with access',
+      users: this.state.users.map((u, i) => ({
+        name: u.name,
+        email: u.email,
+        level: u.level,
+        status: u.status,
+        statusChip: 'display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:12px;white-space:nowrap;'
+          + (u.status === 'Active' ? 'background:color-mix(in srgb, #4f7a3f 14%, transparent);color:#4f7a3f;' : 'background:color-mix(in srgb, #c67139 14%, transparent);color:#c67139;'),
+        remove: () => this.setState(s => ({ users: s.users.filter((_, j) => j !== i) })),
+      })),
+      inviteEmail: this.state.inviteEmail,
+      setInviteEmail: e => this.setState({ inviteEmail: e.target.value }),
+      sendInvite: () => {
+        const email = this.state.inviteEmail.trim();
+        if (!email) return;
+        this.setState(s => ({ users: [...s.users, { name: email.split('@')[0], email, level: 'Scored role', status: 'Invited' }], inviteEmail: '' }));
+      },
+      seats: SEATS,
+      data: DATA,
+      log: LOG,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

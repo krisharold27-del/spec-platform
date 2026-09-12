@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { getCharter } from '@/lib/charter-data';
 import { VERDICT_LABEL, MIN_MONTHS_TO_JUDGE, MAX_STRETCH, FULL_HISTORY_MONTHS } from '@/lib/targets';
-import { LIGHT_COLOUR } from '@/lib/today';
+import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { PILLAR_META } from '@/lib/pillars';
 
 export const dynamic = 'force-dynamic';
@@ -117,7 +117,7 @@ export default async function Charter() {
                         className="pill"
                         style={
                           earnings.soundness.verdict === 'too_easy' || earnings.soundness.verdict === 'out_of_reach'
-                            ? { background: `color-mix(in srgb, ${LIGHT_COLOUR.amber} 14%, transparent)`, color: LIGHT_COLOUR.amber }
+                            ? pillTone('amber')
                             : undefined
                         }
                       >

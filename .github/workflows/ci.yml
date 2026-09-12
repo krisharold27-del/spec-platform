@@ -58,6 +58,22 @@ jobs:
       - name: Tests
         run: npx vitest run
 
+      # Is the design set whole? Prints any screen the designs link to that was never sent, and
+      # whether the folder holds screens from more than one export. Reported rather than enforced,
+      # for the same reason as the coverage check below: an incomplete export is a fact about what
+      # arrived, not a fault in the change being tested, and failing a build over it would stop
+      # unrelated work while teaching everyone to skip the step.
+      - name: Is every design screen actually here
+        run: npm run designs:check
+
+      # Prints what each design screen says, and whether the product says it too. Reported rather
+      # than enforced: a design is a prototype and wording legitimately drifts, so failing the build
+      # on a reworded heading would only teach people to ignore the step. The value is that the
+      # answer to "is everything in the designs actually built?" is a command anybody can run,
+      # instead of somebody's recollection.
+      - name: What the designs say, against what the code says
+        run: node scripts/design-coverage.mjs
+
       # The exact shape of the failure that took production down. The public pages need no
       # database, so a build without one has to succeed — if this step ever fails, the marketing
       # site would have gone down over a missing setting.
@@ -70,6 +86,17 @@ jobs:
       # environment looks like on its first deploy.
       - name: Build against an empty database, migrating it
         run: npm run build
+        env:
+          DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
+
+      # Row-level security, applied for real and then inspected.
+      #
+      # drizzle/0001_rls.sql needs Supabase's auth.uid(), so it could never be applied by our own
+      # Postgres — which meant nobody had ever run it. It referenced a table that does not exist and
+      # aborted partway through, silently skipping every policy below that line. This stubs auth.uid()
+      # and applies the real file unmodified, then asks the database what it actually got.
+      - name: Apply the row-level security policies and check them
+        run: npm run db:check-rls
         env:
           DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
 
@@ -119,3 +146,52 @@ jobs:
           ' || fail=1
 
           exit $fail
+
+      # The journey every customer takes, driven in a real browser.
+      #
+      # This is the check that ends a whole class of problem. The happy path — look around, sign up,
+      # keep what you were looking at, come back tomorrow, sign in — could previously only be
+      # verified by reading the code, because it needs a real authentication service. It now runs
+      # against scripts/fake-auth, which speaks enough of the provider's HTTP API for the real
+      # client to talk to it unmodified: what is tested is the shipping code path, with no test-only
+      # branch anywhere in the product.
+      - name: Install a browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Walk the whole customer journey in a browser
+        env:
+          DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+          APP_URL: http://localhost:3000
+          NODE_ENV: test
+        run: |
+          node scripts/fake-auth.mjs 54321 &
+          until curl -fsS -o /dev/null http://localhost:54321/auth/v1/user; do sleep 1; done
+
+          # Rebuilt so the client is compiled against the stand-in, then started for real.
+          npm run build
+          npm start &
+          for i in $(seq 1 40); do
+            curl -fsS -o /dev/null http://localhost:3000/welcome && break
+            sleep 2
+          done
+
+          node scripts/journey.mjs
+
+          # The improvement register, all the way through: a problem typed in plain words,
+          # read, ranked, assigned, accepted, marked done, and raised again as one entry
+          # rather than two. It is the mechanism the front door and My Page share, so a
+          # break here is a break in both.
+          node scripts/register-journey.mjs
+
+          # The front door: a stranger with a problem becomes a business with that problem
+          # already in its register. The landing page promises this literally -- "your page
+          # is waiting, with this problem already sitting in the middle of it" -- so the last
+          # check is whether the thing they typed on a public page is really there afterwards.
+          node scripts/frontdoor-journey.mjs
+
+          # Taking a seat somebody gave you -- the other half of the way in, and the one that
+          # reaches every person in a customer's business except the owner. Single use,
+          # expiring, bound to that address, and a refusal that never says "invalid token".
+          node scripts/seat-journey.mjs

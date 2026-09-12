@@ -11,12 +11,16 @@ import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
 import { dueDateFor, dueState } from '@/lib/training';
 import { PILLAR_META } from '@/lib/pillars';
-import { LIGHT_COLOUR } from '@/lib/today';
+import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
+import {
+  stateOf, stateNote, blockingReasons, STATE_LABEL,
+  leaveLine, leaveKindLabel, impactOf, upcoming, LEAVE_KINDS,
+} from '@/lib/obligations';
 import {
   clearToWork, onboarding, costOfVacancy, parseRatings, candidateScore,
   STAGES, HIRING_CHECKS, INTERVIEW_PROMPTS, type PersonRow,
 } from '@/lib/people';
-import { addCandidate, setStage, rateCandidate } from './actions';
+import { addCandidate, setStage, rateCandidate, addObligation, bookLeave, decideLeave } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +29,21 @@ const CLEAR_COLOUR = {
   blocked: LIGHT_COLOUR.red,
   unknown: LIGHT_COLOUR.pending,
 } as const;
+
+/*
+  A document's state, in the same four signal colours as everything else — and using LIGHT_INK
+  rather than LIGHT_COLOUR, because these are read as words. Three of the four signal colours fail
+  WCAG AA as text; the two-weight palette exists so nothing is ever both coloured and unreadable.
+*/
+const DOC_COLOUR = {
+  current: LIGHT_INK.green,
+  expiring: LIGHT_INK.amber,
+  expired: LIGHT_INK.red,
+  missing: LIGHT_INK.pending,
+} as const;
+
+/** Worst first. An expired ticket is the most important row on that list. */
+const ORDER = { expired: 0, missing: 1, expiring: 2, current: 3 } as const;
 
 /**
  * People — looking after the ones you have, and finding the ones you need.
@@ -68,6 +87,24 @@ export default async function People({ searchParams }: { searchParams: Promise<{
         .where(and(eq(schema.trainingRecords.tenantId, user.tenantId), inArray(schema.trainingRecords.userId, userIds)))
     : [];
 
+  /*
+    The papers, and who is away.
+
+    Obligations are read for the whole business and matched below by person or by role, because a
+    licence belongs to a PERSON and travels with them, while what a job requires belongs to the ROLE
+    and whoever holds it inherits it — the same split the training path already keeps.
+  */
+  const obligationRows = await db.select().from(schema.obligations)
+    .where(eq(schema.obligations.tenantId, user.tenantId));
+  const leaveRows = await db.select().from(schema.leaveEntries)
+    .where(eq(schema.leaveEntries.tenantId, user.tenantId));
+  const staffRows = await db.select().from(schema.staff).where(eq(schema.staff.tenantId, user.tenantId));
+  const seatRows = await db.select().from(schema.users).where(eq(schema.users.tenantId, user.tenantId));
+  const nameOf = (staffId: string | null, userId: string | null): string =>
+    staffRows.find(s => s.id === staffId)?.name
+    ?? seatRows.find(u => u.id === userId)?.name
+    ?? 'Somebody';
+
   const now = new Date();
   const people: (PersonRow & { scored: boolean; hasPath: boolean; pathComplete: boolean; signedOff: boolean })[] = [];
   for (const r of visible) {
@@ -81,6 +118,20 @@ export default async function People({ searchParams }: { searchParams: Promise<{
       const { rows } = await getScorecard(r.id, period.id);
       blocking = rows.filter(x => x.pillar === 'compliance' && x.answer === 'N').map(x => x.text);
     }
+
+    /*
+      An expired ticket fails Clear to Work by exactly the same path an overdue module does.
+
+      Before this, the gate could only be failed by training — so a business could pass it with an
+      expired forklift licence sitting in a drawer, which is the precise situation the gate exists
+      to catch. Merged into `blocking` rather than reported separately, because one gate that means
+      two slightly different things in two places is not a hard gate.
+    */
+    const theirs = obligationRows.filter(o =>
+      o.roleId === r.id
+      || (assignment?.userId && o.userId === assignment.userId)
+      || (assignment?.staffId && o.staffId === assignment.staffId));
+    blocking = [...blocking, ...blockingReasons(theirs.map(o => ({ what: o.what, expiresAt: o.expiresAt, who: name ?? r.title })), now)];
 
     const path = curriculum.filter(c => c.roleId === r.id);
     const done = new Set(records.filter(x => x.userId === assignment?.userId && x.progress >= 100).map(x => x.moduleId));
@@ -99,6 +150,29 @@ export default async function People({ searchParams }: { searchParams: Promise<{
       signedOff: !!assignment?.trainedAt,
     });
   }
+
+  /*
+    Shaped for display once, here, rather than inside the markup.
+
+    Leave that finished last month is history, not availability — it is dropped rather than shown
+    greyed out, because a list that keeps everything is a list nobody scrolls to the bottom of.
+    Documents keep everything, including the expired ones: an expired ticket is the single most
+    important row on that list.
+  */
+  const leave = leaveRows
+    .filter(l => upcoming(l, now))
+    .map(l => ({ ...l, who: nameOf(l.staffId, l.userId) }))
+    .sort((a, b) => a.fromDate.localeCompare(b.fromDate));
+
+  const documents = obligationRows
+    .map(o => ({
+      ...o,
+      who: o.roleId
+        ? `The role: ${visible.find(r => r.id === o.roleId)?.title ?? 'a role'}`
+        : nameOf(o.staffId, o.userId),
+    }))
+    // Worst first: expired, then nothing recorded, then expiring, then the ones that are fine.
+    .sort((a, b) => ORDER[stateOf(a, now)] - ORDER[stateOf(b, now)]);
 
   const vacancies = people.filter(p => p.placement === 'vacant');
   const candidates = await db.select().from(schema.candidates)
@@ -168,6 +242,137 @@ export default async function People({ searchParams }: { searchParams: Promise<{
             <p className="mt-4 text-xs text-ink-light">
               Pay and personal documents are held against the person rather than the role, so they sit
               outside the scorecard entirely. They gate Clear to Work; they never become a score.
+            </p>
+          </section>
+
+          {/*
+            Who is away, and what that leaves uncovered.
+
+            Deliberately not a leave management system — SPEC holds no balances and calculates no
+            entitlements, because the business already has something that does. What it holds is the
+            one thing the four questions need and payroll will not tell them: a supervisor away for
+            a fortnight with nobody signed off to cover is a gap in the chart, and the chart is what
+            SPEC reasons about.
+          */}
+          <section className="card mt-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-serif text-xl text-ink">Leave and availability</h2>
+              <span className="text-sm text-ink-light">{leaveLine(leave, now)}</span>
+            </div>
+            {leave.length > 0 && (
+              <div className="mt-4 grid gap-3">
+                {leave.map(l => (
+                  <div key={l.id} className="card-inset">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="grid gap-0.5">
+                        <span className="font-serif text-base text-ink">{l.who}</span>
+                        <span className="text-xs text-ink-light">
+                          {leaveKindLabel(l.kind)} · {l.fromDate} to {l.toDate}
+                        </span>
+                      </span>
+                      {l.state === 'requested' && manage ? (
+                        <span className="flex gap-2">
+                          {/* Two forms rather than one with two submit values: a decline is a
+                              separate decision, not a variant of approving. */}
+                          <form action={decideLeave}>
+                            <input type="hidden" name="id" value={l.id} />
+                            <input type="hidden" name="state" value="approved" />
+                            <SubmitButton className="btn-secondary" pending="Saving…">Approve</SubmitButton>
+                          </form>
+                          <form action={decideLeave}>
+                            <input type="hidden" name="id" value={l.id} />
+                            <input type="hidden" name="state" value="declined" />
+                            <SubmitButton className="btn-ghost" pending="Saving…">Decline</SubmitButton>
+                          </form>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-ink-light">
+                          {l.state === 'approved' ? `Approved${l.decidedBy ? ` by ${l.decidedBy}` : ''}` :
+                            l.state === 'declined' ? 'Declined' : 'Waiting on a decision'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 text-xs text-ink-light">{impactOf(l)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {manage && (
+              <form action={bookLeave} className="mt-4 grid gap-2 sm:grid-cols-[1.2fr_auto_auto_auto_auto]">
+                <select className="input" name="person" aria-label="Who" defaultValue="">
+                  <option value="">Who is away?</option>
+                  {staffRows.map(s => <option key={s.id} value={`staff:${s.id}`}>{s.name}</option>)}
+                  {seatRows.filter(u => !staffRows.some(s => s.userId === u.id))
+                    .map(u => <option key={u.id} value={`user:${u.id}`}>{u.name}</option>)}
+                </select>
+                <select className="input" name="kind" aria-label="What kind" defaultValue="annual">
+                  {LEAVE_KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}
+                </select>
+                <input className="input" type="date" name="fromDate" required aria-label="From" />
+                <input className="input" type="date" name="toDate" required aria-label="To" />
+                <SubmitButton className="btn-secondary shrink-0" pending="Booking…">Book it</SubmitButton>
+              </form>
+            )}
+            <p className="mt-3 text-xs text-ink-light">
+              SPEC holds no balances and works out no entitlements — payroll does that. This is only
+              who is not here, and whether the job is covered.
+            </p>
+          </section>
+
+          {/*
+            The evidence under the hard gate. Anything expired appears in Clear to Work above by the
+            same path an overdue module does — see lib/obligations for why an EXPIRING ticket is
+            loud but does not block.
+          */}
+          <section className="card mt-6">
+            <h2 className="font-serif text-xl text-ink">Documents and obligations</h2>
+            <p className="mt-1 max-w-2xl text-sm text-ink-light">
+              Held against the person and the role. Anything expiring feeds the Clear to Work gate.
+            </p>
+            {documents.length > 0 && (
+              <div className="mt-4 grid gap-3">
+                {documents.map(d => (
+                  <div key={d.id} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink/10 pb-3 last:border-0 last:pb-0">
+                    <span className="grid gap-0.5">
+                      <span className="text-sm text-ink">{d.what}</span>
+                      <span className="text-xs text-ink-light">
+                        {d.who}
+                        {d.evidence ? ` · ${d.evidence}` : ''}
+                      </span>
+                    </span>
+                    <span className="grid justify-items-end gap-0.5">
+                      <span
+                        className="pill"
+                        style={{
+                          background: `color-mix(in srgb, ${DOC_COLOUR[stateOf(d, now)]} 14%, transparent)`,
+                          color: DOC_COLOUR[stateOf(d, now)],
+                        }}
+                      >
+                        {STATE_LABEL[stateOf(d, now)]}
+                      </span>
+                      <span className="text-xs text-ink-light">{stateNote(d, now)}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {manage && (
+              <form action={addObligation} className="mt-4 grid gap-2 sm:grid-cols-[1.3fr_1fr_auto_auto]">
+                <input className="input" name="what" required maxLength={120} placeholder="White card" aria-label="What it is" />
+                <select className="input" name="holder" aria-label="Whose it is" defaultValue="">
+                  <option value="">Whose is it?</option>
+                  {staffRows.map(s => <option key={s.id} value={`staff:${s.id}`}>{s.name}</option>)}
+                  {seatRows.filter(u => !staffRows.some(s => s.userId === u.id))
+                    .map(u => <option key={u.id} value={`user:${u.id}`}>{u.name}</option>)}
+                  {visible.map(r => <option key={r.id} value={`role:${r.id}`}>The role: {r.title}</option>)}
+                </select>
+                <input className="input" type="date" name="expiresAt" aria-label="Expires" />
+                <SubmitButton className="btn-secondary shrink-0" pending="Adding…">Add it</SubmitButton>
+              </form>
+            )}
+            <p className="mt-3 text-xs text-ink-light">
+              Leave the date empty for anything that does not expire — a signed contract, an
+              induction that stands. SPEC never invents an expiry.
             </p>
           </section>
 

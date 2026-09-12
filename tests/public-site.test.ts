@@ -64,29 +64,47 @@ describe('claims are rendered, not restated', () => {
   });
 });
 
-describe('the front door stays a front door', () => {
+describe('the front door asks before it tells', () => {
   /**
-   * One line and one button — the founder's instruction of 10 September, recorded in DECISIONS.md.
-   * The argument lives on the pages behind it. This test exists because a welcome page is the single
-   * most tempting thing in any product to quietly grow a brochure onto.
-   */
-  /**
-   * Measured as words a visitor actually READS, not as lines of source.
+   * The rule here CHANGED, and the old test was right up until it was not.
    *
-   * The first version counted lines, which is a proxy for the wrong thing: adding the mascot and a
-   * two-column layout tripped it while the page still said thirty-four words. A guard that fires on
-   * layout gets its limit raised until it means nothing. This one only fires if somebody starts
-   * arguing on the front door, which is the thing the instruction was actually about.
+   * It enforced "a headline, a line and a button" — the founder's instruction of 10 September — by
+   * capping the page at sixty words. The design that replaced it on 12 September makes the front
+   * door a working problem-intake flow: a stranger types one ongoing problem, watches SPEC work out
+   * what is underneath it, and only then sees a price. That page cannot be sixty words, so the word
+   * count was measuring a decision nobody holds any more.
+   *
+   * What survives is the thing the old rule was actually protecting: **the page must not open by
+   * arguing.** So this tests the order instead of the length — the box a person types into comes
+   * before any pitch, and the proof still comes before the price.
    */
-  it('keeps welcome to a headline, a line and a button', () => {
+  it('leads with the problem box, not with a pitch', () => {
     const src = read('src/app/welcome/page.tsx');
-    const visible = src
-      .replace(/\/\*[\s\S]*?\*\//g, '')      // comments are not on the page
-      .replace(/className="[^"]*"/g, '')
-      .match(/>([^<>{}]+)</g) ?? [];
-    const words = visible.join(' ').replace(/[<>]/g, '').split(/\s+/).filter(Boolean);
-    expect(words.length).toBeLessThan(60);
-    expect(src).not.toContain('<section');
+    const box = src.indexOf('<ProblemBox');
+    expect(box, 'the front door no longer opens with the problem box').toBeGreaterThan(-1);
+
+    // Nothing that sells may appear above it.
+    for (const later of ['What it costs', 'SPEC Basic', 'Four questions']) {
+      const at = src.indexOf(later);
+      if (at === -1) continue;
+      expect(at, `"${later}" appears before the person has been asked anything`).toBeGreaterThan(box);
+    }
+  });
+
+  /**
+   * A price is a claim, and this page's whole argument is that it demonstrates before it claims. By
+   * the time somebody reads a number they have already been told something true about their own
+   * business.
+   */
+  it('shows the price only after the reading', () => {
+    const src = read('src/app/welcome/page.tsx');
+    expect(src.indexOf('What it costs')).toBeGreaterThan(src.indexOf('<ProblemBox'));
+  });
+
+  // Both doors still lead in. Somebody who would rather see the product than talk about themselves
+  // must not be forced to type a problem to get anywhere.
+  it('keeps the look-around for people who would rather not talk about themselves', () => {
+    expect(read('src/app/welcome/page.tsx')).toContain('href="/look"');
   });
 
   it('offers the argument rather than making it', () => {

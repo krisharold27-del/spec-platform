@@ -5,7 +5,7 @@ import { SubmitButton } from '@/components/submit-button';
 import { saveScorecard } from '@/app/scorecard/[roleId]/actions';
 import { STATUSES, STATUS_ORDER, type Status } from '@/lib/status';
 import { ROW_STATE_LABEL, type RowState } from '@/lib/month';
-import { LIGHT_COLOUR } from '@/lib/today';
+import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { PILLAR_META } from '@/lib/pillars';
 import { targetLabel } from '@/lib/targets';
 import type { Pillar, RoleScore } from '@/lib/scoring';
@@ -112,7 +112,7 @@ export function ScoreRoles({ roles, periodId, locked, liveSources }: {
                     <span className="label-caps">{PILLAR_META[r.pillar].name}</span>
                     <span
                       className="pill"
-                      style={{ background: `color-mix(in srgb, ${TONE[r.tone]} 14%, transparent)`, color: TONE[r.tone] }}
+                      style={pillTone(r.tone)}
                     >
                       {ROW_STATE_LABEL[r.state]}
                     </span>
