@@ -51,3 +51,12 @@ hand from a real score — but the page comparing candidate concepts is a design
 document, not a screen anybody signs in to see.
 
 **Decided:** 13 September 2026.
+
+### Screen: SPEC Mascot
+
+The confirmed mascot silhouette — the feathertail glider, in the brand accent,
+locked. A brand reference like the logo study: the mascot appears in the product
+where it belongs, but the page declaring it is a design document, not a screen
+anybody signs in to see.
+
+**Decided:** 13 September 2026.

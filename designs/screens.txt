@@ -1,0 +1,46 @@
+# Every screen this project has
+
+The roll of the design project, one name per line. It exists because of a real
+failure: a handoff bundle arrived carrying 22 screens when the project had 23,
+and every check passed. SPEC Mascot was simply not in the export, and nothing
+noticed because nothing linked to it.
+
+That is the hole this closes. The design-set check found a missing screen by
+following LINKS between screens — so a screen nothing links to was invisible, and
+a short export read as COMPLETE. A check that cannot see an absence is not a
+check.
+
+## How it behaves
+
+**A screen may be added, never lost.** A new name arriving is recorded here
+automatically by `npm run designs:pull`. A name in this file that is NOT in the
+folder fails, loudly, by name — that is a screen that has gone missing, and the
+only way past it is to delete the line deliberately, in a diff somebody reviews.
+
+The same ratchet the wording coverage uses: growth is free, loss is loud.
+
+## The roll
+
+SPEC Admin
+SPEC Board Pack
+SPEC Cockpit
+SPEC Colour System
+SPEC Connections
+SPEC Group
+SPEC Home
+SPEC Inbox
+SPEC Landing
+SPEC Logo Concepts
+SPEC Mascot
+SPEC Mobile
+SPEC Monthly Scoring
+SPEC My Page
+SPEC My Scorecard
+SPEC Org Chart
+SPEC People
+SPEC Pricing
+SPEC Sectors
+SPEC Setup
+SPEC Sign In
+SPEC Training
+SPEC Weekly Meeting

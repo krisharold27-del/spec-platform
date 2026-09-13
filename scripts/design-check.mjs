@@ -124,13 +124,58 @@ if (groups.length > 1) {
   console.log('    project so there is only one.\n');
 }
 
+/*
+  ── Screens that are simply not here, with nothing pointing at their absence ─────────────────────
+
+  Everything above finds a missing screen by following LINKS between screens: if one links to
+  another that is not here, it shouts. That leaves a hole exactly the size of a screen nothing
+  links to — and a handoff bundle arrived with 22 screens when the project had 23, passing every
+  check, because SPEC Mascot was linked from nowhere.
+
+  So the roll in designs/screens.txt is the other half. A screen may be ADDED freely; a screen that
+  was here and is now gone fails by name. The only way past it is to delete the line deliberately,
+  which is a decision somebody reviews rather than an export somebody forgot to finish.
+
+  Same ratchet as the wording coverage: growth is free, loss is loud.
+*/
+const roll = (() => {
+  try {
+    return readFileSync(join(DESIGNS, 'screens.txt'), 'utf8')
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.startsWith('SPEC '));
+  } catch {
+    return []; // No roll yet — the first run after this lands writes one.
+  }
+})();
+
+// `screens` holds filenames; the roll holds the names a person uses. Compare like with like.
+const here = new Set(screens.map(f => basename(f, '.dc.html')));
+const lost = roll.filter(name => !here.has(name));
+
+if (lost.length) {
+  console.log(`\nOn the roll, but not here — ${lost.length} screen(s):`);
+  for (const name of lost) console.log(`  ${name}`);
+  console.log('\n  → these were part of the project and did not arrive. Almost always a handoff that');
+  console.log('    exported some screens rather than all of them. Send the whole project again.');
+}
+
+// A screen this project has never had before. Worth saying out loud rather than absorbing silently.
+const fresh = [...here].filter(name => roll.length > 0 && !roll.includes(name));
+if (fresh.length) {
+  console.log(`\nNew since the roll was written — ${fresh.length} screen(s):`);
+  for (const name of fresh) console.log(`  ${name}`);
+  console.log('\n  → add them to designs/screens.txt so they are protected too.');
+}
+
 // ── The verdict, in one line ────────────────────────────────────────────────────────────────────
-const whole = missing.length === 0 && groups.length <= 1;
+const whole = missing.length === 0 && groups.length <= 1 && lost.length === 0;
 if (whole) {
   console.log(`COMPLETE — ${screens.length} screens, one export, nothing missing.`);
 } else {
   const parts = [];
-  if (missing.length) parts.push(`${missing.length} screen(s) missing`);
+  if (missing.length) parts.push(`${missing.length} screen(s) linked to but not here`);
+  if (lost.length) parts.push(`${lost.length} screen(s) on the roll but not here`);
   if (groups.length > 1) {
     parts.push(`${groups.length} exports mixed together`);
   }

@@ -180,6 +180,33 @@ for (const file of toWrite) writeFileSync(join(REPO_DESIGNS, file), theirs.get(f
 console.log(`\n  Written — ${toWrite.length} file(s) updated in designs/.`);
 
 /*
+  Keep the roll current.
+
+  designs/screens.txt is what makes a screen going missing loud — a handoff once arrived with 22
+  screens when the project had 23 and every check passed, because nothing linked to the one that
+  was left out. A new screen is added to the roll here so it is protected from the moment it
+  arrives; nothing is ever REMOVED from it automatically, because removal is the thing being
+  guarded against and has to be a deliberate line in a diff.
+*/
+const rollPath = join(REPO_DESIGNS, 'screens.txt');
+try {
+  const text = readFileSync(rollPath, 'utf8');
+  const listed = text.split('\n').map(l => l.trim()).filter(l => l.startsWith('SPEC '));
+  const names = readdirSync(REPO_DESIGNS)
+    .filter(f => f.endsWith('.dc.html'))
+    .map(f => f.slice(0, -'.dc.html'.length));
+  const toAdd = names.filter(n => !listed.includes(n));
+  if (toAdd.length) {
+    const merged = [...listed, ...toAdd].sort();
+    const head = text.slice(0, text.indexOf('## The roll'));
+    writeFileSync(rollPath, `${head}## The roll\n\n${merged.join('\n')}\n`);
+    console.log(`  Roll updated — ${toAdd.length} new screen(s) now protected: ${toAdd.join(', ')}.`);
+  }
+} catch {
+  console.log('  No roll at designs/screens.txt, so nothing is protecting against a screen going missing.');
+}
+
+/*
   Re-checked immediately, because the whole point is the answer to "does the product match the
   designs" and that answer has just changed. Printing the old number after pulling new designs would
   be the same failure this command exists to fix.
