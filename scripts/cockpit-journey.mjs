@@ -179,12 +179,21 @@ check('it says what it is for', /Running SPEC Business Solutions/i.test(ownerBod
 check('both engines are there', /Consulting/.test(ownerBody) && /Software/.test(ownerBody));
 
 /*
-  The rule the page exists to keep. Three health figures in the design were invented — plausible
-  uptime, response time and error rate that SPEC does not measure. A cockpit with decorative numbers
-  on it is worse than no cockpit, so the page must say plainly where it has nothing of its own.
+  The rule the page exists to keep. The design carried invented health figures — a plausible
+  99.98% uptime, 180ms response, 0.02% errors, none of them measured by anything. A cockpit with
+  decorative numbers on it is worse than no cockpit.
+
+  They are now real: a scheduled check writes a reading every five minutes and the page reports
+  what those checks actually say, including how many of them are missing. So the assertion is no
+  longer "it admits it cannot measure" — it is that whatever it shows is backed by counted checks,
+  and that with no checks at all it still refuses to show a figure.
 */
-check('it admits what it does not measure', /Not measured here/i.test(ownerBody));
-check('and points at whoever does measure it', /Vercel/.test(ownerBody));
+const measured = /Answered when asked/.test(ownerBody);
+check('uptime is on the page', measured);
+check('and it says what the figure is counted from',
+  /checks answered over|Nothing measured yet/.test(ownerBody));
+check('it never shows a perfect score off no measurements',
+  !/Nothing measured yet/.test(ownerBody) || !/100\.00%/.test(ownerBody));
 check('it admits what has not been built', /Not yet/i.test(ownerBody) && /Load-tested/i.test(ownerBody));
 
 // A seat count read from the database, never a flattering round number.

@@ -562,3 +562,39 @@ export const roleAssignmentsRelations = relations(roleAssignments, ({ one }) => 
   role: one(roles, { fields: [roleAssignments.roleId], references: [roles.id] }),
   user: one(users, { fields: [roleAssignments.userId], references: [users.id] }),
 }));
+
+/**
+ * Uptime and response time, measured rather than claimed.
+ *
+ * The cockpit used to have nowhere honest to get these, so it said so. This is the fix: a scheduled
+ * request calls /api/ping every five minutes, that route times a real database round-trip, and the
+ * result lands here. One row per check — 288 a day, pruned at thirty days.
+ *
+ * The subtlety worth writing down: **a failed check cannot record itself.** If the app is down,
+ * nothing runs and nothing is written. So uptime is never counted as successes over rows; it is
+ * successes over the checks that SHOULD have happened in the window, and a missing row counts
+ * against it. That is the only way this measures the thing people think it measures.
+ *
+ * It also means a missing row can mean the scheduler did not fire rather than the site being down,
+ * which is a real limitation and is stated on the page rather than hidden by it.
+ */
+export const healthPings = pgTable('health_pings', {
+  id: text('id').primaryKey(),
+  /** ISO timestamp of the check. */
+  at: text('at').notNull(),
+  /** Did the app answer, and reach its database? */
+  ok: boolean('ok').notNull(),
+  /** How long the round-trip took, in milliseconds. */
+  ms: integer('ms').notNull(),
+  /** What went wrong, when something did. Never a connection string. */
+  note: text('note'),
+}, t => [index('health_pings_at').on(t.at)]).enableRLS();
+/*
+  RLS ON with no policy, which denies EVERYONE — deliberately, and unlike any other table here.
+
+  This holds no tenant data, so tenant isolation is meaningless for it; and unlike rulebook_rules
+  there is nobody it should be readable by. Only SPEC itself writes it (as the role that owns the
+  table, which Postgres lets bypass RLS) and only /cockpit reads it. Denying by default means it
+  stays invisible through PostgREST, the Supabase table editor, and anything that ever connects as
+  `anon` — without anybody having to remember to write a rule for it.
+*/

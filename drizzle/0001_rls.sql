@@ -131,3 +131,20 @@ create policy tenant_isolation on role_curriculum for all
 
 -- training_modules carries a NOT NULL tenant_id: every business owns its own curriculum rather than
 -- sharing a library SPEC ships. So it is scoped like any other table, not treated as global.
+
+-- ───────────────────────────────────────────────────────────────────────────────────────────────
+-- health_pings: locked to everybody.
+--
+-- Uptime readings — a timestamp, a yes-or-no and a duration. No tenant_id, so a tenant policy would
+-- be meaningless; and unlike rulebook_rules there is nobody it should be readable BY. SPEC writes
+-- it as the role that owns the table, which Postgres lets bypass RLS, and only /cockpit reads it.
+--
+-- RLS on with NO policy denies everyone else by default, which keeps it invisible through
+-- PostgREST, the Supabase table editor, and anything that ever connects as `anon` — without
+-- anybody having to remember to write a rule for it.
+do $$
+begin
+  if to_regclass('health_pings') is not null then
+    execute 'alter table health_pings enable row level security';
+  end if;
+end $$;

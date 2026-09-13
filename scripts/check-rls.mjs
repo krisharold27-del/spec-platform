@@ -67,11 +67,29 @@ const withPolicy = new Set(
  */
 const GLOBAL = 'rulebook_rules';
 
-const missing = tables.filter(t => t !== GLOBAL && !withPolicy.has(t));
-check(`every tenant table has a policy (${tables.length - 1} of ${tables.length - 1})`, missing.length === 0, missing.join(', '));
+/**
+ * The one table that is locked to everybody, including the people a policy would normally let in.
+ *
+ * health_pings holds no tenant data — a timestamp, a yes-or-no and a duration — so a tenant policy
+ * would be meaningless on it. And unlike the rulebook there is nobody it should be readable BY:
+ * SPEC writes it as the role that owns the table (which bypasses RLS) and only /cockpit reads it.
+ * So RLS is on with no policy at all, which denies everyone else by default and keeps it invisible
+ * through PostgREST, the table editor, and anything that ever connects as `anon`.
+ */
+const DENIED = 'health_pings';
+
+const exempt = new Set([GLOBAL, DENIED]);
+const tenantTables = tables.filter(t => !exempt.has(t));
+const missing = tenantTables.filter(t => !withPolicy.has(t));
+check(`every tenant table has a policy (${tenantTables.length - missing.length} of ${tenantTables.length})`, missing.length === 0, missing.join(', '));
 
 const rlsOn = psql(['-t', '-A', '-c', `select relrowsecurity from pg_class where relname = '${GLOBAL}'`]).trim();
 check(`${GLOBAL} is global, with RLS off rather than on-and-denying`, rlsOn === 'f', `relrowsecurity=${rlsOn}`);
+
+const deniedRls = psql(['-t', '-A', '-c', `select relrowsecurity from pg_class where relname = '${DENIED}'`]).trim();
+check(`${DENIED} is locked with RLS on and no policy`, deniedRls === 't', `relrowsecurity=${deniedRls}`);
+const deniedPolicies = psql(['-t', '-A', '-c', `select count(*) from pg_policies where tablename = '${DENIED}'`]).trim();
+check(`${DENIED} really has no policy letting anybody in`, deniedPolicies === '0', `${deniedPolicies} policies`);
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed');
 process.exit(failed ? 1 : 0);

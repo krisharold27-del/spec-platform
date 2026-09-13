@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { isNull, or, isNotNull } from 'drizzle-orm';
+import { isNull, or, isNotNull, gte, desc } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
 import { LIGHT_INK } from '@/lib/today';
+import { summarise } from '@/lib/uptime';
 import {
   health, pctLabel, seatProgress, money,
   SCALE_CHECKS, PHASES, CHANNELS, CHANNEL_TOTAL, MILESTONES,
@@ -63,7 +64,23 @@ export default async function Cockpit() {
   // than derived — and marked as such on the card.
   const consultingClients = 1;
 
-  const figures = health({ tenants, seats, consultingClients });
+  /*
+    Thirty days of real checks. Ordered newest first and capped: a month is 8,640 rows at one every
+    five minutes, and reading them all to take a median is work the page does not need to do.
+  */
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const pings = await db.select({
+    at: schema.healthPings.at,
+    ok: schema.healthPings.ok,
+    ms: schema.healthPings.ms,
+  })
+    .from(schema.healthPings)
+    .where(gte(schema.healthPings.at, since))
+    .orderBy(desc(schema.healthPings.at))
+    .limit(10_000);
+
+  const uptime = summarise(pings);
+  const figures = health({ tenants, seats, consultingClients }, uptime);
   const seatPct = seatProgress(seats);
   const ready = SCALE_CHECKS.filter(c => c.done).length;
 

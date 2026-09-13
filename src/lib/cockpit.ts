@@ -24,6 +24,8 @@
  * The third is the one that took discipline to keep.
  */
 
+import { uptimeLabel, basis, type Uptime } from './uptime';
+
 export type FigureKind = 'measured' | 'target' | 'unmeasured';
 
 export interface Figure {
@@ -179,14 +181,19 @@ export const CHANNELS: Channel[] = [
 export const CHANNEL_TOTAL = CHANNELS.reduce((t, c) => t + c.seats, 0);
 
 /**
- * System health, told honestly.
+ * System health, all four of them measured.
  *
- * Two of these SPEC genuinely knows, because it can count its own rows. The rest — uptime, response
- * time, error rate — are real and important and measured by Vercel, not by this. Rather than
- * printing a plausible number, each says what it is and where the true one lives. The day SPEC
- * collects them for real, they become `measured` and this comment can go.
+ * Two are counted from SPEC's own rows. The other two used to be honest blanks pointing at Vercel,
+ * because the design's 99.98% and 180ms were invented and printing them would have made the whole
+ * panel worthless. They are now real: a scheduled check calls /api/ping every five minutes, times a
+ * database round-trip, and lib/uptime works out the figures — counting the checks that never ran,
+ * which is the part almost every uptime number gets wrong.
+ *
+ * When nothing has been measured yet they are still blanks. `unmeasured` survives on purpose: the
+ * day this is deployed somewhere with no schedule attached, the page must say so rather than
+ * quietly showing a perfect score off two samples.
  */
-export function health(input: EngineInput): Figure[] {
+export function health(input: EngineInput, uptime: Uptime): Figure[] {
   return [
     {
       label: 'Businesses on SPEC',
@@ -201,16 +208,18 @@ export function health(input: EngineInput): Figure[] {
       note: 'Invited or taken. A name pencilled onto a chart is free and is not counted.',
     },
     {
-      label: 'Uptime and response time',
-      value: null,
-      kind: 'unmeasured',
-      note: 'Not collected by SPEC. Vercel measures both — its dashboard is the honest source, and inventing a figure here would make this whole panel worthless.',
+      label: 'Answered when asked',
+      value: uptime.pct === null ? null : uptimeLabel(uptime.pct),
+      kind: uptime.pct === null ? 'unmeasured' : 'measured',
+      note: basis(uptime),
     },
     {
-      label: 'Error rate',
-      value: null,
-      kind: 'unmeasured',
-      note: 'Same: Vercel records runtime errors per deployment. Worth wiring in here once there is more than one business to average across.',
+      label: 'Response time',
+      value: uptime.median === null ? null : `${uptime.median}ms`,
+      kind: uptime.median === null ? 'unmeasured' : 'measured',
+      note: uptime.p95 === null
+        ? 'No checks have answered yet, so there is nothing to time.'
+        : `Middle of the checks that answered. One in twenty takes ${uptime.p95}ms or more.`,
     },
   ];
 }

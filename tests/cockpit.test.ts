@@ -3,6 +3,19 @@ import {
   pctLabel, seatProgress, money, health, SCALE_CHECKS, CHANNELS, CHANNEL_TOTAL,
   PHASES, SOFTWARE_TARGET,
 } from '../src/lib/cockpit';
+import { summarise } from '../src/lib/uptime';
+
+/** Nothing measured yet — the state a fresh deployment is in. */
+const NOTHING_MEASURED = summarise([]);
+
+/** A day of healthy checks, five minutes apart. */
+const MEASURED = summarise(
+  Array.from({ length: 12 }, (_, i) => ({
+    at: new Date(Date.now() - (11 - i) * 5 * 60_000).toISOString(),
+    ok: true,
+    ms: 120,
+  })),
+);
 
 describe('running SPEC Business Solutions', () => {
   /*
@@ -10,22 +23,37 @@ describe('running SPEC Business Solutions', () => {
     worse than no panel, and this project has already paid for that lesson twice.
   */
   it('never invents a figure it does not measure', () => {
-    const rows = health({ tenants: 1, seats: 40, consultingClients: 1 });
+    const rows = health({ tenants: 1, seats: 40, consultingClients: 1 }, NOTHING_MEASURED);
     for (const r of rows) {
       if (r.kind === 'unmeasured') expect(r.value, r.label).toBeNull();
       else expect(r.value, r.label).not.toBeNull();
     }
   });
 
-  it('says where the real number lives when it has none of its own', () => {
-    const unmeasured = health({ tenants: 1, seats: 40, consultingClients: 1 })
+  /*
+    A fresh deployment with no schedule attached yet must say so, not show a perfect score off no
+    samples. This is the state every new environment starts in.
+  */
+  it('says nothing has been measured rather than showing a flattering blank', () => {
+    const unmeasured = health({ tenants: 1, seats: 40, consultingClients: 1 }, NOTHING_MEASURED)
       .filter(r => r.kind === 'unmeasured');
-    expect(unmeasured.length).toBeGreaterThan(0);
-    for (const r of unmeasured) expect(r.note).toMatch(/Vercel/);
+    expect(unmeasured.length).toBe(2);
+    expect(unmeasured.map(r => r.note).join(' ')).toMatch(/Nothing measured yet|nothing to time/);
+    for (const r of unmeasured) expect(r.value).toBeNull();
+  });
+
+  it('reports uptime and response time once checks have actually run', () => {
+    const rows = health({ tenants: 1, seats: 40, consultingClients: 1 }, MEASURED);
+    const answered = rows.find(r => r.label === 'Answered when asked')!;
+    const speed = rows.find(r => r.label === 'Response time')!;
+    expect(answered.kind).toBe('measured');
+    expect(answered.value).toBe('100.00%');
+    expect(answered.note).toMatch(/12 of 12 checks answered/);
+    expect(speed.value).toBe('120ms');
   });
 
   it('counts what it genuinely can', () => {
-    const rows = health({ tenants: 3, seats: 112, consultingClients: 1 });
+    const rows = health({ tenants: 3, seats: 112, consultingClients: 1 }, MEASURED);
     expect(rows.find(r => r.label === 'Businesses on SPEC')).toMatchObject({ value: '3', kind: 'measured' });
     expect(rows.find(r => r.label === 'Seats that bill')).toMatchObject({ value: '112', kind: 'measured' });
   });
