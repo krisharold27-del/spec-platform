@@ -47,8 +47,8 @@ page.on('pageerror', e => consoleErrors.push(String(e.message).slice(0, 120)));
 
 try {
   // ── 1. A stranger walks in and looks around, asked for nothing ────────────────────────────────
-  await page.goto(`${BASE}/welcome`, { waitUntil: 'networkidle' });
-  check('front door loads', at(page) === '/welcome');
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  check('front door loads', at(page) === '/');
 
   await page.click('text=Have a look inside');
   await page.waitForLoadState('networkidle');

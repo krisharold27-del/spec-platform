@@ -12,7 +12,7 @@ import { SpecLockup } from './spec-mark';
  * it is for somebody deciding whether to start, and the two lists have almost nothing in common.
  */
 const LINKS = [
-  { href: '/welcome', label: 'What it is' },
+  { href: '/', label: 'What it is' },
   { href: '/how', label: 'How it works' },
   { href: '/sectors', label: 'By sector' },
   { href: '/pricing', label: 'Pricing' },
@@ -22,7 +22,7 @@ export function PublicNav({ current }: { current?: string }) {
   return (
     <header className="border-b border-ink/10 bg-surface">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-3">
-        <Link href="/welcome" aria-label="SPEC home">
+        <Link href="/" aria-label="SPEC home">
           <SpecLockup line="Nimble and powerful." />
         </Link>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 label-caps">

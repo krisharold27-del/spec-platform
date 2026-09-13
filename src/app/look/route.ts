@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     request.headers.get('x-real-ip') ||
     'unknown';
   if (!looksByAddress.allow(ip)) {
-    return NextResponse.redirect(new URL('/welcome?busy=1', request.url));
+    return NextResponse.redirect(new URL('/?busy=1', request.url));
   }
 
   const { tenantId, roleIds } = await provisionTenant({

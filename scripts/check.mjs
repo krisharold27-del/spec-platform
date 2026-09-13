@@ -98,7 +98,7 @@ console.log('\nThe ways in, and the one way out of bounds');
 const APP = process.env.APP_URL ?? 'http://localhost:3000';
 const serving = (() => {
   try {
-    execFileSync('curl', ['-fsS', '-o', '/dev/null', '--max-time', '4', `${APP}/welcome`], { stdio: 'ignore' });
+    execFileSync('curl', ['-fsS', '-o', '/dev/null', '--max-time', '4', `${APP}/`], { stdio: 'ignore' });
     return true;
   } catch { return false; }
 })();

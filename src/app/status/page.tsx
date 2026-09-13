@@ -43,7 +43,7 @@ export default async function Status() {
         person, and never shows the value of a setting.
       </p>
       <p className="mt-3 text-xs text-ink-light">
-        <Link href="/welcome" className="underline">SPEC</Link>
+        <Link href="/" className="underline">SPEC</Link>
       </p>
     </main>
   );

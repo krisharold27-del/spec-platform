@@ -37,7 +37,7 @@ export default async function Thanks() {
           <Link href="/look" className="rounded-full bg-rust px-6 py-3 text-base font-medium text-cream hover:bg-rust-600">
             Have another look
           </Link>
-          <Link href="/welcome" className="rounded-full border border-ink/15 px-6 py-3 text-base text-ink hover:border-ink/30">
+          <Link href="/" className="rounded-full border border-ink/15 px-6 py-3 text-base text-ink hover:border-ink/30">
             Back to the start
           </Link>
         </div>

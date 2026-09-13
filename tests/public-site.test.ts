@@ -27,14 +27,29 @@ const PUBLIC_PAGES = [
   'src/app/how/page.tsx',
   'src/app/pricing/page.tsx',
   'src/app/sectors/page.tsx',
-  'src/app/welcome/page.tsx',
+  'src/app/page.tsx',
 ];
 
 describe('the public pages stay public', () => {
   // A marketing page that redirects to sign-in is worse than no marketing page.
-  it('never gates itself behind a sign-in', () => {
+  it('never sends a stranger to sign in', () => {
     for (const p of PUBLIC_PAGES) {
-      expect(read(p)).not.toContain('getCurrentUser');
+      expect(read(p), p).not.toMatch(/redirect\(['\`]\/signin/);
+    }
+  });
+
+  /*
+    The landing page is allowed to ask who you are — it sends somebody already signed in to their
+    own page rather than making them look at a shopfront. What it may NOT do is depend on the answer
+    arriving. This is the page every stranger sees, and it has to render with no database and no
+    sign-in service configured at all; a marketing site going down over a missing setting is exactly
+    how production broke on 11 September. So the ask must be guarded, and this is the guard.
+  */
+  it('never lets asking who you are take the page down', () => {
+    for (const p of PUBLIC_PAGES) {
+      const src = words(p);
+      if (!src.includes('getCurrentUser')) continue;
+      expect(src, `${p} asks who you are without a fallback`).toContain('getCurrentUser().catch(() => null)');
     }
   });
 });
@@ -79,12 +94,12 @@ describe('the front door asks before it tells', () => {
    * before any pitch, and the proof still comes before the price.
    */
   it('leads with the problem box, not with a pitch', () => {
-    const src = read('src/app/welcome/page.tsx');
+    const src = read('src/app/page.tsx');
     const box = src.indexOf('<ProblemBox');
     expect(box, 'the front door no longer opens with the problem box').toBeGreaterThan(-1);
 
     // Nothing that sells may appear above it.
-    for (const later of ['What it costs', 'SPEC Basic', 'Four questions']) {
+    for (const later of ['Per seat, per month', 'SPEC Basic', 'Four questions']) {
       const at = src.indexOf(later);
       if (at === -1) continue;
       expect(at, `"${later}" appears before the person has been asked anything`).toBeGreaterThan(box);
@@ -97,18 +112,18 @@ describe('the front door asks before it tells', () => {
    * business.
    */
   it('shows the price only after the reading', () => {
-    const src = read('src/app/welcome/page.tsx');
-    expect(src.indexOf('What it costs')).toBeGreaterThan(src.indexOf('<ProblemBox'));
+    const src = read('src/app/page.tsx');
+    expect(src.indexOf('SPEC Basic')).toBeGreaterThan(src.indexOf('<ProblemBox'));
   });
 
   // Both doors still lead in. Somebody who would rather see the product than talk about themselves
   // must not be forced to type a problem to get anywhere.
   it('keeps the look-around for people who would rather not talk about themselves', () => {
-    expect(read('src/app/welcome/page.tsx')).toContain('href="/look"');
+    expect(read('src/app/page.tsx')).toContain('href="/look"');
   });
 
   it('offers the argument rather than making it', () => {
-    const src = read('src/app/welcome/page.tsx');
+    const src = read('src/app/page.tsx');
     for (const href of ['/how', '/sectors', '/pricing']) expect(src).toContain(`href="${href}"`);
   });
 });
@@ -126,7 +141,7 @@ describe('the public navigation', () => {
 
   it('reaches every public page from every public page', () => {
     const nav = words('src/components/public-nav.tsx');
-    for (const href of ['/welcome', '/how', '/sectors', '/pricing', '/signin']) {
+    for (const href of ['/', '/how', '/sectors', '/pricing', '/signin']) {
       expect(nav).toMatch(new RegExp(`['"]${href}['"]`));
     }
   });

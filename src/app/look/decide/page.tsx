@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 export default async function Decide() {
   const look = await currentLook();
   // Nothing to decide about — they are not in a look-around.
-  if (!look) redirect('/welcome');
+  if (!look) redirect('/');
 
   return (
     <main className="min-h-screen bg-surface">

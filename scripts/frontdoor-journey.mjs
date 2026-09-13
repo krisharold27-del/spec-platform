@@ -35,14 +35,16 @@ const check = (label, condition, detail = '') => {
 const text = () => page.textContent('body').then(t => t ?? '');
 
 // ── The door ─────────────────────────────────────────────────────────────────────────────────────
-await page.goto(`${BASE}/welcome`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 let body = await text();
 check('the front door asks before it tells', /Got problems\? We.ll fix them\./.test(body));
 check('it asks for an ongoing one, not a one-off', /as long as it.s ongoing/i.test(body));
 check('the look-around is still offered', (await page.locator('a[href="/look"]').count()) > 0);
 
-// A price is a claim, and the page demonstrates before it claims.
-const costAt = body.indexOf('What it costs');
+// A price is a claim, and the page demonstrates before it claims. Matched on the design's own
+// words — the heading was "What it costs" until the landing page was rebuilt to
+// designs/SPEC Landing.dc.html, which says "Per seat, per month, in your own currency".
+const costAt = body.indexOf('Per seat, per month');
 const askAt = body.indexOf('Got problems');
 check('the price comes after the question', costAt > askAt, `ask ${askAt}, price ${costAt}`);
 

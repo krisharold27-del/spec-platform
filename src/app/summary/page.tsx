@@ -10,7 +10,7 @@ import { getScope, scoredRolesInScope } from '@/lib/scope';
 export const dynamic = 'force-dynamic';
 
 export default async function ExecutiveSummary() {
-  const user = await getCurrentUser(); if (!user) redirect('/welcome');
+  const user = await getCurrentUser(); if (!user) redirect('/');
   const tenant = (await getTenantById(user.tenantId))!;
   const period = await currentPeriod(tenant.id);
   if (!period) {

@@ -61,17 +61,29 @@ export function ProblemBox() {
   /** Carried into sign-up so the problem is waiting in their page, exactly as promised. */
   const signUpHref = `/signup?business=${encodeURIComponent(business)}&problem=${encodeURIComponent(problem)}`;
 
-  return (
-    <section className="card mx-auto max-w-2xl">
-      {stage === 'asking' && (
-        <form onSubmit={read}>
-          <h2 className="font-serif text-2xl text-ink">Got problems? We&rsquo;ll fix them.</h2>
-          <p className="mt-2 text-sm text-ink-light">
-            Tell us about one — as long as it&rsquo;s ongoing. Not a one-off, and not a busy week: the
-            thing that keeps coming back.
+  /*
+    The asking sits on dark; everything after it sits on light.
+
+    Straight from the design, and the reason is worth keeping: the page has spent two screens being
+    airy and confident, and then asks somebody to type out the thing that has been bothering them
+    for months. The ground going dark marks that as a different kind of moment — quieter, and
+    theirs. The answer then comes back into the light, which is the shape of the promise being made.
+  */
+  if (stage === 'asking') {
+    return (
+      <section className="w-full px-6 py-14 sm:py-20" style={{ background: '#3a3a38' }}>
+        <form onSubmit={read} className="mx-auto max-w-[760px] text-center">
+          <h2 className="font-serif text-[clamp(1.875rem,4vw,2.75rem)] leading-tight" style={{ color: '#f0eee8' }}>
+            Got problems? We&rsquo;ll fix them.
+          </h2>
+          <p className="mt-4 text-[17px] leading-relaxed" style={{ color: '#c3bfb4' }}>
+            Tell us about one — as long as it&rsquo;s{' '}
+            <strong className="font-extrabold" style={{ color: '#f0a35c' }}>ongoing</strong>. Not a
+            one-off, and not a busy week: the thing that keeps coming back.
           </p>
           <textarea
-            className="input mt-4 min-h-[96px] w-full rounded-lg"
+            className="mt-7 min-h-24 w-full rounded-[20px] p-[18px_20px] text-base"
+            style={{ border: '1px solid #55524c', background: '#2c2c2a', color: '#f0eee8' }}
             value={problem}
             onChange={e => setProblem(e.target.value)}
             required
@@ -80,12 +92,17 @@ export function ProblemBox() {
             aria-label="What keeps happening?"
             placeholder="e.g. our best apprentice just quit and it's the second one this year"
           />
-          <button type="submit" className="btn-primary mt-3" disabled={reading}>
+          <button type="submit" className="btn-primary mt-4" disabled={reading}>
             {reading ? 'Reading it…' : 'What is really going on?'}
           </button>
-          {failed && <p className="mt-3 text-sm text-ink-light">{failed}</p>}
+          {failed && <p className="mt-4 text-sm" style={{ color: '#e08a6a' }}>{failed}</p>}
         </form>
-      )}
+      </section>
+    );
+  }
+
+  return (
+    <section className="card mx-auto my-14 max-w-2xl">
 
       {stage === 'read' && result && (
         <div>
