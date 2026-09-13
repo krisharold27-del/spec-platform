@@ -90,6 +90,16 @@ export async function GET() {
     missing,
     database,
     appUrl: process.env.APP_URL ?? null, // not a secret, and the usual thing that is wrong
+    /*
+      Which commit is actually serving this.
+
+      The one fact nothing outside the deployment could establish. "Vercel finished a build" and
+      "the site is running that build" are different claims, and this product has already spent
+      twenty-five commits believing the first meant the second. A short sha is not a secret — the
+      repository's history is the same information — and it lets anybody, from outside, hold the
+      live site to a specific version.
+    */
+    commit: process.env.VERCEL_GIT_COMMIT_SHA?.trim().slice(0, 7) ?? null,
     checkedAt: new Date().toISOString(),
   };
   return NextResponse.json(body, { status: ok ? 200 : 503 });

@@ -18,7 +18,8 @@
     "deployed": "node scripts/deployed.mjs",
     "load-test": "node scripts/load-test.mjs",
     "restore-drill": "node scripts/restore-drill.mjs",
-    "designs:pull": "node scripts/designs-pull.mjs"
+    "designs:pull": "node scripts/designs-pull.mjs",
+    "production": "node scripts/production-check.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
