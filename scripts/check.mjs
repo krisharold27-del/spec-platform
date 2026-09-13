@@ -94,7 +94,7 @@ if (!dbUrl) {
 }
 
 // ── The ways in ──────────────────────────────────────────────────────────────────────────────────
-console.log('\nThe four ways a customer gets in');
+console.log('\nThe ways in, and the one way out of bounds');
 const APP = process.env.APP_URL ?? 'http://localhost:3000';
 const serving = (() => {
   try {
@@ -146,6 +146,7 @@ const JOURNEYS = [
   ['front', 'a stranger types a problem on the front door', 'frontdoor-journey'],
   ['register', 'logging a problem once inside', 'register-journey'],
   ['seat', 'somebody you invited taking their seat', 'seat-journey'],
+  ['cockpit', 'your own cockpit staying private', 'cockpit-journey'],
 ];
 
 if (!serving) {

@@ -35,7 +35,7 @@ export async function saveGates(formData: FormData) {
     if (e) await db.update(schema.gates).set(r).where(eq(schema.gates.id, e.id));
     else await db.insert(schema.gates).values({ id: randomUUID(), periodId, ...r });
   }
-  revalidatePath('/'); revalidatePath('/journey');
+  revalidatePath('/summary'); revalidatePath('/journey');
 }
 
 /** Lock the period, generate the board output, open the next month. */
@@ -69,7 +69,7 @@ export async function lockPeriod(formData: FormData) {
     await sendBoardOutputReadyEmail({ to: email });
   }
 
-  revalidatePath('/'); revalidatePath('/journey');
+  revalidatePath('/summary'); revalidatePath('/journey');
   redirect(`/board/${periodId}`);
 }
 

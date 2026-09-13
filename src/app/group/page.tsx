@@ -44,7 +44,7 @@ export default async function Group({
             cross-business read path, for any reason. It is the same scoped view run once per business you
             are already in.
           </p>
-          <Link href="/" className="btn-primary mt-4 inline-block">Executive summary</Link>
+          <Link href="/summary" className="btn-primary mt-4 inline-block">Executive summary</Link>
         </div>
       </Shell>
     );

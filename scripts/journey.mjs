@@ -74,7 +74,17 @@ try {
   await page.click('button[type="submit"]');
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(1500);
-  check('SIGN-UP SUCCEEDS and lands inside the product', at(page) === '/org', at(page));
+  /*
+    Onto MY PAGE, which is where every day starts from here on.
+
+    It used to land on the org chart, which broke the promise the front door makes in those exact
+    words — "your page is waiting, with this problem already sitting in the middle of it" — and
+    carried a ?welcome=1 that nothing anywhere read. The shape of the product is: landing page →
+    My Page → everything else, and this is the check that keeps it that way.
+  */
+  check('SIGN-UP SUCCEEDS and lands them on MY PAGE', at(page) === '/today', at(page));
+  check('and My Page greets them rather than leaving them to work it out',
+    (await page.content()).includes('This is your page'));
 
   // The whole promise of looking around first: what they saw is what they now own.
   check('and it KEPT the business they were looking at', (await page.content()).includes(BUSINESS));
@@ -82,6 +92,14 @@ try {
   // ── 3. They come back the next morning ────────────────────────────────────────────────────────
   await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
   check('still signed in on Today', at(page) === '/today', at(page));
+
+  // Typing the bare address is what somebody actually does every morning. It must be My Page, not
+  // the executive summary — that is a monthly read for whoever runs the place, not a day's work.
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  check('TYPING THE ADDRESS THE NEXT MORNING OPENS MY PAGE', at(page) === '/today', at(page));
+
+  await page.goto(`${BASE}/summary`, { waitUntil: 'networkidle' });
+  check('and the executive summary still has a home of its own', at(page) === '/summary', at(page));
 
   await page.goto(`${BASE}/signin`, { waitUntil: 'networkidle' });
   check('an already-signed-in person is never shown a sign-in form', at(page) !== '/signin', at(page));

@@ -31,7 +31,7 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           {/* Inside the product the mark is a wayfinder, not a brand statement, so it carries no
               supporting line. */}
-          <Link href="/" aria-label="SPEC home">
+          <Link href="/today" aria-label="SPEC home — My page">
             <SpecLockup />
           </Link>
           {/*
@@ -53,7 +53,7 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
               <summary className="cursor-pointer list-none hover:text-rust">Everything else</summary>
               <div className="absolute right-0 z-10 mt-2 grid w-56 gap-1 rounded-lg border border-ink/10 bg-surface p-2 shadow-md">
                 {[
-                  { href: '/', label: 'Executive summary' },
+                  { href: '/summary', label: 'Executive summary' },
                   { href: '/charter', label: 'Board Charter' },
                   { href: '/me', label: 'My scorecard' },
                   { href: '/team', label: 'Team roll-up' },

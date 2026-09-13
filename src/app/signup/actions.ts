@@ -129,5 +129,19 @@ export async function signUp(formData: FormData) {
   }
 
   if ((await signInWithPassword(email, password)) !== 'ok') redirect('/signin');
-  redirect(look ? '/org?kept=1' : '/org?welcome=1');
+
+  /*
+    Into My Page, which is where every day starts from here on.
+
+    This used to land on the org chart, and doing so broke the one promise the front door actually
+    makes. The landing page says, in these words: "your page is waiting, with this problem already
+    sitting in the middle of it" — and then sent them to a blank chart, carrying a `?welcome=1` that
+    nothing anywhere read. The problem they had just typed WAS logged, on My Page, and they were
+    taken somewhere else so as not to see it.
+
+    Building the chart is still the first real task and My Page says so. But it says it on the page
+    they will open every morning for the next five years, with their own problem sitting above it,
+    which is the difference between arriving somewhere and being handed a form.
+  */
+  redirect(look ? '/today?kept=1' : '/today?welcome=1');
 }

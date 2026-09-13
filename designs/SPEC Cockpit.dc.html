@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1320px) / 2 + clamp(20px,5vw,72px)));">
+    <span class="nav-brand">SPEC Cockpit</span>
+    <a href="#" style="color: var(--color-text); font-weight: 700;">Targets</a>
+    <a href="#health">System health</a>
+    <a href="#marketing">Marketing plan</a>
+    <a href="#talk">Talk to build</a>
+    <span style="margin-left: auto; font-size: 13px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">manager@specbizhq.com</span>
+  </nav>
+
+  <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 80px;">
+
+    <header style="padding: clamp(28px,4vw,44px) 0 8px;">
+      <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Private · Kris only</span>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,48px); line-height: 1.1; margin: 0; max-width: 22ch;">Running SPEC Business Solutions</h1>
+      <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 62ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Not the client product. This is where you set objectives, see where the build is up to, and track the two engines against real target numbers.</p>
+    </header>
+
+    <section aria-label="Goal wheels" style="padding-top: clamp(20px,3vw,28px);">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px;">
+        <sc-for list="{{ wheels }}" as="w" hint-placeholder-count="4">
+          <div class="card elev-sm" style="padding: 22px; display: flex; align-items: center; gap: 16px;">
+            <svg viewBox="0 0 100 100" width="72" height="72" style="flex: none;">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-accent-100)" stroke-width="10"/>
+              <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="264" style="{{ w.arcStyle }}" transform="rotate(-90 50 50)"/>
+            </svg>
+            <div>
+              <p style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: color-mix(in srgb, var(--color-text) 65%, transparent); margin: 0;">{{ w.label }}</p>
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 4px 0 0;">{{ w.pctLabel }}</p>
+              <span style="{{ w.chip }}">{{ w.state }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-label="Targets and status" style="padding-top: clamp(28px,3.5vw,36px);">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: clamp(20px,3vw,28px);">
+
+        <div class="card elev-sm" style="padding: clamp(24px,3vw,32px);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span class="tag tag-accent-2">Consulting</span>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Target: 4–5 clients</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 14px; margin-top: 18px;">
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(44px,5.5vw,64px); line-height: 1; margin: 0;">{{ consultClients }}</p>
+            <p style="font-size: 15px; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">of {{ consultTarget }} clients signed</p>
+          </div>
+          <div style="height: 10px; border-radius: 999px; background: var(--color-accent-2-100); overflow: hidden; margin-top: 16px;">
+            <div style="{{ consultBarStyle }}"></div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 20px;">
+            <span style="display: grid; gap: 2px;">
+              <span style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Revenue run-rate</span>
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px;">{{ consultRevenue }}</span>
+            </span>
+            <span style="display: grid; gap: 2px; text-align: right;">
+              <span style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Target</span>
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; color: color-mix(in srgb, var(--color-text) 55%, transparent);">$1.2–1.5m/yr</span>
+            </span>
+          </div>
+          <p style="font-size: 13px; line-height: 20px; margin: 16px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">At $25,000/mo per client. Today: JBI Electrical, ~40 users.</p>
+        </div>
+
+        <div class="card elev-sm" style="padding: clamp(24px,3vw,32px);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span class="tag tag-accent">Software</span>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Target: 20,000 seats</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 14px; margin-top: 18px;">
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(44px,5.5vw,64px); line-height: 1; margin: 0;">{{ seats }}</p>
+            <p style="font-size: 15px; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">of 20,000 seats</p>
+          </div>
+          <div style="height: 10px; border-radius: 999px; background: var(--color-accent-100); overflow: hidden; margin-top: 16px;">
+            <div style="{{ seatBarStyle }}"></div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 20px;">
+            <span style="display: grid; gap: 2px;">
+              <span style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: color-mix(in srgb, var(--color-text) 65%, transparent);">ARR</span>
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px;">{{ arr }}</span>
+            </span>
+            <span style="display: grid; gap: 2px; text-align: right;">
+              <span style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Retention</span>
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px;">{{ retention }}</span>
+            </span>
+          </div>
+          <p style="font-size: 13px; line-height: 20px; margin: 16px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Target retention 90%+, ARR target $10m. Today: ~40 seats, 1 business.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="health" aria-label="System health" style="padding-top: clamp(32px,4vw,44px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(22px,2.6vw,28px); line-height: 1.2; margin: 0;">System health</h2>
+        <span style="{{ healthChip }}">{{ healthLabel }}</span>
+      </div>
+      <p style="font-size: 15px; line-height: 24px; margin: 10px 0 0; max-width: 68ch; color: color-mix(in srgb, var(--color-text) 75%, transparent);">Claude keeps continuous watch of scale and uptime so this is a glance, never a fire to fight. Multi-tenant from day one — every business's data is cleanly separated — and infrastructure that scales without a rebuild between 40 users and 20,000 seats.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-top: 22px;">
+        <sc-for list="{{ healthCards }}" as="h" hint-placeholder-count="4">
+          <div class="card elev-sm" style="padding: 20px 22px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+              <span style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ h.label }}</span>
+              <span style="{{ h.dot }}"></span>
+            </div>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 26px; line-height: 1.1; margin: 12px 0 0;">{{ h.value }}</p>
+            <p style="font-size: 13px; line-height: 20px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ h.note }}</p>
+          </div>
+        </sc-for>
+      </div>
+
+      <div class="card elev-sm" style="padding: clamp(22px,3vw,28px); margin-top: 20px;">
+        <p style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: color-mix(in srgb, var(--color-text) 65%, transparent); margin: 0 0 12px;">Scale readiness for 20,000 seats</p>
+        <div style="display: grid; gap: 10px;">
+          <sc-for list="{{ scaleChecks }}" as="c" hint-placeholder-count="5">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between;">
+              <span style="font-size: 14.5px; line-height: 22px;">{{ c.label }}</span>
+              <span style="{{ c.chip }}">{{ c.state }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section id="marketing" aria-label="Marketing plan" style="padding-top: clamp(32px,4vw,44px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(22px,2.6vw,28px); line-height: 1.2; margin: 0;">The path to 20,000 seats</h2>
+        <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Pay to get in, then earn the right to stop paying</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 18px; margin-top: 22px;">
+        <sc-for list="{{ phases }}" as="ph" hint-placeholder-count="3">
+          <div class="card elev-sm" style="padding: clamp(22px,3vw,28px); border-top: 4px solid {{ ph.color }};">
+            <span class="tag" style="{{ ph.tagStyle }}">{{ ph.tagLabel }}</span>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 19px; line-height: 1.3; margin: 14px 0 0;">{{ ph.title }}</p>
+            <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 75%, transparent);">{{ ph.body }}</p>
+          </div>
+        </sc-for>
+      </div>
+
+      <div class="card elev-sm" style="padding: clamp(24px,3vw,32px); margin-top: 20px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 18px; line-height: 1.3; margin: 0;">Illustrative channel mix</p>
+          <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">~19,000 seats · ~770 customers · ~$8m ARR — for context, not a commitment</span>
+        </div>
+        <div style="display: grid; gap: 12px; margin-top: 20px;">
+          <sc-for list="{{ channels }}" as="ch" hint-placeholder-count="5">
+            <div>
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                <span style="font-size: 14.5px; line-height: 21px;">{{ ch.label }}</span>
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px;">{{ ch.seats }}</span>
+              </div>
+              <div style="height: 8px; border-radius: 999px; background: var(--color-accent-100); overflow: hidden; margin-top: 6px;">
+                <div style="{{ ch.barStyle }}"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <p style="font-size: 13px; line-height: 20px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Three of five channels are referral-based and carry the volume; paid fills the top of the funnel.</p>
+      </div>
+    </section>
+
+    <section id="talk" aria-label="Talk to build" style="padding-top: clamp(32px,4vw,44px);">
+      <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(22px,2.6vw,28px); line-height: 1.2; margin: 0;">Talk to build</h2>
+      <p style="font-size: 15px; line-height: 24px; margin: 10px 0 0; max-width: 68ch; color: color-mix(in srgb, var(--color-text) 75%, transparent);">SPEC Business Solutions runs on SPEC itself. Type an objective or a problem the business is facing — Claude reads it against the targets above and agrees the next step with you.</p>
+
+      <div class="card elev-sm" style="padding: clamp(22px,3vw,30px); margin-top: 20px;">
+        <textarea aria-label="Talk to build" placeholder="e.g. LinkedIn spend is up but seats aren't moving — what should I do?" value="{{ talkText }}" onChange="{{ setTalkText }}" onInput="{{ setTalkText }}" onKeyDown="{{ onTalkKeyDown }}" style="width: 100%; box-sizing: border-box; min-height: 90px; border-radius: 16px; border: 1px solid var(--color-accent-200); background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); font-size: 15.5px; padding: 16px 18px; resize: vertical;"></textarea>
+        <button type="button" class="btn btn-primary" onClick="{{ runTalk }}" style="flex: none; white-space: nowrap; margin-top: 14px;">{{ talkButtonLabel }}</button>
+
+        <sc-if value="{{ hasTalkReply }}" hint-placeholder-val="{{ false }}">
+          <div style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: 22px 24px; margin-top: 22px;">
+            <span style="display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-2-900); margin: 0 0 10px;">{{ talkKicker }}</span>
+            <p style="font-size: 15.5px; line-height: 25px; margin: 0;">{{ talkReply }}</p>
+            <sc-if value="{{ hasTalkStep }}" hint-placeholder-val="{{ false }}">
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 1.3; margin: 16px 0 0;">Agreed next step: {{ talkStep }}</p>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+          <sc-for list="{{ talkPrompts }}" as="tp" hint-placeholder-count="3">
+            <button type="button" onClick="{{ tp.use }}" style="cursor:pointer;border:0;border-radius:999px;padding:8px 15px;font-family:var(--font-body);font-size:12.5px;white-space:nowrap;background:var(--color-bg);color:color-mix(in srgb, var(--color-text) 75%, transparent);">{{ tp.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320}}">
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
+const chip = tone => 'display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:12px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+const rag = pct => pct >= 60 ? GREEN : pct >= 25 ? AMBER : RED;
+
+const HEALTH = [
+  { label: 'Uptime (30d)', value: '99.98%', note: 'No incidents this month.', tone: GREEN },
+  { label: 'Response time', value: '180ms', note: 'p95, across all tenants.', tone: GREEN },
+  { label: 'Active tenants', value: '1', note: 'Multi-tenant isolation in place from day one.', tone: GREEN },
+  { label: 'Error rate', value: '0.02%', note: 'Well under the 0.5% alert threshold.', tone: GREEN },
+];
+
+const SCALE = [
+  { label: 'Multi-tenant data isolation', state: 'In place' },
+  { label: 'Auto-scaling infrastructure', state: 'In place' },
+  { label: '24/7 monitoring & alerting', state: 'In place' },
+  { label: 'Load-tested to 20,000 seats', state: 'Not yet run' },
+  { label: 'Zero-downtime deploys', state: 'In place' },
+];
+
+const PHASES = [
+  { tag: 'Phase 1', title: 'Seed', color: RED, body: 'All paid. LinkedIn hunts owners/GMs of $8–30m businesses; Google Ads catches active searchers. Expensive per customer — buying first believers, not volume.' },
+  { tag: 'Phase 2', title: 'Prove & delight', color: AMBER, body: 'First customers get a genuinely great experience — the product working, reliably. They become the sales force.' },
+  { tag: 'Phase 3', title: 'Referral flywheel', color: GREEN, body: 'Accountant referrals + client word-of-mouth switch on once a happy base exists. Cheap, compounds. Divisional "whale" customers arrive via warm intros.' },
+];
+
+const CHANNELS = [
+  { label: 'Accountant referrals', seats: 6000 },
+  { label: 'LinkedIn', seats: 4000 },
+  { label: 'Client word-of-mouth', seats: 3000 },
+  { label: 'Divisional whales (~20 customers)', seats: 4000 },
+  { label: 'Google Ads', seats: 2000 },
+];
+
+const TALK_PROMPTS = [
+  'How do I hit the seat target faster?',
+  'System health check before I push LinkedIn spend',
+  'Consulting client #2 is stalling — what next?',
+];
+
+class Component extends DCLogic {
+  state = { talkText: '', talkReply: null, talkKicker: '', talkStep: '' };
+
+  renderVals() {
+    const consultClients = 1, consultTarget = 4.5, consultRevenue = '$25,000/mo';
+    const seats = 40, seatTarget = 20000, arr = '~$21k ARR', retention = '100%';
+    const consultPct = Math.round((consultClients / 4) * 100);
+    const seatPct = Math.round((seats / seatTarget) * 100);
+    const revPct = 8; // ~25k/mo vs ~110k/mo midpoint target run-rate
+    const retentionPct = 100;
+
+    const wheelData = [
+      { label: 'Consulting clients', pct: consultPct, pctLabel: consultClients + ' of 4–5' },
+      { label: 'Seats sold', pct: Math.max(seatPct, 2), pctLabel: seats + ' of 20,000' },
+      { label: 'Revenue run-rate', pct: revPct, pctLabel: '$25k of ~$110k/mo' },
+      { label: 'Retention', pct: retentionPct, pctLabel: retention },
+    ];
+
+    return {
+      wheels: wheelData.map(w => {
+        const tone = rag(w.pct);
+        const dash = Math.max(6, Math.round((w.pct / 100) * 264));
+        return {
+          label: w.label,
+          pctLabel: w.pctLabel,
+          state: tone === GREEN ? 'On track' : tone === AMBER ? 'Watch' : 'Early',
+          chip: chip(tone),
+          arcStyle: 'stroke:' + tone + ';stroke-dasharray:264;stroke-dashoffset:' + (264 - dash) + ';',
+        };
+      }),
+
+      consultClients, consultTarget: '4–5', consultRevenue,
+      consultBarStyle: 'height:100%;border-radius:999px;width:' + Math.min(100, consultPct) + '%;background:' + GREEN + ';',
+      seats, arr, retention,
+      seatBarStyle: 'height:100%;border-radius:999px;width:' + Math.max(2, seatPct) + '%;background:' + AMBER + ';',
+
+      healthChip: chip(GREEN),
+      healthLabel: 'All systems normal',
+      healthCards: HEALTH.map(h => ({ label: h.label, value: h.value, note: h.note, dot: 'width:10px;height:10px;border-radius:50%;display:block;flex:none;background:' + h.tone + ';' })),
+      scaleChecks: SCALE.map(s => ({ label: s.label, state: s.state, chip: chip(s.state === 'In place' ? GREEN : AMBER) })),
+
+      phases: PHASES.map(p => ({
+        tagLabel: p.tag, title: p.title, body: p.body, color: p.color,
+        tagStyle: 'background:color-mix(in srgb, ' + p.color + ' 16%, transparent);color:' + p.color + ';',
+      })),
+      channels: CHANNELS.map(c => ({
+        label: c.label, seats: c.seats.toLocaleString() + ' seats',
+        barStyle: 'height:100%;border-radius:999px;width:' + Math.round((c.seats / 6000) * 100) + '%;background:' + GREEN + ';',
+      })),
+
+      talkText: this.state.talkText,
+      setTalkText: e => this.setState({ talkText: e.target.value }),
+      onTalkKeyDown: e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.runTalk(); } },
+      talkButtonLabel: this.state.talkText.trim() ? 'Get advice' : 'Get advice',
+      runTalk: () => this.runTalk(),
+      hasTalkReply: !!this.state.talkReply,
+      talkKicker: this.state.talkKicker,
+      talkReply: this.state.talkReply,
+      hasTalkStep: !!this.state.talkStep,
+      talkStep: this.state.talkStep,
+      talkPrompts: TALK_PROMPTS.map(p => ({ label: p, use: () => { this.setState({ talkText: p }); this.runTalk(p); } })),
+    };
+  }
+
+  runTalk(forced) {
+    const text = (forced || this.state.talkText).trim().toLowerCase();
+    if (!text) return;
+    let kicker = 'Read against your targets', reply, step;
+    if (text.includes('seat') || text.includes('faster')) {
+      kicker = 'Seats · 40 of 20,000';
+      reply = 'At 40 seats you are pre-flywheel — Phase 1 economics apply, so every seat costs what it costs. The fastest lever is not more spend, it is closing consulting client #2: each consulting engagement seeds seats plus a reference story LinkedIn and Google Ads can point at.';
+      step = 'Lock consulting client #2 this month, then re-brief the LinkedIn ad with their result.';
+    } else if (text.includes('health') || text.includes('spend') || text.includes('push')) {
+      kicker = 'System health · all normal';
+      reply = 'Uptime, response time and error rate are all green with one active tenant, and auto-scaling plus multi-tenant isolation are already in place. The one gap: you have not load-tested to 20,000 seats. Safe to increase spend on customer acquisition, but not safe to claim "built for scale" publicly until that test runs.';
+      step = 'Schedule a load test before the next paid push.';
+    } else if (text.includes('stall') || text.includes('client')) {
+      kicker = 'Consulting · 1 of 4–5';
+      reply = 'A stalled second client at this stage is a sequencing problem, not a sales problem — client #1 needs to be visibly thriving before #2 signs. Check whether JBI Electrical\u2019s result is strong enough yet to be the reference case; if not, the honest move is to focus there before pushing #2.';
+      step = 'Confirm JBI Electrical is a strong enough reference; if yes, use it in the next consulting conversation.';
+    } else {
+      kicker = 'Read against your targets';
+      reply = 'Logged. Right now Consulting sits at 1 of 4–5 clients and Software at 40 of 20,000 seats — both early. Everything under Phase 1 is expected to cost more per customer than it will later; the flywheel only turns once client #1 and the first cohort of seats are genuinely thriving.';
+      step = 'Keep the focus on making the current client and seats a strong reference before adding acquisition spend.';
+    }
+    this.setState({ talkReply: reply, talkKicker: kicker, talkStep: step });
+  }
+}
+
+</script>
+</body>
+</html>

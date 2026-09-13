@@ -53,7 +53,7 @@ export async function saveScorecard(formData: FormData) {
       await db.insert(schema.assessments).values({ id: randomUUID(), periodId, roleId, criterionId, answer, status, result, source, note, enteredBy: user.email, enteredAt: now });
     }
   }
-  revalidatePath('/'); revalidatePath('/team'); revalidatePath(`/scorecard/${roleId}`);
+  revalidatePath('/summary'); revalidatePath('/team'); revalidatePath(`/scorecard/${roleId}`);
 }
 
 /**

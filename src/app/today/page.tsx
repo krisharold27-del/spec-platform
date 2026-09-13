@@ -26,8 +26,16 @@ export const dynamic = 'force-dynamic';
  * what has changed under them, and where their compliance stands. Every block is read from what the
  * business has actually recorded, so a business that has just started sees a short honest page
  * rather than a full one made of nothing.
+ *
+ * **This is home.** The landing page brings somebody in, sign-up brings them here, and from
+ * tomorrow morning this is the address that opens. Everything else in SPEC branches out of it.
  */
-export default async function MyPage() {
+export default async function MyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string; kept?: string }>;
+}) {
+  const arrival = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
@@ -93,6 +101,34 @@ export default async function MyPage() {
           ? standing(todos.length, myScore)
           : 'Checklist view · this role is not individually scored. You keep people safe, log your hours and finish your training; the numbers are carried by the role above you.'}
       </p>
+
+      {/*
+        The first thirty seconds of being a customer.
+
+        Shown once, on arrival from sign-up, and never again — it hangs off a query parameter rather
+        than anything stored, so it disappears the moment they navigate and cannot become furniture.
+        The front door promised this page would be waiting with their problem in it; this is the page
+        saying so out loud rather than leaving them to notice.
+      */}
+      {(arrival.welcome || arrival.kept) && (
+        <div className="mb-8 rounded-lg border-l-4 border-rust bg-surface p-5">
+          <p className="font-serif text-lg text-ink">
+            {arrival.kept
+              ? `This is your page now, ${firstName} — and it is the business you were just looking at.`
+              : `This is your page, ${firstName}. You will open it every morning.`}
+          </p>
+          <p className="mt-2 max-w-2xl text-sm text-ink-light">
+            Anything you told us on the way in is in the improvement register below, already read and
+            ranked. Everything else in SPEC opens from here.
+          </p>
+          <p className="mt-3 max-w-2xl text-sm text-ink-light">
+            <b className="text-ink">One thing to do first:</b> write down who does what. SPEC scores
+            roles, so the chart is what everything else hangs off — it takes a few minutes and costs
+            nothing.
+          </p>
+          <Link href="/org" className="btn-primary mt-4 inline-block">Build the org chart</Link>
+        </div>
+      )}
 
       {/*
         The ask bar, across the top. This is what retires the separate chat screen: two screens both

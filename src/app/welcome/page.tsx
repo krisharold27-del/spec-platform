@@ -31,6 +31,20 @@ const QUESTIONS = [
   { pillar: 'compliance', ask: 'Do you have compliance issues?' },
 ] as const;
 
+/*
+  The words everybody else is selling, struck out.
+
+  Not a swipe at the category — SPEC uses every one of these. The point is that a business owner has
+  been sold all eight and still cannot answer whether their people are going well, and the honest
+  position is that horsepower was never what they were short of. Struck through rather than mocked
+  in prose, because the reader supplies the feeling themselves and that lands harder than a sentence
+  telling them to feel it.
+*/
+const BUZZWORDS = [
+  'AI', 'Agents', 'Automation', 'Machine learning',
+  'Dashboards', 'Integrations', 'Workflows', 'Platforms',
+];
+
 export default function Welcome() {
   return (
     <main className="min-h-screen bg-surface">
@@ -44,6 +58,50 @@ export default function Welcome() {
             Already on SPEC? <a href="/signin" className="underline">Sign in</a>
           </p>
         </header>
+
+        {/*
+          One word, and nothing else on the screen.
+
+          Everything below this asks a business owner to think about something difficult, and the
+          first thing they should feel is that this will not be hard. A whole viewport spent on a
+          single word is expensive and that is exactly what makes the claim credible — a page that
+          says "simple" while showing you nine panels is arguing against itself.
+        */}
+        <section
+          aria-label="Simple"
+          className="flex min-h-[52vh] items-center justify-center py-10 sm:min-h-[62vh]"
+        >
+          <p className="font-serif text-[clamp(3.5rem,11vw,9.375rem)] leading-none tracking-tight text-ink">
+            Simple.
+          </p>
+        </section>
+
+        <section aria-label="Everyone else" className="pb-16 text-center sm:pb-20">
+          <div className="flex flex-wrap justify-center gap-x-[18px] gap-y-2.5">
+            {BUZZWORDS.map(w => (
+              <span
+                key={w}
+                className="text-[22px] font-semibold text-ink"
+                style={{
+                  textDecorationLine: 'line-through',
+                  textDecorationThickness: '2.5px',
+                  textDecorationColor: '#a63b26',
+                }}
+              >
+                {w}
+              </span>
+            ))}
+          </div>
+          <p className="mt-8 font-serif text-[clamp(2rem,4.5vw,3.25rem)] leading-tight text-ink sm:mt-14">
+            Everyone&rsquo;s selling you AI.
+            <br />
+            We make it work.
+          </p>
+          <p className="mx-auto mt-4 max-w-[54ch] text-[17px] leading-7 text-ink-light">
+            Agents give you horsepower. SPEC gives you control — the layer that turns all of it into
+            an actual, spectacular business.
+          </p>
+        </section>
 
         {/*
           The glider sits beside the box rather than above it. The supporting line is "nimble and
