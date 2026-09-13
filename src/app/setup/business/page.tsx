@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, isNotNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { Shell, PILLAR_META } from '@/components/ui';
@@ -10,6 +10,8 @@ import { pencilled, roleChangeFor, type AssignmentRow, type RoleRow, type StaffR
 import templates from '../../../../seed/criteria_templates.json';
 import { addRole, removeRole } from '../roles/actions';
 import { nameRole, unplaceStaff, resolveRoleChange, invite } from '../people/actions';
+import { SeatLink } from '@/components/seat-link';
+import { seatUrl } from '@/lib/seat';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +69,30 @@ export default async function Business({ searchParams }: { searchParams: Promise
   const plan = await planStateFor(user.tenantId, currency);
   const gm = roleRows.find(r => r.level === 'gm');
   const waiting = pencilled(assignments, staff);
+
+  /*
+    People who have been invited and have not yet come in, with the link that lets them.
+
+    Read here rather than handed back from the action, because a seat token in a redirect ends up in
+    the browser's address bar and history. This shows it only to somebody who could have invited
+    them in the first place, on a page they signed in to reach — and it keeps working, so the link
+    can be sent again a week later without inviting anybody twice.
+  */
+  const pending = (await db.select({
+    id: schema.users.id,
+    name: schema.users.name,
+    email: schema.users.email,
+    token: schema.users.seatToken,
+  }).from(schema.users).where(and(
+    eq(schema.users.tenantId, user.tenantId),
+    isNotNull(schema.users.seatToken),
+    isNull(schema.users.acceptedAt),
+  ))).filter(p => p.token);
+
+  // The address this deployment actually answers on, so a copied link works from anywhere.
+  const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+  // Whether this deployment can actually send email. Never promise a send that will not happen.
+  const emailOn = Boolean(process.env.RESEND_API_KEY?.trim());
 
   const change = sp.change && sp.to
     ? roleChangeFor(String(sp.change), String(sp.to), roles, assignments, staff)
@@ -253,9 +279,37 @@ export default async function Business({ searchParams }: { searchParams: Promise
         </summary>
         <div className="border-t border-ink/10 p-5">
           <p className="text-sm text-ink-light">
-            An invite emails a login link and starts that person&apos;s seat at {seatLabel(currency)} a month.
+            {/*
+              Says what actually happens on THIS deployment. The old wording promised an email
+              unconditionally, and on a deployment with no email service that was simply untrue —
+              the send was skipped, the screen said success, and nobody could work out why the
+              person never arrived.
+            */}
+            An invite creates a login link{emailOn ? ', emails it to them,' : ' for you to send them,'} and starts that
+            person&apos;s seat at {seatLabel(currency)} a month.
             {plan.free ? ' You have not been charged anything yet.' : ` You are currently at ${moneyLabel(plan.currency, plan.monthlyCost)} a month for ${plan.seats} ${plan.seats === 1 ? 'person' : 'people'}.`}
           </p>
+          {/*
+            Anybody invited who has not come in yet, with their link.
+
+            This is what stops an email service being a hard dependency for the one thing a business
+            must be able to do — put its people in. The send is best effort; the link is the product.
+          */}
+          {pending.length > 0 && (
+            <div className="mt-4 rounded-lg border border-ink/10 bg-surface-raised p-4">
+              <p className="text-sm font-medium text-ink">
+                {pending.length === 1 ? 'One person has been invited and has not come in yet' : `${pending.length} people have been invited and have not come in yet`}
+              </p>
+              <p className="mt-1 text-xs text-ink-light">
+                We email each of them a link. If it has not arrived — junk mail, a typo, or email not
+                switched on here — send it yourself. It is the same link either way.
+              </p>
+              {pending.map(p => (
+                <SeatLink key={p.id} name={p.name} href={seatUrl(appUrl, p.token!)} />
+              ))}
+            </div>
+          )}
+
           {waiting.length === 0 ? (
             <p className="mt-3 text-sm text-ink">Everyone on the chart already has an account.</p>
           ) : (
