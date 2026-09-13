@@ -113,7 +113,7 @@ export const PROBLEMS = {
       {
         problem: 'Pay and reward feel arbitrary',
         before: 'a raise decided in a corridor, and everyone else guessing what earned it.',
-        after: 'Sales Ace and Ops Ace. Trained on the job, signed off, 90% or better on the KPI board three months in a row, and the increased incentive follows automatically.',
+        after: 'Sales Ace and Ops Ace. Trained on the job, signed off, 90% or better on the KPI board three consecutive closed months doubles the incentive automatically — then the three-month challenge starts again.',
       },
       {
         problem: 'Grievances handled with no record',

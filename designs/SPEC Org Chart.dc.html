@@ -142,9 +142,10 @@
 
       <div style="grid-column: 1 / -1; position: relative; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,44px); overflow-x: auto;" data-canvas="true" onContextMenu="{{ canvasContextMenu }}">
         <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: center; padding-bottom: 28px;">
-          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #4f7a3f;"></span>90% and above</span>
-          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #c67139;"></span>75–89%</span>
-          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #a63b26;"></span>Below 75%, or not set</span>
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #4f7a3f;"></span>80% and above</span>
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #c67139;"></span>Above 50%</span>
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #a63b26;"></span>50% or under, or not set</span>
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding-left: 8px; border-left: 1px solid var(--color-accent-200);">Green is not SPEC — SPEC is 90%+ on every pillar, two consecutive closed months.</span>
           <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ summaryLine }}</span>
         </div>
 
@@ -293,9 +294,9 @@ const SEED = [
   { id: 'n7', parent: 'n3', title: 'Estimator', person: '', s: 91, p: 88, e: 92, c: 100 },
 ];
 
-const rag = v => (v >= 90 ? GREEN : v >= 75 ? AMBER : RED);
+const rag = v => (v >= 80 ? GREEN : v > 50 ? AMBER : RED);
 const dot = (v, size) => 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:block;flex:none;background:' + rag(v) + ';';
-const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 90 ? '#4f7a3f' : v >= 75 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
+const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 80 ? '#4f7a3f' : v > 50 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
 const stageDot = ok => 'width:14px;height:14px;border-radius:50%;display:block;flex:none;background:' + (ok ? GREEN : AMBER) + ';';
 
 class Component extends DCLogic {
@@ -603,8 +604,8 @@ class Component extends DCLogic {
         set: setScore(p.key),
       })),
       rollup,
-      verdictStyle: 'margin-top:26px;border-radius:var(--radius-lg);padding:20px 22px;background:' + (allGreen ? 'color-mix(in srgb, ' + GREEN + ' 12%, transparent)' : worst >= 75 ? 'var(--color-accent-100)' : 'color-mix(in srgb, ' + RED + ' 10%, transparent)') + ';',
-      verdictTitle: allGreen ? 'All four green' : worst >= 75 ? 'Amber on the board' : 'Red on the board',
+      verdictStyle: 'margin-top:26px;border-radius:var(--radius-lg);padding:20px 22px;background:' + (allGreen ? 'color-mix(in srgb, ' + GREEN + ' 12%, transparent)' : worst > 50 ? 'var(--color-accent-100)' : 'color-mix(in srgb, ' + RED + ' 10%, transparent)') + ';',
+      verdictTitle: allGreen ? 'All four green' : worst > 50 ? 'Amber on the board' : 'Red on the board',
       verdictBody: allGreen
         ? 'Hold this for two consecutive months and the business is SPEC.'
         : 'The board sees the pillar below target and the role it comes from. Nothing needs explaining.',

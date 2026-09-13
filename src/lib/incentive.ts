@@ -112,53 +112,69 @@ export interface SalesMonth {
 }
 
 /**
- * ── Ace: three months at the standard, then it pays and the count starts again ───────────────────
+ * The Ace state for the month being paid, from the CLOSED months behind it.
  *
- * Sales Ace and Ops Ace are the same mechanism under two names — a sales role earns one, an
- * operations role the other. Set by Kris:
+ * ── The two things the design settles ────────────────────────────────────────────────────────────
  *
- *   Three CONSECUTIVE months at 90% or above, and the third month pays at DOUBLE the ceiling.
- *   Then the count resets to zero and the next one has to be earned the same way.
+ * "Trained on the job, signed off, 90% or better on the KPI board three consecutive CLOSED months
+ * doubles the incentive automatically — then the three-month challenge starts again."
  *
- * It is a sprint, not a standing, and the difference is most of the money. Twelve good months pay
- * double four times — months three, six, nine and twelve — not twelve times. A single month below
- * the standard puts the counter back to zero: there is no partial credit, because a run that
- * survives a bad month is not a run.
+ * **It pays the month AFTER the run, not the month that completes it.** Jul, Aug and Sep close at
+ * the standard, and the incentive doubles from October. That is the only version that can work:
+ * a month is not known to have held until it is closed and signed, so a run can only ever be read
+ * from history and the reward can only ever apply forward. Paying on September would mean paying
+ * for September using September's own result before it was final.
  *
- * 90% is the SPEC standard itself, deliberately. Ace is not "doing well" — green starts at 80% —
- * it is holding the standard the whole method is built on, three times over.
+ * **Being trained and signed off is a precondition, not a detail.** Ace is a standing that says
+ * this person can do the job to the standard, not merely that the numbers landed. Without the
+ * sign-off the run still shows — somebody should see where they are — and nothing doubles.
+ *
+ * A single closed month below the standard puts the count back to nothing. No partial credit: a run
+ * that survives a bad month is not a run.
  */
 export const ACE_MONTHS_REQUIRED = 3;
 
 export interface AceMonth {
-  /** The role's own percentage that month. Null when nothing was scored. */
+  period: string;
+  /** The role's own percentage for that CLOSED month. Null when nothing was scored. */
   rolePct: Score;
 }
 
-/**
- * Which months pay double, given the months a role has had, oldest → newest.
- *
- * Returns one boolean per month: true only on the month the run completes. Never backdated — the
- * two months building towards it pay normally, because a run is not proven until it is finished.
- *
- * An unscored month is not at the standard, so it breaks the run. Counting it as a pass would pay
- * double off a month nobody marked; counting it as a fail is the same answer and the honest one.
- */
-export function aceByMonth(months: AceMonth[], standard = AT_THE_STANDARD): boolean[] {
-  const pays: boolean[] = [];
+export interface AceState {
+  /** Consecutive closed months at the standard standing behind the open month. */
+  consecutive: number;
+  required: number;
+  /** Whether the month now being paid is doubled. */
+  doublesNow: boolean;
+  /** Why not, when it does not — so the page can say something better than "no". */
+  blockedBySignoff: boolean;
+}
+
+export function aceState(
+  closedMonths: AceMonth[],
+  opts: { signedOff: boolean; standard?: number } = { signedOff: false },
+): AceState {
+  const standard = opts.standard ?? AT_THE_STANDARD;
   let run = 0;
-  for (const m of months) {
+  let completedOnLast = false;
+
+  closedMonths.forEach((m, i) => {
     if (m.rolePct !== null && m.rolePct >= standard) run += 1;
     else run = 0;
 
     if (run >= ACE_MONTHS_REQUIRED) {
-      pays.push(true);
-      run = 0;   // Paid. The next one starts from nothing.
-    } else {
-      pays.push(false);
+      // A run finished. The month AFTER this one doubles, and the count starts again.
+      completedOnLast = i === closedMonths.length - 1;
+      run = 0;
     }
-  }
-  return pays;
+  });
+
+  return {
+    consecutive: run,
+    required: ACE_MONTHS_REQUIRED,
+    doublesNow: completedOnLast && opts.signedOff,
+    blockedBySignoff: completedOnLast && !opts.signedOff,
+  };
 }
 
 /**

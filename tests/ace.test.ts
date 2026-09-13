@@ -1,81 +1,91 @@
 import { describe, it, expect } from 'vitest';
-import { aceByMonth, incentiveFor, ACE_MONTHS_REQUIRED } from '../src/lib/incentive';
+import { aceState, incentiveFor, ACE_MONTHS_REQUIRED } from '../src/lib/incentive';
 import { AT_THE_STANDARD } from '../src/lib/scoring';
 
 /*
-  ── Ace: three months at the standard, then it pays and the count starts again ───────────────────
+  ── Ace: three closed months at the standard, and the NEXT month is doubled ──────────────────────
 
-  Set by Kris. Sales Ace and Ops Ace are the same mechanism under two names — a sales role earns
-  one, an operations role the other.
+  From the design, in its own words: "Trained on the job, signed off, 90% or better on the KPI board
+  three consecutive closed months doubles the incentive automatically — then the three-month
+  challenge starts again."
 
-  It is a SPRINT, not a standing, and that is most of the money. Twelve months at the standard pay
-  double four times, not twelve. The version built before this paid double every month once earned
-  and only stopped after two consecutive failures, which is a far more expensive scheme.
+  Two things in that sentence were built wrong first time, and both are money.
 
-  90% is the SPEC standard itself, deliberately: Ace is not "doing well" — green starts at 80% — it
-  is holding the standard the whole method rests on, three times over.
+  IT PAYS THE MONTH AFTER. Jul, Aug and Sep close at the standard and the incentive doubles from
+  October. It is the only version that can work: a month is not known to have held until it is
+  closed and signed, so a run is read backwards and the reward applies forwards. Paying September
+  would mean paying for September out of September's own result before it was final.
+
+  BEING SIGNED OFF IS A PRECONDITION. Ace says somebody can do the job to the standard, not merely
+  that the numbers landed. Without the sign-off the run still shows and nothing doubles.
 */
 
-const m = (...pcts: (number | null)[]) => pcts.map(rolePct => ({ rolePct }));
+const closed = (...pcts: (number | null)[]) =>
+  pcts.map((rolePct, i) => ({ period: `2026-${String(i + 1).padStart(2, '0')}`, rolePct }));
+
+const ok = { signedOff: true };
 
 describe('the Ace run', () => {
-  it('needs three consecutive months at the standard', () => {
+  it('needs three consecutive closed months at the standard', () => {
     expect(ACE_MONTHS_REQUIRED).toBe(3);
-    expect(aceByMonth(m(0.95, 0.92))).toEqual([false, false]);
-    expect(aceByMonth(m(0.95, 0.92, 0.91))).toEqual([false, false, true]);
+    expect(aceState(closed(0.95, 0.92), ok).doublesNow).toBe(false);
+    expect(aceState(closed(0.95, 0.92, 0.91), ok).doublesNow).toBe(true);
   });
 
-  /* Never backdated. The two months building towards it pay normally — a run is not proven until
-     it is finished, and paying for it early would pay for a run that might not happen. */
-  it('pays only on the month the run completes', () => {
-    expect(aceByMonth(m(0.9, 0.9, 0.9))).toEqual([false, false, true]);
+  it('doubles the month AFTER the run, not the month that completes it', () => {
+    // Jul, Aug, Sep closed at the standard → the open month (October) is doubled.
+    const afterThree = aceState(closed(0.95, 0.95, 0.95), ok);
+    expect(afterThree.doublesNow).toBe(true);
+    // Once October has itself closed, the count has restarted and November is not doubled.
+    const afterFour = aceState(closed(0.95, 0.95, 0.95, 0.95), ok);
+    expect(afterFour.doublesNow).toBe(false);
+    expect(afterFour.consecutive).toBe(1);
   });
 
-  it('starts the three months again after it pays', () => {
-    // Six months at the standard pay twice: the third and the sixth.
-    expect(aceByMonth(m(0.95, 0.95, 0.95, 0.95, 0.95, 0.95)))
-      .toEqual([false, false, true, false, false, true]);
-  });
-
-  it('pays four times across a perfect year, not twelve', () => {
-    const year = aceByMonth(m(...Array(12).fill(0.95)));
-    expect(year.filter(Boolean)).toHaveLength(4);
-    expect(year.map((p, i) => (p ? i + 1 : null)).filter(Boolean)).toEqual([3, 6, 9, 12]);
+  it('starts the challenge again, so a perfect year doubles four months', () => {
+    let doubled = 0;
+    for (let months = 1; months <= 12; months++) {
+      if (aceState(closed(...Array(months).fill(0.95)), ok).doublesNow) doubled += 1;
+    }
+    expect(doubled).toBe(4);
   });
 
   /* No partial credit. A run that survives a bad month is not a run. */
-  it('resets the count on a single month below the standard', () => {
-    expect(aceByMonth(m(0.95, 0.95, 0.89, 0.95, 0.95))).toEqual([false, false, false, false, false]);
-    expect(aceByMonth(m(0.95, 0.95, 0.89, 0.95, 0.95, 0.95)))
-      .toEqual([false, false, false, false, false, true]);
+  it('resets on a single closed month below the standard', () => {
+    expect(aceState(closed(0.95, 0.95, 0.89), ok).doublesNow).toBe(false);
+    expect(aceState(closed(0.95, 0.95, 0.89), ok).consecutive).toBe(0);
+    expect(aceState(closed(0.95, 0.95, 0.89, 0.95, 0.95, 0.95), ok).doublesNow).toBe(true);
   });
 
   it('treats exactly 90% as at the standard', () => {
     expect(AT_THE_STANDARD).toBe(0.9);
-    expect(aceByMonth(m(0.9, 0.9, 0.9))).toEqual([false, false, true]);
-    expect(aceByMonth(m(0.899, 0.9, 0.9, 0.9))).toEqual([false, false, false, true]);
+    expect(aceState(closed(0.9, 0.9, 0.9), ok).doublesNow).toBe(true);
+    expect(aceState(closed(0.899, 0.9, 0.9), ok).doublesNow).toBe(false);
   });
 
-  /* An unscored month is not at the standard. Counting it as a pass would pay double off a month
-     nobody marked. */
-  it('breaks the run on a month nobody scored', () => {
-    expect(aceByMonth(m(0.95, null, 0.95, 0.95))).toEqual([false, false, false, false]);
+  /* An unscored month is not at the standard — counting it as one would double off a month nobody
+     marked. */
+  it('breaks the run on a closed month nobody scored', () => {
+    expect(aceState(closed(0.95, null, 0.95), ok).doublesNow).toBe(false);
   });
 
-  it('doubles the ceiling in the month it pays', () => {
+  /* The precondition. The numbers alone are not Ace. */
+  it('holds the doubling until the person is trained and signed off', () => {
+    const notSigned = aceState(closed(0.95, 0.95, 0.95), { signedOff: false });
+    expect(notSigned.doublesNow).toBe(false);
+    // And says WHY, so the page can show the run rather than a flat no.
+    expect(notSigned.blockedBySignoff).toBe(true);
+  });
+
+  it('does not blame the sign-off when the run is not there either', () => {
+    expect(aceState(closed(0.95), { signedOff: false }).blockedBySignoff).toBe(false);
+  });
+
+  it('doubles the ceiling in the month it applies', () => {
     const plain = incentiveFor({ roles: [{ level: 'manager', rolePct: 0.95 }], chainPillars: [] });
     const ace = incentiveFor({ roles: [{ level: 'manager', rolePct: 0.95 }], chainPillars: [], salesAce: true });
     expect(plain.ceiling).toBe(2000);
     expect(ace.ceiling).toBe(4000);
     expect(ace.payable).toBe(plain.payable * 2);
-  });
-
-  /* The director can switch the doubling off; the standing still shows, with no money attached. */
-  it('shows the standing without the money when doubling is off', () => {
-    const r = incentiveFor({
-      roles: [{ level: 'manager', rolePct: 0.95 }], chainPillars: [],
-      salesAce: true, salesAceDoubling: false,
-    });
-    expect(r.ceiling).toBe(2000);
   });
 });

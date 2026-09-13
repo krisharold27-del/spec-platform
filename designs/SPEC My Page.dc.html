@@ -531,9 +531,9 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320},&quot;aiProvider&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Claude, through SPEC&quot;,&quot;your own assistant&quot;],&quot;default&quot;:&quot;Claude, through SPEC&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
-const rag = v => (v >= 90 ? GREEN : v >= 75 ? AMBER : RED);
+const rag = v => (v >= 80 ? GREEN : v > 50 ? AMBER : RED);
 const dot = (v, size) => 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:block;flex:none;background:' + rag(v) + ';';
-const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 90 ? '#4f7a3f' : v >= 75 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
+const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 80 ? '#4f7a3f' : v > 50 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
 const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
 
 const PERSONAS = {
@@ -567,7 +567,7 @@ const PERSONAS = {
       { name: 'Tickets current', value: '100%', target: 'target 100%', pct: 100, source: 'Pylon · certifications', updated: 'Synced 5:58am' },
     ],
     meeting: 'Three items this week: the open safety action, the 2% margin gap against quote, and the unfilled Yard Lead role.',
-    ace: { heading: 'Ops Ace run', months: ['Jul ✓', 'Aug ✓', 'Sep —'], hit: 2, body: 'Trained on the job, signed off, and a minimum 90% on the KPI board three months in a row. People at 85% breaks this month\u2019s run.' },
+    ace: { heading: 'Ops Ace run', months: ['Jul ✓', 'Aug ✓', 'Sep —'], hit: 2, body: 'Trained on the job, signed off, and a minimum 90% on the KPI board three consecutive closed months doubles the incentive, then the three-month challenge starts again. People at 85% breaks this month\u2019s run.' },
     training: [
       { name: 'Scoring the four pillars', pct: 60, status: '60%', note: 'Two modules left. About 25 minutes.' },
       { name: 'Psychosocial safety basics', pct: 0, status: 'Not started', note: 'Due before 30 September.' },
@@ -698,7 +698,7 @@ const PERSONAS = {
       { name: 'Quotes with signed scope', value: '100%', target: 'target 100%', pct: 100, source: 'Simpro · quote status', updated: 'Synced 6:04am' },
     ],
     meeting: 'Two items this week: the Northline stage 3 quote, and whether the 32% margin target holds for October quoting.',
-    ace: { heading: 'Sales Ace run', months: ['Jul ✓', 'Aug ✓', 'Sep ✓'], hit: 3, body: 'Trained on the job, signed off, and above 90% on the KPI board three months in a row. The increased incentive applies from October.' },
+    ace: { heading: 'Sales Ace run', months: ['Jul ✓', 'Aug ✓', 'Sep ✓'], hit: 3, body: 'Trained on the job, signed off, and above 90% on the KPI board three consecutive closed months. The incentive doubles from October — then the three-month challenge starts again.' },
     training: [
       { name: 'How SPEC works', pct: 100, status: 'Complete', note: 'Passed 3 July.' },
       { name: 'Margin against quote', pct: 100, status: 'Complete', note: 'Passed 21 July.' },

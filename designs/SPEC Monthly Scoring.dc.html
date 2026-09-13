@@ -187,7 +187,7 @@
             <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Ace watch</h2>
             <span style="font-size: 13.5px; color: var(--color-accent-2-900);">{{ aceLine }}</span>
           </div>
-          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Trained on the job, signed off, and holding a minimum 90% on the KPI board three months in a row. Only roles with an individual KPI scorecard can reach it, and the third month is what triggers the increased incentive.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Trained on the job, signed off, and holding a minimum 90% on the KPI board three consecutive closed months doubles the incentive — then the three-month challenge starts again. Only roles with an individual KPI scorecard can reach it, and the third month is what triggers the increased incentive.</p>
           <div style="display: grid; gap: 12px; margin-top: 20px;">
             <sc-for list="{{ aces }}" as="ac" hint-placeholder-count="3">
               <div style="{{ ac.style }}">
@@ -261,9 +261,9 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320}}">
 const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
-const rag = v => (v >= 90 ? GREEN : v >= 75 ? AMBER : RED);
+const rag = v => (v >= 80 ? GREEN : v > 50 ? AMBER : RED);
 const dot = (v, size) => 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:block;flex:none;background:' + rag(v) + ';';
-const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 90 ? '#4f7a3f' : v >= 75 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
+const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 80 ? '#4f7a3f' : v > 50 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
 const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
 
 const ROLES = [

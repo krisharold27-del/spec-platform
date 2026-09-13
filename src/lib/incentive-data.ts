@@ -1,8 +1,8 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getRoles, getScorecard, PILLARS } from './queries';
 import { isScored } from './today-data';
-import { incentiveFor, aceByMonth, ACE_MONTHS_REQUIRED, DEFAULT_CEILINGS, FAILED_AT_OR_BELOW, type IncentiveResult } from './incentive';
+import { incentiveFor, aceState, DEFAULT_CEILINGS, FAILED_AT_OR_BELOW, type IncentiveResult } from './incentive';
 import { ceilingsFor } from './ceilings';
 import type { Pillar, Score } from './scoring';
 
@@ -60,8 +60,10 @@ export interface AceRun {
   /** How many consecutive months at the standard stand behind this one. */
   consecutive: number;
   required: number;
-  /** True when THIS month completes the run, which is the month that pays double. */
-  paysThisMonth: boolean;
+  /** True when the month being paid is doubled — the month AFTER three closed months held. */
+  doublesNow: boolean;
+  /** The run is there and the sign-off is not, so the page can say which. */
+  blockedBySignoff: boolean;
 }
 
 /**
@@ -159,44 +161,55 @@ export async function incentiveView(
     Ordered oldest first because the rule is about a SEQUENCE — three in a row, then it pays and the
     count restarts. Reading them in any other order would answer a different question.
   */
-  const periods = (await db.select().from(schema.periods)
+  /*
+    The run is read from CLOSED months only, and the reward applies to the month being paid.
+
+    "Trained on the job, signed off, 90% or better three consecutive CLOSED months doubles the
+    incentive — then the three-month challenge starts again." A month is not known to have held
+    until it is closed and signed, so a run can only be read backwards and paid forwards. Reading
+    the open month into its own run would pay for a result that is not final.
+  */
+  const closed = (await db.select().from(schema.periods)
     .where(eq(schema.periods.tenantId, tenantId)))
-    .filter(p => p.status === 'locked' || p.id === periodId)
+    .filter(p => p.status === 'locked' && p.id !== periodId)
     .sort((a, b) => a.period.localeCompare(b.period));
 
   const history: { period: string; pct: Score }[] = [];
-  for (const p of periods) {
-    if (p.id === periodId) { history.push({ period: p.period, pct: ownPct }); continue; }
+  for (const p of closed) {
     const { score } = await getScorecard(roleId, p.id);
     const scored = PILLARS.map(x => score.pillars[x]).filter((v): v is number => v !== null);
     history.push({ period: p.period, pct: scored.length ? scored.reduce((s, v) => s + v, 0) / scored.length : null });
   }
 
-  const pays = aceByMonth(history.map(h => ({ rolePct: h.pct })));
-  const paysThisMonth = pays[pays.length - 1] ?? false;
+  /*
+    Trained on the job and signed off — a precondition, not a detail. Ace says this person can do
+    the job to the standard, not merely that the numbers landed. Without it the run still shows,
+    because somebody should see where they are, and nothing doubles.
+  */
+  const [assignment] = await db.select({ trainedAt: schema.roleAssignments.trainedAt })
+    .from(schema.roleAssignments)
+    .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
+  const signedOff = Boolean(assignment?.trainedAt);
 
-  // How many in a row stand behind this month — counted the same way aceByMonth counts them, so the
-  // number on the page and the month that pays can never disagree.
-  let consecutive = 0;
-  for (let i = history.length - 1; i >= 0; i--) {
-    const at = history[i].pct;
-    if (at !== null && at >= 0.9) consecutive += 1; else break;
-    if (consecutive >= ACE_MONTHS_REQUIRED) break;
-  }
+  const state = aceState(
+    history.map(h => ({ period: h.period, rolePct: h.pct })),
+    { signedOff },
+  );
 
   const ace: AceRun = {
     name: role.stream === 'operations' ? 'Ops Ace' : 'Sales Ace',
     run: history.slice(-6).map(h => ({ period: h.period, held: h.pct !== null && h.pct >= 0.9 })),
-    consecutive,
-    required: ACE_MONTHS_REQUIRED,
-    paysThisMonth,
+    consecutive: state.consecutive,
+    required: state.required,
+    doublesNow: state.doublesNow,
+    blockedBySignoff: state.blockedBySignoff,
   };
 
   const result = incentiveFor({
     roles: [{ level: role.level, rolePct: ownPct }],
     chainPillars,
-    // The doubling applies in the month the run completes, and only then.
-    salesAce: paysThisMonth,
+    // Doubled for the month AFTER three closed months held, and only with the sign-off.
+    salesAce: state.doublesNow,
     incentivesOn: opts.incentivesOn,
     ceilings: ceilingsFor(tenant?.ceilings),
   });

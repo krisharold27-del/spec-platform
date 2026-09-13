@@ -493,12 +493,12 @@ class Component extends DCLogic {
       results: RESULTS.map(r => ({ ...r, chip: chip(r.tone) })),
 
       aceBody: pathComplete
-        ? 'Trained on the job and signed off. Hold 90% or better on the KPI board three months in a row and the increased incentive applies from the month after.'
-        : 'A Sales Ace or Ops Ace is trained on the job, signed off, and holds a minimum 90% on the KPI board three months in a row. The run cannot start until the path is finished.',
+        ? 'Trained on the job and signed off. Hold 90% or better on the KPI board three consecutive closed months and the incentive doubles from the month after — then the three-month challenge starts again.'
+        : 'A Sales Ace or Ops Ace is trained on the job, signed off, and holds a minimum 90% on the KPI board three consecutive closed months, doubling the incentive before the challenge resets. The run cannot start until the path is finished.',
       aceSteps: [
         { label: 'Path complete', tone: pathComplete ? GREEN : GREY },
         { label: 'Signed off by the manager', tone: pathComplete ? AMBER : GREY },
-        { label: 'Minimum 90% on the KPI board, three months in a row', tone: GREY },
+        { label: 'Minimum 90% on the KPI board, three consecutive closed months', tone: GREY },
       ].map(s => ({ label: s.label, dot: dotOf(s.tone) })),
 
       assignLine: assigned.length + ' modules assigned to ' + role,

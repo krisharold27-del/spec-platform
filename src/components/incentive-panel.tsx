@@ -68,7 +68,7 @@ export function IncentivePanel({ view, period }: { view: IncentiveView; period: 
           <div className="mt-4 rounded-lg bg-cream p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="font-serif text-lg text-ink">
-                {view.ace.paysThisMonth ? `${view.ace.name} — this month pays double` : view.ace.name}
+                {view.ace.doublesNow ? `${view.ace.name} — this month is doubled` : view.ace.name}
               </span>
               <span className="label-caps">
                 {view.ace.consecutive} of {view.ace.required} months
@@ -91,9 +91,11 @@ export function IncentivePanel({ view, period }: { view: IncentiveView; period: 
               </ul>
             )}
             <p className="mt-3 text-xs text-ink-light">
-              {view.ace.paysThisMonth
-                ? `Three months at ${standardPct}% or above. The ceiling is doubled this month, and the count starts again from next month.`
-                : `Three consecutive months at ${standardPct}% or above and the ceiling doubles for that month. Then it starts again. One month below the standard puts the count back to nothing.`}
+              {view.ace.doublesNow
+                ? `Three closed months at ${standardPct}% or above, trained on the job and signed off. The ceiling is doubled for this month, and the three-month challenge starts again.`
+                : view.ace.blockedBySignoff
+                  ? `Three closed months at ${standardPct}% or above — the numbers are there. The doubling waits on being trained on the job and signed off, because Ace says somebody can do the job to the standard, not just that the numbers landed.`
+                  : `Trained on the job, signed off, and ${standardPct}% or above for three consecutive closed months doubles the ceiling for the month after. Then the three-month challenge starts again. One month below the standard puts the count back to nothing.`}
             </p>
           </div>
 
@@ -101,7 +103,7 @@ export function IncentivePanel({ view, period }: { view: IncentiveView; period: 
             <Figure
               label="Ceiling"
               value={money(view.ceiling)}
-              note={view.ace.paysThisMonth
+              note={view.ace.doublesNow
                 ? `The ${view.level.replace(/_/g, ' ')} ceiling, doubled for ${view.ace.name}.`
                 : `The ${view.level.replace(/_/g, ' ')} ceiling.`}
             />
