@@ -32,10 +32,38 @@ function connect(): PostgresJsDatabase<typeof schema> {
     throw new Error('DATABASE_URL is not set. Copy .env.example to .env.local and fill it in.');
   }
 
-  // One pooled connection per server instance. Supabase's transaction pooler (port 6543) does not
-  // support prepared statements, so they're disabled here. Kept on globalThis outside production so
-  // a hot reload does not open a new pool every time a file is saved.
-  const client = globalForDb.sql ?? postgres(connectionString, { prepare: false });
+  /*
+    ── The settings that decide whether a slow database becomes an outage ─────────────────────────
+
+    This said `postgres(connectionString, { prepare: false })` and inherited every other default,
+    and each of those defaults is the wrong one for a product sold by the seat.
+
+    **max: 1.** The library opens up to ten connections per instance. Vercel runs many instances and
+    adds more under load, so ten becomes hundreds, and Supabase's pooler has a hard ceiling. Hitting
+    it does not degrade gracefully — further connections are refused, which is every page failing
+    for everybody, at precisely the moment the product is busiest. One connection per instance,
+    released immediately, is how a serverless app is meant to talk to a pooler. At twenty thousand
+    seats this is the difference between scaling and falling over.
+
+    **connect_timeout: 10.** With no timeout, a database that accepts a socket and then goes quiet
+    leaves the request hanging until the platform kills it — half a minute of blank tab, which a
+    customer reads as "it's down". Ten seconds is far longer than a healthy connect needs, and short
+    enough to fail while somebody is still looking at the screen.
+
+    **idle_timeout: 20.** Serverless instances are frozen and thrown away constantly. A connection
+    left open by an instance that no longer exists holds a slot nobody can use until the server
+    reclaims it, and enough of those reach the same ceiling as above, silently.
+
+    Prepared statements stay off: Supabase's transaction pooler on 6543 does not support them.
+
+    Kept on globalThis outside production so a hot reload does not open a new pool on every save.
+  */
+  const client = globalForDb.sql ?? postgres(connectionString, {
+    prepare: false,
+    max: 1,
+    connect_timeout: 10,
+    idle_timeout: 20,
+  });
   if (process.env.NODE_ENV !== 'production') globalForDb.sql = client;
 
   handle = drizzle(client, { schema });
