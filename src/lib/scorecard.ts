@@ -15,6 +15,7 @@
 import type { Pillar, Score } from './scoring';
 import type { ScorecardRow } from './queries';
 import { STATUSES, type Status } from './status';
+import { AT_THE_STANDARD, WATCH_FROM } from './pillars';
 
 export type Tone = 'green' | 'amber' | 'red' | 'grey';
 
@@ -54,7 +55,9 @@ export function summarise(rows: ScorecardRow[], pillar: Pillar, score: Score): P
   const confirmed = mine.filter(r => r.answer === 'Y').length;
   const notTracked = mine.filter(r => r.status === 'not_tracked').length;
 
-  const tone: Tone = score === null ? 'grey' : score >= 0.9 ? 'green' : score >= 0.75 ? 'amber' : 'red';
+  // From the constants, never typed: two places holding the same threshold is two places for
+  // it to drift, and a threshold that drifts is invisible in review.
+  const tone: Tone = score === null ? 'grey' : score >= AT_THE_STANDARD ? 'green' : score >= WATCH_FROM ? 'amber' : 'red';
 
   let line: string;
   if (!mine.length) {

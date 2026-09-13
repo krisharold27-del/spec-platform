@@ -210,13 +210,26 @@ describe('team roll-up (§3.4)', () => {
 });
 
 describe('bands (§3.4)', () => {
-  it('On track 100% · Watch 50–99.9% · Behind under 50% · Pending no score', () => {
+  /*
+    On track from 90%, Watch 75–89%, Behind under 75% — the same lines as the colour beside it.
+
+    band() used to say on track only at 100% and behind only under 50%, while the COLOUR on the same
+    card used 90 and 75. Both appear on one tile, so the tile contradicted itself: 95% was a GREEN
+    card labelled "Watch", and 60% a RED card labelled "Watch". Two of those were live in front of
+    customers. A card that disagrees with itself is not a scoring instrument.
+
+    The money is a separate and LOWER line — lib/incentive deducts only under 50% for a quadrant —
+    so a pillar at 60% reads Behind and costs nobody a payment. Kris settled both.
+  */
+  it('On track from 90% · Watch 75–89% · Behind under 75% · Pending no score', () => {
     expect(band(1)).toBe('on_track');
-    expect(band(0.999)).toBe('watch');
-    expect(band(0.5)).toBe('watch');
-    expect(band(0.4999)).toBe('behind');
+    expect(band(0.9)).toBe('on_track');
+    expect(band(0.899)).toBe('watch');
+    expect(band(0.75)).toBe('watch');
+    expect(band(0.749)).toBe('behind');
+    expect(band(0.5)).toBe('behind');     // red on the card, and still no deduction
     expect(band(0)).toBe('behind');
-    expect(band(null)).toBe('pending'); // pending is never red
+    expect(band(null)).toBe('pending');   // pending is never red
   });
 });
 

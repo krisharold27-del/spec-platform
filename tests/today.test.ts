@@ -28,16 +28,24 @@ describe('light — the 90% rule as a traffic light', () => {
     expect(light(1)).toBe('green');
   });
 
-  it('is amber close to it and red below', () => {
+  /*
+    Amber 75–89, red below 75. Settled by Kris, who owns the method.
+
+    This was 50% on the reasoning that a colour must agree with the money, since the incentive only
+    deducts below 50%. That assumed one line doing two jobs; there are two. The COLOUR line is a
+    management instrument — a pillar in the sixties is not fine, and a chart calling it fine until
+    50% hides a slide for months. The MONEY line stays at 50% in lib/incentive, where
+    designs/the-rules.md puts it: "A pillar at 60% is a bad month, not a failure, and does not
+    deduct."
+
+    So 60% is red here and deducts nothing, and both are right.
+  */
+  it('is amber from 75 and red below it', () => {
     expect(light(0.89)).toBe('amber');
-    expect(light(0.75)).toBe('amber');
-    // Fifty per cent is where behind starts, because that is the line the engine deducts on:
-    // 5% per pillar "under 50%" in a leader's chain. A pillar on 60% is a bad month, not a
-    // failure — painting it red would have the colour accusing somebody of something the money
-    // does not agree happened. designs/the-rules.md §5 and §7.
-    expect(light(0.6)).toBe('amber');
-    expect(light(0.5)).toBe('amber');
-    expect(light(0.499)).toBe('red');
+    expect(light(0.75)).toBe('amber');      // exactly on the line is amber
+    expect(light(0.749)).toBe('red');
+    expect(light(0.6)).toBe('red');         // a bad month, and it looks like one
+    expect(light(0.5)).toBe('red');
     expect(light(0)).toBe('red');
   });
 

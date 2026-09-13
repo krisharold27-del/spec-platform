@@ -80,13 +80,39 @@ export function teamScore(roleScores: RoleScore[]): RoleScore {
   return { pillars, overall: mean(scored(people.map(r => r.overall))) };
 }
 
+/*
+  The two lines, defined here because lib/pillars imports this file — so they can only live in one
+  direction. lib/pillars re-exports them, which is where the long explanation of both sits.
+*/
+/** At the standard. The 90% rule the whole product is built on. */
+export const AT_THE_STANDARD = 0.9;
+/** Amber from here up to the standard; below it is red. The COLOUR line, not the money line. */
+export const WATCH_FROM = 0.75;
+
 export type Band = 'on_track' | 'watch' | 'behind' | 'pending';
 
-/** On track 100% · Watch 50–99.9% · Behind under 50% · Pending = no score, never coloured. */
+/**
+ * On track from 90% · Watch 75–89% · Behind under 75% · Pending = no score, never coloured.
+ *
+ * ── Why this changed ─────────────────────────────────────────────────────────────────────────────
+ *
+ * This used to call a pillar "on track" only at 100% and "behind" only under 50%, while the COLOUR
+ * beside it used 90 and 75. Both appear on the same card, so the card contradicted itself:
+ *
+ *     95%  a GREEN tile labelled "Watch"
+ *     60%  a RED tile labelled "Watch"
+ *
+ * Two of those were live. A card that disagrees with itself is not a scoring instrument, it is a
+ * reason to stop trusting the screen — and this is the screen a manager has a pay conversation in
+ * front of.
+ *
+ * The word now reads from the same thresholds as the colour, so there is one traffic light and one
+ * vocabulary. The incentive's failure line is a SEPARATE question and lives in lib/incentive.
+ */
 export function band(score: Score): Band {
   if (score === null) return 'pending';
-  if (score >= 1) return 'on_track';
-  if (score >= 0.5) return 'watch';
+  if (score >= AT_THE_STANDARD) return 'on_track';
+  if (score >= WATCH_FROM) return 'watch';
   return 'behind';
 }
 

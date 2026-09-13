@@ -24,6 +24,8 @@
  */
 import type { Pillar, Score } from './scoring';
 
+/* The two lines every colour and every word in the product is banded against. */
+
 export const PILLAR_META: Record<Pillar, { name: string; letter: string; question: string }> = {
   safety:     { name: 'Safety',     letter: 'S', question: 'Are we going well in Safety?' },
   people:     { name: 'People',     letter: 'P', question: 'Does everyone love coming to work?' },
@@ -74,17 +76,31 @@ export const SCORE_INK = {
  * see amber on every card while being told it is at the standard, which is the contradiction
  * Option D exists to remove. The two live side by side on purpose; this one is the colour.
  *
- * The lower line was 0.75, which I picked, and it was wrong. The engine puts the failure line at
- * 50% and says so twice: the bands are "Behind — under 50%", and the incentive deducts 5% for each
- * pillar "under 50%" in a leader's chain. At 0.75 a pillar on 60% was painted red while deducting
- * nothing — the colour accusing somebody of a failure the money did not agree was one. A person
- * reading their own card has to be able to trust that red means the thing red means.
+ * ── Two lines, not one ──────────────────────────────────────────────────────────────────────────
  *
- * So: 50% is where behind starts, because that is where the engine says a pillar has failed.
+ * This was moved to 0.5 on the reasoning that a colour must agree with the money: the incentive
+ * deducts for a pillar "under 50%", so painting 60% red looked like accusing somebody of a failure
+ * the pay did not agree was one.
+ *
+ * Kris settled it, and the reasoning was wrong because it assumed one line doing two jobs. There
+ * are two, and they measure different things:
+ *
+ *   **The colour line — 75%.** What a leader should be looking at. A pillar in the sixties is not
+ *   fine, and a chart that says it is fine until 50% hides a problem for months. Amber is 75–89%;
+ *   below 75% is red. This is the one on the cards, and it is a management instrument.
+ *
+ *   **The money line — 50%, in lib/incentive as FAILED_BELOW.** What costs somebody a payment.
+ *   designs/the-rules.md is explicit: "A pillar at 60% is a bad month, not a failure, and does not
+ *   deduct."
+ *
+ * So a pillar at 60% is red on the chart AND deducts nothing, and both are correct. The colour asks
+ * for attention; the deduction is a consequence. Conflating them made the chart blind to exactly
+ * the range where a business is quietly sliding — which is the range SPEC exists to catch.
+ *
  * `designs/the-rules.md` §5 and §7.
  */
 export const AT_THE_STANDARD = 0.9;
-export const WATCH_FROM = 0.5;
+export const WATCH_FROM = 0.75;
 
 /** Which of the four a score is. Every colour rule in the product starts here. */
 export function scoreBand(score: Score): keyof typeof SCORE_COLOUR {

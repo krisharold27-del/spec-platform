@@ -4,6 +4,11 @@ import { join } from 'node:path';
 import { PILLAR_META, BRAND_COLOUR, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk } from '../src/lib/pillars';
 import { LIGHT_COLOUR, LIGHT_INK } from '../src/lib/today';
 import { PILLARS } from '../src/lib/scoring';
+import { WATCH_FROM } from '../src/lib/pillars';
+import { FAILED_BELOW, failedPillarCount } from '../src/lib/incentive';
+import { band } from '../src/lib/scoring';
+import { light } from '../src/lib/today';
+import { AT_THE_STANDARD } from '../src/lib/pillars';
 
 /**
  * Option D, held in place.
@@ -59,16 +64,48 @@ describe('colour is only ever the score', () => {
    * pillar "on track" only at 100%. That is right for a label and wrong for a light: a business
    * holding 94% would see amber everywhere while being told it is at the standard.
    */
-  it('reads a score against the 90% rule', () => {
+  /*
+    Green at 90, amber 75–89, red below 75. Settled by Kris, who owns the method.
+
+    The lower line was moved to 50% on the reasoning that a colour must agree with the money, since
+    the incentive only deducts below 50%. That assumed one line doing two jobs. There are two:
+
+      the COLOUR line (75%)  — what a leader should be looking at. A pillar in the sixties is not
+                               fine, and a chart calling it fine until 50% hides a slide for months.
+      the MONEY line (50%)   — what costs somebody a payment. band() in lib/scoring, FAILED_BELOW in
+                               lib/incentive, and designs/the-rules.md: "A pillar at 60% is a bad
+                               month, not a failure, and does not deduct."
+
+    So 60% is red here AND deducts nothing, and both are right. The boundaries are pinned exactly,
+    because an off-by-one on a threshold is invisible in review and obvious to a customer.
+  */
+  it('reads a score against the 90% rule, with amber from 75', () => {
     expect(scoreColour(1)).toBe(SCORE_COLOUR.on_track);
-    expect(scoreColour(0.9)).toBe(SCORE_COLOUR.on_track);
+    expect(scoreColour(0.9)).toBe(SCORE_COLOUR.on_track);      // exactly at the standard is green
+    expect(scoreColour(0.899)).toBe(SCORE_COLOUR.watch);
     expect(scoreColour(0.89)).toBe(SCORE_COLOUR.watch);
-    expect(scoreColour(0.75)).toBe(SCORE_COLOUR.watch);
-    // 50%, not 75% — the engine's failure line, and the one the incentive deducts on.
-    expect(scoreColour(0.6)).toBe(SCORE_COLOUR.watch);
-    expect(scoreColour(0.5)).toBe(SCORE_COLOUR.watch);
-    expect(scoreColour(0.49)).toBe(SCORE_COLOUR.behind);
+    expect(scoreColour(0.75)).toBe(SCORE_COLOUR.watch);        // exactly on the line is amber
+    expect(scoreColour(0.749)).toBe(SCORE_COLOUR.behind);
+    expect(scoreColour(0.6)).toBe(SCORE_COLOUR.behind);        // a bad month, and it looks like one
+    expect(scoreColour(0.5)).toBe(SCORE_COLOUR.behind);
     expect(scoreColour(0)).toBe(SCORE_COLOUR.behind);
+  });
+
+  /*
+    The two lines are different on purpose, and nothing may quietly make them the same again.
+    If somebody "tidies" one into the other, the chart either goes blind between 50 and 75 or the
+    incentive starts deducting for a bad month. Both are serious and neither is obvious.
+  */
+  it('keeps the colour line and the money line apart', () => {
+    expect(WATCH_FROM, 'the colour line').toBe(0.75);
+    expect(FAILED_BELOW, 'the money line').toBe(0.5);
+    expect(WATCH_FROM).not.toBe(FAILED_BELOW);
+    // 60% for a quadrant: red on the chart, the word "Behind" beside it, and no deduction —
+    // the deduction is 5% per quadrant under 50%, capped at 25%. Kris settled both lines.
+    expect(scoreColour(0.6)).toBe(SCORE_COLOUR.behind);
+    expect(band(0.6)).toBe('behind');
+    expect(failedPillarCount([0.6])).toBe(0);
+    expect(failedPillarCount([0.49])).toBe(1);
   });
 
   // Pending is never red. A month nobody has marked is not a failing month, and colouring it as one
@@ -189,5 +226,37 @@ describe('the brand colours stay out of the product', () => {
   it('still defines all four, for the places that may use them', () => {
     expect(Object.keys(BRAND_COLOUR).sort()).toEqual([...PILLARS].sort());
     for (const p of PILLARS) expect(BRAND_COLOUR[p]).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+});
+
+/*
+  ── One threshold, one place ─────────────────────────────────────────────────────────────────────
+
+  When the colour line moved from 50% to 75%, four separate places held a copy of it: lib/pillars,
+  light() in lib/today (every light on My Page and every card on the org chart), lib/scorecard, and
+  the chart key. Three would have been left on the old number, and the product would have painted
+  the same score two different colours on two different screens — with no test failing.
+
+  A threshold that drifts is invisible in review and obvious to a customer. So every reader now
+  takes it from the constant, and this walks the actual functions to prove it.
+*/
+describe('every screen bands a score the same way', () => {
+  it('agrees at the boundaries, wherever the score is drawn', () => {
+    const cases: [number, 'green' | 'amber' | 'red'][] = [
+      [1, 'green'], [0.9, 'green'], [0.899, 'amber'], [0.75, 'amber'], [0.749, 'red'], [0.6, 'red'], [0, 'red'],
+    ];
+    for (const [score, want] of cases) {
+      expect(light(score), `light(${score})`).toBe(want);
+      const colour = { green: SCORE_COLOUR.on_track, amber: SCORE_COLOUR.watch, red: SCORE_COLOUR.behind }[want];
+      expect(scoreColour(score), `scoreColour(${score})`).toBe(colour);
+    }
+  });
+
+  it('reads the constants rather than a number somebody typed', () => {
+    // Move the line and both must move with it. If either is hardcoded, one of these fails.
+    expect(light(WATCH_FROM)).toBe('amber');
+    expect(light(WATCH_FROM - 0.001)).toBe('red');
+    expect(light(AT_THE_STANDARD)).toBe('green');
+    expect(light(AT_THE_STANDARD - 0.001)).toBe('amber');
   });
 });

@@ -46,8 +46,8 @@ export function rules(): Rule[] {
       held: 'fixOrder() drops it, and Clear to Work is pass-or-fail with no percentage anywhere near it.',
     },
     {
-      says: `At the standard is ${Math.round(AT_THE_STANDARD * 100)}%. Behind starts at ${Math.round(WATCH_FROM * 100)}%, because that is where the engine deducts.`,
-      held: 'AT_THE_STANDARD and WATCH_FROM in lib/pillars. The lower line was 75% and was wrong — a pillar on 60% was painted red while costing nothing.',
+      says: `At the standard is ${Math.round(AT_THE_STANDARD * 100)}%. Amber runs to ${Math.round(WATCH_FROM * 100)}%, and below that is red — because a pillar in the sixties is not fine, and a chart that says it is hides a slide for months.`,
+      held: 'AT_THE_STANDARD and WATCH_FROM in lib/pillars, read by every light on every screen. The money line is separate and lower — lib/incentive deducts only under 50%, so a pillar at 60% is red on the chart and costs nobody a payment. A colour asks for attention; a deduction is a consequence.',
     },
     {
       says: 'A problem nobody owns is a plan, not an overdue task.',
