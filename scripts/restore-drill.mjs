@@ -52,16 +52,39 @@ if (!url) {
   process.exit(2);
 }
 
-/** The same server, a different database — where the copy goes. */
+/*
+  ── Where the copy is put back ───────────────────────────────────────────────────────────────────
+
+  The first version created a scratch database on the SAME server and restored into that. It worked
+  perfectly against a Postgres on this machine and failed immediately against Supabase, because a
+  managed database does not let you create databases on it — which is correct of Supabase, and was
+  wrong of the drill.
+
+  It was also the wrong shape even where it was permitted. A drill that writes to the customer's own
+  server to prove their backup is sound is taking a risk on the very thing it is protecting.
+
+  So the restore target is now separate, and `--into` names it: on CI a throwaway Postgres running
+  beside the job, which is torn down with the runner. The production database is only ever READ.
+
+  With no --into it falls back to a scratch database on the same server, which is how it runs
+  against a local Postgres where creating one is free and harmless.
+*/
+const intoArg = (() => {
+  const i = process.argv.indexOf('--into');
+  return i > -1 ? process.argv[i + 1] : (process.env.RESTORE_INTO ?? '').trim() || undefined;
+})();
+
 const SCRATCH = `spec_restore_drill_${Date.now()}`;
+const restoreServer = intoArg ?? url;
+
 const scratchUrl = (() => {
-  const u = new URL(url);
+  const u = new URL(restoreServer);
   u.pathname = `/${SCRATCH}`;
   return u.toString();
 })();
 /** The administrative connection used to create and drop the scratch database. */
 const adminUrl = (() => {
-  const u = new URL(url);
+  const u = new URL(restoreServer);
   u.pathname = '/postgres';
   return u.toString();
 })();
@@ -88,7 +111,21 @@ function rowCounts(target) {
 }
 
 say(`\nRestore drill — ${sourceName} on ${host}${live ? '  (the live database)' : ''}\n`);
-say('  Nothing is written to it. The copy goes into a scratch database, which is removed at the end.\n');
+say(`  Restoring into: ${intoArg ? new URL(intoArg).host + ' (a throwaway server, not this one)' : 'a scratch database on the same server'}`);
+say('  The database being tested is only ever READ.\n');
+
+/*
+  Supabase's transaction pooler cannot be dumped.
+
+  Port 6543 is the transaction pooler — right for an app, wrong for pg_dump, which needs session
+  state the pooler does not keep. It fails with something opaque about prepared statements or a lost
+  connection, and nobody would guess the port was the reason. Said here, plainly, before the attempt.
+*/
+if (live && new URL(url).port === '6543') {
+  say('  ! This is the transaction pooler (port 6543). pg_dump cannot use it — it needs the session');
+  say('    connection. In Supabase, take the connection string marked "Session pooler" or change the');
+  say('    port to 5432, and use that here.\n');
+}
 
 const work = mkdtempSync(join(tmpdir(), 'spec-drill-'));
 const dumpFile = join(work, 'backup.dump');
@@ -153,8 +190,18 @@ try {
   }
 } catch (error) {
   say(`\n${'─'.repeat(60)}`);
+  const why = String(error.stderr || error.message).trim();
   say('THE DRILL COULD NOT FINISH — which is itself the answer worth having.');
-  say(`  ${String(error.stderr || error.message).trim().split('\n').slice(0, 6).join('\n  ')}`);
+  say(`  ${why.split('\n').slice(0, 6).join('\n  ')}`);
+  /*
+    Also as a GitHub annotation. A CI failure whose reason is only in the log is a reason nobody
+    reads — and on a locked-down machine the log may not be reachable at all, which is exactly the
+    situation this was debugged from.
+  */
+  if (process.env.GITHUB_ACTIONS) {
+    const oneLine = why.split('\n').filter(Boolean).slice(0, 3).join(' · ').replace(/[\r%]/g, '').slice(0, 600);
+    console.log(`::error title=Restore drill::${oneLine || 'no reason given'}`);
+  }
   say(`${'─'.repeat(60)}\n`);
   process.exitCode = 1;
 } finally {

@@ -30,10 +30,11 @@ on:
     # Hourly. Not to replace the uptime pings, which run every five minutes — this one reads the
     # product's own account of itself and would catch a setting that quietly went missing.
     - cron: '17 * * * *'
-    # And the backup drill, every Monday at 6am UTC. Once the secret exists, nobody ever has to
-    # remember this again: a backup that is only proven when somebody thinks to prove it is a
-    # backup that stops being proven the first busy week.
-    - cron: '0 6 * * 1'
+    # The weekly backup drill is switched OFF until it has passed once. It was turned on before it
+    # had ever run against the real database, it failed, and it emailed the owner about a fault in
+    # the drill rather than in his product. An alarm that goes off for its own reasons is worse than
+    # no alarm — it teaches people to ignore the next one. It goes back on the day it passes.
+    # - cron: '0 6 * * 1'
   workflow_dispatch:
     inputs:
       restore_drill:
@@ -71,6 +72,9 @@ jobs:
 
   restore-drill:
     name: Prove the backup restores
+    # Being proven. A failure here is a fault in the DRILL, not in the product, and must not send
+    # the owner an alarm about his business. Removed the moment it passes once.
+    continue-on-error: true
     # Weekly on its own, on demand from the button, or on any commit whose message carries [drill].
     #
     # That last one is not a convenience. Changing restore-drill.mjs and finding out the following
@@ -81,10 +85,23 @@ jobs:
     # Not hourly: it dumps the whole database, and sixty of those a day is cost and load with no
     # extra truth in it.
     if: >-
-      (github.event_name == 'schedule' && github.event.schedule == '0 6 * * 1')
-      || (github.event_name == 'workflow_dispatch' && inputs.restore_drill)
+      (github.event_name == 'workflow_dispatch' && inputs.restore_drill)
       || (github.event_name == 'push' && contains(github.event.head_commit.message, '[drill]'))
     runs-on: ubuntu-latest
+
+    # Where the copy is put back. A throwaway Postgres that lives and dies with this job, so the
+    # production database is only ever READ — and so the drill needs no permission to create
+    # anything on a managed server, which is what broke the first attempt.
+    services:
+      scratch:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: drill
+          POSTGRES_USER: postgres
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -107,6 +124,7 @@ jobs:
       - name: Take a backup, put it back, and count every row
         env:
           DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          RESTORE_INTO: postgres://postgres:drill@127.0.0.1:5433/postgres
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "::error::No PRODUCTION_DATABASE_URL secret is set, so there is nothing to back up."
