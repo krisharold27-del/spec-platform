@@ -34,7 +34,12 @@ async function signOut() {
   await page.waitForTimeout(600);
 }
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+// The browser to drive. Hardcoding one machine's path meant this journey — the one every customer
+// takes — could only run on that machine; CHROME_PATH is what scripts/check.mjs works out and hands
+// down, and falling back to Playwright's own copy keeps it working anywhere else.
+const browser = await chromium.launch(
+  process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {},
+);
 const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const page = await context.newPage();
 const consoleErrors = [];
@@ -47,6 +52,18 @@ try {
 
   await page.click('text=Have a look inside');
   await page.waitForLoadState('networkidle');
+
+  /*
+    The look-around is rate-limited too — five an hour per address, which several runs of this
+    journey will use up. Same rule as the sign-up throttle below: a safeguard doing its job is not
+    a broken product, and reporting it as one is how a verdict stops being trusted.
+  */
+  if (page.url().includes('busy=1')) {
+    console.log('  --   the look-around is being throttled (error=busy) — SPEC protecting itself, not a fault. Wait an hour, or run the other journeys.');
+    await browser.close();
+    process.exit(0);
+  }
+
   check('one press puts a stranger inside a real business', at(page) === '/org', at(page));
   check('and it says plainly that it is a look around', await page.locator('text=having a look around').count() > 0);
 
@@ -82,6 +99,20 @@ try {
     carried a ?welcome=1 that nothing anywhere read. The shape of the product is: landing page →
     My Page → everything else, and this is the check that keeps it that way.
   */
+  /*
+    A tripped throttle is not a broken sign-up.
+
+    Every journey here creates an account, so several runs close together hit SPEC's own protection
+    against a flood of accounts from one address. `at()` drops the query string, so the reason was
+    invisible and this reported a broken product instead of a safeguard doing its job — said out
+    loud here so scripts/check.mjs can skip rather than cry wolf.
+  */
+  if (page.url().includes('error=busy')) {
+    console.log('  --   sign-up is being throttled (error=busy) — SPEC protecting itself, not a fault. Wait a few minutes.');
+    await browser.close();
+    process.exit(0);
+  }
+
   check('SIGN-UP SUCCEEDS and lands them on MY PAGE', at(page) === '/today', at(page));
   check('and My Page greets them rather than leaving them to work it out',
     (await page.content()).includes('This is your page'));

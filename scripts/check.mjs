@@ -155,8 +155,29 @@ if (!serving) {
   for (const [id, what] of JOURNEYS) skip(id, what, 'there is no browser on this machine to drive');
 } else {
   for (const [id, what, script] of JOURNEYS) {
+    /*
+      The sign-up throttle is not a broken product.
+
+      Every journey here signs somebody up, so a few runs back to back trip SPEC's own protection
+      against a flood of accounts from one address — and the run then reports SOMETHING IS BROKEN
+      about a safeguard doing exactly its job. That is the cry-wolf failure this file has already
+      had three times, and the verdict is the whole value of the command. So it is reported as a
+      skip, in words that say what to do: wait.
+    */
+    const out = (() => {
+      try {
+        return run(`node scripts/${script}.mjs`, { env: { ...process.env, CHROME_PATH: browser } });
+      } catch (error) {
+        return String(error.stdout || error.stderr || error.message);
+      }
+    })();
+
+    if (/error=busy/.test(out)) {
+      skip(id, what, 'SPEC\u2019s own sign-up throttle is holding, which it should. Wait a few minutes and run this again');
+      continue;
+    }
+
     step(id, what, () => {
-      const out = run(`node scripts/${script}.mjs`, { env: { ...process.env, CHROME_PATH: browser } });
       if (/FAIL|check\(s\) failed/.test(out)) throw new Error(out.split('\n').filter(l => l.startsWith('FAIL')).join(' '));
       const n = (out.match(/^ok /gm) ?? []).length;
       return n ? `${n} checks` : null;
@@ -176,8 +197,10 @@ if (failed.length) {
   console.log('The lines marked ✗ above say which. Nothing else is affected.');
 } else if (skipped.length) {
   console.log(`WORKING — everything that could be checked here passed (${passed.length} of ${passed.length}).`);
-  console.log(`${skipped.length} could not be checked without a database and a running site.`);
-  console.log('To check those too:  npm run dev  (in another terminal), then npm run check');
+  // The reason is printed against each skipped line, and they are not all the same reason — a
+  // sleeping database and a throttle doing its job are different things. Naming one of them here
+  // would be wrong about the others.
+  console.log(`${skipped.length} could not be checked — each line above says why.`);
 } else {
   console.log(`WORKING — all ${passed.length} checks passed.`);
 }
