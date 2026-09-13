@@ -7,6 +7,9 @@
 </head>
 <body>
 <x-dc>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#3a3a38"/><text x="120" y="160" font-size="80" fill="#f0eee8" font-family="sans-serif" font-weight="700">S</text></svg>
+</template>
 <helmet>
 <link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
 <script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
@@ -96,7 +99,7 @@
               <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">From the improvement register</h2>
               <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ regLine }}</span>
             </div>
-            <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; max-width: 56ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">The agenda builds itself. Ranked harm → money → people → everything else; a claim only counts once this meeting validates it.</p>
+            <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; max-width: 56ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Condensed to the same issue where it repeats, spread across the four pillars (about five each), ranked harm → money → people → everything else. Nothing owned by no one is dropped — it sits as a general business issue until assigned here. Long-running items stay open and carry a progress note each week; a claim only counts once this meeting validates it.</p>
             <div style="display: grid; gap: 12px; margin-top: 22px;">
               <sc-for list="{{ regItems }}" as="r" hint-placeholder-count="3">
                 <div style="{{ r.style }}">
@@ -106,6 +109,23 @@
                   </div>
                   <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15.5px; line-height: 22px; margin: 8px 0 0;">{{ r.text }}</p>
                   <p style="font-size: 13px; line-height: 20px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ r.metaLine }}</p>
+
+                  <sc-if value="{{ r.hasFolded }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" onClick="{{ r.toggleExpand }}" style="cursor:pointer;border:0;background:none;padding:0;margin-top:8px;font-size:12.5px;color:#35617a;text-decoration:underline;">{{ r.foldedLabel }}</button>
+                    <sc-if value="{{ r.expanded }}" hint-placeholder-val="{{ false }}">
+                      <div style="display: grid; gap: 6px; margin-top: 8px; padding-left: 10px; border-left: 2px solid var(--color-accent-200);">
+                        <sc-for list="{{ r.foldedItems }}" as="fi" hint-placeholder-count="3">
+                          <p style="font-size: 12.5px; line-height: 19px; margin: 0; color: color-mix(in srgb, var(--color-text) 75%, transparent);">"{{ fi.text }}" — {{ fi.who }}</p>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </sc-if>
+
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                    <input class="input" type="text" value="{{ r.progressNote }}" onChange="{{ r.setProgressNote }}" onInput="{{ r.setProgressNote }}" aria-label="Progress note" placeholder="Progress this week…" style="flex: 1 1 180px; min-height: 36px; font-size: 13px;" />
+                    <button type="button" class="btn btn-ghost" onClick="{{ r.logProgress }}" style="flex: none; white-space: nowrap; font-size: 13px;">Log progress</button>
+                  </div>
+
                   <sc-if value="{{ r.canValidate }}" hint-placeholder-val="{{ false }}">
                     <button type="button" class="btn btn-primary" onClick="{{ r.validate }}" style="flex: none; white-space: nowrap; margin-top: 10px;">Validate — sign it off</button>
                   </sc-if>
@@ -315,6 +335,33 @@ const DECISIONS = [
 
 const ATTENDEES = ['Kristopher Harold', 'Dane Whitmore', 'Priya Raman', 'Tom Alderson'];
 
+const stem = t => (t || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3);
+const similarity = (a, b) => {
+  const wa = new Set(stem(a)), wb = new Set(stem(b));
+  if (!wa.size || !wb.size) return 0;
+  let shared = 0;
+  wa.forEach(w => { if (wb.has(w)) shared++; });
+  return shared / Math.min(wa.size, wb.size);
+};
+// Stand-in for Claude's semantic "is this the same underlying issue?" judgement — condenses
+// near-duplicate entries (e.g. five people separately flagging the depot lighting) into one,
+// keeping the folded originals drillable and preserving the count as a signal.
+const condense = list => {
+  const groups = [];
+  list.forEach(e => {
+    const g = groups.find(gr => similarity(e.text, gr[0].text) > 0.5);
+    if (g) g.push(e); else groups.push([e]);
+  });
+  return groups.map(g => {
+    const primary = g.slice().sort((a, b) => (priorityOf(b) < priorityOf(a) ? 1 : -1))[0];
+    return { ...primary, foldedCount: g.length, folded: g };
+  });
+};
+const entryPillar = e => {
+  const letters = (e.bloom || []).filter(b => b.certainty === 'definite').map(b => b.pillar);
+  return letters[0] || 'P';
+};
+
 const priorityOf = e => {
   const letters = (e.bloom || []).filter(b => b.certainty === 'definite').map(b => b.pillar);
   if (letters.includes('S')) return 1;
@@ -326,7 +373,7 @@ const PRIORITY_LABEL = { 1: 'Harm — act now', 2: 'Losing money', 3: 'Losing pe
 const PRIORITY_TONE = { 1: RED, 2: AMBER, 3: '#35617a', 4: GREY };
 
 class Component extends DCLogic {
-  state = { covered: {}, actions: {}, added: [], draft: '', logged: false, away: {}, register: [] };
+  state = { covered: {}, actions: {}, added: [], draft: '', logged: false, away: {}, register: [], expandedReg: {}, progressDrafts: {} };
 
   componentDidMount() {
     let register = [];
@@ -350,23 +397,47 @@ class Component extends DCLogic {
     return {
       hasRegister: openReg.length > 0,
       regLine: openReg.length + ' waiting on this meeting',
-      regItems: [...openReg].sort((a, b) => priorityOf(a) - priorityOf(b)).slice(0, 6).map(e => {
-        const pr = priorityOf(e);
-        return {
-          text: e.text,
-          priorityLabel: PRIORITY_LABEL[pr],
-          priorityChip: chip(PRIORITY_TONE[pr]),
-          statusLabel: e.status === 'claimed' ? 'Claimed done — needs validating' : e.owner ? (e.accepted ? 'Accepted, in progress' : 'Waiting on acceptance') : 'No owner yet',
-          statusChip: chip(e.status === 'claimed' ? AMBER : e.owner && e.accepted ? GREEN : AMBER),
-          metaLine: (e.owner ? 'Owner: ' + e.owner : 'Unassigned') + (e.deadline ? ' · due ' + e.deadline : '') + (e.recurrenceCount > 1 ? ' · ' + e.recurrenceCount + 'th time this has come up' : ''),
-          style: 'background:var(--color-bg);border-radius:20px;padding:16px 18px;border-left:4px solid ' + PRIORITY_TONE[pr] + ';',
-          canValidate: e.status === 'claimed',
-          validate: () => {
-            const register = this.state.register.map(r => r.id === e.id ? { ...r, status: 'closed', signedOffAt: Date.now() } : r);
-            this.saveRegister(register);
-          },
-        };
-      }),
+      regItems: (() => {
+        const condensed = condense(openReg);
+        const byPillar = { S: [], P: [], E: [], C: [] };
+        condensed.sort((a, b) => priorityOf(a) - priorityOf(b)).forEach(e => byPillar[entryPillar(e)].push(e));
+        // Balanced spread: aim for ~5 per pillar, ~20 total — the shape a weekly session can actually work through.
+        const picked = [];
+        ['S', 'P', 'E', 'C'].forEach(k => picked.push(...byPillar[k].slice(0, 5)));
+        return picked.slice(0, 20).map(e => {
+          const pr = priorityOf(e);
+          const expanded = this.state.expandedReg[e.id];
+          return {
+            id: e.id,
+            text: e.text,
+            priorityLabel: PRIORITY_LABEL[pr],
+            priorityChip: chip(PRIORITY_TONE[pr]),
+            statusLabel: e.status === 'claimed' ? 'Claimed done — needs validating' : e.owner ? (e.accepted ? 'Accepted, in progress' : 'Waiting on acceptance') : 'General business issue',
+            statusChip: chip(e.status === 'claimed' ? AMBER : e.owner && e.accepted ? GREEN : GREY),
+            metaLine: (e.owner ? 'Owner: ' + e.owner : 'Not yet assigned') + (e.deadline ? ' · due ' + e.deadline : '') + (e.recurrenceCount > 1 ? ' · ' + e.recurrenceCount + 'th time this has come up' : '') + (e.weeksCarried ? ' · carried ' + e.weeksCarried + ' week' + (e.weeksCarried > 1 ? 's' : '') : ''),
+            style: 'background:var(--color-bg);border-radius:20px;padding:16px 18px;border-left:4px solid ' + PRIORITY_TONE[pr] + ';',
+            canValidate: e.status === 'claimed',
+            hasFolded: e.foldedCount > 1,
+            foldedLabel: e.foldedCount > 1 ? e.foldedCount + ' people raised this — tap to see each' : '',
+            expanded,
+            toggleExpand: () => this.setState(s => ({ expandedReg: { ...s.expandedReg, [e.id]: !s.expandedReg[e.id] } })),
+            foldedItems: (e.folded || []).map(f => ({ text: f.text, who: f.createdBy || 'Unknown' })),
+            progressNote: this.state.progressDrafts[e.id] || '',
+            setProgressNote: ev => this.setState(s => ({ progressDrafts: { ...s.progressDrafts, [e.id]: ev.target.value } })),
+            logProgress: () => {
+              const note = (this.state.progressDrafts[e.id] || '').trim();
+              if (!note) return;
+              const register = this.state.register.map(r => r.id === e.id ? { ...r, weeksCarried: (r.weeksCarried || 0) + 1, progressLog: [...(r.progressLog || []), { note, at: Date.now() }] } : r);
+              this.saveRegister(register);
+              this.setState(s => ({ progressDrafts: { ...s.progressDrafts, [e.id]: '' } }));
+            },
+            validate: () => {
+              const register = this.state.register.map(r => r.id === e.id ? { ...r, status: 'closed', signedOffAt: Date.now() } : r);
+              this.saveRegister(register);
+            },
+          };
+        });
+      })(),
 
       timerChip: chip(coveredCount === AGENDA.length ? GREEN : AMBER),
       timerLabel: coveredCount === AGENDA.length ? 'All three covered' : coveredCount + ' of 3 covered',

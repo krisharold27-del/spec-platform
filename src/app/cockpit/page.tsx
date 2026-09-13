@@ -412,9 +412,14 @@ export default async function Cockpit() {
         <ul className="mt-5 grid gap-4">
           {MILESTONES.map(m => (
             <li key={m.what} className="card-inset">
-              <p className="font-serif text-lg text-ink">{m.what}</p>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="font-serif text-lg text-ink">{m.what}</p>
+                {m.tag && <span className="label-caps" style={{ color: LIGHT_INK.pending }}>{m.tag}</span>}
+              </div>
               <p className="mt-1 text-sm" style={{ color: LIGHT_INK.amber }}>{m.when}</p>
               <p className="mt-2 text-sm text-ink-light">{m.why}</p>
+              {/* How it is actually done. A plan with a trigger and no mechanism is still a wish. */}
+              {m.how && <p className="mt-3 text-sm text-ink-light">{m.how}</p>}
             </li>
           ))}
         </ul>

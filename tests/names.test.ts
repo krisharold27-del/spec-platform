@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readdirSync, existsSync } from 'node:fs';
+import { readdirSync, existsSync, readFileSync } from 'node:fs';
 
 /**
  * One thing, one name — the design, the code and the address all say the same word.
@@ -35,6 +35,23 @@ const NOT_PAGES: Record<string, string> = {
   'SPEC Landing': 'the address itself, /',
 };
 
+/**
+ * Reference pages, read from the one place that records them.
+ *
+ * A logo study or a palette exploration is design thinking, not a screen anybody signs in to see,
+ * and designs/superseded.md already names them with the reasoning — for the coverage check. Reading
+ * that same file here rather than keeping a second list is the whole point of this test file: two
+ * lists of "screens that are not pages" would be exactly the kind of drift it exists to catch.
+ */
+const REFERENCE_SCREENS: string[] = (() => {
+  try {
+    const text = readFileSync('designs/superseded.md', 'utf8');
+    return [...text.matchAll(/^### Screen: (.+)$/gm)].map(m => m[1].trim());
+  } catch {
+    return [];
+  }
+})();
+
 /** What a design file's name becomes as an address: "SPEC My Page" -> "/my-page". */
 const addressFor = (screen: string): string =>
   `/${screen.replace(/^SPEC /, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
@@ -60,6 +77,7 @@ describe('one thing, one name', () => {
     const adrift: string[] = [];
     for (const screen of designScreens()) {
       if (screen in NOT_PAGES) continue;
+      if (REFERENCE_SCREENS.includes(screen)) continue;
       const address = addressFor(screen);
       if (!hasRoute(address)) adrift.push(`"${screen}" implies ${address}, which does not exist`);
     }

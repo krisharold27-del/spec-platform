@@ -732,9 +732,25 @@ JOB 1 — bloom-out: read the actual story and find the true causal chain of pil
 
 DO NOT CONFUSE HARM WITH PEOPLE: physical or psychological harm to a person (an injury, a back strain, a near miss, stress-related harm) is always Safety (S), never People (P). People (P) means the org-chart and management side — who holds the seat, are they capable, are they trained, does someone own it — not the fact that a human being was hurt. A back injury is S, full stop; it only touches P if the story also shows nobody owns fixing the cause.
 
-JOB 2 — the fix: the solution has ONE fixed order, always — People, then Compliance, then Earnings (P → C → E). Never any other order, never P alone at the end, never E before C. People first because the org chart and the KPI are the mechanism; Compliance second because it locks the standard in place; Earnings last because it is always the result, never the lever. If a pillar genuinely doesn't feature in this story, skip it and keep the rest in that order — do not reorder around it. First question is always "who's responsible for this?" — if the story gives no clear owner, do NOT invent a solution: set noOwner true and the fix becomes finding out who owns it (a gap in the org chart), nothing else. Write with total certainty — this is the one proven sequence, not a suggestion.
+JOB 2 — the fix: EVERY solution runs the same P STACK first, in this exact order, before any other pillar is touched:
+  P1 — DEFINE THE ROLE: is this function even mapped as a seat on the org chart? Who is meant to own it?
+  P2 — SELECT THE RIGHT PERSON: is the right person in that seat?
+  P3 — TRAIN THE PERSON: are they trained to actually do the role, not just placed in it?
+  P4 — MANAGEMENT/SUPERVISOR TRAINING: are the managers and supervisors trained to manage and support that person properly?
+Only after all four P-stack beats does the chain move on to whatever else the story needs — typically Compliance (the system/checklist that locks the standard in place) then Earnings (always the result, never the lever, and usually where the chain ends).
 
-SPEC's method is always the same two tools: the ORG CHART (is there a seat for this, who holds it, who do they report to) and KPI DESIGN (is the right number being measured against that seat, so the problem shows up in a score instead of staying invisible). Every "why" and every solution line must cash out through one or both of these — never a vague "improve communication" or "build a better culture" type answer.
+HOW TO APPLY THE STACK — reorder vs drill, this is the crux:
+- If the problem entered on S, C or E: the P stack is inserted at the FRONT, ahead of everything else, and the entry pillar becomes a later step (often dropping out of the chain entirely once fixed) rather than staying first. A safety-entry problem often resolves as P (all four beats) → C → E, with S never reappearing as a solution step — it was the symptom, and once the P stack and the compliance system are right, safety is the OUTCOME, not something you "solve" directly.
+- If the problem entered on P already: do NOT reorder — there is nothing to move to the front. Instead DRILL DEEPER through the same four beats to find which one actually failed (e.g. staff turnover: was the WRONG PERSON hired at P2 — always going to leave — or was the RIGHT PERSON let down by the business at P1 or P4 — role never made clear, or never properly supported/managed?). A P-entry chain can start and end on P.
+- Represent this in "chain" as a sequence of P-stack sub-steps (each "why" naming which of P1–P4 it is and what it means for this story) followed by whatever other pillars still apply, in P → C → E order. Never put C or E ahead of finishing the P stack. Never skip straight to "hire better people" — name the actual seat, the actual training gap, or the actual management gap.
+
+WHY THIS MATTERS (bake this logic into errorLine and solutionLine, don't state it as slogan): the reason problems recur is businesses run the OLD order — start at the symptom pillar, blame the people ("they're all shit, why didn't they follow the procedure"), then arrive at the cost — and blaming people is an accusation that stops the chain dead instead of building through it. SPEC's reorder turns "the people are the problem" into "the people are the root you build from": define the role, get the right person in it, train them, train their manager. Fix that and compliance and cost fall out of it as a consequence, not a separate fight.
+
+SPEC's method is always the same two tools underneath the P stack: the ORG CHART (is there a seat for this, who holds it, who do they report to) and KPI DESIGN (is the right number being measured against that seat, so the problem shows up in a score instead of staying invisible). Every "why" and every solution line must cash out through one or both of these — never a vague "improve communication" or "build a better culture" type answer.
+
+First question is always "who's responsible for this?" — if the story gives no clear owner, do NOT invent a solution: set noOwner true and the fix becomes finding out who owns it (P1, a gap in the org chart), nothing else. Write with total certainty — this is the one proven sequence, not a suggestion.
+
+INTERNAL LENS, NEVER SURFACE IT: when P3/P4 touch communication or psychosocial wellbeing, you may privately weigh whether behaviour looks company-first, team-first or self-first (in that priority order) as a private diagnostic signal — but NEVER write anything resembling "is this person a mature adult", never frame it as a judgement on the person, and never let this wording reach errorLine, solutionLine or chain. Translate it into professional P-stack language only: role clarity, capability, training, leadership, communication standards, psychosocial support. The person must never be told they are being assessed for maturity.
 
 GROUND IT IN THE ACTUAL INDUSTRY, NOT GENERIC ADVICE: infer the sector from what they typed and use its real operational practices, cadences and terms — not abstractions. Example: a trades or transport business raising a vehicle or plant issue is both a Safety problem (a poorly maintained work vehicle is a hazard) and a Compliance/People problem (vehicle checks are typically a weekly requirement, signed off by a supervisor and regularly audited) — say that specifically, with the real cadence (weekly checks, weekly audit), not "maintain your fleet better". Do this for every sector: aged care staffing ratios, hospitality food safety checks, manufacturing plant isolations, construction site inductions — name the actual recurring practice the industry runs on, and tie the KPI to it (e.g. "vehicle inspection completed and signed off, weekly", not "vehicle condition tracked").
 
@@ -745,8 +761,8 @@ Respond with ONLY this JSON, no markdown fences, no other text:
   "bloom": [{"pillar":"S|P|E|C","certainty":"definite|possible","why":"one short clause, specific to their story, in plain words"}],
   "errorLine": "one to two sentences naming the symptom they've been treating and the deeper root, specific to what they typed",
   "noOwner": true|false,
-  "chain": [{"pillar":"P","why":"one short clause on what happens at this step — name the org-chart seat or the KPI involved"}],
-  "solutionLine": "two to three sentences, P-first, explicit about the org-chart seat and the KPI that would make this measurable, ending on the outcome. Ground it in the real operational practice for this industry, with its real cadence, not generic advice. Plain owner-facing language, never clinical."
+  "chain": [{"pillar":"P","why":"one short clause on what happens at this step — name which P-stack beat (role definition, right person, training, or management/supervisor training) or, for later steps, the compliance system or KPI involved"}],
+  "solutionLine": "three to four sentences. Walk the P stack explicitly (role defined? right person? trained? their manager trained to support them?) grounded in the org-chart seat and the KPI that would make this measurable, then whatever else the story needs, ending on the outcome. Ground it in the real operational practice for this industry, with its real cadence, not generic advice. Plain owner-facing language, never clinical, never a maturity judgement on any person."
 }`;
 
 const powerScoreOf = register => {
@@ -1080,7 +1096,7 @@ class Component extends DCLogic {
         const daysAgo = e.signedOffAt ? Math.round((now - e.signedOffAt) / 86400000) : 0;
 
         const statusInfo = {
-          open: { label: e.owner ? (e.accepted === false ? 'Denied — unassigned' : e.accepted ? 'Accepted, in progress' : 'Waiting on acceptance') : 'No owner yet', tone: e.owner && e.accepted ? '#4f7a3f' : '#c67139' },
+          open: { label: e.owner ? (e.accepted === false ? 'Denied — unassigned' : e.accepted ? 'Accepted, in progress' : 'Waiting on acceptance') : 'General business issue', tone: e.owner && e.accepted ? '#4f7a3f' : '#8c8681' },
           claimed: { label: 'Claimed done — awaiting COGS', tone: '#c67139' },
           closed: { label: auditDue ? 'Signed off ' + daysAgo + 'd ago — still solved?' : 'Closed, signed off', tone: auditDue ? '#c08a2e' : '#4f7a3f' },
           reopened: { label: 'Reopened', tone: '#a63b26' },
@@ -1104,7 +1120,7 @@ class Component extends DCLogic {
           statusLabel: statusInfo.label,
           statusChip: chip(statusInfo.tone),
           cardStyle: 'background:var(--color-bg);border-radius:20px;padding:18px 20px;border-left:4px solid ' + (overdue ? '#a63b26' : PRIORITY_TONE[pr]) + ';',
-          metaLine: (e.owner ? 'Owner: ' + e.owner + (e.manager ? ' · escalates to ' + e.manager : '') : 'No one owns this yet.') + (e.deadline ? ' · due ' + e.deadline + (overdue ? ' — overdue' : '') : ''),
+          metaLine: (e.owner ? 'Owner: ' + e.owner + (e.manager ? ' · escalates to ' + e.manager : '') : 'General business issue — not yet assigned to anyone.') + (e.deadline ? ' · due ' + e.deadline + (overdue ? ' — overdue' : '') : ''),
 
           needsAssign: e.status === 'open' && !e.owner,
           showToast: !!this.state.assignToast && this.state.lastAssignedId === e.id,

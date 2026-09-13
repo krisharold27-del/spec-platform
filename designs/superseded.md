@@ -33,3 +33,21 @@ business gets a **Your group** section with Group and Switch business in it, fro
 morning. A permanent "coming soon" on a daily page is clutter that ages badly.
 
 **Decided:** 13 September 2026, with the navigation bar.
+
+## Screens that are not product screens
+
+Some pages in the design project are references rather than things the product
+builds: explorations, palettes, logo studies. They belong in the project — that
+is where design thinking lives — but holding the code to their wording would mean
+shipping a page about logo options to customers.
+
+Listed the same way and for the same reason: a deliberate line in a diff.
+
+### Screen: SPEC Logo Concepts
+
+A study of logo directions and what the mark's motion is meant to say. The mark
+itself IS in the product — `src/components/spec-mark.tsx` draws the ring and the
+hand from a real score — but the page comparing candidate concepts is a design
+document, not a screen anybody signs in to see.
+
+**Decided:** 13 September 2026.

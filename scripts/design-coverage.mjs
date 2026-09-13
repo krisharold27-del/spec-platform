@@ -150,14 +150,22 @@ const isGeneratedDate = text =>
  * Kept beside the designs rather than in this script, because that is where the next person
  * comparing the two will actually look.
  */
-const SUPERSEDED = (() => {
-  try {
-    const text = readFileSync(join(DESIGNS, 'superseded.md'), 'utf8');
-    return [...text.matchAll(/^### `([^`]+)`/gm)].map(m => m[1]);
-  } catch {
-    return []; // No file is the ordinary case: nothing has been superseded.
-  }
+const supersededFile = (() => {
+  try { return readFileSync(join(DESIGNS, 'superseded.md'), 'utf8'); }
+  catch { return ''; } // No file is the ordinary case: nothing has been superseded.
 })();
+
+const SUPERSEDED = [...supersededFile.matchAll(/^### `([^`]+)`/gm)].map(m => m[1]);
+
+/**
+ * Whole screens that are references rather than product screens.
+ *
+ * A design project holds explorations, palettes and logo studies alongside the screens that get
+ * built. Holding the code to a logo study's wording would mean shipping a page about logo options
+ * to customers — so those screens are named in designs/superseded.md, with the reasoning, and
+ * skipped entirely. Same rule as everything else in that file: a deliberate line in a diff.
+ */
+const REFERENCE_SCREENS = [...supersededFile.matchAll(/^### Screen: (.+)$/gm)].map(m => m[1].trim());
 
 const isSampleData = text =>
   isAPerson(text) || isGeneratedDate(text)
@@ -227,6 +235,9 @@ const SCAFFOLD = /^spec /i;
 
 for (const file of screens) {
   const name = basename(file, '.dc.html');
+  // A reference page — a logo study, a palette — is design thinking, not a screen anybody signs in
+  // to see. Named in designs/superseded.md with its reasoning, and skipped whole.
+  if (REFERENCE_SCREENS.includes(name)) continue;
   const html = readFileSync(join(DESIGNS, file), 'utf8');
   const phrases = [
     ...headings(html).filter(t => !isSampleData(t)).map(text => ({ text, kind: 'says' })),

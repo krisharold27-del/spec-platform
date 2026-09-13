@@ -150,7 +150,18 @@ export const PHASES: Phase[] = [
  * business needed for customers, and bought too late it is paid for out of confusion that already
  * cost more.
  */
-export interface Milestone { what: string; when: string; why: string }
+export interface Milestone {
+  what: string;
+  when: string;
+  why: string;
+  /**
+   * A short standing label — "Future acquisition" — for something that is a decision rather than a
+   * task. Optional: most milestones are simply waiting for their trigger and need no badge.
+   */
+  tag?: string;
+  /** How it is actually done, when that is not obvious. A plan without a mechanism is a wish. */
+  how?: string;
+}
 
 export const MILESTONES: Milestone[] = [
   {
@@ -159,9 +170,17 @@ export const MILESTONES: Milestone[] = [
     why: 'The front door says "all that power, and nothing aiming it — SPEC puts the glasses on." A real pair arriving in the post turns a line somebody read into an object on their desk, and it is the cheapest advertising there is: it sits in an office where other business owners see it. Never styled after the comic-book character the idea came from — the idea is unencumbered, the character is not, and merchandise is exactly where that gets noticed.',
   },
   {
-    what: 'Buy spec.com',
+    what: 'Domain: spec.com',
+    tag: 'Future acquisition',
     when: 'Once the referral flywheel is turning — phase three, or the first year the software engine covers its own costs.',
-    why: 'The name is the product. Until then every referral carries three extra words and every mistype lands somewhere that is not SPEC. A premium one-word domain is a serious purchase, so it waits for a business that can absorb it without taking money away from finding customers.',
+    why: 'The name is the product. Until then every referral carries three extra words and every mistype lands somewhere that is not SPEC. Currently on specbizhq.com, which works and is not the name.',
+    /*
+      The mechanism, because this is the milestone most likely to be misunderstood as "wait until we
+      can afford the renewal fee". It cannot be bought from a registrar at any price — it is already
+      held, so the only route is a negotiated purchase from whoever holds it. Knowing that changes
+      the decision: it is a deal to be brokered at the right moment, not a button to press later.
+    */
+    how: 'spec.com is a premium single-word .com already registered by a third party, so it cannot be bought outright from a registrar. It is bought FROM the holder, through a broker (GoDaddy Domain Broker, Sedo, Squadhelp) who approaches them and negotiates on your behalf. The price is whatever the owner will accept rather than a listed figure — for a short dictionary-word .com, typically low tens of thousands to well into six figures USD, more if it is actively used. Broker fee is usually 10–20% of the sale, paid by the buyer. The move now is to keep specbizhq.com and have a broker quietly test the owner’s appetite without tipping your hand.',
   },
 ];
 
