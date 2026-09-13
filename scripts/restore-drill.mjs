@@ -121,10 +121,38 @@ say('  The database being tested is only ever READ.\n');
   state the pooler does not keep. It fails with something opaque about prepared statements or a lost
   connection, and nobody would guess the port was the reason. Said here, plainly, before the attempt.
 */
-if (live && new URL(url).port === '6543') {
-  say('  ! This is the transaction pooler (port 6543). pg_dump cannot use it — it needs the session');
-  say('    connection. In Supabase, take the connection string marked "Session pooler" or change the');
-  say('    port to 5432, and use that here.\n');
+/*
+  Supabase gives out three connection strings and only one of them works here.
+
+  **Direct** (db.<ref>.supabase.co) resolves to IPv6 only. Vercel can reach it, so it is the right
+  string for the app and it is almost certainly what somebody copies. GitHub's runners have no IPv6,
+  so from there it fails with "Network is unreachable" — which reads like the database is down, and
+  it is not. That cost a real alarm email to a real owner.
+
+  **Transaction pooler** (port 6543) keeps no session state, and pg_dump needs it. It fails with
+  something opaque about prepared statements.
+
+  **Session pooler** (pooler.supabase.com, port 5432) is IPv4 and speaks the full protocol. It is
+  the one this needs, and naming it precisely is the difference between one more instruction and
+  another afternoon lost.
+*/
+if (live) {
+  const u = new URL(url);
+  const direct = /^db\..*\.supabase\.co$/i.test(u.hostname);
+  const transaction = u.port === '6543';
+  if (direct || transaction) {
+    const why = direct
+      ? 'This is the DIRECT connection (db.….supabase.co), which is IPv6-only. Vercel can reach it; a GitHub runner cannot, and fails with "Network is unreachable".'
+      : 'This is the TRANSACTION pooler (port 6543). pg_dump needs session state the transaction pooler does not keep.';
+    say(`  ! ${why}`);
+    say('    Use the SESSION POOLER string instead: in Supabase press Connect at the top, choose');
+    say('    Session pooler, and copy that. It looks like');
+    say('      postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres');
+    say('    It is IPv4 and supports pg_dump. Nothing else needs changing.\n');
+    if (process.env.GITHUB_ACTIONS) {
+      console.log(`::error title=Wrong Supabase connection string::${why} Use the Session pooler string (…pooler.supabase.com:5432).`);
+    }
+  }
 }
 
 const work = mkdtempSync(join(tmpdir(), 'spec-drill-'));
