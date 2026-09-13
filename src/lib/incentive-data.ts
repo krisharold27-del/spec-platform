@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getRoles, getScorecard, PILLARS } from './queries';
 import { isScored } from './today-data';
-import { incentiveFor, DEFAULT_CEILINGS, FAILED_AT_OR_BELOW, type IncentiveResult } from './incentive';
+import { incentiveFor, aceByMonth, ACE_MONTHS_REQUIRED, DEFAULT_CEILINGS, FAILED_AT_OR_BELOW, type IncentiveResult } from './incentive';
 import { ceilingsFor } from './ceilings';
 import type { Pillar, Score } from './scoring';
 
@@ -42,6 +42,26 @@ export interface IncentiveView extends IncentiveResult {
   level: string;
   /** Whether this business has set its own ceilings, so the page can say so rather than imply ours. */
   ownCeilings: boolean;
+  /** The Ace run: how this month sits in the three, and whether it is the one that pays. */
+  ace: AceRun;
+}
+
+/**
+ * Three consecutive months at the standard, then it pays double and the count starts again.
+ *
+ * Shown as a run rather than a badge because the run is the useful part: "two of three" tells
+ * somebody exactly what next month is worth, and a badge tells them nothing.
+ */
+export interface AceRun {
+  /** What it is called for this role — a sales role earns one, an operations role the other. */
+  name: 'Sales Ace' | 'Ops Ace';
+  /** Closed months behind this one, oldest first, with whether each held the standard. */
+  run: { period: string; held: boolean }[];
+  /** How many consecutive months at the standard stand behind this one. */
+  consecutive: number;
+  required: number;
+  /** True when THIS month completes the run, which is the month that pays double. */
+  paysThisMonth: boolean;
 }
 
 /**
@@ -95,7 +115,7 @@ export async function incentiveView(
   tenantId: string,
   roleId: string,
   periodId: string,
-  opts: { salesAce?: boolean; incentivesOn?: boolean } = {},
+  opts: { incentivesOn?: boolean } = {},
 ): Promise<IncentiveView | null> {
   const roles = await getRoles(tenantId);
   const role = roles.find(r => r.id === roleId);
@@ -133,15 +153,58 @@ export async function incentiveView(
   const [tenant] = await db.select({ ceilings: schema.tenants.ceilings })
     .from(schema.tenants).where(eq(schema.tenants.id, tenantId));
 
+  /*
+    The Ace run, from this role's own closed months plus the one being read.
+
+    Ordered oldest first because the rule is about a SEQUENCE — three in a row, then it pays and the
+    count restarts. Reading them in any other order would answer a different question.
+  */
+  const periods = (await db.select().from(schema.periods)
+    .where(eq(schema.periods.tenantId, tenantId)))
+    .filter(p => p.status === 'locked' || p.id === periodId)
+    .sort((a, b) => a.period.localeCompare(b.period));
+
+  const history: { period: string; pct: Score }[] = [];
+  for (const p of periods) {
+    if (p.id === periodId) { history.push({ period: p.period, pct: ownPct }); continue; }
+    const { score } = await getScorecard(roleId, p.id);
+    const scored = PILLARS.map(x => score.pillars[x]).filter((v): v is number => v !== null);
+    history.push({ period: p.period, pct: scored.length ? scored.reduce((s, v) => s + v, 0) / scored.length : null });
+  }
+
+  const pays = aceByMonth(history.map(h => ({ rolePct: h.pct })));
+  const paysThisMonth = pays[pays.length - 1] ?? false;
+
+  // How many in a row stand behind this month — counted the same way aceByMonth counts them, so the
+  // number on the page and the month that pays can never disagree.
+  let consecutive = 0;
+  for (let i = history.length - 1; i >= 0; i--) {
+    const at = history[i].pct;
+    if (at !== null && at >= 0.9) consecutive += 1; else break;
+    if (consecutive >= ACE_MONTHS_REQUIRED) break;
+  }
+
+  const ace: AceRun = {
+    name: role.stream === 'operations' ? 'Ops Ace' : 'Sales Ace',
+    run: history.slice(-6).map(h => ({ period: h.period, held: h.pct !== null && h.pct >= 0.9 })),
+    consecutive,
+    required: ACE_MONTHS_REQUIRED,
+    paysThisMonth,
+  };
+
   const result = incentiveFor({
     roles: [{ level: role.level, rolePct: ownPct }],
     chainPillars,
-    salesAce: opts.salesAce,
+    // The doubling applies in the month the run completes, and only then.
+    salesAce: paysThisMonth,
     incentivesOn: opts.incentivesOn,
     ceilings: ceilingsFor(tenant?.ceilings),
   });
 
-  return { ...result, failed, redButNotFailed, level: role.level, ownCeilings: Boolean(tenant?.ceilings?.trim()) };
+  return {
+    ...result, failed, redButNotFailed, level: role.level,
+    ownCeilings: Boolean(tenant?.ceilings?.trim()), ace,
+  };
 }
 
 export { DEFAULT_CEILINGS };

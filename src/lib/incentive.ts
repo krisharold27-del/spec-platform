@@ -13,7 +13,7 @@
  * Paid on the percentage the person is shown (one decimal), not on hidden precision: 83.33% shows
  * as 83.3% and pays 2,000 × 0.833 = $1,666. Paying on a number nobody can see is indefensible.
  */
-import type { Score } from './scoring';
+import { AT_THE_STANDARD, type Score } from './scoring';
 
 /** Default ceilings (§6.1). A business may set its own. The director is not in the scheme. */
 export const DEFAULT_CEILINGS: Record<string, number | null> = {
@@ -109,6 +109,56 @@ export interface SalesMonth {
   outcome: boolean;
   /** Every KPI on the role marked as a sales behaviour was met. */
   behaviours: boolean;
+}
+
+/**
+ * ── Ace: three months at the standard, then it pays and the count starts again ───────────────────
+ *
+ * Sales Ace and Ops Ace are the same mechanism under two names — a sales role earns one, an
+ * operations role the other. Set by Kris:
+ *
+ *   Three CONSECUTIVE months at 90% or above, and the third month pays at DOUBLE the ceiling.
+ *   Then the count resets to zero and the next one has to be earned the same way.
+ *
+ * It is a sprint, not a standing, and the difference is most of the money. Twelve good months pay
+ * double four times — months three, six, nine and twelve — not twelve times. A single month below
+ * the standard puts the counter back to zero: there is no partial credit, because a run that
+ * survives a bad month is not a run.
+ *
+ * 90% is the SPEC standard itself, deliberately. Ace is not "doing well" — green starts at 80% —
+ * it is holding the standard the whole method is built on, three times over.
+ */
+export const ACE_MONTHS_REQUIRED = 3;
+
+export interface AceMonth {
+  /** The role's own percentage that month. Null when nothing was scored. */
+  rolePct: Score;
+}
+
+/**
+ * Which months pay double, given the months a role has had, oldest → newest.
+ *
+ * Returns one boolean per month: true only on the month the run completes. Never backdated — the
+ * two months building towards it pay normally, because a run is not proven until it is finished.
+ *
+ * An unscored month is not at the standard, so it breaks the run. Counting it as a pass would pay
+ * double off a month nobody marked; counting it as a fail is the same answer and the honest one.
+ */
+export function aceByMonth(months: AceMonth[], standard = AT_THE_STANDARD): boolean[] {
+  const pays: boolean[] = [];
+  let run = 0;
+  for (const m of months) {
+    if (m.rolePct !== null && m.rolePct >= standard) run += 1;
+    else run = 0;
+
+    if (run >= ACE_MONTHS_REQUIRED) {
+      pays.push(true);
+      run = 0;   // Paid. The next one starts from nothing.
+    } else {
+      pays.push(false);
+    }
+  }
+  return pays;
 }
 
 /**

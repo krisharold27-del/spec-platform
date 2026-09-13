@@ -1,4 +1,5 @@
-import { PILLAR_META, scoreInk } from '@/lib/pillars';
+import { PILLAR_META, scoreInk, AT_THE_STANDARD } from '@/lib/pillars';
+import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_AT_OR_BELOW } from '@/lib/incentive';
 import { money } from '@/lib/cockpit';
 import type { IncentiveView } from '@/lib/incentive-data';
@@ -39,6 +40,7 @@ export function IncentivePanel({ view, period }: { view: IncentiveView; period: 
   const capPct = Math.round(DEDUCTION_CAP * 100);
   const failLine = Math.round(FAILED_AT_OR_BELOW * 100);
   const atCap = view.deductionRate >= DEDUCTION_CAP;
+  const standardPct = Math.round(AT_THE_STANDARD * 100);
 
   return (
     <section className="card mt-8">
@@ -54,8 +56,55 @@ export function IncentivePanel({ view, period }: { view: IncentiveView; period: 
         </p>
       ) : (
         <>
+          {/*
+            The Ace run, above the figures, because it is the thing that changes them.
+
+            Shown as a run rather than a badge: "two of three" tells somebody exactly what next
+            month is worth, and a badge tells them nothing. It is a sprint — three consecutive
+            months at the standard pays double, then the count starts again — so the strip has to
+            make clear that a good month is worth more or less depending on where in the three it
+            lands.
+          */}
+          <div className="mt-4 rounded-lg bg-cream p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="font-serif text-lg text-ink">
+                {view.ace.paysThisMonth ? `${view.ace.name} — this month pays double` : view.ace.name}
+              </span>
+              <span className="label-caps">
+                {view.ace.consecutive} of {view.ace.required} months
+              </span>
+            </div>
+            {view.ace.run.length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {view.ace.run.map(r => (
+                  <li
+                    key={r.period}
+                    className="rounded-full px-2.5 py-1 text-xs"
+                    style={{
+                      background: `color-mix(in srgb, ${r.held ? LIGHT_COLOUR.green : LIGHT_COLOUR.pending} 16%, transparent)`,
+                      color: r.held ? LIGHT_INK.green : LIGHT_INK.pending,
+                    }}
+                  >
+                    {r.period} {r.held ? '✓' : '—'}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 text-xs text-ink-light">
+              {view.ace.paysThisMonth
+                ? `Three months at ${standardPct}% or above. The ceiling is doubled this month, and the count starts again from next month.`
+                : `Three consecutive months at ${standardPct}% or above and the ceiling doubles for that month. Then it starts again. One month below the standard puts the count back to nothing.`}
+            </p>
+          </div>
+
           <div className="mt-4 grid gap-3 sm:grid-cols-4">
-            <Figure label="Ceiling" value={money(view.ceiling)} note={`The ${view.level.replace(/_/g, ' ')} ceiling.`} />
+            <Figure
+              label="Ceiling"
+              value={money(view.ceiling)}
+              note={view.ace.paysThisMonth
+                ? `The ${view.level.replace(/_/g, ' ')} ceiling, doubled for ${view.ace.name}.`
+                : `The ${view.level.replace(/_/g, ' ')} ceiling.`}
+            />
             <Figure label="Your month" value={`${(view.rolePct * 100).toFixed(1)}%`} note="The percentage on this page, not hidden precision." />
             <Figure label="Earned" value={money(view.earned)} note={`${money(view.ceiling)} × ${(view.rolePct * 100).toFixed(1)}%`} />
             <Figure
