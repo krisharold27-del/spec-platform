@@ -256,7 +256,7 @@ export function handled(input: HandledInputs, limit = 6): HandledItem[] {
     rows.push({
       what: `Read “${shorten(r.text)}” and worked out where it starts`,
       when: r.createdAt,
-      href: '/today',
+      href: '/my-page',
       supersededBy: 'Whoever owns it decides what actually happens.',
     });
   }

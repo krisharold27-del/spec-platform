@@ -13,7 +13,7 @@ import { getScorecard } from '@/lib/queries';
 import { getToday } from '@/lib/today-data';
 import { pathFor, pathProgress, signoffFor, aceSteps, type TrainingModule } from '@/lib/training';
 import { LIGHT_COLOUR } from '@/lib/today';
-import { signOffTraining } from '@/app/today/actions';
+import { signOffTraining } from '@/app/my-page/actions';
 
 export const dynamic = 'force-dynamic';
 

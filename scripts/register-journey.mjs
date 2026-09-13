@@ -57,7 +57,7 @@ await press('button[type="submit"]');
 await page.waitForTimeout(2500);
 check('signed up and landed inside', !page.url().includes('/signup'), page.url());
 
-await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
 check('My page loads', /your page|Good morning/i.test(await text()));
 check('the improvement box is on it', (await text()).includes('Improvement opportunity'));
 check('the register starts empty and says so', /Nothing logged yet/i.test(await text()));
@@ -65,7 +65,7 @@ check('the register starts empty and says so', /Nothing logged yet/i.test(await 
 // ── Log a problem in plain words ─────────────────────────────────────────────────────────────────
 await page.fill('textarea[name="text"]', PROBLEM);
 await press('button:has-text("Log it")');
-await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
 let body = await text();
 check('THE PROBLEM IS LOGGED, in the words it was typed in', body.includes(PROBLEM));
 check('it was read, not just stored', /Harm — act now|Losing money|Losing people|Everything else/.test(body));
@@ -80,7 +80,7 @@ check('it offers somebody to own it', hasOwnerPicker);
 if (hasOwnerPicker) {
   await ownerSelect.selectOption({ index: 1 });
   await press('button:has-text("Assign")');
-  await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
   body = await text();
   check('ASSIGNED, and not accepted on the owner’s behalf', /not accepted yet/i.test(body));
 }
@@ -88,7 +88,7 @@ if (hasOwnerPicker) {
 // ── Accept it ────────────────────────────────────────────────────────────────────────────────────
 if (await page.locator('button:has-text("Accept")').count()) {
   await press('button:has-text("Accept")');
-  await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
   body = await text();
   check('ACCEPTED — it now has a named owner', /owns it\./i.test(body));
 }
@@ -96,7 +96,7 @@ if (await page.locator('button:has-text("Accept")').count()) {
 // ── Mark it done ─────────────────────────────────────────────────────────────────────────────────
 if (await page.locator('button:has-text("Mark done")').count()) {
   await press('button:has-text("Mark done")');
-  await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
   body = await text();
   check('MARKED DONE — waiting on the weekly meeting', /waiting to be signed off/i.test(body));
   // One person deciding their own work is finished is how a register fills with things that were
@@ -107,7 +107,7 @@ if (await page.locator('button:has-text("Mark done")').count()) {
 // ── The same problem, raised again ───────────────────────────────────────────────────────────────
 await page.fill('textarea[name="text"]', 'the yard is a mess again on Mondays, gear everywhere');
 await press('button:has-text("Log it")');
-await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
 body = await text();
 check('RAISED AGAIN counts up rather than adding a second row', /Raised 2×/.test(body));
 // Counted on the list itself, not the page text — the textarea's placeholder uses the same words,
@@ -116,7 +116,7 @@ const rows = await page.locator('section:has-text("Improvement register") li').c
 check('and it is still one entry', rows === 1, `${rows} rows in the register`);
 
 // ── The six sections the design asks for ─────────────────────────────────────────────────────────
-await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
 body = await text();
 for (const [label, pattern] of [
   ['My KPIs lead the page', /Safety[\s\S]*People[\s\S]*Earnings[\s\S]*Compliance/],

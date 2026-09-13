@@ -45,7 +45,7 @@ export default async function Cockpit() {
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   // Re-checked here rather than trusted from a link. See /admin — same rule, same reason.
-  if (!isAdminEmail(user.email)) redirect('/today');
+  if (!isAdminEmail(user.email)) redirect('/my-page');
 
   /*
     Counted, not estimated.
@@ -337,7 +337,7 @@ export default async function Cockpit() {
           facing goes in the improvement register, the same one a customer uses — read, ranked,
           given an owner and a date.
         </p>
-        <Link href="/today" className="btn-primary mt-4 inline-block">Log it on My Page</Link>
+        <Link href="/my-page" className="btn-primary mt-4 inline-block">Log it on My Page</Link>
         <p className="mt-3 text-xs text-ink-light">
           Deliberately not a second, private place to type things. A business that keeps its own
           problems somewhere other than the system it sells is not using the system it sells.

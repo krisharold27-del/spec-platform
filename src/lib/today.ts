@@ -201,7 +201,7 @@ export function whatNeedsMe(input: TodoInputs): TodoItem[] {
       label: `Finish ${m.title}`,
       meta: `Compliance · overdue, and about ${m.minutes} minutes`,
       pillar: 'compliance',
-      href: '/today',
+      href: '/my-page',
     });
   }
 
@@ -221,7 +221,7 @@ export function whatNeedsMe(input: TodoInputs): TodoItem[] {
       label: "Log this week's meeting",
       meta: 'Every pillar · logging it is what keeps the month scoreable',
       pillar: null,
-      href: '/today',
+      href: '/my-page',
     });
   }
 

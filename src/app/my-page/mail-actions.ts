@@ -27,11 +27,11 @@ export async function connectMail(formData: FormData) {
   const provider = String(formData.get('provider') ?? '') as MailProviderId;
   if (!MAIL_PROVIDERS.some(p => p.id === provider)) return;
   await connectMyMail(user.tenantId, user.id, user.name, provider);
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }
 
 export async function disconnectMail() {
   const user = await me();
   await disconnectMyMail(user.tenantId, user.id);
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }

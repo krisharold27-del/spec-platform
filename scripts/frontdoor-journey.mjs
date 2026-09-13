@@ -98,7 +98,7 @@ await page.waitForTimeout(4000);
 check('signed up and landed inside', !page.url().includes('/signup'), page.url());
 
 // ── The promise, kept ────────────────────────────────────────────────────────────────────────────
-await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
 body = await text();
 check('THE PROBLEM IS WAITING IN THEIR PAGE', body.includes(PROBLEM));
 check('and it is in the register, ranked', /Improvement register/.test(body));

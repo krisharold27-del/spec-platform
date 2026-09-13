@@ -8,7 +8,7 @@ import type { RoleScore } from '@/lib/scoring';
 import type { ScorecardRow } from '@/lib/queries';
 import { LIGHT_COLOUR } from '@/lib/today';
 import type { PathLine, PathProgress, Signoff } from '@/lib/training';
-import { logWeeklyMeeting, continueModule } from '@/app/today/actions';
+import { logWeeklyMeeting, continueModule } from '@/app/my-page/actions';
 
 /**
  * The three parts of Today that respond to a press.

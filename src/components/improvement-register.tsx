@@ -10,7 +10,7 @@ import {
 import {
   logImprovement, assignImprovement, respondToImprovement,
   markImprovementDone, signOffImprovement,
-} from '@/app/today/register-actions';
+} from '@/app/my-page/register-actions';
 
 /**
  * The improvement register, on the page a person opens every morning.

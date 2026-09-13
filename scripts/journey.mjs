@@ -67,8 +67,8 @@ try {
   check('one press puts a stranger inside a real business', at(page) === '/org', at(page));
   check('and it says plainly that it is a look around', await page.locator('text=having a look around').count() > 0);
 
-  await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
-  check('a visitor can read Today', at(page) === '/today', at(page));
+  await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
+  check('a visitor can read Today', at(page) === '/my-page', at(page));
 
   // ── 2. They decide they like it and sign up ───────────────────────────────────────────────────
   await page.goto(`${BASE}/look/decide`, { waitUntil: 'networkidle' });
@@ -113,7 +113,7 @@ try {
     process.exit(0);
   }
 
-  check('SIGN-UP SUCCEEDS and lands them on MY PAGE', at(page) === '/today', at(page));
+  check('SIGN-UP SUCCEEDS and lands them on MY PAGE', at(page) === '/my-page', at(page));
   check('and My Page greets them rather than leaving them to work it out',
     (await page.content()).includes('This is your page'));
 
@@ -121,13 +121,13 @@ try {
   check('and it KEPT the business they were looking at', (await page.content()).includes(BUSINESS));
 
   // ── 3. They come back the next morning ────────────────────────────────────────────────────────
-  await page.goto(`${BASE}/today`, { waitUntil: 'networkidle' });
-  check('still signed in on Today', at(page) === '/today', at(page));
+  await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
+  check('still signed in on Today', at(page) === '/my-page', at(page));
 
   // Typing the bare address is what somebody actually does every morning. It must be My Page, not
   // the executive summary — that is a monthly read for whoever runs the place, not a day's work.
   await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
-  check('TYPING THE ADDRESS THE NEXT MORNING OPENS MY PAGE', at(page) === '/today', at(page));
+  check('TYPING THE ADDRESS THE NEXT MORNING OPENS MY PAGE', at(page) === '/my-page', at(page));
 
   await page.goto(`${BASE}/summary`, { waitUntil: 'networkidle' });
   check('and the executive summary still has a home of its own', at(page) === '/summary', at(page));
@@ -143,7 +143,7 @@ try {
   await page.click('button[type="submit"]');
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(1200);
-  check('SIGN-IN SUCCEEDS and lands on Today', at(page) === '/today', at(page));
+  check('SIGN-IN SUCCEEDS and lands on Today', at(page) === '/my-page', at(page));
 
   // ── 4. Getting it wrong says the right thing ──────────────────────────────────────────────────
   await signOut();

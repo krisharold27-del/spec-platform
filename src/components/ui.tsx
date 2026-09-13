@@ -42,7 +42,7 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           {/* Inside the product the mark is a wayfinder, not a brand statement, so it carries no
               supporting line. */}
-          <Link href="/today" aria-label="SPEC home — My page">
+          <Link href="/my-page" aria-label="SPEC home — My page">
             <SpecLockup />
           </Link>
           {/*

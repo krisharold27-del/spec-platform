@@ -43,6 +43,6 @@ export async function setTier(formData: FormData) {
   if (value !== 'basic' && value !== 'advanced') return;
   await db.update(schema.tenants).set({ tier: value }).where(eq(schema.tenants.id, user.tenantId));
   revalidatePath('/settings');
-  revalidatePath('/today');
+  revalidatePath('/my-page');
   revalidatePath('/connections');
 }

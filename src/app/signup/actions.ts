@@ -143,5 +143,5 @@ export async function signUp(formData: FormData) {
     they will open every morning for the next five years, with their own problem sitting above it,
     which is the difference between arriving somewhere and being handed a form.
   */
-  redirect(look ? '/today?kept=1' : '/today?welcome=1');
+  redirect(look ? '/my-page?kept=1' : '/my-page?welcome=1');
 }

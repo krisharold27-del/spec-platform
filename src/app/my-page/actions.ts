@@ -32,7 +32,7 @@ export async function logWeeklyMeeting() {
       date: new Date().toISOString().slice(0, 10),
     });
   }
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }
 
 /** How far one press of Continue carries somebody through a module. */
@@ -84,7 +84,7 @@ export async function continueModule(formData: FormData) {
       progress: next, startedAt: at, completedAt: finished ? at : null,
     });
   }
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }
 
 /**
@@ -119,6 +119,6 @@ export async function signOffTraining(formData: FormData) {
   await db.update(schema.roleAssignments)
     .set({ trainedAt: new Date().toISOString(), trainedBy: user.name })
     .where(eq(schema.roleAssignments.id, assignment.id));
-  revalidatePath('/today');
+  revalidatePath('/my-page');
   revalidatePath(`/scorecard/${roleId}`);
 }

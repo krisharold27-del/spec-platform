@@ -47,7 +47,7 @@ export async function logImprovement(formData: FormData) {
       );
 
   await logProblem(user.tenantId, text, diagnosis, user.name);
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }
 
 export async function assignImprovement(formData: FormData) {
@@ -57,7 +57,7 @@ export async function assignImprovement(formData: FormData) {
   const deadline = String(formData.get('deadline') ?? '').trim() || null;
   if (!id || !owner) return;
   await assign(user.tenantId, id, owner, deadline);
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }
 
 /** Accept it, or say it is not yours — which is information, not an escalation. */
@@ -66,7 +66,7 @@ export async function respondToImprovement(formData: FormData) {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
   await respond(user.tenantId, id, formData.get('accepted') === 'yes');
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }
 
 export async function markImprovementDone(formData: FormData) {
@@ -74,7 +74,7 @@ export async function markImprovementDone(formData: FormData) {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
   await markDone(user.tenantId, id);
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }
 
 /**
@@ -88,5 +88,5 @@ export async function signOffImprovement(formData: FormData) {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
   await signOff(user.tenantId, id);
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }

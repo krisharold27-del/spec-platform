@@ -1,7 +1,7 @@
 import { SubmitButton } from './submit-button';
 import { MAIL_PROVIDERS } from '@/lib/systems';
 import type { MailConnection } from '@/lib/mail';
-import { connectMail, disconnectMail } from '@/app/today/mail-actions';
+import { connectMail, disconnectMail } from '@/app/my-page/mail-actions';
 
 /**
  * Mail and the tasks it created.

@@ -100,5 +100,5 @@ export async function logMeeting(formData: FormData) {
   const minutes = String(formData.get('minutes') ?? '').trim() || null;
   await db.update(schema.meetings).set({ minutes }).where(eq(schema.meetings.id, row.id));
   revalidatePath('/meeting');
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }

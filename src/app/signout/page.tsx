@@ -11,7 +11,7 @@ export default function SignOutPage() {
       <p className="mt-2 text-sm text-ink-light">Nothing is lost — everything is waiting when you come back.</p>
       <form action={doSignOut} className="mt-6 flex flex-wrap gap-3">
         <button className="rounded-full bg-rust px-5 py-2 text-cream hover:bg-rust-600">Sign out</button>
-        <a href="/today" className="rounded-full border border-ink/15 px-5 py-2 text-ink hover:border-ink/30">Stay signed in</a>
+        <a href="/my-page" className="rounded-full border border-ink/15 px-5 py-2 text-ink hover:border-ink/30">Stay signed in</a>
       </form>
     </main>
   );

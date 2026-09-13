@@ -122,5 +122,5 @@ export async function markLive(formData: FormData) {
     .set({ status: 'live', lastSyncAt: new Date().toISOString() })
     .where(eq(schema.systemConnections.id, id));
   revalidatePath('/connections');
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }

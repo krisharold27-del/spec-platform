@@ -59,7 +59,7 @@ export default async function OnSite() {
     <div className="min-h-screen bg-cream">
       <header className="border-b border-ink/10 bg-surface">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
-          <Link href="/today" className="font-serif text-lg text-ink">
+          <Link href="/my-page" className="font-serif text-lg text-ink">
             SPEC<span className="text-rust">.</span>
           </Link>
           <span className="label-caps">On site</span>
@@ -160,7 +160,7 @@ export default async function OnSite() {
         <section className="card">
           <h2 className="font-serif text-lg text-ink">The rest of the day</h2>
           <div className="mt-3 grid gap-2">
-            <Link href="/today" className="btn-secondary py-3 text-center text-base">My four lights</Link>
+            <Link href="/my-page" className="btn-secondary py-3 text-center text-base">My four lights</Link>
             <Link href="/meeting" className="btn-secondary py-3 text-center text-base">This week&rsquo;s meeting</Link>
           </div>
         </section>

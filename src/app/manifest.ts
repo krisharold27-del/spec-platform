@@ -16,7 +16,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'SPEC — Safety, People, Earnings, Compliance',
     short_name: 'SPEC',
     description: 'Your whole business on one page.',
-    start_url: '/today',
+    start_url: '/my-page',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait-primary',

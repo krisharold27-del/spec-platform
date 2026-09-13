@@ -54,5 +54,5 @@ export async function setCurriculum(formData: FormData) {
   }
 
   revalidatePath('/training');
-  revalidatePath('/today');
+  revalidatePath('/my-page');
 }
