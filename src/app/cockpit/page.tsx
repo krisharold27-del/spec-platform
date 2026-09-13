@@ -8,6 +8,8 @@ import { isAdminEmail } from '@/lib/admin';
 import { LIGHT_INK } from '@/lib/today';
 import { summarise } from '@/lib/uptime';
 import { running, runningLine } from '@/lib/running';
+import { rules } from '@/lib/guidance';
+import { designStatus } from '@/lib/design-status';
 import { healthFacts } from '@/lib/health-facts';
 import { lines, verdict, VERDICT_LINE, VERDICT_NOTE } from '@/lib/site-health';
 import { HealthRows, HEALTH_TONE } from '@/components/health-rows';
@@ -264,6 +266,89 @@ export default async function Cockpit() {
                 </span>
               </div>
               <p className="mt-1 text-xs text-ink-light">{c.evidence}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/*
+        ── Does the product match the designs, and is it still running the method? ──────────────
+
+        The two questions the owner has been asking all week, and until now neither had an answer
+        anywhere except a terminal. Worked out at build time by scripts/design-status, because the
+        checks read the designs folder and the whole of src/ and a running page can do neither — so
+        it is a snapshot AS OF THIS BUILD, and says so. Every deploy runs a build, which makes that
+        the same as "now" unless a design changed without a deploy: exactly the state worth seeing.
+      */}
+      <section className="card mt-6">
+        <h2 className="font-serif text-xl text-ink">Matching the designs</h2>
+        {designStatus.ran && designStatus.phrases ? (
+          <>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="card-inset">
+                <span className="label-caps">What the designs say</span>
+                <p className="mt-1 font-serif text-2xl text-ink">
+                  {designStatus.phrases.found} of {designStatus.phrases.total}
+                </p>
+                <p className="mt-1 text-xs text-ink-light">
+                  Phrases from every design screen, found in the product.
+                </p>
+              </div>
+              <div className="card-inset">
+                <span className="label-caps">Screens</span>
+                <p className="mt-1 font-serif text-2xl text-ink">{designStatus.screens}</p>
+                <p className="mt-1 text-xs text-ink-light">
+                  {designStatus.missingScreens === 0
+                    ? 'The set is complete.'
+                    : `${designStatus.missingScreens} linked to but never sent — usually a renamed screen rather than a missing one.`}
+                </p>
+              </div>
+              <div className="card-inset">
+                <span className="label-caps">Worked out</span>
+                <p className="mt-1 font-serif text-2xl text-ink">{designStatus.at.slice(0, 10)}</p>
+                <p className="mt-1 text-xs text-ink-light">
+                  At this build. A design changed since then would not be counted until the next deploy.
+                </p>
+              </div>
+            </div>
+            {designStatus.gaps.length > 0 && (
+              <ul className="mt-4 grid gap-1.5 text-sm text-ink-light">
+                {designStatus.gaps.map(g => (
+                  <li key={g.screen}>
+                    {g.screen} — {g.missing} thing{g.missing === 1 ? '' : 's'} the product does not say yet
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        ) : (
+          <p className="mt-3 text-sm text-ink-light">
+            The design checks did not run on this build, so there is nothing to report. That is a
+            missing measurement, not a clean bill of health.
+          </p>
+        )}
+      </section>
+
+      {/*
+        The method, read from the code that enforces it.
+
+        A page listing "our principles" drifts: somebody changes a threshold, nobody remembers the
+        paragraph restating it, and the product now says two things — worse than saying nothing,
+        because one of them is being believed. Every line here is built from the constant or
+        function that actually decides the behaviour, so changing the rule changes this, and
+        deleting the rule stops it compiling. See lib/guidance.
+      */}
+      <section className="card mt-6">
+        <h2 className="font-serif text-xl text-ink">The rules it is actually running on</h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-light">
+          Not a statement of intent. Each line is read from the code that enforces it, and the second
+          line says what holds it — so none of this can quietly stop being true.
+        </p>
+        <ul className="mt-5 grid gap-4">
+          {rules().map(r => (
+            <li key={r.says} className="border-b border-ink/10 pb-4 last:border-0 last:pb-0">
+              <p className="text-sm text-ink">{r.says}</p>
+              <p className="mt-1 text-xs text-ink-light">{r.held}</p>
             </li>
           ))}
         </ul>

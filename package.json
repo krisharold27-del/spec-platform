@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run db:migrate || true; next build",
+    "build": "node scripts/design-status.mjs || true; npm run db:migrate || true; next build",
     "start": "next start",
     "test": "vitest run",
     "db:push": "drizzle-kit push",
@@ -12,6 +12,7 @@
     "db:migrate": "tsx scripts/deploy-migrate.ts",
     "designs:check": "node scripts/design-check.mjs",
     "designs:coverage": "node scripts/design-coverage.mjs",
+    "designs:status": "node scripts/design-status.mjs",
     "db:check-rls": "node scripts/check-rls.mjs",
     "check": "node scripts/check.mjs"
   },
