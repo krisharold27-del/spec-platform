@@ -15,6 +15,7 @@ import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { addRole, importChart } from './actions';
 import { Problems } from '@/components/problems';
 import { ChartFile } from '@/components/chart-file';
+import { ChartKey } from '@/components/chart-key';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,8 +83,8 @@ export default async function OrgChart() {
 
   return (
     <Shell
-      title={`${tenant.name} — org chart`}
-      subtitle="Roles report to roles. A role exists whether or not anybody holds it."
+      title="Interactive org chart"
+      subtitle={`${tenant.name} · roles report to roles, and a role exists whether or not anybody holds it.`}
     >
       {/* The design leads this screen with the sequence rather than the diagram, because the
           sequence is the part people get wrong: they chase a score before the chart is drawn. */}
@@ -129,6 +130,10 @@ export default async function OrgChart() {
         </div>
       )}
 
+      {/* What the colours on every card mean. The design carries this and the product did not, so a
+          new customer saw a wall of red and amber with nothing telling them what it meant. */}
+      <ChartKey />
+
       {manage && (
         <div className="mt-10 grid items-start gap-6 lg:grid-cols-2">
           <section className="card">
@@ -150,7 +155,7 @@ export default async function OrgChart() {
           <section className="card">
             <h2 className="font-serif text-xl text-ink">Start from what you already have</h2>
             <p className="mt-1 text-sm text-ink-light">
-              One role per line: <span className="font-mono text-xs">role, person, reports to</span>. A manager
+              Nobody types their org chart twice. One role per line: <span className="font-mono text-xs">role, person, reports to</span>. A manager
               SPEC cannot match is still created — it lands off the chart, where you can drag it in.
             </p>
             <form action={importChart} className="mt-4 grid gap-2">
@@ -161,7 +166,7 @@ export default async function OrgChart() {
                 placeholder={'General Manager, A. Morgan\nOperations Manager, J. Barnes, General Manager\nSite Supervisor, , Operations Manager'}
                 aria-label="Paste your structure"
               />
-              <SubmitButton className="btn-primary justify-self-start" pending="Drawing…">Draw the chart</SubmitButton>
+              <SubmitButton className="btn-primary justify-self-start" pending="Drawing…">Build the chart</SubmitButton>
             </form>
             <p className="mt-3 text-xs text-ink-light">
               A CSV exported from a payroll or HR system pastes in the same way — SPEC drops the header row

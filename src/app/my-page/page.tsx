@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { eq } from 'drizzle-orm';
+import { db, schema } from '@/db';
 import { redirect } from 'next/navigation';
 import { Shell, PILLAR_META, pct } from '@/components/ui';
 import { TodoList, AskPanel, ChangeList, MeetingLog, TrainingPath } from '@/components/today-blocks';
@@ -20,6 +22,7 @@ import { hasDiagnosis } from '@/lib/plan';
 import { light, pillarNote, clearToWork, LIGHT_COLOUR, LIGHT_LABEL, type Light } from '@/lib/today';
 import type { Pillar, RoleScore } from '@/lib/scoring';
 import { Problems } from '@/components/problems';
+import { startHere } from '@/lib/start-here';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,6 +84,21 @@ export default async function MyPage({
 
   // Every door out of this page. The group view only appears for somebody actually in a group, and
   // the cockpit only for whoever runs SPEC itself — its absence is the answer for everybody else.
+  /*
+    What this business has not done yet. The org chart is the foundation everything hangs off, and it
+    was reachable only from a one-time banner and a list at the bottom of this page — so a customer
+    who came back the next morning had to scroll past their whole day to find the thing they were
+    meant to do first. See lib/start-here.
+  */
+  const onChart = (await db.select({ id: schema.staff.id }).from(schema.staff)
+    .where(eq(schema.staff.tenantId, user.tenantId))).length;
+  const scoredTeam = team.filter(m => m.scored).length;
+  const next = startHere({
+    onChart,
+    scoredRoles: scoredTeam + (scored ? 1 : 0),
+    rolesWithKpis: myRows.filter(r => r.kpi).length > 0 ? 1 : 0,
+  });
+
   const ways = doors({
     businesses: (await myBusinesses().catch(() => [])).length,
     runsSpec: isAdminEmail(user.email),
@@ -133,13 +151,22 @@ export default async function MyPage({
             Anything you told us on the way in is in the improvement register below, already read and
             ranked. Everything else in SPEC opens from here.
           </p>
-          <p className="mt-3 max-w-2xl text-sm text-ink-light">
-            <b className="text-ink">One thing to do first:</b> write down who does what. SPEC scores
-            roles, so the chart is what everything else hangs off — it takes a few minutes and costs
-            nothing.
-          </p>
-          <Link href="/org" className="btn-primary mt-4 inline-block">Build the org chart</Link>
         </div>
+      )}
+
+      {/*
+        The first thing, while there is a first thing.
+
+        Above the lights, because a business with no chart has no lights worth looking at — and a
+        leader opening this on a phone must not have to scroll to find the step that makes the rest
+        of the product work. It disappears the moment the step is done.
+      */}
+      {next && (
+        <section className="mb-8 rounded-lg border-l-4 border-rust bg-surface p-5">
+          <p className="font-serif text-lg text-ink">{next.title}</p>
+          <p className="mt-2 max-w-2xl text-sm text-ink-light">{next.why}</p>
+          <Link href={next.href} className="btn-primary mt-4 inline-block">{next.action}</Link>
+        </section>
       )}
 
       {/*
