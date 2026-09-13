@@ -5,6 +5,7 @@ import { PILLARS } from '@/lib/scoring';
 import { LIGHT_COLOUR, LIGHT_INK, pillTone } from '@/lib/today';
 import {
   PRIORITY_LABEL, priorityOf, waitingOn, isOverdue, auditDue, snapScore,
+  lifeOf, LIFE_ASKS,
   type RegisterEntry,
 } from '@/lib/register';
 import {
@@ -109,6 +110,11 @@ export function ImprovementRegister({
         </span>
       </div>
       <p className="mt-1 text-sm text-ink-light">
+        Ongoing problems, read and solved — <b className="text-ink">always starting with the people</b>.
+        The order of a fix is never up for debate: People, then Compliance, then Earnings. Earnings is
+        the result, never the lever.
+      </p>
+      <p className="mt-2 text-sm text-ink-light">
         You see what you logged and what your direct reports logged or own — not the whole business. Ranked
         by impact: harm first, then money, then people, then everything else. Nothing here is deleted;
         closed problems become history you can look back on.
@@ -158,7 +164,56 @@ export function ImprovementRegister({
                 </div>
 
                 <p className="mt-2 text-sm text-ink">{entry.text}</p>
-                {entry.chain.length > 0 && (
+
+                {/*
+                  THE STORY SPEC TOLD BACK — what it thinks this really is, and how it gets fixed.
+
+                  It was being written to the database and never shown, so a person saw four
+                  coloured letters and their own sentence, and none of the thinking done about it.
+                  That reading is the entire reason this is a register rather than a task list.
+
+                  Framed by which life the entry is in. Unassigned, it is a PLAN: the question being
+                  asked of the reader is "is this right?", and the whole thing is worth reading.
+                  Once somebody owns it the question becomes "is it done?", so the same reading
+                  stays available but steps back out of the way.
+                */}
+                {(entry.errorLine || entry.solutionLine) && (
+                  lifeOf(entry) === 'plan' ? (
+                    <div className="mt-3 rounded-lg bg-cream p-3">
+                      <span className="label-caps">What SPEC makes of it</span>
+                      {entry.errorLine && <p className="mt-1.5 text-sm text-ink">{entry.errorLine}</p>}
+                      {entry.chain.length > 0 && (
+                        <p className="mt-2 text-xs text-ink-light">
+                          The fix, in order: {entry.chain.map(p => PILLAR_META[p].name).join(' → ')}.
+                        </p>
+                      )}
+                      {entry.solutionLine && (
+                        <p className="mt-1.5 text-sm text-ink-light">{entry.solutionLine}</p>
+                      )}
+                      <p className="mt-3 text-xs text-ink-light">{LIFE_ASKS.plan}</p>
+                    </div>
+                  ) : (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer list-none text-xs text-ink-light hover:text-rust">
+                        What SPEC made of it
+                      </summary>
+                      <div className="mt-2 rounded-lg bg-cream p-3">
+                        {entry.errorLine && <p className="text-sm text-ink">{entry.errorLine}</p>}
+                        {entry.chain.length > 0 && (
+                          <p className="mt-2 text-xs text-ink-light">
+                            The fix, in order: {entry.chain.map(p => PILLAR_META[p].name).join(' → ')}.
+                          </p>
+                        )}
+                        {entry.solutionLine && (
+                          <p className="mt-1.5 text-sm text-ink-light">{entry.solutionLine}</p>
+                        )}
+                      </div>
+                    </details>
+                  )
+                )}
+
+                {/* Basic entries carry no reading, so the chain is all there is to show. */}
+                {!entry.errorLine && !entry.solutionLine && entry.chain.length > 0 && (
                   <p className="mt-1 text-xs text-ink-light">
                     The fix, in order: {entry.chain.map(p => PILLAR_META[p].name).join(' → ')}.
                   </p>

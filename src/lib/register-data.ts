@@ -33,6 +33,10 @@ function toEntry(row: Row): RegisterEntry {
     bloom: readJson<Bloom[]>(row.bloom, []),
     chain: readJson<Pillar[]>(row.chain, []),
     noOwner: row.noOwner,
+    // The reading, carried through. Blank in the database reads as nothing said, not as an empty
+    // paragraph — see the note on RegisterEntry.
+    errorLine: row.errorLine?.trim() || null,
+    solutionLine: row.solutionLine?.trim() || null,
     status: row.status as RegisterEntry['status'],
     owner: row.owner,
     accepted: row.accepted,

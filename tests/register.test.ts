@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import type { Pillar } from '../src/lib/scoring';
 import {
   FIX_ORDER, fixOrder, priorityOf, PRIORITY_LABEL, visibleTo, rank, similar,
   recurrenceOf, auditDue, isOverdue, waitingOn, bloomLetters, snapScore,
   type RegisterEntry, type Bloom,
+  lifeOf,
+  LIFE_ASKS,
 } from '../src/lib/register';
 
 /**
@@ -25,6 +28,8 @@ function entry(over: Partial<RegisterEntry> = {}): RegisterEntry {
     bloom: bloom(['people', 'definite']),
     chain: ['people'],
     noOwner: false,
+    errorLine: 'Gear goes back wherever it fits, so Monday starts with a search.',
+    solutionLine: 'Give the yard an owner, then a weekly check they sign.',
     status: 'open',
     owner: null,
     accepted: null,
@@ -259,5 +264,97 @@ describe('the Snap Score reads the engine, not the pile', () => {
 describe('the causal chain reads as letters', () => {
   it('spells the pillars in the order the diagnosis found them', () => {
     expect(bloomLetters(bloom(['safety', 'definite'], ['people', 'definite']))).toEqual(['S', 'P']);
+  });
+});
+
+/*
+  ── The thesis ───────────────────────────────────────────────────────────────────────────────────
+
+  "The power of SPEC is reviewing ongoing problems, then finding solutions to them, always starting
+  with the people."
+
+  That sentence is the product. It is also the thing most likely to erode quietly — somebody will
+  one day have a story where earnings look like the obvious first move, and reorder a chain to suit
+  it. These hold the rule in place, so that change fails a build instead of shipping.
+*/
+describe('always starting with the people', () => {
+  it('puts people first, whatever order the pillars arrive in', () => {
+    expect(fixOrder(['earnings', 'compliance', 'people'])).toEqual(['people', 'compliance', 'earnings']);
+    expect(fixOrder(['earnings', 'people'])).toEqual(['people', 'earnings']);
+    expect(fixOrder(['compliance', 'people'])).toEqual(['people', 'compliance']);
+  });
+
+  it('keeps the order when a pillar is missing, rather than shuffling round the gap', () => {
+    expect(fixOrder(['earnings', 'compliance'])).toEqual(['compliance', 'earnings']);
+  });
+
+  /*
+    Earnings is always the result, never the lever. A chain that opens on earnings is a chain that
+    has skipped the work — it is the one mistake this order exists to prevent.
+  */
+  it('never opens a fix with earnings', () => {
+    for (const given of [
+      ['earnings'], ['earnings', 'people'], ['earnings', 'compliance'],
+      ['earnings', 'compliance', 'people'],
+    ] as Pillar[][]) {
+      const fixed = fixOrder(given);
+      if (fixed.length > 1) expect(fixed[0], given.join(',')).not.toBe('earnings');
+    }
+  });
+
+  it('drops safety from the fix, because harm is a gate rather than a step', () => {
+    expect(fixOrder(['safety', 'people'])).toEqual(['people']);
+  });
+});
+
+/*
+  ── A plan until somebody owns it ────────────────────────────────────────────────────────────────
+
+  An unassigned entry is not a task nobody got to; it is a business plan. SPEC has read the problem
+  and set out the fix, and that is worth something whether or not a name is against it yet. Treating
+  it as an overdue task turns thinking into a chore and fills the register with things that feel
+  like neglect.
+*/
+describe('a plan first, work second', () => {
+  it('is a plan while nobody owns it', () => {
+    expect(lifeOf(entry({ owner: null }))).toBe('plan');
+  });
+
+  it('becomes work once somebody owns it', () => {
+    expect(lifeOf(entry({ owner: 'Tom', accepted: true }))).toBe('work');
+    expect(lifeOf(entry({ owner: 'Tom', accepted: null }))).toBe('work');
+  });
+
+  /*
+    Refused goes BACK to being a plan. Nobody owns it, and the next question — whose should this be?
+    — is a question about the plan, not a task in flight.
+  */
+  it('goes back to being a plan when the owner says it is not theirs', () => {
+    expect(lifeOf(entry({ owner: 'Tom', accepted: false }))).toBe('plan');
+  });
+
+  it('is finished once done or signed off', () => {
+    expect(lifeOf(entry({ status: 'done', owner: 'Tom' }))).toBe('finished');
+    expect(lifeOf(entry({ status: 'closed', owner: 'Tom' }))).toBe('finished');
+  });
+
+  it('asks the reader a different question in each life', () => {
+    expect(LIFE_ASKS.plan).toMatch(/whether it is right/);
+    expect(LIFE_ASKS.work).toMatch(/being worked on/);
+  });
+});
+
+/* The reading has to survive the journey from the database to the card, or the register is a list. */
+describe('the story SPEC told back', () => {
+  it('is carried on the entry, not left in the database', () => {
+    const e = entry();
+    expect(e.errorLine).toBeTruthy();
+    expect(e.solutionLine).toBeTruthy();
+  });
+
+  it('is absent rather than empty when nothing was read', () => {
+    const basic = entry({ errorLine: null, solutionLine: null });
+    expect(basic.errorLine).toBeNull();
+    expect(basic.solutionLine).toBeNull();
   });
 });
