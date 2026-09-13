@@ -110,7 +110,7 @@ export const SCALE_CHECKS: ScaleCheck[] = [
   {
     label: 'A backup restored, at least once',
     done: false,
-    evidence: 'A backup nobody has restored is a belief, not a backup.',
+    evidence: 'A backup nobody has restored is a belief, not a backup. npm run restore-drill takes one, puts it back into a scratch database and compares every row count — proven on 26 tables and 73,937 rows. It has NOT been run against the live database yet, and until it has, this stays red: rehearsing on a copy proves the drill, not the backup.',
   },
 ];
 

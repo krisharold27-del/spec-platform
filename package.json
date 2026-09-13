@@ -16,7 +16,8 @@
     "db:check-rls": "node scripts/check-rls.mjs",
     "check": "node scripts/check.mjs",
     "deployed": "node scripts/deployed.mjs",
-    "load-test": "node scripts/load-test.mjs"
+    "load-test": "node scripts/load-test.mjs",
+    "restore-drill": "node scripts/restore-drill.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
