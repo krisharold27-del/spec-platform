@@ -1,5 +1,5 @@
 import { PILLAR_META, scoreInk } from '@/lib/pillars';
-import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_BELOW } from '@/lib/incentive';
+import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_AT_OR_BELOW } from '@/lib/incentive';
 import { money } from '@/lib/cockpit';
 import type { IncentiveView } from '@/lib/incentive-data';
 
@@ -16,10 +16,11 @@ import type { IncentiveView } from '@/lib/incentive-data';
  * page. Nothing here is computed in this file: it renders what lib/incentive worked out, and the
  * rates come from that module's own constants so the explanation cannot drift from the arithmetic.
  *
- * The part that matters most is `redButNotFailed`. The chart paints a quadrant red from 75% down and
- * the incentive only deducts under 50%, so somebody can be looking at three red quadrants and a
- * deduction of nothing. Unexplained, that reads as the software being broken. Named, it is the rule
- * doing exactly what it says: a colour asks for attention, a deduction is a consequence.
+ * Red on a card and a deduction are now the SAME line — at or under 50% for a quadrant. They were
+ * apart for a while, red starting at 75% while money only moved at 50%, which meant somebody could
+ * see three red quadrants and no deduction and reasonably conclude the software was broken. One
+ * line is the simpler promise, and the `redButNotFailed` block below stays for the day they part
+ * again: it renders nothing while there is nothing to explain.
  */
 export function IncentivePanel({ view, period }: { view: IncentiveView; period: string }) {
   if (!view.inScheme) {
@@ -36,7 +37,7 @@ export function IncentivePanel({ view, period }: { view: IncentiveView; period: 
 
   const perFailure = Math.round(DEDUCTION_PER_FAILED_PILLAR * 100);
   const capPct = Math.round(DEDUCTION_CAP * 100);
-  const failLine = Math.round(FAILED_BELOW * 100);
+  const failLine = Math.round(FAILED_AT_OR_BELOW * 100);
   const atCap = view.deductionRate >= DEDUCTION_CAP;
 
   return (
@@ -70,7 +71,7 @@ export function IncentivePanel({ view, period }: { view: IncentiveView; period: 
             <div className="mt-6">
               <p className="text-sm text-ink">
                 <b>{view.failed.length}</b> {view.failed.length === 1 ? 'quadrant' : 'quadrants'} beneath you
-                failed — under {failLine}% — at {perFailure}% each
+                failed — at or under {failLine}% — at {perFailure}% each
                 {atCap ? `, capped at ${capPct}%.` : `, so ${Math.round(view.deductionRate * 100)}% comes off.`}
               </p>
               <ul className="mt-3 grid gap-2">
@@ -99,7 +100,9 @@ export function IncentivePanel({ view, period }: { view: IncentiveView; period: 
           )}
 
           {/*
-            The line that prevents the argument. Red on the chart starts at 75%; money moves at 50%.
+            Empty while red and a deduction mean the same thing. Kept because the two lines were
+            apart once and may be again — and the day they are, this is what stops "three red
+            quadrants and no deduction" reading as a bug.
           */}
           {view.redButNotFailed.length > 0 && (
             <div className="mt-6 rounded-lg bg-cream p-4">
@@ -108,9 +111,9 @@ export function IncentivePanel({ view, period }: { view: IncentiveView; period: 
                 on the chart and {view.redButNotFailed.length === 1 ? 'does' : 'do'} not affect this figure.
               </p>
               <p className="mt-1 text-xs text-ink-light">
-                A quadrant turns red below 75% because it needs attention. It only counts as a failure,
-                and only costs money, under {failLine}%. A bad month is not a failure — the colour asks
-                for a conversation, the deduction is a consequence.
+                Those quadrants are red because they need attention. They only count as a failure,
+                and only cost money, at or under {failLine}%. The colour asks for a conversation; the
+                deduction is a consequence.
               </p>
               <ul className="mt-3 grid gap-1">
                 {view.redButNotFailed.slice(0, 6).map((f, i) => (

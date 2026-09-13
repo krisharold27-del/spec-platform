@@ -4,11 +4,11 @@ import { join } from 'node:path';
 import { PILLAR_META, BRAND_COLOUR, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk } from '../src/lib/pillars';
 import { LIGHT_COLOUR, LIGHT_INK } from '../src/lib/today';
 import { PILLARS } from '../src/lib/scoring';
-import { WATCH_FROM } from '../src/lib/pillars';
-import { FAILED_BELOW, failedPillarCount } from '../src/lib/incentive';
+import { GREEN_FROM, RED_AT_OR_BELOW } from '../src/lib/pillars';
+import { FAILED_AT_OR_BELOW, failedPillarCount } from '../src/lib/incentive';
 import { band } from '../src/lib/scoring';
 import { light } from '../src/lib/today';
-import { AT_THE_STANDARD } from '../src/lib/pillars';
+
 
 /**
  * Option D, held in place.
@@ -79,15 +79,14 @@ describe('colour is only ever the score', () => {
     So 60% is red here AND deducts nothing, and both are right. The boundaries are pinned exactly,
     because an off-by-one on a threshold is invisible in review and obvious to a customer.
   */
-  it('reads a score against the 90% rule, with amber from 75', () => {
+  it('reads a score against the bands Kris set', () => {
     expect(scoreColour(1)).toBe(SCORE_COLOUR.on_track);
-    expect(scoreColour(0.9)).toBe(SCORE_COLOUR.on_track);      // exactly at the standard is green
-    expect(scoreColour(0.899)).toBe(SCORE_COLOUR.watch);
-    expect(scoreColour(0.89)).toBe(SCORE_COLOUR.watch);
-    expect(scoreColour(0.75)).toBe(SCORE_COLOUR.watch);        // exactly on the line is amber
-    expect(scoreColour(0.749)).toBe(SCORE_COLOUR.behind);
-    expect(scoreColour(0.6)).toBe(SCORE_COLOUR.behind);        // a bad month, and it looks like one
-    expect(scoreColour(0.5)).toBe(SCORE_COLOUR.behind);
+    expect(scoreColour(0.9)).toBe(SCORE_COLOUR.on_track);
+    expect(scoreColour(0.8)).toBe(SCORE_COLOUR.on_track);      // exactly 80 is green
+    expect(scoreColour(0.799)).toBe(SCORE_COLOUR.watch);
+    expect(scoreColour(0.51)).toBe(SCORE_COLOUR.watch);
+    expect(scoreColour(0.5)).toBe(SCORE_COLOUR.behind);        // exactly 50 is RED, not amber
+    expect(scoreColour(0.499)).toBe(SCORE_COLOUR.behind);
     expect(scoreColour(0)).toBe(SCORE_COLOUR.behind);
   });
 
@@ -96,16 +95,22 @@ describe('colour is only ever the score', () => {
     If somebody "tidies" one into the other, the chart either goes blind between 50 and 75 or the
     incentive starts deducting for a bad month. Both are serious and neither is obvious.
   */
-  it('keeps the colour line and the money line apart', () => {
-    expect(WATCH_FROM, 'the colour line').toBe(0.75);
-    expect(FAILED_BELOW, 'the money line').toBe(0.5);
-    expect(WATCH_FROM).not.toBe(FAILED_BELOW);
-    // 60% for a quadrant: red on the chart, the word "Behind" beside it, and no deduction —
-    // the deduction is 5% per quadrant under 50%, capped at 25%. Kris settled both lines.
-    expect(scoreColour(0.6)).toBe(SCORE_COLOUR.behind);
-    expect(band(0.6)).toBe('behind');
-    expect(failedPillarCount([0.6])).toBe(0);
-    expect(failedPillarCount([0.49])).toBe(1);
+  /*
+    One line now, not two. Red on a card and money coming off mean the same thing — a quadrant at or
+    under 50%. They were apart for a while, red starting at 75% while the deduction waited for 50%,
+    which let somebody see three red quadrants and no deduction and reasonably call it a bug.
+  */
+  it('makes red on a card and a deduction the same thing', () => {
+    expect(GREEN_FROM).toBe(0.8);
+    expect(RED_AT_OR_BELOW).toBe(0.5);
+    expect(FAILED_AT_OR_BELOW).toBe(RED_AT_OR_BELOW);
+    // Exactly 50% — the round number people land on — is red AND is a failure.
+    expect(scoreColour(0.5)).toBe(SCORE_COLOUR.behind);
+    expect(band(0.5)).toBe('behind');
+    expect(failedPillarCount([0.5])).toBe(1);
+    // A hair above it is amber and costs nothing.
+    expect(scoreColour(0.501)).toBe(SCORE_COLOUR.watch);
+    expect(failedPillarCount([0.501])).toBe(0);
   });
 
   // Pending is never red. A month nobody has marked is not a failing month, and colouring it as one
@@ -188,10 +193,12 @@ describe('anything a person has to read is readable', () => {
     expect(LIGHT_COLOUR.amber).toBe(SCORE_COLOUR.watch);
   });
 
-  it('picks ink by the same 90% rule as the fill', () => {
+  it('picks ink by the same bands as the fill', () => {
     expect(scoreInk(0.9)).toBe(SCORE_INK.on_track);
-    expect(scoreInk(0.89)).toBe(SCORE_INK.watch);
-    expect(scoreInk(0.49)).toBe(SCORE_INK.behind);
+    expect(scoreInk(0.8)).toBe(SCORE_INK.on_track);
+    expect(scoreInk(0.799)).toBe(SCORE_INK.watch);
+    expect(scoreInk(0.501)).toBe(SCORE_INK.watch);
+    expect(scoreInk(0.5)).toBe(SCORE_INK.behind);
     expect(scoreInk(null)).toBe(SCORE_INK.pending);
   });
 });
@@ -243,7 +250,8 @@ describe('the brand colours stay out of the product', () => {
 describe('every screen bands a score the same way', () => {
   it('agrees at the boundaries, wherever the score is drawn', () => {
     const cases: [number, 'green' | 'amber' | 'red'][] = [
-      [1, 'green'], [0.9, 'green'], [0.899, 'amber'], [0.75, 'amber'], [0.749, 'red'], [0.6, 'red'], [0, 'red'],
+      [1, 'green'], [0.9, 'green'], [0.8, 'green'], [0.799, 'amber'], [0.6, 'amber'],
+      [0.501, 'amber'], [0.5, 'red'], [0.2, 'red'], [0, 'red'],
     ];
     for (const [score, want] of cases) {
       expect(light(score), `light(${score})`).toBe(want);
@@ -253,10 +261,9 @@ describe('every screen bands a score the same way', () => {
   });
 
   it('reads the constants rather than a number somebody typed', () => {
-    // Move the line and both must move with it. If either is hardcoded, one of these fails.
-    expect(light(WATCH_FROM)).toBe('amber');
-    expect(light(WATCH_FROM - 0.001)).toBe('red');
-    expect(light(AT_THE_STANDARD)).toBe('green');
-    expect(light(AT_THE_STANDARD - 0.001)).toBe('amber');
+    expect(light(GREEN_FROM)).toBe('green');
+    expect(light(GREEN_FROM - 0.001)).toBe('amber');
+    expect(light(RED_AT_OR_BELOW + 0.001)).toBe('amber');
+    expect(light(RED_AT_OR_BELOW)).toBe('red');
   });
 });

@@ -40,12 +40,13 @@ describe('light — the 90% rule as a traffic light', () => {
 
     So 60% is red here and deducts nothing, and both are right.
   */
-  it('is amber from 75 and red below it', () => {
-    expect(light(0.89)).toBe('amber');
-    expect(light(0.75)).toBe('amber');      // exactly on the line is amber
-    expect(light(0.749)).toBe('red');
-    expect(light(0.6)).toBe('red');         // a bad month, and it looks like one
-    expect(light(0.5)).toBe('red');
+  it('is amber above 50 and red at or below it', () => {
+    expect(light(0.8)).toBe('green');        // exactly 80 is green
+    expect(light(0.799)).toBe('amber');
+    expect(light(0.6)).toBe('amber');
+    expect(light(0.501)).toBe('amber');
+    expect(light(0.5)).toBe('red');          // exactly 50 is red, and it deducts
+    expect(light(0.499)).toBe('red');
     expect(light(0)).toBe('red');
   });
 

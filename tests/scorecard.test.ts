@@ -70,15 +70,17 @@ describe('summarise', () => {
     expect(s.total).toBe(5);
     expect(s.excluded).toBe(2);
     expect(s.notTracked).toBe(1);
-    expect(s.tone).toBe('red');
+    // 2 of 3 is 66.7% — amber. Above the 50% failure line, below the 80% green line.
+    expect(s.tone).toBe('amber');
   });
 
-  it('tones on the 90 and 75 thresholds', () => {
+  it('tones on the 80 and 50 thresholds', () => {
     const mk = (score: number) => summarise([row({ pillar: 'people', text: 'x', answer: 'Y' })], 'people', score).tone;
     expect(mk(1)).toBe('green');
-    expect(mk(0.9)).toBe('green');
-    expect(mk(0.89)).toBe('amber');
-    expect(mk(0.74)).toBe('red');
+    expect(mk(0.8)).toBe('green');       // exactly 80 is green
+    expect(mk(0.799)).toBe('amber');
+    expect(mk(0.501)).toBe('amber');
+    expect(mk(0.5)).toBe('red');         // exactly 50 is red, and it deducts
   });
 
   it('reads only its own pillar', () => {

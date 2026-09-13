@@ -1,4 +1,4 @@
-import { AT_THE_STANDARD, WATCH_FROM } from '@/lib/pillars';
+import { GREEN_FROM, RED_AT_OR_BELOW, AT_THE_STANDARD } from '@/lib/pillars';
 import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 
 /**
@@ -16,18 +16,19 @@ import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
  * that actually decide the colour, in lib/pillars. Change the rule and this changes with it; there
  * is no second place for the truth to live.
  *
- * The design's own key still reads "75–89%", from before the lower line was corrected — a pillar on
- * 60% was being painted red while costing the business nothing. The code is right and the design is
- * behind; this renders what the product actually does.
+ * Green from 80%, amber above 50%, red at or under 50% — set by Kris, and the same line the incentive
+ * fails on, so red on a card and a deduction mean exactly the same thing. The design's own key still
+ * reads "75–89%" and is behind; this renders what the product actually does.
  */
 export function ChartKey() {
+  const green = Math.round(GREEN_FROM * 100);
+  const red = Math.round(RED_AT_OR_BELOW * 100);
   const standard = Math.round(AT_THE_STANDARD * 100);
-  const watch = Math.round(WATCH_FROM * 100);
 
   const bands = [
-    { colour: LIGHT_COLOUR.green, ink: LIGHT_INK.green, label: `${standard}% and above`, note: 'At the standard.' },
-    { colour: LIGHT_COLOUR.amber, ink: LIGHT_INK.amber, label: `${watch}–${standard - 1}%`, note: 'Behind, and worth a conversation.' },
-    { colour: LIGHT_COLOUR.red, ink: LIGHT_INK.red, label: `Below ${watch}%`, note: 'Costing the business now.' },
+    { colour: LIGHT_COLOUR.green, ink: LIGHT_INK.green, label: `${green}% and above`, note: 'Good. The SPEC standard is still ' + standard + '%.' },
+    { colour: LIGHT_COLOUR.amber, ink: LIGHT_INK.amber, label: `${red + 1}–${green - 1}%`, note: 'Behind, and worth a conversation.' },
+    { colour: LIGHT_COLOUR.red, ink: LIGHT_INK.red, label: `${red}% or under`, note: 'A failure. This is what deducts.' },
     { colour: LIGHT_COLOUR.pending, ink: LIGHT_INK.pending, label: 'Not set', note: 'No KPIs yet, so nothing to score.' },
   ];
 
@@ -55,6 +56,11 @@ export function ChartKey() {
         Each card carries four letters — Safety, People, Earnings, Compliance — in the colour that
         pillar is scoring this month. A role with no KPIs set shows grey rather than red: nothing has
         gone wrong, it simply is not being measured yet.
+      </p>
+      <p className="mt-2 text-xs text-ink-light">
+        Red and a deduction are the same line: a quadrant at or under {red}% is a failure, and takes
+        5% off the manager above it, capped at 25%. Being green is not the same as being SPEC —
+        that is {standard}% on every pillar, two months running.
       </p>
     </section>
   );

@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   incentiveFor, failedPillarCount,
-  DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_BELOW,
+  DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_AT_OR_BELOW,
 } from '../src/lib/incentive';
-import { WATCH_FROM } from '../src/lib/pillars';
+import { GREEN_FROM, RED_AT_OR_BELOW } from '../src/lib/pillars';
 
 /*
   ── The rule a manager will check against their own payslip ──────────────────────────────────────
@@ -39,18 +39,25 @@ describe('the incentive, where somebody can see it', () => {
     expect(six.payable).toBe(five.payable);
   });
 
-  /* The whole reason the panel names them. */
-  it('does not deduct for a quadrant that is red but above the failure line', () => {
-    expect(WATCH_FROM).toBe(0.75);
-    expect(FAILED_BELOW).toBe(0.5);
-    // 60%: red on every chart in the product, and worth nothing to the deduction.
-    expect(failedPillarCount([0.6, 0.6, 0.6])).toBe(0);
+  /*
+    Red on a card and a deduction are the same line now — at or under 50%. They were apart for a
+    while, red starting at 75% while money waited for 50%, which let somebody see three red
+    quadrants and no deduction and reasonably call it a bug.
+  */
+  it('makes red and a deduction mean the same thing', () => {
+    expect(GREEN_FROM).toBe(0.8);
+    expect(RED_AT_OR_BELOW).toBe(0.5);
+    expect(FAILED_AT_OR_BELOW).toBe(RED_AT_OR_BELOW);
+    // Exactly 50% is a failure. It is the round number people land on, and it costs money.
+    expect(failedPillarCount([0.5])).toBe(1);
+    // Just above it is amber and free.
+    expect(failedPillarCount([0.501, 0.6, 0.79])).toBe(0);
     const r = incentiveFor({ roles: [{ level: 'manager', rolePct: 0.8 }], chainPillars: [0.6, 0.6, 0.6] });
     expect(r.deductionRate).toBe(0);
     expect(r.payable).toBe(r.earned);
   });
 
-  it('counts a quadrant under 50% as the failure it is', () => {
+  it('counts a quadrant at or under 50% as the failure it is', () => {
     const r = incentiveFor({ roles: [{ level: 'manager', rolePct: 1 }], chainPillars: [0.49, 0.6] });
     expect(r.failedPillars).toBe(1);
     expect(r.deductionRate).toBe(0.05);
@@ -73,7 +80,7 @@ describe('the incentive, where somebody can see it', () => {
       expect(panel, `${shown} must be on the page`).toContain(shown);
     }
     expect(panel, 'the rates come from the engine, never retyped').toContain('DEDUCTION_PER_FAILED_PILLAR');
-    expect(panel, 'and so does the failure line').toContain('FAILED_BELOW');
+    expect(panel, 'and so does the failure line').toContain('FAILED_AT_OR_BELOW');
   });
 
   it('names each failed quadrant rather than only counting them', () => {

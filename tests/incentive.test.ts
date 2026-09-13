@@ -23,8 +23,15 @@ describe('worked examples from The Rules', () => {
 });
 
 describe('what counts as a failure (§6.2)', () => {
-  it('a pillar under 50% fails; 60% is a bad month, not a failure; no score is not a failure', () => {
-    expect(failedPillarCount([0.49, 0.5, 0.6, null, 0])).toBe(2);
+  /*
+    At or below 50% — fifty exactly is a failure, not a bad month. Kris set it, and it is the same
+    line the chart turns red on, so red on a card and money coming off mean the same thing.
+    Previously `< 0.5`, which let a quadrant landing on exactly 50.0% escape.
+  */
+  it('a quadrant at or under 50% fails; above it is a bad month; no score is never a failure', () => {
+    expect(failedPillarCount([0.49, 0.5, 0.6, null, 0])).toBe(3);  // 0.49, 0.5 and 0 fail
+    expect(failedPillarCount([0.501, 0.6, 0.79])).toBe(0);
+    expect(failedPillarCount([null, null])).toBe(0);
   });
 
   it('the deduction comes off the earned figure, not the ceiling', () => {

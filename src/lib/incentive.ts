@@ -3,10 +3,10 @@
  *
  *   ceiling   = role ceiling × 2 if Sales Ace is held that month, else the role ceiling
  *   earned    = ceiling × role %
- *   deduction = 5% × (pillars under 50% anywhere beneath them in their chain), capped at 25%
+ *   deduction = 5% × (pillars at or below 50% anywhere beneath them in their chain), capped at 25%
  *   payable   = earned × (1 − deduction)
  *
- * A failed pillar means Behind — under 50%. A pillar at 60% is a bad month, not a failure. Failures
+ * A failed pillar means Behind — at or below 50%, the same line the chart turns red on. Failures
  * flow upward only: a leader is never credited for a good team, only reduced for a bad one. A pillar
  * with no score is not a failure — pending is never red.
  *
@@ -29,11 +29,24 @@ export const DEFAULT_CEILINGS: Record<string, number | null> = {
 
 export const DEDUCTION_PER_FAILED_PILLAR = 0.05;
 export const DEDUCTION_CAP = 0.25;
-export const FAILED_BELOW = 0.5;
+/**
+ * A quadrant fails AT or BELOW 50% — fifty exactly is a failure, not a bad month.
+ *
+ * This was `< 0.5`, so a quadrant landing on exactly 50.0% escaped. Fifty is a round number people
+ * actually land on, and the difference is somebody's money. Kris set it as "50% or under", and the
+ * name now says which side it falls on so it cannot quietly flip back.
+ *
+ * It is also the same line the chart turns red on. They were two lines for a while, and are now
+ * one: red on a card and a deduction mean the same thing, which is the simpler promise to make.
+ */
+export const FAILED_AT_OR_BELOW = 0.5;
 
-/** Pillars that failed — under 50% — among every pillar score beneath this person. */
+/** @deprecated Read FAILED_AT_OR_BELOW, whose name says which side of the line it means. */
+export const FAILED_BELOW = FAILED_AT_OR_BELOW;
+
+/** Pillars that failed — at or below 50% — among every pillar score beneath this person. */
 export function failedPillarCount(chainPillars: Score[]): number {
-  return chainPillars.filter(p => p !== null && p < FAILED_BELOW).length;
+  return chainPillars.filter(p => p !== null && p <= FAILED_AT_OR_BELOW).length;
 }
 
 export function displayedRate(pct: number): number {

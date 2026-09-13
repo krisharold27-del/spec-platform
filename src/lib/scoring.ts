@@ -84,15 +84,29 @@ export function teamScore(roleScores: RoleScore[]): RoleScore {
   The two lines, defined here because lib/pillars imports this file — so they can only live in one
   direction. lib/pillars re-exports them, which is where the long explanation of both sits.
 */
-/** At the standard. The 90% rule the whole product is built on. */
+/**
+ * The 90% rule — what makes a business SPEC. Two consecutive closed months with every pillar of the
+ * team roll-up at or above this. It is the STANDARD, and deliberately not the colour: a business can
+ * be green everywhere and still not be SPEC, which is the gap the whole method is about closing.
+ */
 export const AT_THE_STANDARD = 0.9;
-/** Amber from here up to the standard; below it is red. The COLOUR line, not the money line. */
-export const WATCH_FROM = 0.75;
+
+/** Green from here. Set by Kris: 80% or above. */
+export const GREEN_FROM = 0.8;
+
+/**
+ * Red AT or BELOW this — fifty per cent exactly is red, not amber.
+ *
+ * The boundary is inclusive on purpose and the name says so. "Under 50" and "50 or under" differ by
+ * one case, that case is a round number people actually land on, and getting it wrong here both
+ * mis-colours a card and mis-pays somebody, because the incentive fails on this same line.
+ */
+export const RED_AT_OR_BELOW = 0.5;
 
 export type Band = 'on_track' | 'watch' | 'behind' | 'pending';
 
 /**
- * On track from 90% · Watch 75–89% · Behind under 75% · Pending = no score, never coloured.
+ * On track from 80% · Watch above 50% and under 80% · Behind at or below 50% · Pending never coloured.
  *
  * ── Why this changed ─────────────────────────────────────────────────────────────────────────────
  *
@@ -111,8 +125,8 @@ export type Band = 'on_track' | 'watch' | 'behind' | 'pending';
  */
 export function band(score: Score): Band {
   if (score === null) return 'pending';
-  if (score >= AT_THE_STANDARD) return 'on_track';
-  if (score >= WATCH_FROM) return 'watch';
+  if (score >= GREEN_FROM) return 'on_track';
+  if (score > RED_AT_OR_BELOW) return 'watch';
   return 'behind';
 }
 

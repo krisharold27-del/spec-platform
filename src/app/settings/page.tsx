@@ -15,7 +15,7 @@ import { LIGHT_COLOUR } from '@/lib/today';
 import { adminActivity } from '@/lib/admin-activity';
 import { setCadence, setTier, setCeilings, resetCeilings } from './actions';
 import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsFor, usesOwnCeilings } from '@/lib/ceilings';
-import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_BELOW } from '@/lib/incentive';
+import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_AT_OR_BELOW } from '@/lib/incentive';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,8 +43,8 @@ export default async function Settings() {
   const ceilings = ceilingsFor(tenant.ceilings);
   const ownCeilings = usesOwnCeilings(tenant.ceilings);
   // Written from the engine's own constants so the explanation cannot drift from the arithmetic.
-  const DEDUCTION_NOTE = `${Math.round(DEDUCTION_PER_FAILED_PILLAR * 100)}% for each quadrant under `
-    + `${Math.round(FAILED_BELOW * 100)}% anywhere beneath somebody, capped at ${Math.round(DEDUCTION_CAP * 100)}%.`;
+  const DEDUCTION_NOTE = `${Math.round(DEDUCTION_PER_FAILED_PILLAR * 100)}% for each quadrant at or under `
+    + `${Math.round(FAILED_AT_OR_BELOW * 100)}% anywhere beneath somebody, capped at ${Math.round(DEDUCTION_CAP * 100)}%.`;
 
   const seats = await db.select().from(schema.users).where(eq(schema.users.tenantId, user.tenantId));
   const directors = await db.select().from(schema.directors).where(eq(schema.directors.tenantId, user.tenantId));

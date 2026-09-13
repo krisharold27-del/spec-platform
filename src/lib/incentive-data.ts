@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getRoles, getScorecard, PILLARS } from './queries';
 import { isScored } from './today-data';
-import { incentiveFor, DEFAULT_CEILINGS, FAILED_BELOW, type IncentiveResult } from './incentive';
+import { incentiveFor, DEFAULT_CEILINGS, FAILED_AT_OR_BELOW, type IncentiveResult } from './incentive';
 import { ceilingsFor } from './ceilings';
 import type { Pillar, Score } from './scoring';
 
@@ -30,7 +30,13 @@ export interface FailedQuadrant {
 export interface IncentiveView extends IncentiveResult {
   /** Every quadrant beneath them that failed, named — never just a count. */
   failed: FailedQuadrant[];
-  /** Quadrants that are red on the chart but above the failure line, so they cost nothing. */
+  /**
+   * Empty, and kept so the panel can stay honest if the two lines ever part again.
+   *
+   * There WAS a gap: the chart turned red at 75% while the incentive only failed under 50%, so
+   * somebody could see three red quadrants and no deduction. Kris made them one line, so red on a
+   * card and a deduction now mean the same thing and there is nothing to explain away.
+   */
   redButNotFailed: FailedQuadrant[];
   /** The role's own level, for saying which ceiling applies. */
   level: string;
@@ -108,8 +114,7 @@ export async function incentiveView(
       chainPillars.push(v);
       if (v === null) continue;
       const where = { roleTitle: r.title, person: r.holder?.name ?? null, pillar: p, score: v };
-      if (v < FAILED_BELOW) failed.push(where);
-      else if (v < 0.75) redButNotFailed.push(where);
+      if (v <= FAILED_AT_OR_BELOW) failed.push(where);
     }
   }
 

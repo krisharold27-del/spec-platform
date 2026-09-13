@@ -99,14 +99,20 @@ export const SCORE_INK = {
  *
  * `designs/the-rules.md` §5 and §7.
  */
-export const AT_THE_STANDARD = 0.9;
-export const WATCH_FROM = 0.75;
+export { AT_THE_STANDARD, GREEN_FROM, RED_AT_OR_BELOW } from './scoring';
+import { AT_THE_STANDARD, GREEN_FROM, RED_AT_OR_BELOW } from './scoring';
+
+/**
+ * Kept for callers that still say WATCH_FROM. Amber begins just above the red line.
+ * @deprecated Read GREEN_FROM and RED_AT_OR_BELOW, which say which side of each line they mean.
+ */
+export const WATCH_FROM = RED_AT_OR_BELOW;
 
 /** Which of the four a score is. Every colour rule in the product starts here. */
 export function scoreBand(score: Score): keyof typeof SCORE_COLOUR {
   if (score === null) return 'pending';
-  if (score >= AT_THE_STANDARD) return 'on_track';
-  if (score >= WATCH_FROM) return 'watch';
+  if (score >= GREEN_FROM) return 'on_track';
+  if (score > RED_AT_OR_BELOW) return 'watch';
   return 'behind';
 }
 

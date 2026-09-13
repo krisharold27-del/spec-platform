@@ -221,13 +221,12 @@ describe('bands (§3.4)', () => {
     The money is a separate and LOWER line — lib/incentive deducts only under 50% for a quadrant —
     so a pillar at 60% reads Behind and costs nobody a payment. Kris settled both.
   */
-  it('On track from 90% · Watch 75–89% · Behind under 75% · Pending no score', () => {
+  it('On track from 80% · Watch above 50% · Behind at or below 50% · Pending no score', () => {
     expect(band(1)).toBe('on_track');
-    expect(band(0.9)).toBe('on_track');
-    expect(band(0.899)).toBe('watch');
-    expect(band(0.75)).toBe('watch');
-    expect(band(0.749)).toBe('behind');
-    expect(band(0.5)).toBe('behind');     // red on the card, and still no deduction
+    expect(band(0.8)).toBe('on_track');
+    expect(band(0.799)).toBe('watch');
+    expect(band(0.501)).toBe('watch');
+    expect(band(0.5)).toBe('behind');     // exactly 50 is a failure, and deducts
     expect(band(0)).toBe('behind');
     expect(band(null)).toBe('pending');   // pending is never red
   });

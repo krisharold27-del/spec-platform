@@ -1,5 +1,5 @@
 import { FIX_ORDER } from './register';
-import { AT_THE_STANDARD, WATCH_FROM } from './pillars';
+import { AT_THE_STANDARD, GREEN_FROM, RED_AT_OR_BELOW } from './pillars';
 import { TRACK_RECORD } from './calculator';
 import { SOFTWARE_TARGET } from './cockpit';
 
@@ -46,8 +46,8 @@ export function rules(): Rule[] {
       held: 'fixOrder() drops it, and Clear to Work is pass-or-fail with no percentage anywhere near it.',
     },
     {
-      says: `At the standard is ${Math.round(AT_THE_STANDARD * 100)}%. Amber runs to ${Math.round(WATCH_FROM * 100)}%, and below that is red — because a pillar in the sixties is not fine, and a chart that says it is hides a slide for months.`,
-      held: 'AT_THE_STANDARD and WATCH_FROM in lib/pillars, read by every light on every screen. The money line is separate and lower — lib/incentive deducts only under 50%, so a pillar at 60% is red on the chart and costs nobody a payment. A colour asks for attention; a deduction is a consequence.',
+      says: `Green from ${Math.round(GREEN_FROM * 100)}%, amber above ${Math.round(RED_AT_OR_BELOW * 100)}%, red at or under ${Math.round(RED_AT_OR_BELOW * 100)}%. Being SPEC is a higher bar still: ${Math.round(AT_THE_STANDARD * 100)}% on every pillar, two months running.`,
+      held: 'GREEN_FROM and RED_AT_OR_BELOW in lib/scoring, read by every light on every screen, and by lib/incentive as the same line a deduction falls on. Red on a card and money coming off mean exactly the same thing — one promise, not two.',
     },
     {
       says: 'A problem nobody owns is a plan, not an overdue task.',

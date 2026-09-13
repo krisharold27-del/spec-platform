@@ -17,7 +17,7 @@ import type { Pillar, RoleScore, Score } from './scoring';
 import { PILLARS } from './scoring';
 import type { ScorecardRow } from './queries';
 import { STATUSES, type Status } from './status';
-import { AT_THE_STANDARD, WATCH_FROM } from './pillars';
+import { GREEN_FROM, RED_AT_OR_BELOW } from './pillars';
 
 /** The four lights, and the neutral a pillar shows before anything has been measured. */
 export type Light = 'green' | 'amber' | 'red' | 'pending';
@@ -30,10 +30,10 @@ export type Light = 'green' | 'amber' | 'red' | 'pending';
  * is held to. Green is the 90% every pillar of the roll-up has to hold. Amber is close enough to
  * recover inside the month. Null has no light at all: it is an absence, not a red.
  */
-export function light(score: Score, threshold = AT_THE_STANDARD, watch = WATCH_FROM): Light {
+export function light(score: Score, green = GREEN_FROM, redAtOrBelow = RED_AT_OR_BELOW): Light {
   if (score === null) return 'pending';
-  if (score >= threshold) return 'green';
-  if (score >= watch) return 'amber';
+  if (score >= green) return 'green';
+  if (score > redAtOrBelow) return 'amber';
   return 'red';
 }
 
