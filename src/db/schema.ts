@@ -33,6 +33,16 @@ export const tenants = pgTable('tenants', {
    */
   boardCadence: text('board_cadence').notNull().default('monthly'), // monthly | quarterly
   /**
+   * This business's incentive ceilings, as JSON keyed by level. Null means the published ladder.
+   *
+   * The ladder — 250 apprentice, 500 technician, 750 specialist, 1,000 supervisor, 2,000 manager,
+   * 4,000 GM — is a SUGGESTION, and the rules say so: "Ceilings are defaults, not law." Without
+   * somewhere to keep a business's own numbers, every customer was silently locked to ours, which
+   * turns a recommendation into a rule nobody agreed to. A trade business in one state and a
+   * services business in another do not pay the same, and SPEC has no business pretending they do.
+   */
+  ceilings: text('ceilings'),
+  /**
    * basic | advanced — decided by one question to the leader: "Do you want the power of AI?"
    *
    *   basic    — no connectors, no assistant. Every number is typed in and confirmed by a name.

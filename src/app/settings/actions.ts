@@ -6,6 +6,7 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getScope, assertAdministrator } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
+import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsToStore } from '@/lib/ceilings';
 
 /**
  * Company settings.
@@ -45,4 +46,45 @@ export async function setTier(formData: FormData) {
   revalidatePath('/settings');
   revalidatePath('/my-page');
   revalidatePath('/connections');
+}
+
+/**
+ * What each level can earn in a month.
+ *
+ * The published ladder — 250, 500, 750, 1,000, 2,000, 4,000 — halves at each step, and that halving
+ * is what makes it explainable in a pay conversation. It is a SUGGESTION: designs/the-rules.md says
+ * "Ceilings are defaults, not law."
+ *
+ * Until now there was nowhere to keep a business's own numbers, so every customer was silently held
+ * to SPEC's — a recommendation enforced as a rule nobody agreed to. A trade business in one state
+ * and a services business in another do not pay the same.
+ *
+ * Only what DIFFERS from the ladder is stored, so a business that never touches this moves with the
+ * ladder if SPEC ever revises it, rather than being frozen on a copy of today's numbers.
+ */
+export async function setCeilings(formData: FormData) {
+  const user = await administrator();
+  const entered: Record<string, number> = {};
+  for (const { level } of LADDER) {
+    const raw = String(formData.get(`ceiling_${level}`) ?? '').replace(/[^0-9.]/g, '');
+    if (raw === '') continue;
+    const value = Number(raw);
+    // Out of range is ignored rather than clamped: silently paying somebody a number they did not
+    // type is worse than leaving the field as it was and letting them see it did not take.
+    if (!Number.isFinite(value) || value < 0 || value > MOST_A_CEILING_MAY_BE) continue;
+    entered[level] = value;
+  }
+  await db.update(schema.tenants)
+    .set({ ceilings: ceilingsToStore(entered) })
+    .where(eq(schema.tenants.id, user.tenantId));
+  revalidatePath('/settings');
+  revalidatePath('/scorecard', 'layout');
+}
+
+/** Back to the published ladder. Storing null is what keeps them moving with it. */
+export async function resetCeilings() {
+  const user = await administrator();
+  await db.update(schema.tenants).set({ ceilings: null }).where(eq(schema.tenants.id, user.tenantId));
+  revalidatePath('/settings');
+  revalidatePath('/scorecard', 'layout');
 }

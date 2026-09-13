@@ -15,6 +15,8 @@ import { isScored } from '@/lib/today-data';
 import { summarise, provenance, preparedBy, unexplained } from '@/lib/scorecard';
 import { addComment, addKpi } from './actions';
 import { Problems } from '@/components/problems';
+import { IncentivePanel } from '@/components/incentive-panel';
+import { incentiveView } from '@/lib/incentive-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +77,16 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
   const comments = await db.select().from(schema.scorecardComments)
     .where(and(eq(schema.scorecardComments.roleId, roleId), eq(schema.scorecardComments.periodId, period.id)))
     .orderBy(asc(schema.scorecardComments.createdAt));
+
+  /*
+    What this month pays, and why.
+
+    Read here rather than in the component so the component renders and computes nothing — the
+    arithmetic stays in lib/incentive, where it is tested. Sales Ace doubling is left off until the
+    Ace run is wired through: showing a doubled ceiling that is not held would overstate somebody's
+    pay, which is the one error in this panel that must never happen.
+  */
+  const incentive = await incentiveView(tenant.id, roleId, period.id);
 
   // The roles beneath this one. Their numbers roll into this card.
   const below = scope.roles.filter(r => r.reportsToRoleId === roleId && scope.canSee(r.id));
@@ -294,6 +306,15 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
           </section>
         </div>
       </div>
+      {/*
+        What the month is worth. The engine has been complete and tested for weeks and nothing
+        imported it — the rule was right and no customer could see it. For a manager this is the
+        part that makes a scorecard matter.
+
+        Only for somebody entitled to see this role's figures, which scope already decides.
+      */}
+      {incentive && period && <IncentivePanel view={incentive} period={period.period} />}
+
       <Problems screen="scorecard" />
 
     </Shell>

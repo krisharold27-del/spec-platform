@@ -13,7 +13,9 @@ import { PERMISSIONS, LEVELS, stateOf, STATE_LABEL, levelOf } from '@/lib/permis
 import { cadenceOf, CADENCE } from '@/lib/governance';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { adminActivity } from '@/lib/admin-activity';
-import { setCadence, setTier } from './actions';
+import { setCadence, setTier, setCeilings, resetCeilings } from './actions';
+import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsFor, usesOwnCeilings } from '@/lib/ceilings';
+import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_BELOW } from '@/lib/incentive';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +40,11 @@ export default async function Settings() {
   const scope = await getScope(user);
   const plan = await planStateFor(user.tenantId);
   const tier = tierOf(tenant.tier);
+  const ceilings = ceilingsFor(tenant.ceilings);
+  const ownCeilings = usesOwnCeilings(tenant.ceilings);
+  // Written from the engine's own constants so the explanation cannot drift from the arithmetic.
+  const DEDUCTION_NOTE = `${Math.round(DEDUCTION_PER_FAILED_PILLAR * 100)}% for each quadrant under `
+    + `${Math.round(FAILED_BELOW * 100)}% anywhere beneath somebody, capped at ${Math.round(DEDUCTION_CAP * 100)}%.`;
 
   const seats = await db.select().from(schema.users).where(eq(schema.users.tenantId, user.tenantId));
   const directors = await db.select().from(schema.directors).where(eq(schema.directors.tenantId, user.tenantId));
@@ -165,6 +172,66 @@ export default async function Settings() {
           </form>
         </section>
       </div>
+
+      {/*
+        What each level can earn. The ladder is a SUGGESTION — "Ceilings are defaults, not law" —
+        and until now there was nowhere to keep a business's own numbers, so every customer was
+        silently held to SPEC's. A trade business and a services business do not pay the same.
+      */}
+      <section className="card mt-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-serif text-xl text-ink">What a month can earn</h2>
+          <span className="text-sm text-ink-light">
+            {ownCeilings ? 'Your own figures' : 'SPEC’s suggested ladder'}
+          </span>
+        </div>
+        <p className="mt-1 max-w-3xl text-sm text-ink-light">
+          The most anybody at each level can earn in a month, before their percentage is applied.
+          Each step is half the one above it — that halving is what makes the ladder explainable in a
+          pay conversation. These are <b className="text-ink">suggestions, not law</b>: set your own
+          and SPEC uses yours everywhere.
+        </p>
+        <form action={setCeilings} className="mt-4">
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {LADDER.map(l => (
+              <div key={l.level}>
+                <label htmlFor={`ceiling_${l.level}`} className="label-caps">{l.label}</label>
+                <div className="mt-1 flex items-center gap-1">
+                  <span className="text-sm text-ink-light">$</span>
+                  <input
+                    id={`ceiling_${l.level}`}
+                    name={`ceiling_${l.level}`}
+                    type="number"
+                    min={0}
+                    max={MOST_A_CEILING_MAY_BE}
+                    step={50}
+                    defaultValue={ceilings[l.level] ?? 0}
+                    className="input w-full"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <SubmitButton className="btn-primary" pending="Saving…">Save the ceilings</SubmitButton>
+          </div>
+          <p className="mt-3 text-xs text-ink-light">
+            A director is not in the scheme — the people who set the standard are not paid against it.
+            Deductions are separate and never change here: {DEDUCTION_NOTE}
+          </p>
+        </form>
+
+        {/* Its own form, deliberately. Restoring the ladder is a real change to what people are paid
+            and must never be one stray Enter key away from the boxes above it. */}
+        {ownCeilings && (
+          <form action={resetCeilings} className="mt-4 border-t border-ink/10 pt-4">
+            <SubmitButton className="btn-secondary" pending="Restoring…">Back to SPEC’s ladder</SubmitButton>
+            <p className="mt-2 text-xs text-ink-light">
+              Clears your figures and follows the published ladder again, including any future revision of it.
+            </p>
+          </form>
+        )}
+      </section>
 
       <section className="card mt-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
