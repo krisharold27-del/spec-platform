@@ -12,10 +12,14 @@
 #   businesses in a real customer database, and on the day somebody audits the numbers, "most of
 #   those are from the test" is not an answer.
 #
-#   The restore drill is a button — Actions → Restore drill → Run workflow. It dumps the live
-#   database, restores it into a scratch database beside it, compares every row count, and removes
-#   the scratch copy. It never writes to the database it is testing. A backup nobody has restored is
-#   a belief, and this is how it stops being one without anybody learning a command line.
+#   The restore drill runs itself every Monday, and on demand from the Run workflow button. It dumps
+#   the live database, restores it into a scratch database beside it, compares every row count, and
+#   removes the scratch copy. It never writes to the database it is testing.
+#
+#   A backup nobody has restored is a belief. A backup only proven when somebody REMEMBERS to prove
+#   it stops being proven the first busy week — so this asks for one secret, once, and then nobody
+#   ever has to think about it again. That is the whole design goal: the owner's list gets shorter
+#   permanently, not just today.
 
 name: Production
 
@@ -26,6 +30,10 @@ on:
     # Hourly. Not to replace the uptime pings, which run every five minutes — this one reads the
     # product's own account of itself and would catch a setting that quietly went missing.
     - cron: '17 * * * *'
+    # And the backup drill, every Monday at 6am UTC. Once the secret exists, nobody ever has to
+    # remember this again: a backup that is only proven when somebody thinks to prove it is a
+    # backup that stops being proven the first busy week.
+    - cron: '0 6 * * 1'
   workflow_dispatch:
     inputs:
       restore_drill:
@@ -63,8 +71,11 @@ jobs:
 
   restore-drill:
     name: Prove the backup restores
-    # Only when asked. It dumps the whole database, which is not something to do hourly by accident.
-    if: github.event_name == 'workflow_dispatch' && inputs.restore_drill
+    # Weekly on its own, or on demand. Not hourly: it dumps the whole database, and doing that
+    # sixty times a day would be a cost and a load with no extra truth in it.
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '0 6 * * 1')
+      || (github.event_name == 'workflow_dispatch' && inputs.restore_drill)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
