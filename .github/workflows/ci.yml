@@ -58,21 +58,26 @@ jobs:
       - name: Tests
         run: npx vitest run
 
-      # Is the design set whole? Prints any screen the designs link to that was never sent, and
-      # whether the folder holds screens from more than one export. Reported rather than enforced,
-      # for the same reason as the coverage check below: an incomplete export is a fact about what
-      # arrived, not a fault in the change being tested, and failing a build over it would stop
-      # unrelated work while teaching everyone to skip the step.
+      # Is the design set whole? Fails if a screen the designs link to was never sent, or if the
+      # folder holds screens from more than one export.
+      #
+      # This was reported rather than enforced, on the reasoning that an incomplete export is a fact
+      # about what arrived rather than a fault in the change being tested. That was right while the
+      # set was incomplete. It is complete now — 21 screens, one export — and the job of this step
+      # has changed from chasing a gap to holding a state, which is what a build check is for.
       - name: Is every design screen actually here
-        run: npm run designs:check
+        run: node scripts/design-check.mjs --strict
 
-      # Prints what each design screen says, and whether the product says it too. Reported rather
-      # than enforced: a design is a prototype and wording legitimately drifts, so failing the build
-      # on a reworded heading would only teach people to ignore the step. The value is that the
-      # answer to "is everything in the designs actually built?" is a command anybody can run,
-      # instead of somebody's recollection.
+      # What each design screen says, against what the code says — and now a RATCHET rather than a
+      # report. Rewording stays free, because a reworded phrase still counts as present. What cannot
+      # happen is coverage going down: wording the product carries today cannot quietly leave it.
+      #
+      # Both tiers are held. The headline pass covers headings and buttons; --deep covers every
+      # label, which is noisier and is where three whole features were once found missing.
       - name: What the designs say, against what the code says
-        run: node scripts/design-coverage.mjs
+        run: |
+          node scripts/design-coverage.mjs --enforce
+          node scripts/design-coverage.mjs --deep --enforce
 
       # The exact shape of the failure that took production down. The public pages need no
       # database, so a build without one has to succeed — if this step ever fails, the marketing

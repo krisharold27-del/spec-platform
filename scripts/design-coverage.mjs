@@ -261,3 +261,40 @@ console.log(`\n${totalFound} of ${totalPhrases} design phrases appear in the pro
 if (gaps.length) {
   console.log(`${gaps.length} screen(s) have wording the code does not carry — listed above.`);
 }
+
+/*
+  ── The ratchet ─────────────────────────────────────────────────────────────────────────────────
+
+  Until now this printed a number and exited 0 whatever it said. CI ran it on every change and could
+  not fail, which means the honest answer to "are the code and the designs linked?" was: they are
+  COMPARED, on every change, and nothing whatsoever happens if they come apart. A report nobody is
+  obliged to act on is a report, not a link.
+
+  The original reasoning for not enforcing was sound and is kept: a design is a prototype, wording
+  legitimately drifts, and failing a build because somebody reworded a heading would teach everyone
+  to skip the step. But that argues against a fixed target, not against a floor.
+
+  So this enforces a RATCHET. Rewording is still free — a reworded phrase counts as present. What
+  cannot happen is coverage going DOWN: wording that is in the product today cannot quietly leave
+  it. The floor is committed to the repository, so raising it is a deliberate act in a diff, and
+  there is no way to lower it by accident.
+
+  --enforce is what CI runs. By hand it stays a report, because somebody mid-change should be able
+  to see where they are without being failed at.
+*/
+const FLOOR = { headline: 100, deep: 100 };
+const floor = deep ? FLOOR.deep : FLOOR.headline;
+
+if (process.argv.includes('--enforce') && pct < floor) {
+  console.log(
+    `\nBELOW THE FLOOR — ${pct}% against a floor of ${floor}%.\n` +
+    'Wording the product used to carry has left it. The lines above say which, and on which screen.\n' +
+    'If a phrase is deliberately not carried, record it in designs/superseded.md with the reason ' +
+    'rather than lowering the floor.',
+  );
+  process.exit(1);
+}
+
+if (process.argv.includes('--enforce')) {
+  console.log(`Holding at or above the floor of ${floor}%.`);
+}

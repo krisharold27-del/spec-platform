@@ -97,6 +97,31 @@ const designs = (() => {
 })();
 console.log(`  ${designs?.startsWith('COMPLETE') ? '✓' : 'ℹ'} the designs are all here — ${designs ?? 'could not tell'}`);
 
+/*
+  And does the product SAY what they say?
+
+  A complete set of designs and a product that does not carry their wording are two different
+  questions, and only the first was on this page. Somebody asking "are the code and the designs
+  linked?" is asking the second one, and had to go and run another command to find out.
+
+  Both tiers, because they answer different things: headings and buttons is the clean number, every
+  label is the noisy one that once found three whole features missing.
+*/
+const coverage = (label, args) => {
+  try {
+    const out = run(`node scripts/design-coverage.mjs ${args}`);
+    return (out.match(/(\d+) of (\d+) design phrases[^\n]*/) ?? [null])[0];
+  } catch (error) {
+    const out = String(error.stdout ?? '');
+    return (out.match(/(\d+) of (\d+) design phrases[^\n]*/) ?? [null])[0];
+  }
+};
+for (const [label, args] of [['headings and buttons', ''], ['every label', '--deep']]) {
+  const line = coverage(label, args);
+  const hit = line?.match(/\((\d+)%\)/);
+  console.log(`  ${hit?.[1] === '100' ? '✓' : 'ℹ'} the product says what they say (${label}) — ${line ?? 'could not tell'}`);
+}
+
 // ── The database ─────────────────────────────────────────────────────────────────────────────────
 console.log('\nThe database');
 const dbUrl = process.env.DATABASE_URL;
