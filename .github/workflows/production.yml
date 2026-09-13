@@ -71,11 +71,19 @@ jobs:
 
   restore-drill:
     name: Prove the backup restores
-    # Weekly on its own, or on demand. Not hourly: it dumps the whole database, and doing that
-    # sixty times a day would be a cost and a load with no extra truth in it.
+    # Weekly on its own, on demand from the button, or on any commit whose message carries [drill].
+    #
+    # That last one is not a convenience. Changing restore-drill.mjs and finding out the following
+    # Monday whether it still works is the wrong way round — and somebody who has just added the
+    # database secret should be able to prove it is right immediately rather than wait five days to
+    # discover a typo. The marker has to be typed on purpose, so it never fires by accident.
+    #
+    # Not hourly: it dumps the whole database, and sixty of those a day is cost and load with no
+    # extra truth in it.
     if: >-
       (github.event_name == 'schedule' && github.event.schedule == '0 6 * * 1')
       || (github.event_name == 'workflow_dispatch' && inputs.restore_drill)
+      || (github.event_name == 'push' && contains(github.event.head_commit.message, '[drill]'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
