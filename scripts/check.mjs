@@ -98,6 +98,33 @@ const designs = (() => {
 console.log(`  ${designs?.startsWith('COMPLETE') ? '✓' : 'ℹ'} the designs are all here — ${designs ?? 'could not tell'}`);
 
 /*
+  How old are the designs these numbers are measured against?
+
+  There is no live connection to Claude Design — designs/ is a snapshot. So every number below can
+  read 100% while being 100% against a set that is weeks old, which is the worst kind of green: not
+  wrong, just answering a question nobody asked. It has already happened once, with eighteen of
+  twenty-one screens a day behind and the cockpit reading 100%.
+
+  Dated from the last commit that CHANGED a design file, because file timestamps are whatever the
+  clone happened to write. Nothing is failed on it: an old design set is a fact about what was sent,
+  not a fault in the code. It just can never again be invisible.
+*/
+const designAge = (() => {
+  try {
+    const at = run('git log -1 --format=%ct -- designs/').trim();
+    if (!at) return null;
+    return Math.floor((Date.now() / 1000 - Number(at)) / 86400);
+  } catch { return null; }
+})();
+if (designAge !== null) {
+  const how = designAge === 0 ? 'today' : designAge === 1 ? 'yesterday' : `${designAge} days ago`;
+  console.log(
+    `  ${designAge <= 2 ? '✓' : '!'} those designs last changed ${how}` +
+    `${designAge > 2 ? ' — send the project again from Claude Design if you have worked on it since (npm run designs:pull)' : ''}`,
+  );
+}
+
+/*
   And does the product SAY what they say?
 
   A complete set of designs and a product that does not carry their wording are two different
