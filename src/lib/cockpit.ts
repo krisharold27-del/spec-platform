@@ -154,6 +154,11 @@ export interface Milestone { what: string; when: string; why: string }
 
 export const MILESTONES: Milestone[] = [
   {
+    what: 'A pair of glasses with every new business',
+    when: 'Once there are enough new businesses a month that posting them is a routine rather than an errand — roughly phase two, when the first customers are being delighted on purpose.',
+    why: 'The front door says "all that power, and nothing aiming it — SPEC puts the glasses on." A real pair arriving in the post turns a line somebody read into an object on their desk, and it is the cheapest advertising there is: it sits in an office where other business owners see it. Never styled after the comic-book character the idea came from — the idea is unencumbered, the character is not, and merchandise is exactly where that gets noticed.',
+  },
+  {
     what: 'Buy spec.com',
     when: 'Once the referral flywheel is turning — phase three, or the first year the software engine covers its own costs.',
     why: 'The name is the product. Until then every referral carries three extra words and every mistype lands somewhere that is not SPEC. A premium one-word domain is a serious purchase, so it waits for a business that can absorb it without taking money away from finding customers.',

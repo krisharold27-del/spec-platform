@@ -146,7 +146,25 @@ export default async function Landing() {
             horsepower was never what you were short of — none of it tells you what is actually
             wrong, and no machine has ever fixed a business on its own.
           </p>
-          <p className="mx-auto mt-4 max-w-[56ch] text-[17px] leading-7 text-ink">
+          {/*
+            The picture, because the argument above is abstract and this is not.
+
+            Enormous power with nothing aiming it levels whatever it looks at; the same power behind
+            a lens is a precision instrument. That is the whole case for SPEC in one image, and it
+            does what three paragraphs of positioning cannot — it stays with somebody after they
+            close the tab.
+
+            Deliberately not named after the comic-book character it came from. The idea is
+            unencumbered and the character is not, and this sentence also has to survive being
+            printed on something. Nothing is lost: the image carries itself.
+          */}
+          <p className="mx-auto mt-8 max-w-[46ch] font-serif text-[clamp(1.375rem,2.6vw,1.875rem)] leading-snug text-ink">
+            All that power, and nothing aiming it.
+            <br />
+            <span className="text-rust">SPEC puts the glasses on.</span>
+          </p>
+
+          <p className="mx-auto mt-8 max-w-[56ch] text-[17px] leading-7 text-ink">
             SPEC finds what is really going on and fixes it in the one order that works:{' '}
             <b>People, then Compliance, then Earnings.</b> Earnings is the result, never the lever.
             It always starts with your people, because they are the only part of a business that
