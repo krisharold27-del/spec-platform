@@ -7,6 +7,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
 import { LIGHT_INK } from '@/lib/today';
 import { summarise } from '@/lib/uptime';
+import { running, runningLine } from '@/lib/running';
 import {
   health, pctLabel, seatProgress, money,
   SCALE_CHECKS, PHASES, CHANNELS, CHANNEL_TOTAL, MILESTONES,
@@ -81,6 +82,7 @@ export default async function Cockpit() {
 
   const uptime = summarise(pings);
   const figures = health({ tenants, seats, consultingClients }, uptime);
+  const version = running(process.env);
   const seatPct = seatProgress(seats);
   const ready = SCALE_CHECKS.filter(c => c.done).length;
 
@@ -89,10 +91,44 @@ export default async function Cockpit() {
       title="Running SPEC Business Solutions"
       subtitle={`${user.email} · private`}
     >
-      <p className="-mt-2 mb-8 max-w-2xl text-base text-ink-light">
+      <p className="-mt-2 mb-6 max-w-2xl text-base text-ink-light">
         Not the client product. This is where you set objectives, see where the build is up to, and
         track the two engines against real target numbers.
       </p>
+
+      {/*
+        What is actually running, before any other number on the page.
+
+        The question underneath every other one here, and until now unanswerable without opening a
+        build log: is the thing I am looking at the thing that was built? This project shipped work
+        for months that never reached production — builds green, deploys succeeded, live site
+        unchanged — and there was no way to see that from inside the product. Now the running
+        version says what it is, on the page that gets opened anyway.
+      */}
+      <section className="mb-8 rounded-lg border border-ink/10 bg-surface p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <span className="label-caps">What is running</span>
+          <span
+            className="text-xs font-medium"
+            style={{ color: version.live ? LIGHT_INK.green : LIGHT_INK.pending }}
+          >
+            {version.live ? 'Live site' : version.ref ? `${version.where} build` : 'Not built from a commit'}
+          </span>
+        </div>
+        {version.what && (
+          <p className="mt-2 font-serif text-lg text-ink">
+            {version.href
+              ? <a href={version.href} className="hover:text-rust">{version.what}</a>
+              : version.what}
+          </p>
+        )}
+        {(version.ref || version.by) && (
+          <p className="mt-1 text-xs text-ink-light">
+            {[version.ref, version.by].filter(Boolean).join(' \u00b7 ')}
+          </p>
+        )}
+        <p className="mt-2 max-w-2xl text-sm text-ink-light">{runningLine(version)}</p>
+      </section>
 
       {/* ── The two engines ─────────────────────────────────────────────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-2">
