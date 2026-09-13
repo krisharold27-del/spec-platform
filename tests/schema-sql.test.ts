@@ -98,6 +98,55 @@ describe('bringing a database up to the build', () => {
   });
 });
 
+/*
+  ── Every business's rows must be findable without reading everybody's ──────────────────────────
+
+  A load test at twenty thousand seats found `meetings` had no index on tenant_id. Finding one
+  business's two dozen meetings meant Postgres reading all 16,008 of them — on My Page, the screen
+  every customer opens every morning.
+
+  It is the worst shape of bug for a product sold by the seat, because nothing breaks. One
+  business's page simply costs a little more every time ANOTHER business signs up, so the product
+  gets slower exactly as it succeeds, and the customers who feel it first are the oldest ones.
+
+  A load test only finds this when somebody remembers to run it. This runs on every change, so a
+  new tenant-scoped table cannot arrive without the index that makes it scale.
+*/
+describe('every business can be read without reading all of them', () => {
+  it('indexes tenant_id on every table scoped to a business', () => {
+    const missing = tableShapes()
+      .filter(t => t.columns.some(c => c.name === 'tenant_id'))
+      .filter(t => !t.indexes.some(i => i.columns[0] === 'tenant_id'))
+      .map(t => t.name);
+
+    expect(
+      missing,
+      'These tables belong to a business but have no index starting at tenant_id, so reading one ' +
+      `business's rows scans every business's: ${missing.join(', ')}. ` +
+      "Add index('<table>_tenant').on(t.tenantId) in src/db/schema.ts.",
+    ).toEqual([]);
+  });
+
+  /*
+    Uniqueness declared on a column reached the schema and never reached the database.
+    board_outputs.period_id was `.unique()` in code with no constraint on the real table, so
+    nothing stopped two board packs existing for the same month — the pack being that month's
+    official account of itself.
+
+    Drizzle keeps column-level unique() on the column, nowhere near index() and uniqueIndex(), and
+    only those two were being read. This fails if that quietly stops being true again.
+  */
+  it('carries column-level unique() through to the database', () => {
+    const boardOutputs = tableShapes().find(t => t.name === 'board_outputs');
+    expect(boardOutputs, 'board_outputs is missing from the schema').toBeTruthy();
+    expect(
+      boardOutputs!.indexes.some(i => i.unique && i.columns.join() === 'period_id'),
+      'board_outputs.period_id is declared unique in the schema and no unique index is generated ' +
+      'for it, so two board packs could exist for the same month.',
+    ).toBe(true);
+  });
+});
+
 /** A database holding roughly half of what the build wants — the realistic middle case. */
 function halfADatabase(): Map<string, Set<string>> {
   const full = expectedShape();

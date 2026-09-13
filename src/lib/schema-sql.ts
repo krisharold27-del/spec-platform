@@ -83,14 +83,51 @@ export function tableShapes(): TableShape[] {
         defaultSql: defaultLiteral((c as { default?: unknown }).default),
         primary: c.primary,
       })),
-      indexes: config.indexes.map(i => {
-        const cfg = i.config as { name: string; unique?: boolean; columns?: { name?: string }[] };
-        return {
-          name: cfg.name,
-          unique: Boolean(cfg.unique),
-          columns: (cfg.columns ?? []).map(c => c?.name).filter((n): n is string => Boolean(n)),
-        };
-      }),
+      indexes: [
+        ...config.indexes.map(i => {
+          const cfg = i.config as { name: string; unique?: boolean; columns?: { name?: string }[] };
+          return {
+            name: cfg.name,
+            unique: Boolean(cfg.unique),
+            columns: (cfg.columns ?? []).map(c => c?.name).filter((n): n is string => Boolean(n)),
+          };
+        }),
+        /*
+          Uniqueness declared on a COLUMN, not as an index.
+
+          Drizzle records `text(...).unique()` on the column — isUnique and uniqueName — nowhere
+          near index() and uniqueIndex(). Only those two were read here, so a rule the schema stated
+          plainly never reached the database: board_outputs.period_id is declared unique and the
+          live table had no such constraint. Nothing was stopping two board packs existing for the
+          same month, the pack being that month's official account of itself.
+
+          A rule that is written down, believed by the code, and absent from the database is worse
+          than no rule, because everything upstream is built assuming it holds.
+
+          Emitted as `create unique index if not exists`, which keeps the additive-only guarantee
+          this file exists for: it can add the rule, and there is no path by which it removes one.
+          If rows already break the rule the statement fails, loudly, naming the table — which is
+          the right outcome. Carrying on quietly is how this was missed in the first place.
+
+          Table-level unique() is read too, so adding one later does not repeat the omission.
+        */
+        ...config.columns
+          .filter(c => (c as unknown as { isUnique?: boolean }).isUnique)
+          .map(c => ({
+            name: (c as unknown as { uniqueName?: string }).uniqueName ?? `${config.name}_${c.name}_unique`,
+            unique: true,
+            columns: [c.name],
+          })),
+        ...(config.uniqueConstraints ?? []).map(u => {
+          const cfg = u as unknown as { name?: string; columns?: { name?: string }[] };
+          const columns = (cfg.columns ?? []).map(c => c?.name).filter((n): n is string => Boolean(n));
+          return {
+            name: cfg.name ?? `${config.name}_${columns.join('_')}_unique`,
+            unique: true,
+            columns,
+          };
+        }),
+      ].filter(i => i.columns.length > 0),
     });
   }
   return out;

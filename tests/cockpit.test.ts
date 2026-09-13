@@ -89,8 +89,24 @@ describe('running SPEC Business Solutions', () => {
   it('admits what has not been done', () => {
     const undone = SCALE_CHECKS.filter(c => !c.done);
     expect(undone.length).toBeGreaterThan(0);
-    expect(undone.map(c => c.label).join(' ')).toMatch(/Load-tested/);
+    /*
+      The backup is still the honest gap, and it is the one that cannot be closed by writing code:
+      a backup nobody has restored is a belief, and the only way to stop it being one is to restore
+      it once, on purpose.
+
+      Load-testing used to be pinned here too. It was closed by actually running one at twenty
+      thousand seats — which found three tables where reading one business meant reading all of
+      them — so this now pins the RULE rather than that item: something on this list must still be
+      red, and the item may only turn green by being done.
+    */
     expect(undone.map(c => c.label).join(' ')).toMatch(/backup/i);
+  });
+
+  it('never calls something done without saying how it was proven', () => {
+    for (const c of SCALE_CHECKS.filter(c => c.done)) {
+      expect(c.evidence, `${c.label} is marked done`).not.toMatch(/never run|not yet|todo|belief/i);
+      expect(c.evidence.length, `${c.label} needs real evidence`).toBeGreaterThan(40);
+    }
   });
 
   it('backs every claim with something checkable', () => {

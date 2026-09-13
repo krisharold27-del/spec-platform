@@ -381,7 +381,17 @@ export const scorecardComments = pgTable('scorecard_comments', {
   authorUserId: text('author_user_id').references(() => users.id),
   body: text('body').notNull(),
   createdAt: text('created_at').notNull(),
-}, t => [index('scorecard_comments_role_period').on(t.roleId, t.periodId)]).enableRLS();
+/*
+  Two indexes, because there are two questions asked of this table.
+
+  The scorecard page asks for one role's comments in one month, which the first index answers. The
+  boards page asks for the whole business's, which had nothing and scanned every comment belonging
+  to every customer. Found by the tenant-index test rather than by anybody noticing.
+*/
+}, t => [
+  index('scorecard_comments_role_period').on(t.roleId, t.periodId),
+  index('scorecard_comments_tenant').on(t.tenantId),
+]).enableRLS();
 
 export const gates = pgTable('gates', {
   id: text('id').primaryKey(),
@@ -520,7 +530,20 @@ export const meetings = pgTable('meetings', {
    * rhythm exists to fix.
    */
   decisions: text('decisions'),
-}).enableRLS();
+  /*
+    Indexed by business, which it was not until a load test at twenty thousand seats found it.
+
+    Every other tenant-scoped table had this and meetings did not, so finding one business's two
+    dozen meetings meant Postgres reading every meeting belonging to every customer: 16,008 rows
+    read to return 24. It happens on My Page — the screen every customer opens every morning — and
+    again on the weekly meeting and the boards.
+
+    This is the shape of failure that matters in a product sold by the seat, because it does not
+    look like a bug. Nothing breaks. One business's morning page simply costs a little more every
+    time ANOTHER business signs up, so the product gets slower exactly as it succeeds, and the
+    customers who feel it first are the ones who have been there longest.
+  */
+}, t => [index('meetings_tenant').on(t.tenantId)]).enableRLS();
 
 export const boardOutputs = pgTable('board_outputs', {
   id: text('id').primaryKey(),

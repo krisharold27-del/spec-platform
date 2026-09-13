@@ -15,7 +15,8 @@
     "designs:status": "node scripts/design-status.mjs",
     "db:check-rls": "node scripts/check-rls.mjs",
     "check": "node scripts/check.mjs",
-    "deployed": "node scripts/deployed.mjs"
+    "deployed": "node scripts/deployed.mjs",
+    "load-test": "node scripts/load-test.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
