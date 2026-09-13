@@ -8,6 +8,9 @@ import { isAdminEmail } from '@/lib/admin';
 import { LIGHT_INK } from '@/lib/today';
 import { summarise } from '@/lib/uptime';
 import { running, runningLine } from '@/lib/running';
+import { healthFacts } from '@/lib/health-facts';
+import { lines, verdict, VERDICT_LINE, VERDICT_NOTE } from '@/lib/site-health';
+import { HealthRows, HEALTH_TONE } from '@/components/health-rows';
 import {
   health, pctLabel, seatProgress, money,
   SCALE_CHECKS, PHASES, CHANNELS, CHANNEL_TOTAL, MILESTONES,
@@ -83,6 +86,12 @@ export default async function Cockpit() {
   const uptime = summarise(pings);
   const figures = health({ tenants, seats, consultingClients }, uptime);
   const version = running(process.env);
+
+  // The same answer /status gives, from the same code. Two screens that disagree about whether the
+  // product is working would be worse than either alone — see lib/health-facts.
+  const facts = await healthFacts();
+  const working = lines(facts);
+  const overall = verdict(working);
   const seatPct = seatProgress(seats);
   const ready = SCALE_CHECKS.filter(c => c.done).length;
 
@@ -194,9 +203,32 @@ export default async function Cockpit() {
         </section>
       </div>
 
-      {/* ── System health ───────────────────────────────────────────────────────────────────── */}
+      {/*
+        Is it working — the same five rows /status shows, on the page the owner already has open.
+
+        They were two pages answering one question, which is one page too many: "should I be
+        worried?" is not a question anybody should have to ask in two places. /status still exists
+        and still needs no sign-in, because its job is answering that at the moment somebody CANNOT
+        sign in — but for the person who can, this is where it lives.
+      */}
       <section className="card mt-6">
-        <h2 className="font-serif text-xl text-ink">System health</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="font-serif text-xl" style={{ color: HEALTH_TONE[overall] }}>
+            {VERDICT_LINE[overall]}
+          </h2>
+          <a href="/status" className="text-xs text-ink-light underline">
+            The same page, without signing in
+          </a>
+        </div>
+        <p className="mt-1 max-w-2xl text-sm text-ink-light">{VERDICT_NOTE[overall]}</p>
+        <div className="mt-5">
+          <HealthRows rows={working} />
+        </div>
+      </section>
+
+      {/* ── What it is carrying, and what it is ready for ───────────────────────────────────── */}
+      <section className="card mt-6">
+        <h2 className="font-serif text-xl text-ink">Size and readiness</h2>
         <p className="mt-1 max-w-2xl text-sm text-ink-light">
           Multi-tenant from the first day — every business&rsquo;s data cleanly separated — on
           infrastructure that does not need rebuilding between forty users and twenty thousand.

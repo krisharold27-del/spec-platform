@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { SpecLockup } from './spec-mark';
 import { band, type Pillar, type Score } from '@/lib/scoring';
-import { myBusinesses } from '@/lib/auth';
+import { myBusinesses, getCurrentUser } from '@/lib/auth';
+import { isAdminEmail } from '@/lib/admin';
 import { currentLook } from '@/lib/look';
-import { doSignOut } from '@/app/signin/actions';
 import { LookBar } from './look-bar';
 import { PILLAR_META, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk, pct } from '@/lib/pillars';
 
@@ -24,6 +24,17 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
     that is what gets asked.
   */
   const looking = Boolean(await currentLook().catch(() => null));
+
+  /*
+    The cockpit, offered only to whoever it belongs to.
+
+    Kris went looking for it by typing the address, was silently sent to My Page because the check
+    is on the server, and had no way to tell whether he had got the address wrong or the page had
+    refused him. A link he can see removes the guessing — and its ABSENCE is itself the answer for
+    everybody else, which is better than a refusal that admits the page exists.
+  */
+  const me = await getCurrentUser().catch(() => null);
+  const runsSpec = Boolean(me && isAdminEmail(me.email));
   return (
     <div className="min-h-screen">
       {looking && <LookBar />}
@@ -35,62 +46,24 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
             <SpecLockup />
           </Link>
           {/*
-            Five links, then everything else behind one word.
-            The five are the rhythm — the day, the week, the month, what is waiting, and the chart
-            every score rolls up. Putting fourteen across the top would mean a leader scanning a
-            menu to find the thing they open every morning.
-            `<details>` rather than a scripted dropdown: it works with the keyboard, it works before
-            hydration, and it needs nothing shipped to the browser.
+            No navigation, on purpose.
+
+            The shape of the product is: a landing page for arriving, then My Page, and everything
+            inside the system branches from there. A toolbar of five links and a dropdown of
+            fourteen had quietly made SPEC two things — a page you work on, and a menu you hunt in —
+            and a leader opening it at seven in the morning should see their day, not scan a
+            toolbar deciding which of nineteen places they meant.
+
+            So the mark goes home and nothing else navigates. The doors live at the bottom of My
+            Page, grouped the way somebody actually thinks about them; see lib/doors.
           */}
-          <nav className="flex items-center gap-5 label-caps">
-            <Link href="/today" className="hover:text-rust">My page</Link>
-            <Link href="/meeting" className="hidden hover:text-rust sm:inline">This week</Link>
-            <Link href="/scoring" className="hidden hover:text-rust sm:inline">The month</Link>
-            <Link href="/inbox" className="hover:text-rust">Approvals</Link>
-            <Link href="/org" className="hidden hover:text-rust sm:inline">Org chart</Link>
-
-            <details className="relative">
-              <summary className="cursor-pointer list-none hover:text-rust">Everything else</summary>
-              <div className="absolute right-0 z-10 mt-2 grid w-56 gap-1 rounded-lg border border-ink/10 bg-surface p-2 shadow-md">
-                {[
-                  { href: '/summary', label: 'Executive summary' },
-                  { href: '/charter', label: 'Board Charter' },
-                  { href: '/me', label: 'My scorecard' },
-                  { href: '/team', label: 'Team roll-up' },
-                  { href: '/people', label: 'People' },
-                  { href: '/boards', label: 'Conversation boards' },
-                  { href: '/curve', label: 'Your J curve' },
-                  { href: '/training', label: 'Training' },
-                  { href: '/connections', label: 'Connections' },
-                  { href: '/setup', label: 'Setting up' },
-                  { href: '/journey', label: 'Journey' },
-                  { href: '/settings', label: 'Administration' },
-                  ...(businesses.length > 1
-                    ? [{ href: '/group', label: 'Group' }, { href: '/businesses', label: 'Switch business' }]
-                    : []),
-                ].map(l => (
-                  <Link key={l.href} href={l.href} className="rounded-full px-3 py-1.5 hover:bg-cream hover:text-rust">
-                    {l.label}
-                  </Link>
-                ))}
-                {/* Last, quiet, and out of the way. Nobody should sign out by accident on their way
-                    to something else — the point is to stay in all day and come back tomorrow. */}
-                <form action={doSignOut} className="mt-1 border-t border-ink/10 pt-1">
-                  <button type="submit" className="w-full rounded-full px-3 py-1.5 text-left text-ink-light/70 hover:bg-cream hover:text-rust">
-                    Sign out
-                  </button>
-                </form>
-              </div>
-            </details>
-
-            {/* A visitor never signed in, so offering to sign them out is nonsense. They get the
-                way out of the look-around instead. */}
-            {looking ? (
-              <Link href="/look/decide" className="normal-case tracking-normal text-ink-light/70 hover:text-rust">
-                Finish looking
-              </Link>
-            ) : null}
-          </nav>
+          {looking && (
+            /* A visitor never signed in, so offering to sign them out is nonsense. They get the way
+               out of the look-around instead. */
+            <Link href="/look/decide" className="label-caps normal-case tracking-normal text-ink-light/70 hover:text-rust">
+              Finish looking
+            </Link>
+          )}
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">

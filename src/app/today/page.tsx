@@ -12,6 +12,10 @@ import { currentLook } from '@/lib/look';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById, PILLARS } from '@/lib/queries';
 import { getToday } from '@/lib/today-data';
+import { doors } from '@/lib/doors';
+import { isAdminEmail } from '@/lib/admin';
+import { myBusinesses } from '@/lib/auth';
+import { doSignOut } from '@/app/signin/actions';
 import { hasDiagnosis } from '@/lib/plan';
 import { light, pillarNote, clearToWork, LIGHT_COLOUR, LIGHT_LABEL, type Light } from '@/lib/today';
 import type { Pillar, RoleScore } from '@/lib/scoring';
@@ -73,6 +77,13 @@ export default async function MyPage({
   const teamNames = team.map(m => m.holder).filter((n): n is string => !!n);
   const register = await registerFor(user.tenantId, user.name, teamNames);
   const mail = await myMail(user.tenantId, user.id);
+
+  // Every door out of this page. The group view only appears for somebody actually in a group, and
+  // the cockpit only for whoever runs SPEC itself — its absence is the answer for everybody else.
+  const ways = doors({
+    businesses: (await myBusinesses().catch(() => [])).length,
+    runsSpec: isAdminEmail(user.email),
+  });
 
   // My week: the handful of beats the business runs on, never a diary. See lib/rhythm.
   const unmarked = myRows.filter(r => r.kpi && !r.answer).length;
@@ -453,6 +464,55 @@ export default async function MyPage({
       </div>
 
       <p className="mt-10 max-w-xl text-base text-ink-light">That is the whole day. Nothing else to open.</p>
+
+      {/*
+        Everywhere else, and every door to it.
+
+        SPEC has no navigation bar. The shape is a landing page for arriving and then THIS page,
+        which controls everything inside the system — so the rest of the product is reached from
+        here, at the bottom, after the day's work rather than above it. A toolbar would put a menu
+        between a leader and the thing they opened SPEC to see.
+
+        Grouped the way somebody asks for them, and ordered by how often they are needed. See
+        lib/doors, which is also what a test walks to prove nothing has become unreachable.
+      */}
+      <section className="mt-12 border-t border-ink/10 pt-8">
+        <h2 className="font-serif text-xl text-ink">Everywhere else in SPEC</h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-light">
+          There is no menu. Everything opens from here, and the mark at the top of any screen brings
+          you back.
+        </p>
+
+        <div className="mt-6 grid gap-8 sm:grid-cols-2">
+          {ways.map(group => (
+            <div key={group.title}>
+              <span className="label-caps">{group.title}</span>
+              <ul className="mt-3 grid gap-3">
+                {group.doors.map(d => (
+                  <li key={d.href}>
+                    <Link href={d.href} className="font-serif text-base text-ink hover:text-rust">
+                      {d.label}
+                    </Link>
+                    <span className="block text-xs text-ink-light">{d.note}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/*
+          Last, quiet, and deliberately not a destination. It never belonged in a navigation bar,
+          where it sat one slip away from whatever somebody was actually reaching for.
+        */}
+        {canWrite && (
+          <form action={doSignOut} className="mt-10 border-t border-ink/10 pt-6">
+            <button type="submit" className="text-sm text-ink-light/70 underline hover:text-rust">
+              Sign out
+            </button>
+          </form>
+        )}
+      </section>
     </Shell>
   );
 }
