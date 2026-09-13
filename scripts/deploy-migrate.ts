@@ -74,8 +74,32 @@ async function actualShape(url: string) {
   }
 }
 
+/**
+ * The local database, when there is one.
+ *
+ * Vercel puts DATABASE_URL in the environment, so the deploy path never needed this. Running the
+ * same command on a laptop did — and without it, `npm run db:migrate` printed "nothing to migrate"
+ * and exited 0 against a perfectly good local Postgres sitting in .env.local. That is a no-op
+ * wearing the clothes of a success, which is the exact failure this whole file was written about.
+ *
+ * Next.js loads .env.local for the app. A script run outside Next does not, so it is read here.
+ * Only ever this one file, and only when the environment has not already said otherwise — nothing
+ * in a local file may override a real deployment's setting.
+ */
+function localUrl(): string | undefined {
+  try {
+    const text = readFileSync(new URL('../.env.local', import.meta.url), 'utf8');
+    const line = text.split('\n').find(l => /^\s*DATABASE_URL\s*=/.test(l));
+    return line?.split('=').slice(1).join('=').trim().replace(/^["']|["']$/g, '') || undefined;
+  } catch {
+    return undefined; // No .env.local is the ordinary case on a deploy.
+  }
+}
+
 async function main() {
-  const url = process.env.DATABASE_URL?.trim();
+  const fromEnv = process.env.DATABASE_URL?.trim();
+  const url = fromEnv || localUrl();
+  if (!fromEnv && url) say('using DATABASE_URL from .env.local');
 
   /*
     No database configured is not a failure. The public pages — welcome, how it works, sectors,
@@ -83,7 +107,7 @@ async function main() {
     site down over a missing setting. /api/health reports the gap instead.
   */
   if (!url) {
-    say('DATABASE_URL is not set, so there is nothing to migrate. Carrying on with the build.');
+    say('DATABASE_URL is not set, and there is none in .env.local, so there is nothing to migrate.');
     return;
   }
 

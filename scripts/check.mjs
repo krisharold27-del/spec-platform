@@ -12,12 +12,38 @@
 // Anything needing a database or a browser is skipped, out loud, when those are not here. A skip is
 // never counted as a pass.
 
-import { execFileSync, execSync } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
+import { execFileSync, execSync, spawn } from 'node:child_process';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const t0 = Date.now();
 const results = [];
+
+/*
+  ── Settings this command needs, wherever they live ──────────────────────────────────────────────
+
+  Next.js reads .env.local. A script run outside Next does not, so this command used to announce
+  "no database is configured here" while a perfectly good database sat in that file four lines from
+  the top. A check that cannot find what it is checking reports a gap that does not exist, and a
+  person who is told that twice stops believing the next thing it says.
+
+  Never overrides a real environment variable: on a deploy those are the truth, and a local file has
+  no business outranking them.
+*/
+function loadLocalEnv() {
+  try {
+    const text = readFileSync(new URL('../.env.local', import.meta.url), 'utf8');
+    for (const line of text.split('\n')) {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
+      if (!m) continue;
+      const [, key, raw] = m;
+      if (process.env[key] === undefined) process.env[key] = raw.trim().replace(/^["']|["']$/g, '');
+    }
+  } catch {
+    // No .env.local is the ordinary case on a deploy and in CI.
+  }
+}
+loadLocalEnv();
 
 const run = (cmd, opts = {}) =>
   execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts });
@@ -95,13 +121,131 @@ if (!dbUrl) {
 
 // ── The ways in ──────────────────────────────────────────────────────────────────────────────────
 console.log('\nThe ways in, and the one way out of bounds');
-const APP = process.env.APP_URL ?? 'http://localhost:3000';
-const serving = (() => {
+
+const curlOk = (url, seconds = 4) => {
   try {
-    execFileSync('curl', ['-fsS', '-o', '/dev/null', '--max-time', '4', `${APP}/`], { stdio: 'ignore' });
+    execFileSync('curl', ['-fsS', '-o', '/dev/null', '--max-time', String(seconds), url], { stdio: 'ignore' });
     return true;
   } catch { return false; }
-})();
+};
+
+/**
+ * What the app says about itself. Null when it cannot be asked.
+ *
+ * /api/health lists exactly which settings are missing, which is how this command can tell the
+ * difference between "the product is broken" and "the app in front of me was started without the
+ * settings these journeys need" — two sentences that used to produce the same four red lines.
+ */
+function healthOf(base) {
+  try {
+    return JSON.parse(execFileSync('curl', ['-fsS', '--max-time', '20', `${base}/api/health`], { encoding: 'utf8' }));
+  } catch { return null; }
+}
+
+/*
+  ── Standing up what the journeys need, rather than hoping somebody already did ──────────────────
+
+  Every journey below signs somebody up, and sign-up talks to the authentication provider. Point the
+  app at a provider that is not there and sign-up fails honestly with "that is our end, not yours" —
+  correct product behaviour, and indistinguishable, from out here, from the product being broken.
+
+  It was reported as the latter. Four journeys failed, the verdict read SOMETHING IS BROKEN, and
+  nothing was: the dev server on this machine had simply been started without the two Supabase
+  settings. That is the cry-wolf failure this file has now had four times, and it is the one that
+  matters most, because the whole value of one command is a verdict you can trust without reading
+  the detail.
+
+  So this command now brings up its own stack when the one in front of it is not wired for this:
+  scripts/fake-auth on a spare port, and the app beside it, both torn down at the end. Nothing
+  test-only ships — fake-auth speaks enough of the provider's HTTP API that the real client talks to
+  it unmodified, which is the same arrangement CI uses.
+
+  If it cannot — no database, no browser — it says so as a SKIP. "I could not check this" and "this
+  is broken" are different sentences and only one of them should make somebody's stomach drop.
+*/
+const started = [];
+function stopStack() {
+  for (const child of started.splice(0)) {
+    try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already gone */ }
+  }
+}
+process.on('exit', stopStack);
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { stopStack(); process.exit(130); });
+
+function spawnQuiet(cmd, args, env) {
+  const child = spawn(cmd, args, { env: { ...process.env, ...env }, stdio: 'ignore', detached: true });
+  started.push(child);
+  return child;
+}
+
+function waitFor(url, seconds) {
+  const until = Date.now() + seconds * 1000;
+  while (Date.now() < until) {
+    if (curlOk(url, 5)) return true;
+    try { execSync('sleep 1'); } catch { /* keep waiting */ }
+  }
+  return false;
+}
+
+/** Bring up fake-auth and the app, wired together. Returns the base URL, or null if it could not. */
+function standUpStack(dbUrl) {
+  const authPort = 54321;
+  const appPort = 3100;
+  const base = `http://localhost:${appPort}`;
+
+  if (!curlOk(`http://127.0.0.1:${authPort}/auth/v1/user`, 3)) {
+    spawnQuiet('node', ['scripts/fake-auth.mjs', String(authPort)], { NODE_ENV: 'test' });
+    // fake-auth answers 401 on that route, which curl -f treats as a failure, so poll for the
+    // socket being open rather than for a 2xx.
+    const until = Date.now() + 20_000;
+    let up = false;
+    while (Date.now() < until && !up) {
+      try {
+        execFileSync('curl', ['-sS', '-o', '/dev/null', '--max-time', '3', `http://127.0.0.1:${authPort}/auth/v1/user`], { stdio: 'ignore' });
+        up = true;
+      } catch { try { execSync('sleep 1'); } catch { /* keep waiting */ } }
+    }
+    if (!up) return null;
+  }
+
+  spawnQuiet('npx', ['next', 'dev', '-p', String(appPort)], {
+    DATABASE_URL: dbUrl,
+    NEXT_PUBLIC_SUPABASE_URL: `http://127.0.0.1:${authPort}`,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-anon-key',
+    APP_URL: base,
+    NODE_ENV: 'test',
+  });
+  return waitFor(`${base}/`, 120) ? base : null;
+}
+
+/*
+  Prefer an app that is already running and properly wired — somebody with `npm run dev` open should
+  not wait for a second copy to boot. Otherwise stand one up.
+*/
+let APP = process.env.APP_URL ?? 'http://localhost:3000';
+let serving = curlOk(`${APP}/`);
+let wiringNote = null;
+
+if (serving) {
+  const health = healthOf(APP);
+  const missing = health?.missing ?? [];
+  if (missing.length) {
+    serving = false;
+    wiringNote = `the app at ${APP} was started without ${missing.join(' and ')}`;
+  }
+}
+
+if (!serving && dbUp) {
+  process.stdout.write('  … starting an app of my own for these');
+  const own = standUpStack(process.env.DATABASE_URL);
+  if (own) {
+    APP = own;
+    serving = true;
+    process.stdout.write(`\r  ✓ started an app of my own on ${own}${wiringNote ? ` — ${wiringNote}` : ''}\n`);
+  } else {
+    process.stdout.write(`\r  – could not start an app of my own\n`);
+  }
+}
 
 /*
   Find a browser, rather than assuming Playwright's.
@@ -129,7 +273,9 @@ function findBrowser() {
       }
     }
   }
-  // Playwright's own copy, wherever it keeps it. Silence, not an error, when it has none.
+  // Playwright's own copy, wherever it keeps it — and only if it is really there. It reports the
+  // path of the build it WANTS, which on a machine carrying a different one does not exist; taking
+  // its word for that crashed every journey before they reached the product.
   try {
     const path = execSync('node -e "console.log(require(\'playwright\').chromium.executablePath())"', {
       encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
@@ -150,7 +296,10 @@ const JOURNEYS = [
 ];
 
 if (!serving) {
-  for (const [id, what] of JOURNEYS) skip(id, what, `nothing is running at ${APP}`);
+  const why = wiringNote
+    ? `${wiringNote}, and a replacement could not be started${dbUp ? '' : ' because there is no database here'}`
+    : dbUp ? `nothing is running at ${APP}, and one could not be started` : 'there is no database here to run them against';
+  for (const [id, what] of JOURNEYS) skip(id, what, why);
 } else if (!browser) {
   for (const [id, what] of JOURNEYS) skip(id, what, 'there is no browser on this machine to drive');
 } else {
@@ -166,7 +315,12 @@ if (!serving) {
     */
     const out = (() => {
       try {
-        return run(`node scripts/${script}.mjs`, { env: { ...process.env, CHROME_PATH: browser } });
+        // The address is passed explicitly. Every journey defaults to :3000, so when this command
+        // has stood up its own app on another port they would all have driven at whatever happened
+        // to be on :3000 instead — or at nothing.
+        return run(`node scripts/${script}.mjs ${APP}`, {
+          env: { ...process.env, CHROME_PATH: browser, APP_URL: APP },
+        });
       } catch (error) {
         return String(error.stdout || error.stderr || error.message);
       }

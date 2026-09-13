@@ -12,7 +12,10 @@
  */
 import { chromium } from 'playwright';
 
-const BASE = process.argv[2] ?? 'http://localhost:3000';
+// Argument first, then APP_URL, matching the other four journeys. One of them reading only an
+// argument while the rest read only an environment variable is how a run quietly drives at the
+// wrong app and reports on something nobody asked about.
+const BASE = process.argv[2] ?? process.env.APP_URL ?? 'http://localhost:3000';
 const stamp = Date.now();
 const EMAIL = `owner-${stamp}@journey.test`;
 const PASSWORD = 'a-good-password-123';
