@@ -185,6 +185,31 @@ if (!serving) {
   }
 }
 
+/*
+  ── And is any of it actually live? ──────────────────────────────────────────────────────────────
+
+  Everything above tests the code ON THIS MACHINE. All of it can pass while the site customers use
+  runs something else entirely — a build that failed, a commit never pushed, work sitting uncommitted
+  in this folder. That gap is not theoretical: this product once spent twenty-five commits behind
+  its own repository with nobody aware of it.
+
+  So the last line of the one command that answers "is SPEC working" also answers "where". It asks
+  GitHub what became of this commit, which needs no access to the live site — deliberately, because
+  the check has to work from every machine this is run on, not just the ones allowed to reach it.
+
+  Reported, never counted. A local check suite has no business failing because a deploy is mid-build.
+*/
+console.log('\nAnd on the live site');
+try {
+  const out = execSync('node scripts/deployed.mjs', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  console.log(`  ✓ ${(out.match(/^ {2}LIVE — .*/m) ?? ['live, but it did not say so'])[0].trim()}`);
+} catch (error) {
+  const out = String(error.stdout || error.stderr || '');
+  const verdict = out.match(/^ {2}(NOT PUSHED|FAILED|BUILDING|WAITING|UNKNOWN) — .*/m);
+  console.log(`  ! ${verdict ? verdict[0].trim() : 'could not tell whether this commit is deployed'}`);
+  console.log('    Run  npm run deployed  for the detail. Nothing above is affected by this.');
+}
+
 // ── The verdict ──────────────────────────────────────────────────────────────────────────────────
 const failed = results.filter(r => r.state === 'fail');
 const skipped = results.filter(r => r.state === 'skip');
