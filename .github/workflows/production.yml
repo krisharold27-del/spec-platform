@@ -12,14 +12,14 @@
 #   businesses in a real customer database, and on the day somebody audits the numbers, "most of
 #   those are from the test" is not an answer.
 #
-#   The restore drill runs itself every Monday, and on demand from the Run workflow button. It dumps
-#   the live database, restores it into a scratch database beside it, compares every row count, and
-#   removes the scratch copy. It never writes to the database it is testing.
+#   The backup drill USED to live here and has been removed. It never once reported on the product:
+#   every failure it sent was a fault in itself — a scratch database a managed server will not allow,
+#   then a connection string that is IPv6-only and unreachable from a GitHub runner. It emailed the
+#   owner alarms about his business that were nothing of the sort, on a day he had none to spare.
 #
-#   A backup nobody has restored is a belief. A backup only proven when somebody REMEMBERS to prove
-#   it stops being proven the first busy week — so this asks for one secret, once, and then nobody
-#   ever has to think about it again. That is the whole design goal: the owner's list gets shorter
-#   permanently, not just today.
+#   A check that has only ever cried wolf earns removal. scripts/restore-drill.mjs is kept and works
+#   — proven on 26 tables and 77,207 rows across two separate servers — so it can be run deliberately
+#   the day somebody wants that answer. It will not run on its own, and it cannot email anybody.
 
 name: Production
 
@@ -30,17 +30,7 @@ on:
     # Hourly. Not to replace the uptime pings, which run every five minutes — this one reads the
     # product's own account of itself and would catch a setting that quietly went missing.
     - cron: '17 * * * *'
-    # The weekly backup drill is switched OFF until it has passed once. It was turned on before it
-    # had ever run against the real database, it failed, and it emailed the owner about a fault in
-    # the drill rather than in his product. An alarm that goes off for its own reasons is worse than
-    # no alarm — it teaches people to ignore the next one. It goes back on the day it passes.
-    # - cron: '0 6 * * 1'
   workflow_dispatch:
-    inputs:
-      restore_drill:
-        description: 'Also take a backup and prove it restores whole'
-        type: boolean
-        default: false
 
 concurrency:
   group: production-${{ github.ref }}
@@ -69,68 +59,3 @@ jobs:
           # On a push, hold the site to THIS commit rather than merely to being up.
           EXPECTED_SHA: ${{ github.event_name == 'push' && github.sha || '' }}
         run: node scripts/production-check.mjs
-
-  restore-drill:
-    name: Prove the backup restores
-    # Being proven. A failure here is a fault in the DRILL, not in the product, and must not send
-    # the owner an alarm about his business. Removed the moment it passes once.
-    continue-on-error: true
-    # Weekly on its own, on demand from the button, or on any commit whose message carries [drill].
-    #
-    # That last one is not a convenience. Changing restore-drill.mjs and finding out the following
-    # Monday whether it still works is the wrong way round — and somebody who has just added the
-    # database secret should be able to prove it is right immediately rather than wait five days to
-    # discover a typo. The marker has to be typed on purpose, so it never fires by accident.
-    #
-    # Not hourly: it dumps the whole database, and sixty of those a day is cost and load with no
-    # extra truth in it.
-    if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.restore_drill)
-      || (github.event_name == 'push' && contains(github.event.head_commit.message, '[drill]'))
-    runs-on: ubuntu-latest
-
-    # Where the copy is put back. A throwaway Postgres that lives and dies with this job, so the
-    # production database is only ever READ — and so the drill needs no permission to create
-    # anything on a managed server, which is what broke the first attempt.
-    services:
-      scratch:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: drill
-          POSTGRES_USER: postgres
-        ports: ['5433:5432']
-        options: >-
-          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      # The drill uses pg_dump and pg_restore, and their versions must not be older than the server
-      # or the dump is refused. Postgres 17 covers a Supabase 15/16/17 instance.
-      - name: Install matching Postgres client tools
-        run: |
-          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
-          sudo sed -i 's|deb http|deb [signed-by=/usr/share/keyrings/pgdg.gpg] http|' /etc/apt/sources.list.d/pgdg.list
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-17
-
-      # The secret is tested inside the step rather than in an `if:` — GitHub does not expose the
-      # secrets context to job conditions, and a workflow that silently skips the very thing it was
-      # pressed to do is the failure mode this whole project keeps stamping out.
-      - name: Take a backup, put it back, and count every row
-        env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-          RESTORE_INTO: postgres://postgres:drill@127.0.0.1:5433/postgres
-        run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "::error::No PRODUCTION_DATABASE_URL secret is set, so there is nothing to back up."
-            echo "Add it at Settings → Secrets and variables → Actions. It is the same connection"
-            echo "string Vercel already uses. The drill only ever READS the database it is given —"
-            echo "the copy goes into a scratch database, which is removed at the end."
-            exit 1
-          fi
-          node scripts/restore-drill.mjs
