@@ -6,7 +6,7 @@ import { DEFAULT_AFTER_SIGN_IN } from '@/lib/auth-redirect';
 import { SpecMark } from '@/components/spec-mark';
 import { ProblemBox } from '@/components/problem-box';
 import { SEAT_PRICES, HOME_CURRENCY, moneyLabel } from '@/lib/pricing';
-import { IMPROVEMENT_ANCHOR } from '@/lib/calculator';
+import { TRACK_RECORD } from '@/lib/calculator';
 import { PILLAR_META } from '@/lib/pillars';
 
 export const dynamic = 'force-dynamic';
@@ -143,12 +143,19 @@ export default async function Landing() {
 
       <div className="mx-auto max-w-4xl px-6">
         {/*
-          What it is for, said once, after they have seen it work on their own problem.
+          The strongest thing SPEC can say, said with its evidence — and the spreadsheet is the best
+          part of it.
 
-          The figure is deliberately the one SPEC can stand behind: what a well run rollout RECOVERS
-          of wasted labour, which is what lib/calculator models and every other page on this site
-          already quotes. It is not an average across customers — SPEC has one — and saying
-          otherwise would be a measured-sounding claim about results nobody has measured.
+          Eighteen per cent is not a model or a projection: it is the average over the first twelve
+          months, across more than thirty businesses in fifteen years. Eighteen rather than a round
+          twenty on purpose — a round number is what a marketing department writes and an eighteen
+          is what a measurement returns, and rounding up would cost more credibility than the two
+          points could buy. Those businesses were run on a spreadsheet, and saying so
+          answers the question every buyer of new software actually has — HAS THIS EVER WORKED
+          BEFORE? Most new products cannot answer it at all. This one can answer it thirty times.
+
+          The claim is attributed to the method, never to the platform's own user base. The method is
+          fifteen years old; the software is new. See TRACK_RECORD in lib/calculator.
         */}
         <section className="mt-16">
           <div className="grid items-center gap-8 rounded-[32px] bg-sage-100 p-8 sm:grid-cols-2 sm:p-12">
@@ -160,11 +167,17 @@ export default async function Landing() {
               <Link href="/signup" className="btn-primary mt-6 inline-block">Start free</Link>
             </div>
             <div className="flex flex-wrap items-center gap-6">
-              <p className="max-w-[26ch] flex-1 text-base leading-relaxed text-ink">
-                What a well run rollout recovers of the labour a business is already losing.
+              <p className="max-w-[30ch] flex-1 text-base leading-relaxed text-ink">
+                Average productivity improvement in the first{' '}
+                <b className="text-ink">{TRACK_RECORD.months} months</b>, across{' '}
+                <b className="text-ink">{TRACK_RECORD.businesses}+ businesses</b> over{' '}
+                <b className="text-ink">{TRACK_RECORD.years} years</b>.
+                <span className="mt-2 block text-sm text-ink-light">
+                  Every one of them run on a spreadsheet. SPEC is the same method, built properly.
+                </span>
               </p>
               <p className="font-serif text-[clamp(3.25rem,7vw,5.5rem)] leading-none text-sage-900">
-                {IMPROVEMENT_ANCHOR}%
+                {TRACK_RECORD.improvement}%
               </p>
             </div>
           </div>

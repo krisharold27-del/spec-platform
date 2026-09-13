@@ -74,6 +74,41 @@ export const LEAKS: Leak[] = [
 /** The anchor the shares are quoted at. A reader who says 10% gets a third of the shares. */
 export const IMPROVEMENT_ANCHOR = 30;
 
+/**
+ * The result this method has actually produced, and the evidence behind it.
+ *
+ * Fifteen years, more than thirty businesses, average twenty per cent. A measured outcome rather
+ * than a model — and the strongest thing SPEC can say, provided it is said WITH its evidence. A
+ * bare "20% average improvement" is the figure every software company prints and nobody believes;
+ * "20% across thirty businesses over fifteen years" is a claim a sceptical owner can go and
+ * interrogate, which is the only kind that persuades one.
+ *
+ * ── The distinction that makes it both honest and better ─────────────────────────────────────────
+ *
+ * Those thirty businesses were run on a SPREADSHEET. The method is fifteen years old and proven;
+ * the software is new and has one customer. That is not a weakness to work around — it is the
+ * clearest thing about the product, and it answers the question every buyer of new software
+ * actually has: has this ever worked before?
+ *
+ * So the claim is always attributed to the METHOD, never implied to be a measurement of the
+ * platform's own user base. The number is true and the sentence around it has to be true as well.
+ */
+export const TRACK_RECORD = {
+  /**
+   * Eighteen, not twenty.
+   *
+   * Worth stating precisely because the precision is the point: a round twenty is what a marketing
+   * department writes, and an eighteen is what a measurement returns. Anybody who has ever been
+   * sold anything knows the difference, and rounding it up would cost more credibility than the two
+   * points could ever buy.
+   */
+  improvement: 18,
+  /** Measured over the first twelve months, which is the window the figure belongs to. */
+  months: 12,
+  businesses: 30,
+  years: 15,
+} as const;
+
 export interface CalculatorInput {
   /** Annual revenue, in the business's own currency. */
   revenue: number;
