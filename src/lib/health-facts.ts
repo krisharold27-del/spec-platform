@@ -25,7 +25,18 @@ import type { HealthFacts } from './site-health';
  */
 
 const REQUIRED = ['DATABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'APP_URL'] as const;
-const OPTIONAL = ['RESEND_API_KEY', 'ANTHROPIC_API_KEY', 'STRIPE_SECRET_KEY'] as const;
+/*
+  STRIPE_PRICE_SEAT_MONTHLY sits beside the secret key on purpose.
+
+  Billing needs BOTH — lib/stripe's billingConfigured() says so — and only the key was reported.
+  A deployment holding the key and no price ID therefore showed Stripe as configured while checkout
+  could not start: the exact shape of failure this file exists to prevent, a status page saying
+  something works when it does not. The day SPEC starts charging is the worst possible day to find
+  that out.
+*/
+const OPTIONAL = [
+  'RESEND_API_KEY', 'ANTHROPIC_API_KEY', 'STRIPE_SECRET_KEY', 'STRIPE_PRICE_SEAT_MONTHLY',
+] as const;
 
 const present = (k: string) => Boolean(process.env[k]?.trim());
 
