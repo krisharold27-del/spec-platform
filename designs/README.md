@@ -16,7 +16,7 @@ It answers one question — **is the whole design project here?** — and ends w
 either:
 
 ```
-COMPLETE — 22 screens, one export, nothing missing.
+COMPLETE — 21 screens, one export, nothing missing.
 ```
 
 or an `INCOMPLETE` line naming what is wrong. It catches the two ways a design
@@ -68,14 +68,21 @@ colour of its own — see the note at the top of `src/lib/pillars.ts`.
 
 ## Where this set stands
 
-Twenty-two screens, from the export Kris pushed to GitHub on 12 September 2026.
-`npm run designs:check` reports one thing outstanding, and it is a fault in the
-design rather than a missing file:
+Twenty-one screens, one export, nothing missing. `npm run designs:check` reports
+COMPLETE.
 
-**SPEC My Scorecard has a broken back link.** Its `← Back to my page` points at
-`SPEC Today.dc.html`, a screen that no longer exists — the label was updated to
-"my page" and the href was not. Repointing it at `SPEC My Page.dc.html` clears
-the last INCOMPLETE line.
+It did not always. The set carried one broken link for several exports: **SPEC My
+Scorecard's `← Back to my page` pointed at `SPEC Today.dc.html`** — a screen that
+had been renamed to My Page. The label was updated and the href was not, so the
+check read it as a twenty-second screen that had been linked to and never sent.
+It is repointed at `SPEC My Page.dc.html` here, in this folder, which is where
+the fault was.
+
+That is the rule this folder runs on: **a fault found in the designs is fixed in
+the designs.** Noting it in a README and waiting for the next export is how a set
+stays broken for a month — and the next export overwrites the fix anyway unless
+the same change is made upstream in Claude Design. Fix it here so the check goes
+green, and make the same change there so it stays green.
 
 ### Two screens were renamed, and it matters
 
@@ -86,9 +93,5 @@ the last INCOMPLETE line.
 
 The first is the one with consequences. The Build Checklist records screen 5
 being reopened deliberately: it was the home screen, it is now My Page, and the
-separate chat page proposed as screen 16 is folded into it. The product still
-serves this at `/today`, built to the older design.
-
-**SPEC Logo Concepts** and **SPEC Mascot** are kept from the previous export.
-They are reference pages rather than product screens and were not included in
-the handoff.
+separate chat page proposed as screen 16 is folded into it. The product follows:
+My Page is served at `/my-page`, and `/today` is a redirect kept for bookmarks.
