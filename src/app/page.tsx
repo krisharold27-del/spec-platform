@@ -46,11 +46,13 @@ const QUESTIONS = [
 /*
   The words everybody else is selling, struck out.
 
-  Not a swipe at the category — SPEC uses every one of these. The point is that a business owner has
-  been sold all eight and still cannot answer whether their people are going well, and the honest
-  position is that horsepower was never what they were short of. Struck through rather than mocked
-  in prose, because the reader supplies the feeling themselves and that lands harder than a sentence
-  telling them to feel it.
+  Not a swipe at the category, and the page says so immediately: SPEC runs on every one of these and
+  knows them well. Striking them out says the thing that is actually true — a business owner has
+  been sold all eight and still cannot answer whether their people are going well. Horsepower was
+  never what they were short of.
+
+  Struck through rather than argued with in prose, because the reader supplies the feeling
+  themselves and that lands harder than a sentence telling them to feel it.
 */
 const BUZZWORDS = [
   'AI', 'Agents', 'Automation', 'Machine learning',
@@ -125,11 +127,30 @@ export default async function Landing() {
           <p className="mt-8 font-serif text-[clamp(2rem,4.5vw,3.25rem)] leading-tight text-ink sm:mt-14">
             Everyone&rsquo;s selling you AI.
             <br />
-            We make it work.
+            We harness it — with your people.
           </p>
-          <p className="mx-auto mt-4 max-w-[54ch] text-[17px] leading-7 text-ink-light">
-            Agents give you horsepower. SPEC gives you control — the layer that turns all of it into
-            an actual, spectacular business.
+          {/*
+            The differentiator, said plainly, because until now the page only demonstrated it.
+
+            Two claims, and the order matters. First that SPEC knows this ground — a business owner
+            who has been pitched AI four times this year stops reading the moment they smell somebody
+            who does not. Only then the disagreement: none of it tells you what is wrong, and no
+            machine has ever fixed a business by itself.
+
+            Then the method itself, in one sentence, with the order named. That order is not a
+            preference — it is enforced in lib/register and held by tests, and it is the thing
+            fifteen years and thirty businesses were spent proving.
+          */}
+          <p className="mx-auto mt-5 max-w-[56ch] text-[17px] leading-7 text-ink-light">
+            We know these inside out, and SPEC runs on them. But agents give you horsepower, and
+            horsepower was never what you were short of — none of it tells you what is actually
+            wrong, and no machine has ever fixed a business on its own.
+          </p>
+          <p className="mx-auto mt-4 max-w-[56ch] text-[17px] leading-7 text-ink">
+            SPEC finds what is really going on and fixes it in the one order that works:{' '}
+            <b>People, then Compliance, then Earnings.</b> Earnings is the result, never the lever.
+            It always starts with your people, because they are the only part of a business that
+            can actually change it.
           </p>
         </section>
       </div>

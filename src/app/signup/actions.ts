@@ -50,8 +50,29 @@ export async function signUp(formData: FormData) {
   if (!name || !business || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) back('missing');
   if (password.length < 8) back('short');
 
-  // Already on SPEC: sign in instead. A form never stands in for owning an address.
-  if (await findUserByEmail(email)) redirect('/signin?known=1');
+  /*
+    Already on SPEC: sign in instead. A form never stands in for owning an address.
+
+    Guarded, because this is the first thing sign-up touches and the database can be down. When it
+    was not guarded, a database outage threw here, the server action died, and the person was left
+    sitting on the form with NO MESSAGE AT ALL — they press the button, nothing happens, and the
+    only conclusion available to them is that the product does not work.
+
+    There is already an honest message for this ("that is our end, not yours") and it was simply
+    never reached. Same rule as sign-in: never let somebody believe they got it wrong when the fault
+    is ours.
+
+    The catch is narrow on purpose — it wraps the lookup and nothing else. redirect() works by
+    throwing, so a try that also covered the redirect below would turn "you already have an account"
+    into "we are down".
+  */
+  let existing: Awaited<ReturnType<typeof findUserByEmail>>;
+  try {
+    existing = await findUserByEmail(email);
+  } catch {
+    back('down');
+  }
+  if (existing) redirect('/signin?known=1');
   if (!signupsByAddress.allow(ip)) back('busy');
 
   // The sign-in first, so an address that already has one is refused before anything is created.
@@ -92,7 +113,9 @@ export async function signUp(formData: FormData) {
     renamed to their business and handed to them. `claimLook` also clears the visitor token, which
     is what stops that browser, or any other, from reaching it again without a seat.
   */
-  const look = await currentLook();
+  // Guarded for the same reason as the lookup above: a visitor token that cannot be read is not a
+  // reason to kill a sign-up. No look-around simply means a fresh business, which is the ordinary case.
+  const look = await currentLook().catch(() => null);
   let tenantId: string;
   let gmRoleId: string;
 
