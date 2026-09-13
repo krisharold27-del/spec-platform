@@ -35,7 +35,15 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
   const note = sp.known ? "You're already on SPEC. Sign in." : sp.error ? MESSAGES[sp.error] ?? null : null;
   return (
     <main className="mx-auto max-w-sm px-6 py-20">
-      <div className="label-caps">SPEC</div>
+      <div className="flex items-baseline justify-between gap-4">
+        <div className="label-caps">SPEC</div>
+        {/*
+          A way out. This screen is reached by people who are not signed in and, quite often, by
+          people who were only looking — and it had no route back to the front door at all, so the
+          only way out of a sign-in form somebody opened by accident was the browser's back button.
+        */}
+        <a href="/" className="text-sm text-ink-light underline hover:text-rust">Back to overview</a>
+      </div>
       <h1 className="mt-1 font-serif text-2xl text-ink">Sign in</h1>
       {note && <p className="mt-4 text-sm text-rust-dark">{note}</p>}
       <form action={signIn} className="mt-6 space-y-3">

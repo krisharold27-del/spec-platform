@@ -3,7 +3,7 @@ import {
   clearToWork, onboarding, costOfVacancy, parseRatings, candidateScore,
   STAGES, HIRING_CHECKS, INTERVIEW_PROMPTS,
   type PersonRow, type Vacancy,
-} from '../src/lib/people';
+ draftAd } from '../src/lib/people';
 import { PILLARS } from '../src/lib/scoring';
 
 const person = (over: Partial<PersonRow> = {}): PersonRow => ({
@@ -131,5 +131,51 @@ describe('the fixed lists', () => {
     // Word-bounded: "answer" contains NSW, which is how a sloppy check like this passes for months.
     expect(text).not.toMatch(/\b(electrical|NSW|QLD|Fair Trading|TAFE|Seek|Indeed)\b/i);
     expect(HIRING_CHECKS.map(c => c.key)).toContain('right_to_work');
+  });
+});
+
+/*
+  ── The advertisement, drafted from the role's own numbers ──────────────────────────────────────
+
+  The People screen names "cannot attract great people" as a problem and claims a specific answer:
+  the ad is written from the eight numbers the role is measured on. The product made that claim and
+  did not do it, which is worse than not claiming it.
+*/
+describe('drafting the job ad', () => {
+  const kpis = [
+    { pillar: 'safety' as const, text: 'Toolbox talks held', target: '4 a month' },
+    { pillar: 'people' as const, text: 'One-to-ones held', target: null },
+    { pillar: 'earnings' as const, text: 'Gross margin', target: '32%' },
+  ];
+
+  it('puts the role’s measures in front of an applicant before they apply', () => {
+    const ad = draftAd({ roleTitle: 'Site Supervisor', businessName: 'Bell Civil', reportsTo: 'Operations Manager', kpis });
+    for (const k of kpis) expect(ad, `${k.text} is missing`).toContain(k.text);
+    expect(ad).toContain('Site Supervisor');
+    expect(ad).toContain('Bell Civil');
+    expect(ad).toContain('Operations Manager');
+    expect(ad).toContain('4 a month');
+  });
+
+  it('reads in SPEC’s own order, so the ad matches how the business is run', () => {
+    const ad = draftAd({ roleTitle: 'Site Supervisor', businessName: 'Bell Civil', reportsTo: null, kpis });
+    expect(ad.indexOf('Safety')).toBeLessThan(ad.indexOf('People'));
+    expect(ad.indexOf('People')).toBeLessThan(ad.indexOf('Earnings'));
+  });
+
+  /*
+    An ad invented before the measures is how a business hires for a job nobody has defined. Saying
+    so is more useful than producing a confident paragraph of nothing.
+  */
+  it('refuses to advertise a role with no KPIs, and says why', () => {
+    const ad = draftAd({ roleTitle: 'Site Supervisor', businessName: 'Bell Civil', reportsTo: null, kpis: [] });
+    expect(ad).toMatch(/no KPIs set yet/i);
+    expect(ad).toMatch(/Set them first/i);
+  });
+
+  /* Pay, licences and the award belong to the business and its region. Inventing them is a liability. */
+  it('never invents pay, a licence or an award', () => {
+    const ad = draftAd({ roleTitle: 'Site Supervisor', businessName: 'Bell Civil', reportsTo: null, kpis });
+    expect(ad).not.toMatch(/\$|salary|per hour|award|licence|visa/i);
   });
 });

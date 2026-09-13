@@ -13,6 +13,8 @@ import { isScored } from '@/lib/today-data';
 import { detachedBranches, stages, type ChartRole } from '@/lib/orgchart';
 import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { addRole, importChart } from './actions';
+import { Problems } from '@/components/problems';
+import { ChartFile } from '@/components/chart-file';
 
 export const dynamic = 'force-dynamic';
 
@@ -153,6 +155,7 @@ export default async function OrgChart() {
             </p>
             <form action={importChart} className="mt-4 grid gap-2">
               <textarea
+                id="chart-paste"
                 className="input min-h-[120px] rounded-lg font-mono text-xs"
                 name="text"
                 placeholder={'General Manager, A. Morgan\nOperations Manager, J. Barnes, General Manager\nSite Supervisor, , Operations Manager'}
@@ -164,6 +167,12 @@ export default async function OrgChart() {
               A CSV exported from a payroll or HR system pastes in the same way — SPEC drops the header row
               when it recognises one.
             </p>
+            {/*
+              Upload a file, because a business's structure lives in a file rather than in somebody's
+              clipboard. It fills the box above rather than going anywhere, so what runs is the same
+              import that is already tested, and the person sees what arrived before anything is drawn.
+            */}
+            <ChartFile targetId="chart-paste" />
           </section>
         </div>
       )}
@@ -179,6 +188,8 @@ export default async function OrgChart() {
         <Link href="/team" className="text-rust-700 hover:underline">The team roll-up</Link> averages the scored
         roles that are actually on the chart. Anything off it is excluded and counted, never quietly dropped.
       </p>
+      <Problems screen="org" />
+
     </Shell>
   );
 }

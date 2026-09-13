@@ -12,6 +12,7 @@ import { queue, ageLabel, handled, type DerivedInputs } from '@/lib/inbox';
 import { NOTIFY_LEVELS, NOTIFY_ALWAYS, NOTIFY_SENDS_TODAY, notifyLevelOf } from '@/lib/notify';
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { approve, decline, setNotifyLevel } from './actions';
+import { Problems } from '@/components/problems';
 
 export const dynamic = 'force-dynamic';
 
@@ -286,6 +287,8 @@ export default async function Inbox() {
           </ul>
         </section>
       )}
+      <Problems screen="inbox" />
+
     </Shell>
   );
 }

@@ -14,6 +14,7 @@ import { getToday } from '@/lib/today-data';
 import { pathFor, pathProgress, signoffFor, aceSteps, type TrainingModule } from '@/lib/training';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { signOffTraining } from '@/app/my-page/actions';
+import { Problems } from '@/components/problems';
 
 export const dynamic = 'force-dynamic';
 
@@ -203,6 +204,8 @@ export default async function Training() {
           begin to count.
         </p>
       )}
+      <Problems screen="training" />
+
     </Shell>
   );
 }

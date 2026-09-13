@@ -19,6 +19,7 @@ import { doSignOut } from '@/app/signin/actions';
 import { hasDiagnosis } from '@/lib/plan';
 import { light, pillarNote, clearToWork, LIGHT_COLOUR, LIGHT_LABEL, type Light } from '@/lib/today';
 import type { Pillar, RoleScore } from '@/lib/scoring';
+import { Problems } from '@/components/problems';
 
 export const dynamic = 'force-dynamic';
 
@@ -464,6 +465,14 @@ export default async function MyPage({
       </div>
 
       <p className="mt-10 max-w-xl text-base text-ink-light">That is the whole day. Nothing else to open.</p>
+
+      {/*
+        Why this page exists at all, under the day's work rather than over it.
+
+        My Page is what a leader opens at seven in the morning; the argument is for the moment they
+        stop to think about whether any of this is worth doing, and for explaining it to a board.
+      */}
+      <Problems screen="myPage" />
 
       {/*
         Everywhere else, and every door to it.

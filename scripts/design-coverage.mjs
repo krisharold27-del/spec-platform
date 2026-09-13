@@ -109,6 +109,62 @@ const actions = html => pull(html, ['button', 'a'], attrs =>
 const isAPerson = text => /^[A-Z][a-z]+ [A-Z][a-z]+, [A-Z]/.test(text);
 
 /**
+ * The rest of a mock-up's invented data, which the code is also right not to contain.
+ *
+ * The same rule as isAPerson, extended to the two other things a prototype has to make up, because
+ * leaving them counted put a floor under this check that no amount of work could lift. A number
+ * that cannot reach 100% is a number people stop reading — and this check exists precisely so
+ * somebody can trust it at a glance.
+ *
+ * Two kinds, and only two:
+ *
+ *   **A date the product generates.** "Monthly scoring · 1–30 Sep 2026" is a heading built at
+ *   request time from the period being scored. A hard-coded September would be the bug.
+ *
+ *   **A named person or business.** The designs need a company on the screen and people in the org
+ *   chart. The product reads both from the customer's own records.
+ *
+ * The names are listed rather than pattern-matched on purpose. "Board Pack" and "Weekly Meeting"
+ * are also two capitalised words, and a pattern loose enough to catch Dane Whitmore would quietly
+ * excuse the product from carrying half its own labels — which is the failure this whole script
+ * was written to prevent. A list has to be added to deliberately, and shows up in a diff.
+ */
+const SAMPLE_IDENTITIES = [
+  'Dane Whitmore', 'Tom Alderson', 'Amrit Kaur',   // people in the colour system and org designs
+  'Justin Bussell',                                 // the director who signs the month off
+  'JBI Electrical',                                 // the business every screen is drawn around
+];
+
+/** A month and a year, or a day and a month — a heading the product builds from real dates. */
+const isGeneratedDate = text =>
+  /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\b/.test(text) && /\d/.test(text);
+
+/**
+ * Wording the product is deliberately RIGHT not to carry.
+ *
+ * Read from designs/superseded.md, where every entry has the decision written beside it — so
+ * skipping a phrase is an auditable act that shows up in a diff, rather than a quiet lowering of
+ * the bar. That file states the only rule that matters: "we have not built it yet" is a gap and
+ * belongs on the readiness list where it is uncomfortable, never in here.
+ *
+ * Kept beside the designs rather than in this script, because that is where the next person
+ * comparing the two will actually look.
+ */
+const SUPERSEDED = (() => {
+  try {
+    const text = readFileSync(join(DESIGNS, 'superseded.md'), 'utf8');
+    return [...text.matchAll(/^### `([^`]+)`/gm)].map(m => m[1]);
+  } catch {
+    return []; // No file is the ordinary case: nothing has been superseded.
+  }
+})();
+
+const isSampleData = text =>
+  isAPerson(text) || isGeneratedDate(text)
+  || SAMPLE_IDENTITIES.some(n => text.includes(n))
+  || SUPERSEDED.includes(text);
+
+/**
  * Everything else a person reads: the labels that are neither a heading nor a button.
  *
  * The first version of this script looked only at headings and buttons, and reported 97% — while
@@ -173,10 +229,10 @@ for (const file of screens) {
   const name = basename(file, '.dc.html');
   const html = readFileSync(join(DESIGNS, file), 'utf8');
   const phrases = [
-    ...headings(html).map(text => ({ text, kind: 'says' })),
-    ...actions(html).filter(t => !SCAFFOLD.test(t) && !isAPerson(t)).map(text => ({ text, kind: 'does' })),
+    ...headings(html).filter(t => !isSampleData(t)).map(text => ({ text, kind: 'says' })),
+    ...actions(html).filter(t => !SCAFFOLD.test(t) && !isSampleData(t)).map(text => ({ text, kind: 'does' })),
     ...(deep
-      ? labels(html).filter(t => !SCAFFOLD.test(t) && !isAPerson(t)).map(text => ({ text, kind: 'labels' }))
+      ? labels(html).filter(t => !SCAFFOLD.test(t) && !isSampleData(t)).map(text => ({ text, kind: 'labels' }))
       : []),
   ];
   const misses = [];

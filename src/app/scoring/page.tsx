@@ -16,6 +16,7 @@ import {
   flagsFor, blocking, groupFlags, progressFor, signoffTrail, verdict, viewRow, type PeriodStatus,
 } from '@/lib/month';
 import { LIGHT_COLOUR } from '@/lib/today';
+import { Problems } from '@/components/problems';
 
 export const dynamic = 'force-dynamic';
 
@@ -356,6 +357,8 @@ export default async function MonthlyScoring() {
           </section>
         </div>
       </div>
+      <Problems screen="scoring" />
+
     </Shell>
   );
 }

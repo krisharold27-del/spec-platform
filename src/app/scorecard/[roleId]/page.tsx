@@ -14,6 +14,7 @@ import { validateWeights } from '@/lib/scoring';
 import { isScored } from '@/lib/today-data';
 import { summarise, provenance, preparedBy, unexplained } from '@/lib/scorecard';
 import { addComment, addKpi } from './actions';
+import { Problems } from '@/components/problems';
 
 export const dynamic = 'force-dynamic';
 
@@ -293,6 +294,8 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
           </section>
         </div>
       </div>
+      <Problems screen="scorecard" />
+
     </Shell>
   );
 }

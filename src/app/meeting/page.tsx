@@ -7,6 +7,7 @@ import { getMeeting } from '@/lib/meeting-data';
 import { LIGHT_COLOUR, light, pillTone } from '@/lib/today';
 import { PILLARS } from '@/lib/scoring';
 import { addAction, completeAction, addDecision, toggleAttendee, logMeeting } from './actions';
+import { Problems } from '@/components/problems';
 
 export const dynamic = 'force-dynamic';
 
@@ -301,6 +302,8 @@ export default async function WeeklyMeeting() {
           </section>
         </div>
       </div>
+      <Problems screen="meeting" />
+
     </Shell>
   );
 }

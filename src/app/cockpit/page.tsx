@@ -100,7 +100,13 @@ export default async function Cockpit() {
   return (
     <Shell
       title="Running SPEC Business Solutions"
-      subtitle={`${user.email} · private`}
+      /*
+        Named, because "private" on its own is a claim and a name is a fact. Whoever is reading this
+        should be able to see at a glance that the page is theirs and nobody else's — the design
+        says "Private · Kris only", and the product says whose it actually is rather than hard-coding
+        the name that happened to be in the mockup.
+      */
+      subtitle={`Private · ${user.name.split(' ')[0]} only · ${user.email}`}
     >
       <p className="-mt-2 mb-6 max-w-2xl text-base text-ink-light">
         Not the client product. This is where you set objectives, see where the build is up to, and

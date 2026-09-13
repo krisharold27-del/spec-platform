@@ -5,7 +5,7 @@ import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
 import { getCurrentUser, canManage } from '@/lib/auth';
-import { getScorecard, PILLARS } from '@/lib/queries';
+import { getScorecard, getTenantById, PILLARS } from '@/lib/queries';
 import { currentPeriod } from '@/lib/period';
 import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
@@ -18,9 +18,11 @@ import {
 } from '@/lib/obligations';
 import {
   clearToWork, onboarding, costOfVacancy, parseRatings, candidateScore,
-  STAGES, HIRING_CHECKS, INTERVIEW_PROMPTS, type PersonRow,
+  STAGES, HIRING_CHECKS, INTERVIEW_PROMPTS, draftAd, type PersonRow,
 } from '@/lib/people';
 import { addCandidate, setStage, rateCandidate, addObligation, bookLeave, decideLeave } from './actions';
+import { Problems } from '@/components/problems';
+import type { Pillar } from '@/lib/scoring';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,6 +66,8 @@ export default async function People({ searchParams }: { searchParams: Promise<{
   const scope = await getScope(user);
   const period = await currentPeriod(user.tenantId);
   const manage = canManage(user.access);
+  // The business's own name, for the advertisement drafted from each open role's KPIs.
+  const tenant = (await getTenantById(user.tenantId))!;
 
   // Only the part of the chart this person is entitled to see, as everywhere else.
   const visible = scope.roles.filter(r => scope.canSee(r.id));
@@ -439,6 +443,37 @@ export default async function People({ searchParams }: { searchParams: Promise<{
                       <p className="mt-1 text-xs text-ink-light">
                         {costOfVacancy({ roleId: v.roleId, title: v.roleTitle, scored: v.scored, pillars, orphaned })}
                       </p>
+                      {/*
+                        The ad, written from the role's own numbers.
+
+                        This screen claims that SPEC answers "cannot attract great people" by drafting
+                        the ad from the eight numbers the role is measured on. It said so and did not
+                        do it, which is the worst combination available. An applicant now reads the
+                        same numbers they will be scored against in month one, before they apply —
+                        and anybody who does not want to be measured on them screens themselves out,
+                        which is the cheapest screening there is.
+                      */}
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-xs text-rust-700 hover:underline">
+                          Drafted from the role&rsquo;s KPIs
+                        </summary>
+                        <pre className="card-inset mt-2 whitespace-pre-wrap font-body text-xs leading-5 text-ink">
+                          {draftAd({
+                            roleTitle: v.roleTitle,
+                            businessName: tenant.name,
+                            reportsTo: visible.find(r => r.id === v.roleId)?.reportsToRoleId
+                              ? visible.find(r => r.id === visible.find(x => x.id === v.roleId)?.reportsToRoleId)?.title ?? null
+                              : null,
+                            kpis: own.filter(c => c.kpi)
+                              .map(c => ({ pillar: c.pillar as Pillar, text: c.text, target: c.target })),
+                          })}
+                        </pre>
+                        <p className="mt-2 text-xs text-ink-light">
+                          A draft. Pay, licences and the award belong to your business and your region —
+                          SPEC does not invent them.
+                        </p>
+                      </details>
+
                       {manage && (
                         <form action={addCandidate} className="mt-3 flex flex-wrap gap-2">
                           <input type="hidden" name="roleId" value={v.roleId} />
@@ -550,6 +585,27 @@ export default async function People({ searchParams }: { searchParams: Promise<{
           </section>
         </>
       )}
+      {/*
+        The way out to an HR system somebody already pays for.
+
+        The design offers this and the page did not, which left the impression that SPEC wants to be
+        a second place to keep staff records. It does not: a business running BambooHR or Employment
+        Hero should have SPEC read from it, and a business with neither should be told plainly that
+        this IS the system. That removes the most common objection on this screen.
+      */}
+      <section className="mt-12 rounded-2xl bg-surface p-6">
+        <h2 className="font-serif text-xl text-ink">Already have an HR system?</h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-light">
+          Connect BambooHR or Employment Hero and SPEC reads from it instead. If you do not have one,
+          this is it — no second system to buy.
+        </p>
+        <Link href="/connections" className="btn-secondary mt-4 inline-block">
+          Open the connection centre
+        </Link>
+      </section>
+
+      <Problems screen="people" />
+
     </Shell>
   );
 }

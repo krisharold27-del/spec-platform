@@ -218,3 +218,68 @@ export const HIRING_CHECKS: HiringCheck[] = [
   { key: 'award', label: 'Award or agreement', note: 'What is set by instrument rather than by you — overtime, allowances, travel.' },
   { key: 'references', label: 'References', note: 'Against the four pillars, so they answer the same questions the scorecard will.' },
 ];
+
+/* ── The job ad, drafted from what the role is measured on ───────────────────────────────────── */
+
+export interface AdSource {
+  roleTitle: string;
+  businessName: string;
+  reportsTo: string | null;
+  /** The role's active KPI criteria, in pillar order. */
+  kpis: { pillar: Pillar; text: string; target: string | null }[];
+}
+
+/**
+ * A first draft of the advertisement, written from the role's own KPIs.
+ *
+ * ── Why it is drafted this way and not by asking a model ─────────────────────────────────────────
+ *
+ * A generic ad brings a stack of CVs and a gut call on the day. That is one of the three People
+ * problems SPEC names on this screen, and the answer it claims is specific: **the ad is written
+ * from the eight numbers the role is measured on.** Until now the product claimed that and did not
+ * do it, which is the worst combination available.
+ *
+ * So the draft is assembled from the criteria themselves. The point is not the prose — it is that
+ * an applicant reads the same eight numbers they will be scored against in month one, before they
+ * apply. Somebody who does not want to be measured on them screens themselves out, which is the
+ * cheapest screening there is.
+ *
+ * Deliberately plain and deliberately incomplete: it says what the role is measured on and nothing
+ * about pay, licences or region, because those belong to the business and its award, and an ad that
+ * invents a pay band is worse than one that leaves it to be filled in. The heading above it in the
+ * product says it is a draft.
+ */
+export function draftAd(source: AdSource): string {
+  const { roleTitle, businessName, reportsTo, kpis } = source;
+  const lines: string[] = [];
+
+  lines.push(`${roleTitle} — ${businessName}`);
+  lines.push('');
+  lines.push(
+    reportsTo
+      ? `Reporting to the ${reportsTo}. This role is measured on ${kpis.length} number${kpis.length === 1 ? '' : 's'}, and you will see them on your first day because they are below.`
+      : `This role is measured on ${kpis.length} number${kpis.length === 1 ? '' : 's'}, and you will see them on your first day because they are below.`,
+  );
+
+  // Grouped by pillar and in SPEC's own order, so the ad reads in the order the business is run.
+  for (const pillar of ['safety', 'people', 'earnings', 'compliance'] as Pillar[]) {
+    const mine = kpis.filter(k => k.pillar === pillar);
+    if (!mine.length) continue;
+    lines.push('');
+    lines.push(`${pillar[0].toUpperCase()}${pillar.slice(1)}`);
+    for (const k of mine) lines.push(`  · ${k.text}${k.target ? ` — ${k.target}` : ''}`);
+  }
+
+  lines.push('');
+  lines.push(
+    'You will be scored on these every month, with the reading written down and the month signed off. ' +
+    'Nothing is decided on feel, and nothing is rewritten afterwards.',
+  );
+
+  if (!kpis.length) {
+    return `${roleTitle} — ${businessName}\n\nThis role has no KPIs set yet, so there is nothing honest to advertise it on. ` +
+      'Set them first: an ad written before the measures is how a business ends up hiring for a job nobody has defined.';
+  }
+
+  return lines.join('\n');
+}
