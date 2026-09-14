@@ -151,7 +151,8 @@ from a test.
 
 ## Designed but not built
 
-Design coverage sits at **99%** rather than 100%, and this is why. These are
+Design coverage sits at **99%** on headings and **100%** on every label, and this
+is why the first number is not 100 either. These are
 gaps, not disagreements — `designs/superseded.md` is for wording the product is
 RIGHT not to carry, and "we have not built it yet" is explicitly not allowed
 there. It belongs here, where it is uncomfortable.
@@ -160,9 +161,9 @@ From **design export 5**, 14 September 2026:
 
 | Not built | What it is |
 |---|---|
-| **Predicted roles — approve or deny** | Claude reads the structure against the business's goal and sector and proposes the roles it is missing, each with a reason. Nothing counts as real until the leader approves it. Needs the goals below, sector packs, and a predicted state on a role |
-| **Predictive KPIs from the goal** | The goal — "net profit 10%" — cascaded into what each role has to actually move, a metric and a target per role, read per sector |
-| **Goals as Setup step 1** | Three questions before any role or KPI exists: where the business should be in three years, what would make this year a win, what keeps you up at night. Every KPI proposed afterwards is checked against them, and they stay visible on the board pack and monthly scoring |
+| ~~**Predicted roles — approve or deny**~~ | **Built, 14 September.** SPEC reads the structure and proposes what is missing, each with a reason, and nothing is real until the leader approves it. The structural half is arithmetic on their own chart and runs with no API key at all; Claude's half layers on top where there is one, and each proposal says which it came from. A denied role is never proposed again. `scripts/predict-journey.mjs`, 18 checks |
+| ~~**Goals as Setup step 1**~~ | **Built, 14 September.** Three questions before any role or KPI exists, visible afterwards on the board pack and monthly scoring. `scripts/goals-journey.mjs`, 22 checks |
+| **Predictive KPIs from the goal** | The goal — "net profit 10%" — cascaded into what each role has to actually move, a metric and a target per role, read per sector. **The one heading the coverage check still names.** Next |
 | **The per-person incentive gate** | A second precondition on Ace beyond being signed off — the business has to have opened the incentive to that person. Until then no months count and the card reads "Incentive not open". One additive column on `role_assignments` |
 | **Bring your own AI key** | Connections gains a provider choice: Claude, your own API key, another AI |
 | **Viewing the chart from one role** | A "viewing as" selector, plus a team-count badge that collapses a branch |

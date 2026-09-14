@@ -18,6 +18,8 @@ import { addRole, importChart } from './actions';
 import { Problems } from '@/components/problems';
 import { ChartFile } from '@/components/chart-file';
 import { ChartKey } from '@/components/chart-key';
+import { PredictedRoles } from '@/components/predicted-roles';
+import { pendingPredictions } from '@/lib/predict-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +31,8 @@ export const dynamic = 'force-dynamic';
  * Link → Flow → Grow is the order it has to happen in — there is no point chasing a score for a
  * business that has not finished drawing itself.
  */
-export default async function OrgChart() {
+export default async function OrgChart({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const read = String((await searchParams).read ?? '');
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
@@ -59,6 +62,10 @@ export default async function OrgChart() {
   const aces = period
     ? new Map((await aceWatch(tenant.id, period.id, ourRoleIds)).map(a => [a.roleId, a]))
     : new Map<string, AceWatchRow>();
+
+  // Proposals, which are deliberately NOT roles — see lib/predict-data. Nothing that walks the
+  // business can see them, which is what stops one ever being counted, scored or billed for.
+  const predicted = await pendingPredictions(user.tenantId);
 
   const roles: ChartRole[] = [];
   for (const r of scope.roles) {
@@ -145,6 +152,18 @@ export default async function OrgChart() {
           <OrgCanvas roles={roles} rootId={rootId} canEdit={manage} />
         </div>
       )}
+
+      {/*
+        What the chart is missing, above the chart itself.
+
+        Above rather than below, because it is a question about the structure and the structure is
+        what the page is for — and because a proposal nobody scrolls to is a proposal nobody decides.
+      */}
+      <PredictedRoles
+        predicted={predicted}
+        read={read === '' ? null : Number(read)}
+        canEdit={manage}
+      />
 
       {/* What the colours on every card mean. The design carries this and the product did not, so a
           new customer saw a wall of red and amber with nothing telling them what it meant. */}

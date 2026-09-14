@@ -248,6 +248,12 @@ jobs:
           # unit test can make -- so they are driven here, in a browser, against a real save.
           node scripts/goals-journey.mjs
 
+          # What the chart is missing, and who decides. Runs with NO api key on purpose: SPEC
+          # Basic is a complete way to run the system, so the structural reading has to stand on
+          # its own. Also proves the part that makes this trustworthy rather than annoying -- a
+          # denied role is never proposed again, however many times the chart is read.
+          node scripts/predict-journey.mjs
+
           # Taking a seat somebody gave you -- the other half of the way in, and the one that
           # reaches every person in a customer's business except the owner. Single use,
           # expiring, bound to that address, and a refusal that never says "invalid token".

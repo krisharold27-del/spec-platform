@@ -225,15 +225,23 @@ export default async function Business({ searchParams }: { searchParams: Promise
             {inStream.length > 0 && <ul className="divide-y divide-ink/10">{inStream.map(r => <RoleRowItem key={r.id} r={r} />)}</ul>}
 
             <div className="flex flex-wrap items-center gap-3 border-t border-ink/10 bg-cream/40 p-4">
+              {/*
+                The keys matter. These two forms sit at the same position in the tree, so without
+                them React reconciles them as ONE form and reuses the first <input> — whose `value`
+                prop exists in one branch and not the other. That is a controlled input turning
+                uncontrolled: React warns in the console, and whatever the person had typed in the
+                box is left behind. Found by a journey watching for page errors after a role is
+                deleted, which is exactly when this branch flips.
+              */}
               {proposal ? (
-                <form action={addRole} className="flex items-center gap-3">
+                <form key="from-template" action={addRole} className="flex items-center gap-3">
                   <input type="hidden" name="template" value={proposal.template_id} />
                   <input type="hidden" name="reportsTo" value={gm?.id ?? ''} />
                   <button className="btn-primary text-sm">Add {proposal.title}</button>
                   <span className="text-xs text-ink-light">Comes with two KPIs per pillar, ready to tune.</span>
                 </form>
               ) : (
-                <form action={addRole} className="flex flex-wrap items-center gap-2">
+                <form key="by-hand" action={addRole} className="flex flex-wrap items-center gap-2">
                   <input type="hidden" name="stream" value={stream.id} />
                   <input name="title" placeholder={`Another ${stream.name.toLowerCase()} role`} autoComplete="off" className="rounded-lg border border-ink/20 px-3 py-2 text-sm" />
                   <select name="level" className="rounded-lg border border-ink/20 px-3 py-2 text-sm">

@@ -344,6 +344,7 @@ const JOURNEYS = [
   ['front', 'a stranger types a problem on the front door', 'frontdoor-journey'],
   ['register', 'logging a problem once inside', 'register-journey'],
   ['goals', 'saying what the business is for, and it staying said', 'goals-journey'],
+  ['predict', 'SPEC reading the chart and the leader deciding', 'predict-journey'],
   ['seat', 'somebody you invited taking their seat', 'seat-journey'],
   ['cockpit', 'your own cockpit staying private', 'cockpit-journey'],
 ];

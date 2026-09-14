@@ -113,8 +113,8 @@ declare
 begin
   foreach t in array array[
     'approvals', 'business_goals', 'candidates', 'directors', 'leave_entries', 'obligations',
-    'register_entries', 'scorecard_comments', 'staff', 'system_connections', 'training_modules',
-    'training_records'
+    'predicted_roles', 'register_entries', 'scorecard_comments', 'staff', 'system_connections',
+    'training_modules', 'training_records'
   ]
   loop
     continue when to_regclass(t) is null;

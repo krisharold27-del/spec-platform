@@ -99,6 +99,58 @@ export const businessGoals = pgTable('business_goals', {
   uniqueIndex('business_goals_tenant_prompt').on(t.tenantId, t.promptId),
 ]).enableRLS();
 
+/**
+ * Roles SPEC thinks the structure is missing — proposals, never roles.
+ *
+ * Design export 5: "Claude's read of what this structure is still missing. Nothing here counts as
+ * real until you say so — approve to add it to the chart, deny to drop it."
+ *
+ * ── Why a separate table and not a flag on roles ─────────────────────────────────────────────────
+ *
+ * A proposal is not a role that happens to be switched off. A role has KPIs, a scorecard, a place in
+ * the roll-up and a line in the org chart; a proposal has none of those and must never accidentally
+ * acquire them. Keeping them apart means every query that walks the business — the chart, the
+ * roll-up, the incentive chain, the seat count — cannot see a prediction at all, without a single
+ * one of them having to remember to filter it out. That is the difference between a rule and a
+ * habit, and habits are what leak.
+ *
+ * It also lets a DENIED proposal be remembered. Proposing the same Yard Lead every month after
+ * somebody has said no is how software teaches people to ignore it.
+ */
+export const predictedRoles = pgTable('predicted_roles', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  title: text('title').notNull(),
+  /** Where it would sit. Null means nothing sensible to hang it off — shown, never guessed at. */
+  parentRoleId: text('parent_role_id').references(() => roles.id),
+  /** Why this role, in terms of THIS business. A proposal without a reason is noise. */
+  why: text('why').notNull(),
+  /** The stream and level it would be created at, so approving it is one step rather than a form. */
+  stream: text('stream').notNull(),
+  level: text('level').notNull(),
+  /** pending | approved | denied. Denied ones stay, so the same proposal is not made twice. */
+  state: text('state').notNull().default('pending'),
+  /**
+   * Where it came from: `claude` or `structure`.
+   *
+   * Shown to the leader, because the two deserve different amounts of trust. The structural reading
+   * is arithmetic on their own chart — a stream with no head, a pillar nobody owns — and is right or
+   * wrong for reasons anybody can check. Claude's is a judgement. Labelling them the same would
+   * quietly borrow the credibility of the one for the other.
+   */
+  source: text('source').notNull().default('structure'),
+  proposedAt: text('proposed_at').notNull(),
+  decidedAt: text('decided_at'),
+  decidedBy: text('decided_by'),
+  /** The role that was created when this was approved, so the trail from proposal to seat is kept. */
+  roleId: text('role_id').references(() => roles.id),
+}, t => [
+  index('predicted_roles_tenant').on(t.tenantId),
+  // One live proposal per title per business. Without this, two runs of the reading propose the
+  // same Yard Lead twice and the leader is asked to approve it two days running.
+  uniqueIndex('predicted_roles_tenant_title').on(t.tenantId, t.title),
+]).enableRLS();
+
 // One row per app user, linked to a Supabase Auth identity via authUserId (auth.users.id).
 // A person may hold roles in more than one tenant (e.g. a consultant); one row per tenant+email.
 export const users = pgTable('users', {
