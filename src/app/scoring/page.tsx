@@ -18,6 +18,8 @@ import {
 import { LIGHT_COLOUR } from '@/lib/today';
 import { Problems } from '@/components/problems';
 import { AceWatch } from '@/components/ace-watch';
+import { GoalsPanel } from '@/components/goals-panel';
+import { goalsFor } from '@/lib/goals-data';
 import { aceWatch } from '@/lib/ace-watch-data';
 
 export const dynamic = 'force-dynamic';
@@ -60,6 +62,9 @@ export default async function MonthlyScoring() {
   // Scope-bounded: aceWatch never widens the set it is given, so this is the only place the
   // visibility decision is made.
   const aces = await aceWatch(tenant.id, period.id, inScope.map(r => r.id));
+  // "This stays visible on the board pack and the monthly scoring page, so the goals are never lost
+  // under the numbers." This is the page where a month is judged, so it is the page that needs it.
+  const goals = await goalsFor(tenant.id);
   const roles = [];
   for (const r of inScope) {
     const { rows, score } = await getScorecard(r.id, period.id);
@@ -370,6 +375,8 @@ export default async function MonthlyScoring() {
         the person on their third month could see it and the director APPROVING the doubled payment
         could not see it anywhere at all. It belongs here.
       */}
+      <GoalsPanel goals={goals} />
+
       <AceWatch rows={aces} period={period.period} />
 
       <Problems screen="scoring" />

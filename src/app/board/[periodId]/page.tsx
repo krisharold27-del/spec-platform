@@ -11,6 +11,8 @@ import { snapshotFor } from '@/lib/board-output';
 import { governanceChecks, cadenceOf, governanceStatus, CADENCE } from '@/lib/governance';
 import { approveBoardOutput, sendBackBoardOutput } from '@/app/period/actions';
 import { AceWatch } from '@/components/ace-watch';
+import { GoalsPanel } from '@/components/goals-panel';
+import { goalsFor } from '@/lib/goals-data';
 import { aceWatch } from '@/lib/ace-watch-data';
 
 export const dynamic = 'force-dynamic';
@@ -69,6 +71,7 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
     instead of buried in the function.
   */
   const aces = await aceWatch(user.tenantId, periodId, (await getRoles(user.tenantId)).map(r => r.id));
+  const goals = await goalsFor(user.tenantId);
   const boardMeetings = (await db.select().from(schema.meetings).where(eq(schema.meetings.tenantId, tenant.id))).filter(m => m.type === 'board');
   const directors = await db.select().from(schema.directors).where(eq(schema.directors.tenantId, tenant.id));
   const cadence = cadenceOf(tenant.boardCadence);
@@ -248,6 +251,15 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
           </p>
         )}
       </section>
+
+      {/*
+        What the business is FOR, beside what it is doing.
+
+        A pack is four pillars, two gates and a trend, and after a few months a business can be
+        scoring 94% against targets nobody has re-read since the week they were written. This is the
+        only thing on the page that is not a measurement, and that is exactly why it is here.
+      */}
+      <GoalsPanel goals={goals} />
 
       {/*
         Who is on a run, and who the doubled month falls to.

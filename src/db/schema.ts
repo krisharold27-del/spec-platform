@@ -68,6 +68,37 @@ export const directors = pgTable('directors', {
   active: boolean('active').notNull().default(true),
 }, t => [index('directors_tenant').on(t.tenantId)]).enableRLS();
 
+/**
+ * What the business is actually for — answered before a single role or KPI exists.
+ *
+ * Design export 5 made this Setup step one: "before a single role or KPI, the owner or director says
+ * what winning looks like. Every target Claude proposes later gets checked against this — a KPI that
+ * doesn't serve one of these goals is a KPI worth questioning."
+ *
+ * ── Why a table rather than three columns on tenants ─────────────────────────────────────────────
+ *
+ * Three columns would carve the three questions into the schema, and the questions are the part most
+ * likely to move — a fourth prompt, or a different set for a sector, would become a migration rather
+ * than an edit to a list. `promptId` keys an answer to its question in lib/goals, so the wording can
+ * change without the data moving, and an answer survives its prompt being retired. That last part
+ * matters: these are the owner's own words about their own business, not form fields.
+ *
+ * One row per prompt per tenant, enforced by the unique index rather than by code remembering to.
+ */
+export const businessGoals = pgTable('business_goals', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** Which question this answers — see GOAL_PROMPTS in lib/goals. */
+  promptId: text('prompt_id').notNull(),
+  /** The leader's answer, in their own words. SPEC reads it and never rewrites it. */
+  answer: text('answer').notNull(),
+  updatedAt: text('updated_at').notNull(),
+  updatedBy: text('updated_by'),
+}, t => [
+  index('business_goals_tenant').on(t.tenantId),
+  uniqueIndex('business_goals_tenant_prompt').on(t.tenantId, t.promptId),
+]).enableRLS();
+
 // One row per app user, linked to a Supabase Auth identity via authUserId (auth.users.id).
 // A person may hold roles in more than one tenant (e.g. a consultant); one row per tenant+email.
 export const users = pgTable('users', {

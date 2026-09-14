@@ -10,6 +10,8 @@ import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
 import { tierOf, TIER } from '@/lib/plan';
 import { steps, currentStep, progress, WHAT_SPEC_DOES } from '@/lib/setup';
+import { goalsFor } from '@/lib/goals-data';
+import { goalsAnswered, goalsSet } from '@/lib/goals';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { setTier } from '@/app/settings/actions';
 
@@ -18,7 +20,7 @@ export const dynamic = 'force-dynamic';
 /**
  * The week-one cascade.
  *
- * Five steps in the only order they work in, and every one of them computed from what the business
+ * Every step in the only order they work in, and every one of them computed from what the business
  * has actually done. Nothing here is a checkbox: a setup screen that can be ticked without the work
  * being done is a screen that lies to whoever reads it next.
  */
@@ -56,7 +58,11 @@ export default async function Setup() {
     return holder && seats.some(s => s.email === holder && (s.invitedAt || s.acceptedAt || s.authUserId));
   });
 
+  const goals = await goalsFor(user.tenantId);
+
   const all = steps({
+    goalsAnswered: goalsAnswered(goals),
+    goalCount: goalsSet(goals),
     named: !!tenant.name,
     // Basic is the default, so it only counts as chosen once somebody has actually been asked.
     tierChosen: tenant.tier === 'advanced' || tenant.tier === 'basic',
@@ -73,7 +79,7 @@ export default async function Setup() {
   return (
     <Shell
       title={`Setting up ${tenant.name}`}
-      subtitle="Five steps, in the only order they work in. Drawing the whole business is free."
+      subtitle={`${all.length} steps, in the only order they work in. Drawing the whole business is free.`}
     >
       <section className="card">
         <div className="flex flex-wrap items-center gap-2">

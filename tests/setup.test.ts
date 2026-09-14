@@ -2,25 +2,27 @@ import { describe, it, expect } from 'vitest';
 import { steps, currentStep, progress, WHAT_SPEC_DOES, type StepInput } from '../src/lib/setup';
 
 const input = (over: Partial<StepInput> = {}): StepInput => ({
+  goalsAnswered: false, goalCount: 0,
   named: false, tierChosen: false, roleCount: 0, rolesWithKpis: 0, scoredRoleCount: 0,
   rolesFilled: 0, managersHandedOver: 0, managerCount: 0, ...over,
 });
 
 const done = (over: Partial<StepInput> = {}): StepInput => input({
+  goalsAnswered: true, goalCount: 3,
   named: true, tierChosen: true, roleCount: 4, rolesWithKpis: 3, scoredRoleCount: 3,
   rolesFilled: 4, managersHandedOver: 2, managerCount: 2, ...over,
 });
 
 describe('steps', () => {
   it('runs in the only order that works', () => {
-    expect(steps(input()).map(s => s.key)).toEqual(['business', 'roles', 'kpis', 'people', 'cascade']);
+    expect(steps(input()).map(s => s.key)).toEqual(['goals', 'business', 'roles', 'kpis', 'people', 'cascade']);
   });
 
   it('starts with nothing done', () => {
     expect(steps(input()).every(s => !s.done)).toBe(true);
   });
 
-  it('finishes when the business has actually done all five', () => {
+  it('finishes when the business has actually done every one of them', () => {
     expect(steps(done()).every(s => s.done)).toBe(true);
   });
 
@@ -65,8 +67,9 @@ describe('steps', () => {
 
 describe('currentStep', () => {
   it('is the first one outstanding', () => {
-    expect(currentStep(steps(input())).key).toBe('business');
-    expect(currentStep(steps(input({ named: true, tierChosen: true }))).key).toBe('roles');
+    expect(currentStep(steps(input())).key).toBe('goals');
+    expect(currentStep(steps(input({ goalsAnswered: true, goalCount: 1 }))).key).toBe('business');
+    expect(currentStep(steps(input({ goalsAnswered: true, goalCount: 1, named: true, tierChosen: true }))).key).toBe('roles');
   });
 
   it('rests on the last step once everything is done', () => {
@@ -76,8 +79,8 @@ describe('currentStep', () => {
 
 describe('progress', () => {
   it('counts what is finished', () => {
-    expect(progress(steps(input()))).toEqual({ done: 0, total: 5, pct: 0 });
-    expect(progress(steps(done()))).toEqual({ done: 5, total: 5, pct: 1 });
+    expect(progress(steps(input()))).toEqual({ done: 0, total: 6, pct: 0 });
+    expect(progress(steps(done()))).toEqual({ done: 6, total: 6, pct: 1 });
   });
 });
 

@@ -1,18 +1,32 @@
 /**
  * The week-one cascade — pure functions, no I/O.
  *
- * Five steps, in the only order they work in: what the business is, the roles it needs, the two
- * numbers per pillar each of those roles is measured on, the people who fill them, and then the
- * same five steps handed to each manager for their own part of the chart.
+ * Six steps, in the only order they work in: what the business is FOR, what it is, the roles it
+ * needs, the two numbers per pillar each of those roles is measured on, the people who fill them,
+ * and then the same steps handed to each manager for their own part of the chart.
+ *
+ * The goals were added at the front by design export 5, and the position is the argument: a KPI
+ * proposed against a sector and a headcount measures the business this USUALLY is. Proposed against
+ * what the owner said winning looks like, it measures the one they are actually running.
  *
  * Every step's state is COMPUTED from what the business has actually done. Nothing here is a
  * checkbox somebody ticks, because a setup screen that can be ticked without the work being done
  * is a screen that lies to whoever reads it next.
  */
 
-export type StepKey = 'business' | 'roles' | 'kpis' | 'people' | 'cascade';
+export type StepKey = 'goals' | 'business' | 'roles' | 'kpis' | 'people' | 'cascade';
 
 export interface StepInput {
+  /**
+   * At least one of the three goal questions has a real answer.
+   *
+   * First, because everything after it is measured against it — design export 5: "before a single
+   * role or KPI, the owner or director says what winning looks like. Every target Claude proposes
+   * later gets checked against this."
+   */
+  goalsAnswered: boolean;
+  /** How many of the three have something in them, for the state line. */
+  goalCount: number;
   /** The business has a name and has answered the AI question. */
   named: boolean;
   tierChosen: boolean;
@@ -43,10 +57,26 @@ export function steps(i: StepInput): Step[] {
   const kpisDone = i.scoredRoleCount > 0 && i.rolesWithKpis === i.scoredRoleCount;
   const peopleDone = rolesDone && i.rolesFilled === i.roleCount;
 
-  return [
+  /*
+    Numbered from the array rather than typed in.
+
+    They were hardcoded "Step 1".."Step 5", and inserting the goals at the front meant renumbering
+    every one of them by hand — the kind of edit that silently ships two Step 3s. The position in
+    this list is the only place the order lives now.
+  */
+  return withNumbers([
+    {
+      key: 'goals',
+      label: 'The goals',
+      done: i.goalsAnswered,
+      state: i.goalCount === 0 ? 'Not answered' : `${i.goalCount} of 3 answered`,
+      detail: i.goalsAnswered
+        ? 'What winning looks like, in your words. Every KPI target gets checked against it.'
+        : 'Before a single role or KPI: where the business should be in three years, what makes this year a win, and what worries you about it.',
+      href: '/setup/goals',
+    },
     {
       key: 'business',
-      kicker: 'Step 1',
       label: 'The business',
       done: i.named && i.tierChosen,
       state: i.named && i.tierChosen ? 'Done' : 'Waiting',
@@ -57,18 +87,16 @@ export function steps(i: StepInput): Step[] {
     },
     {
       key: 'roles',
-      kicker: 'Step 2',
       label: 'Roles it needs',
       done: rolesDone,
       state: rolesDone ? `${i.roleCount} drawn` : 'Nothing drawn',
       detail: rolesDone
         ? 'Roles are defined by what the business needs. A role can exist with nobody in it.'
-        : 'Start with what the business needs done, not with who you have. The people come at step 4.',
+        : 'Start with what the business needs done, not with who you have. The people come later.',
       href: '/org',
     },
     {
       key: 'kpis',
-      kicker: 'Step 3',
       label: 'Two KPIs per pillar',
       done: kpisDone,
       state: i.scoredRoleCount === 0
@@ -79,7 +107,6 @@ export function steps(i: StepInput): Step[] {
     },
     {
       key: 'people',
-      kicker: 'Step 4',
       label: 'People into roles',
       done: peopleDone,
       state: rolesDone ? `${i.rolesFilled} of ${i.roleCount} filled` : 'Draw the roles first',
@@ -88,16 +115,20 @@ export function steps(i: StepInput): Step[] {
     },
     {
       key: 'cascade',
-      kicker: 'Step 5',
       label: 'Cascade to managers',
       done: i.managerCount > 0 && i.managersHandedOver === i.managerCount,
       state: i.managerCount === 0
         ? 'No managers yet'
         : `${i.managersHandedOver} of ${i.managerCount}`,
-      detail: 'Each manager does the same five steps for their own part of the chart. That is what makes it theirs rather than yours.',
+      detail: 'Each manager does the same steps for their own part of the chart. That is what makes it theirs rather than yours.',
       href: '/team',
     },
-  ];
+  ]);
+}
+
+/** The kicker is the position in the list, so inserting a step can never leave two Step 3s. */
+function withNumbers(all: Omit<Step, 'kicker'>[]): Step[] {
+  return all.map((s, i) => ({ ...s, kicker: `Step ${i + 1}` }));
 }
 
 /** The step to be on: the first one not finished, or the last when everything is. */
@@ -117,9 +148,10 @@ export function progress(all: Step[]): { done: number; total: number; pct: numbe
  * leader who trusts the numbers and one who suspects the software wrote them.
  */
 export const WHAT_SPEC_DOES: Record<StepKey, string> = {
+  goals: 'Nothing yet — these are your words, not SPEC\u2019s. From here on every role it proposes and every target it sense-checks is measured against them.',
   business: 'Nothing yet. This is you telling SPEC what it is looking at.',
   roles: 'Proposes the roles a business your size and shape usually needs, with a reason against each. You keep or remove.',
   kpis: 'Proposes two measures per pillar from the role’s own purpose, and sense-checks a target that looks unreachable. It never sets one.',
   people: 'Nothing. Who goes where is not a thing software should have an opinion about.',
-  cascade: 'Gives each manager the same five steps, scoped to their own part of the chart, and tells you who has finished.',
+  cascade: 'Gives each manager the same steps, scoped to their own part of the chart, and tells you who has finished.',
 };
