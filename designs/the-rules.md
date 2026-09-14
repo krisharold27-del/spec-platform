@@ -204,11 +204,19 @@ reduces to 8; an incentive ceiling is not a published price.
 September 2026: "sales ace — 90+ on spec 3 months in a row — ops ace — 90+ on
 spec 3 months in a row".*
 
-**There are two, and they are the same rule.** **Sales Ace** in the **BD
-department**, **Ops Ace** in the **Ops department** — Kris, 14 September 2026.
-Nothing about the test differs; only the name, and the name comes from the org
-chart. A role above both departments — a GM — holds the plain **Ace**: same rule,
-same doubling, no claim about a department they do not work in.
+**Every role has one.** Kris, 14 September 2026: *"add an Ace to each role -
+scored when the person hits 3 months in a row - resets and then begins the 3
+month focus again."* It is not a prize for two departments; it is the standard
+every seat in the business is held to, and only the name changes with the seat.
+
+**Sales Ace** in the **BD department**, **Ops Ace** in the **Ops department**.
+Nothing about the test differs; the name comes from the org chart. A role above
+both departments — a GM — holds the plain **Ace**: same rule, same doubling, no
+claim about a department they do not work in.
+
+Only roles with **their own KPI scorecard** can reach it. A seat with nothing on
+its card is not on a run, and showing it as 0 of 3 would read as failing rather
+than as not yet being measured.
 
 **What earns it — all three, together:**
 

@@ -17,6 +17,8 @@ import {
 } from '@/lib/month';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { Problems } from '@/components/problems';
+import { AceWatch } from '@/components/ace-watch';
+import { aceWatch } from '@/lib/ace-watch-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +57,9 @@ export default async function MonthlyScoring() {
   const status = period.status as PeriodStatus;
 
   const inScope = scoredRolesInScope(scope);
+  // Scope-bounded: aceWatch never widens the set it is given, so this is the only place the
+  // visibility decision is made.
+  const aces = await aceWatch(tenant.id, period.id, inScope.map(r => r.id));
   const roles = [];
   for (const r of inScope) {
     const { rows, score } = await getScorecard(r.id, period.id);
@@ -357,6 +362,16 @@ export default async function MonthlyScoring() {
           </section>
         </div>
       </div>
+
+      {/*
+        Every role's run, on the page where the month is signed off.
+
+        The Ace was only ever visible on the one scorecard whose roleId was in the URL, which meant
+        the person on their third month could see it and the director APPROVING the doubled payment
+        could not see it anywhere at all. It belongs here.
+      */}
+      <AceWatch rows={aces} period={period.period} />
+
       <Problems screen="scoring" />
 
     </Shell>

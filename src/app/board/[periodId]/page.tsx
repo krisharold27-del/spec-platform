@@ -6,10 +6,12 @@ import { getCurrentUser, canManage } from '@/lib/auth';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { Shell, PILLAR_META, pct } from '@/components/ui';
 import { renderMarkdown } from '@/lib/markdown';
-import { getTeamRollup, getGates, PILLARS } from '@/lib/queries';
+import { getTeamRollup, getGates, getRoles, PILLARS } from '@/lib/queries';
 import { snapshotFor } from '@/lib/board-output';
 import { governanceChecks, cadenceOf, governanceStatus, CADENCE } from '@/lib/governance';
 import { approveBoardOutput, sendBackBoardOutput } from '@/app/period/actions';
+import { AceWatch } from '@/components/ace-watch';
+import { aceWatch } from '@/lib/ace-watch-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,6 +62,13 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
 
   const rollup = await getTeamRollup(user.tenantId, periodId);
   const gates = await getGates(periodId);
+  /*
+    The pack is the WHOLE business — it is the one lawful exception to "only me and above", already
+    established by the guard above — so every role is in view here. aceWatch still takes the set
+    explicitly rather than reading the tenant itself, so the decision is visible at the call site
+    instead of buried in the function.
+  */
+  const aces = await aceWatch(user.tenantId, periodId, (await getRoles(user.tenantId)).map(r => r.id));
   const boardMeetings = (await db.select().from(schema.meetings).where(eq(schema.meetings.tenantId, tenant.id))).filter(m => m.type === 'board');
   const directors = await db.select().from(schema.directors).where(eq(schema.directors.tenantId, tenant.id));
   const cadence = cadenceOf(tenant.boardCadence);
@@ -239,6 +248,15 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
           </p>
         )}
       </section>
+
+      {/*
+        Who is on a run, and who the doubled month falls to.
+
+        The board approves the month, and the doubled incentive is a consequence of approving it. A
+        director should not have to open four scorecards to find out what signing costs, so the runs
+        are on the page the signature happens on.
+      */}
+      <AceWatch rows={aces} period={period.period} />
 
       {/* ---------- Layer two: the full pack ---------- */}
       {bo ? (
