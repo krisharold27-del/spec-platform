@@ -13,7 +13,7 @@
  * Paid on the percentage the person is shown (one decimal), not on hidden precision: 83.33% shows
  * as 83.3% and pays 2,000 × 0.833 = $1,666. Paying on a number nobody can see is indefensible.
  */
-import { AT_THE_STANDARD, atTheStandard, type Pillar, type Score } from './scoring';
+import { AT_THE_STANDARD, type Score } from './scoring';
 
 /** Default ceilings (§6.1). A business may set its own. The director is not in the scheme. */
 export const DEFAULT_CEILINGS: Record<string, number | null> = {
@@ -132,19 +132,46 @@ export interface SalesMonth {
  * A single closed month below the standard puts the count back to nothing. No partial credit: a run
  * that survives a bad month is not a run.
  *
- * **A month holds on EVERY pillar, never on the average.** Kris: "sales ace — 90+ on spec 3 months
- * in a row — ops ace — 90+ on spec 3 months in a row". On spec, not on average. The design says the
- * same on My Page: "the board needs every pillar at 90% or better for three months straight." This
- * read the role's overall percentage, which would have doubled the pay of somebody sitting at
- * 100/100/100/62 — a 90.5% average with a quarter of the job failing. The question is asked by
- * scoring.atTheStandard, the one the SPEC standing uses, so the two can never answer differently.
+ * **A month holds on the COMBINED score, not pillar by pillar.** Kris: "its 90% combined score —
+ * 4 quarters — for 3 months straight." The four quadrants are averaged into one number and that
+ * number is the test, which is the same number the person is shown and paid on all month. It is
+ * deliberately NOT the SPEC standing, which is the harder every-pillar test in scoring.isSpec — see
+ * the note there. The two quote the same 90% and measure different things, and unifying them moves
+ * somebody's money.
  */
 export const ACE_MONTHS_REQUIRED = 3;
 
+export type AceName = 'Sales Ace' | 'Ops Ace' | 'Ace';
+
+/**
+ * Which Ace a role holds, decided by the department it sits in.
+ *
+ * Kris: "Sales Ace under BD Department and Ops Ace under Ops Department." It is one rule wearing
+ * two names, and the name comes from the org chart rather than from anything about the test.
+ *
+ * This used to be `stream === 'operations' ? 'Ops Ace' : 'Sales Ace'`, which quietly handed a
+ * General Manager a **Sales Ace** — the GM sits above both departments and is in neither. Being
+ * told you hold a standing in a department you do not work in is the kind of small wrongness that
+ * makes somebody doubt the figure printed underneath it.
+ *
+ * So roles above the departments get the plain **Ace**: same rule, same doubling, no claim about a
+ * department. `commercial` is read as BD alongside `growth` because the seed templates ship a Head
+ * of Commercial and the design's chart calls the same seat a BD Manager; both are the sales side.
+ */
+export function aceName(stream: string): AceName {
+  const s = stream.trim().toLowerCase();
+  if (s === 'operations' || s === 'ops') return 'Ops Ace';
+  if (s === 'bd' || s === 'growth' || s === 'commercial' || s === 'sales') return 'Sales Ace';
+  return 'Ace';
+}
+
 export interface AceMonth {
   period: string;
-  /** Every pillar for that CLOSED month. All four must be at the standard for the month to hold. */
-  pillars: Record<Pillar, Score>;
+  /**
+   * The combined score across the four quadrants for that CLOSED month — the same figure shown on
+   * the scorecard. Null when nothing in the month was scored, which breaks the run.
+   */
+  combined: Score;
 }
 
 export interface AceState {
@@ -166,7 +193,7 @@ export function aceState(
   let completedOnLast = false;
 
   closedMonths.forEach((m, i) => {
-    if (atTheStandard(m.pillars, standard)) run += 1;
+    if (m.combined !== null && m.combined >= standard) run += 1;
     else run = 0;
 
     if (run >= ACE_MONTHS_REQUIRED) {

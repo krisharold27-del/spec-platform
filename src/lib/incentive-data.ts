@@ -2,9 +2,9 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getRoles, getScorecard, PILLARS } from './queries';
 import { isScored } from './today-data';
-import { incentiveFor, aceState, DEFAULT_CEILINGS, FAILED_AT_OR_BELOW, type IncentiveResult } from './incentive';
+import { incentiveFor, aceState, aceName, DEFAULT_CEILINGS, FAILED_AT_OR_BELOW, type AceName, type IncentiveResult } from './incentive';
 import { ceilingsFor } from './ceilings';
-import { atTheStandard, type Pillar, type Score } from './scoring';
+import { combinedScore, AT_THE_STANDARD, type Pillar, type Score } from './scoring';
 
 /**
  * What one role's incentive comes to this month, read from what the business has actually recorded.
@@ -53,8 +53,8 @@ export interface IncentiveView extends IncentiveResult {
  * somebody exactly what next month is worth, and a badge tells them nothing.
  */
 export interface AceRun {
-  /** What it is called for this role — a sales role earns one, an operations role the other. */
-  name: 'Sales Ace' | 'Ops Ace';
+  /** What it is called for this role: Sales Ace in BD, Ops Ace in Operations, plain Ace above both. */
+  name: AceName;
   /** Closed months behind this one, oldest first, with whether each held the standard. */
   run: { period: string; held: boolean }[];
   /** How many consecutive months at the standard stand behind this one. */
@@ -140,12 +140,8 @@ export async function incentiveView(
     }
   }
 
-  const ownPct = mine
-    ? (() => {
-        const scored = PILLARS.map(p => mine.pillars[p]).filter((v): v is number => v !== null);
-        return scored.length ? scored.reduce((s, v) => s + v, 0) / scored.length : null;
-      })()
-    : null;
+  // The same function the run reads and the scorecard shows, so the three cannot disagree.
+  const ownPct = mine ? combinedScore(mine.pillars) : null;
 
   /*
     This business's own ceilings, not SPEC's. The ladder is a suggestion — "Ceilings are defaults,
@@ -175,17 +171,20 @@ export async function incentiveView(
     .sort((a, b) => a.period.localeCompare(b.period));
 
   /*
-    Every pillar of every closed month, not the month's average.
+    The COMBINED score for each closed month — the four quadrants averaged into one number.
 
-    A month holds for Ace when all four quadrants are at the standard — "90+ on spec", and the
-    design's "the board needs every pillar at 90% or better". This used to push the month's mean
-    through, which would have paid double to somebody at 100/100/100/62. The average is kept
-    alongside only to caption the run; nothing is decided by it.
+    Kris: "its 90% combined score - 4 quarters - for 3 months straight." It is the same figure the
+    person sees at the top of their scorecard all month, which is the point: a run should be
+    readable off the screen somebody already looks at, not recomputed from a different rule.
+
+    A quadrant nobody scored is left out of the average rather than counted as zero — the same way
+    `combinedScore` does it everywhere else. A month with nothing scored at all is null, and null
+    breaks the run.
   */
-  const history: { period: string; pillars: Record<Pillar, Score> }[] = [];
+  const history: { period: string; combined: Score }[] = [];
   for (const p of closed) {
     const { score } = await getScorecard(roleId, p.id);
-    history.push({ period: p.period, pillars: score.pillars });
+    history.push({ period: p.period, combined: combinedScore(score.pillars) });
   }
 
   /*
@@ -201,10 +200,10 @@ export async function incentiveView(
   const state = aceState(history, { signedOff });
 
   const ace: AceRun = {
-    name: role.stream === 'operations' ? 'Ops Ace' : 'Sales Ace',
+    name: aceName(role.stream),
     // The tick marks read the same test the run does, so the strip can never tick a month that did
     // not count — the two disagreeing is how somebody loses faith in the whole panel.
-    run: history.slice(-6).map(h => ({ period: h.period, held: atTheStandard(h.pillars) })),
+    run: history.slice(-6).map(h => ({ period: h.period, held: h.combined !== null && h.combined >= AT_THE_STANDARD })),
     consecutive: state.consecutive,
     required: state.required,
     doublesNow: state.doublesNow,

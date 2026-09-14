@@ -80,6 +80,20 @@ export function teamScore(roleScores: RoleScore[]): RoleScore {
   return { pillars, overall: mean(scored(people.map(r => r.overall))) };
 }
 
+/**
+ * The combined score — the four quadrants averaged into one number.
+ *
+ * This is the figure at the top of a scorecard, the figure the incentive multiplies the ceiling by,
+ * and the figure the Ace run tests. One function so those three can never disagree: a person seeing
+ * 91.2% and a run that did not tick that month would be right to stop trusting the page.
+ *
+ * A quadrant nobody scored is left out rather than counted as zero — pending is not a failure. All
+ * four unscored gives null, which is "nobody marked this month", never "they scored nothing".
+ */
+export function combinedScore(pillars: Record<Pillar, Score>): Score {
+  return mean(scored(PILLARS.map(p => pillars[p])));
+}
+
 /*
   The two lines, defined here because lib/pillars imports this file — so they can only live in one
   direction. lib/pillars re-exports them, which is where the long explanation of both sits.
@@ -141,24 +155,24 @@ export function isSpec(closedMonths: (RoleScore | null)[], threshold = 0.9): boo
 }
 
 /**
- * One month at the standard: EVERY pillar at 90% or better, none of them unscored.
+ * One month on spec: EVERY pillar at 90% or better, none of them unscored.
  *
- * ── Why an average will not do ───────────────────────────────────────────────────────────────────
+ * ── This is the STANDING, and it is not how Ace is paid ──────────────────────────────────────────
  *
- * The obvious reading of "90% or better" is the role's overall percentage, and it is wrong. A role
- * at 100 / 100 / 100 / 62 averages 90.5% and is not at the standard by any honest account of it —
- * a quarter of that person's job is failing. Averaging lets three strong pillars pay for a weak one,
- * which is the exact trade SPEC exists to refuse.
+ * Two rules quote the same 90% and they measure different things. Do not unify them; it has been
+ * tried, and it moved somebody's money.
  *
- * The design says it in Kris's own words, on My Page: "the board needs every pillar at 90% or
- * better for three months straight", and again — "yes if October holds above 90% on every pillar".
- * Both things that judge a month — the SPEC standing and the Ace run — now ask this one question,
- * so they cannot drift apart or disagree about the same month.
+ *   BEING SPEC (here)     every pillar ≥ 90%, two consecutive closed months.
+ *   ACE (lib/incentive)   the COMBINED score across the four quadrants ≥ 90%, three months straight.
  *
- * An unscored pillar is not at the standard. It is not a failure either, and nothing deducts for
- * it, but a run is a positive claim: nobody can say the board held at 90% while a quarter of the
- * board is blank. A role with no KPIs in a pillar therefore cannot earn Ace until it has some,
- * which is the right answer — being measured is the price of being rewarded.
+ * Kris, on Ace: "its 90% combined score - 4 quarters - for 3 months straight." The standing is the
+ * harder test on purpose — it is a claim about the whole business, and a business does not get to
+ * call itself SPEC while a quadrant of it is failing. The incentive is a claim about one person's
+ * month, and it pays on the number that person is shown.
+ *
+ * An unscored pillar is not at the standard. It is not a failure either, and nothing deducts for it,
+ * but the standing is a positive claim: nobody can say the board held at 90% while a quarter of the
+ * board is blank.
  */
 export function atTheStandard(pillars: Record<Pillar, Score>, threshold = AT_THE_STANDARD): boolean {
   return PILLARS.every(p => {

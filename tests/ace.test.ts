@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { aceState, incentiveFor, ACE_MONTHS_REQUIRED } from '../src/lib/incentive';
-import { AT_THE_STANDARD } from '../src/lib/scoring';
+import { aceState, aceName, incentiveFor, ACE_MONTHS_REQUIRED } from '../src/lib/incentive';
+import { AT_THE_STANDARD, combinedScore, isSpec } from '../src/lib/scoring';
 
 /*
   ── Ace: three closed months at the standard, and the NEXT month is doubled ──────────────────────
@@ -19,22 +19,14 @@ import { AT_THE_STANDARD } from '../src/lib/scoring';
   BEING SIGNED OFF IS A PRECONDITION. Ace says somebody can do the job to the standard, not merely
   that the numbers landed. Without the sign-off the run still shows and nothing doubles.
 
-  A third was found later and is money too: A MONTH HOLDS ON EVERY PILLAR, NOT THE AVERAGE. Kris:
-  "sales ace — 90+ on spec 3 months in a row — ops ace — 90+ on spec 3 months in a row". On spec,
-  and the design says the same: "the board needs every pillar at 90% or better for three months
-  straight". See the `every pillar` block at the bottom.
+  A MONTH HOLDS ON THE COMBINED SCORE. Kris: "its 90% combined score - 4 quarters - for 3 months
+  straight." The four quadrants average into one number and that number is the test — the same
+  number the person is shown and paid on. It is NOT the SPEC standing, which is the harder
+  every-pillar test in scoring.isSpec. The two quote the same 90% and measure different things.
 */
 
-/** A month where all four pillars landed on the same number — the shorthand most cases need. */
-const closed = (...pcts: (number | null)[]) =>
-  pcts.map((v, i) => ({
-    period: `2026-${String(i + 1).padStart(2, '0')}`,
-    pillars: { safety: v, people: v, earnings: v, compliance: v },
-  }));
-
-/** A month spelled out pillar by pillar, for the cases where they differ. */
-const month = (period: string, safety: number | null, people: number | null, earnings: number | null, compliance: number | null) =>
-  ({ period, pillars: { safety, people, earnings, compliance } });
+const closed = (...combined: (number | null)[]) =>
+  combined.map((c, i) => ({ period: `2026-${String(i + 1).padStart(2, '0')}`, combined: c }));
 
 const ok = { signedOff: true };
 
@@ -95,43 +87,50 @@ describe('the Ace run', () => {
   });
 
   /*
-    ── Every pillar, never the average ────────────────────────────────────────────────────────────
+    ── The combined score, four quadrants averaged, is the test ───────────────────────────────────
 
-    100 / 100 / 100 / 62 averages 90.5%. On the old reading that was three months of Ace and double
-    pay, with a quarter of the person's job failing the whole time — and the same run would have
-    ticked green on the strip while the org chart beside it painted that quadrant amber. Averaging
-    lets three strong pillars buy off a weak one, which is the trade SPEC exists to refuse.
+    100 / 100 / 100 / 62 combines to 90.5% and COUNTS. This is the deliberate difference between the
+    two 90% rules: Ace pays on the number a person is shown, and the SPEC standing — the harder
+    every-pillar test — is the one that will not let a weak quadrant be carried. Asserted here so
+    nobody "fixes" Ace into the standing later; it has been done once.
   */
-  it('does not count a month that averages 90% with a pillar below it', () => {
-    const carried = [
-      month('2026-07', 1, 1, 1, 0.62),
-      month('2026-08', 1, 1, 1, 0.62),
-      month('2026-09', 1, 1, 1, 0.62),
-    ];
-    expect(carried.map(m => (1 + 1 + 1 + 0.62) / 4)).toEqual([0.905, 0.905, 0.905]); // an average that passes
-    expect(aceState(carried, ok).doublesNow).toBe(false); // and a run that does not
-    expect(aceState(carried, ok).consecutive).toBe(0);
+  it('counts a month on the combined score even when one quadrant is weak', () => {
+    const carried = combinedScore({ safety: 1, people: 1, earnings: 1, compliance: 0.62 });
+    expect(carried).toBeCloseTo(0.905, 5);
+    expect(aceState(closed(carried, carried, carried), ok).doublesNow).toBe(true);
   });
 
-  it('counts a month only when all four pillars are at the standard', () => {
-    const allFour = [
-      month('2026-07', 0.9, 0.95, 1, 0.92),
-      month('2026-08', 0.91, 0.9, 0.99, 0.9),
-      month('2026-09', 1, 1, 0.9, 0.95),
-    ];
-    expect(aceState(allFour, ok).doublesNow).toBe(true);
+  it('is not the SPEC standing, which the same months fail', () => {
+    const weak = { safety: 1, people: 1, earnings: 1, compliance: 0.62 };
+    expect(aceState(closed(combinedScore(weak), combinedScore(weak), combinedScore(weak)), ok).doublesNow).toBe(true);
+    expect(isSpec([{ pillars: weak, overall: combinedScore(weak) }, { pillars: weak, overall: combinedScore(weak) }])).toBe(false);
   });
 
-  /* One blank quadrant is not a failure and deducts nothing — but a run is a positive claim, and
-     nobody can say the board held at 90% while a quarter of it is unmarked. */
-  it('does not count a month with a pillar nobody scored', () => {
-    const blank = [
-      month('2026-07', 1, 1, 1, 1),
-      month('2026-08', 1, 1, 1, null),
-      month('2026-09', 1, 1, 1, 1),
-    ];
-    expect(aceState(blank, ok).doublesNow).toBe(false);
-    expect(aceState(blank, ok).consecutive).toBe(1);
+  /* A quadrant nobody scored is left out of the average rather than counted as zero — pending is
+     never a failure. A month with nothing scored at all is null, and null breaks the run. */
+  it('averages only the quadrants that were scored', () => {
+    expect(combinedScore({ safety: 0.92, people: 0.94, earnings: 0.9, compliance: null })).toBeCloseTo(0.92, 5);
+    expect(combinedScore({ safety: null, people: null, earnings: null, compliance: null })).toBe(null);
+  });
+
+  /*
+    ── Which Ace, by department ───────────────────────────────────────────────────────────────────
+
+    "Sales Ace under BD Department and Ops Ace under Ops Department." One rule, two names, and the
+    name comes from the org chart.
+  */
+  it('names the Ace after the department the role sits in', () => {
+    expect(aceName('operations')).toBe('Ops Ace');
+    expect(aceName('growth')).toBe('Sales Ace');
+    expect(aceName('commercial')).toBe('Sales Ace'); // the seed's Head of Commercial is the design's BD Manager
+    expect(aceName('bd')).toBe('Sales Ace');
+  });
+
+  /* A General Manager is above both departments and in neither. Naming their standing "Sales Ace"
+     was a claim about a department they do not work in. */
+  it('gives a role above both departments the plain Ace', () => {
+    expect(aceName('gm')).toBe('Ace');
+    expect(aceName('board')).toBe('Ace');
   });
 
   it('doubles the ceiling in the month it applies', () => {

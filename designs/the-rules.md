@@ -30,8 +30,8 @@ need to ask a question or infer anything from a screenshot."
 > - **The failure line.** A quadrant fails **at or under** 50%, not under it.
 >   Exactly 50.0% is a failure. §7 says "under 50%" throughout and is wrong.
 > - **Ace.** §7's Sales Ace — outcome plus behaviours, held for as long as it
->   lasts, lost over two months — is superseded entirely. See §7a, which replaces
->   it, and `lib/incentive`.
+>   lasts, lost over two months, no Ops Ace — is superseded entirely. See §7a,
+>   which replaces it, and `lib/incentive`.
 >
 > Everything else on this page is still current and still the reference.
 
@@ -204,9 +204,11 @@ reduces to 8; an incentive ceiling is not a published price.
 September 2026: "sales ace — 90+ on spec 3 months in a row — ops ace — 90+ on
 spec 3 months in a row".*
 
-**There are two, and they are the same rule.** **Sales Ace** for a sales role,
-**Ops Ace** for an operations role. Nothing about the test differs; only the
-name, taken from the person's own stream.
+**There are two, and they are the same rule.** **Sales Ace** in the **BD
+department**, **Ops Ace** in the **Ops department** — Kris, 14 September 2026.
+Nothing about the test differs; only the name, and the name comes from the org
+chart. A role above both departments — a GM — holds the plain **Ace**: same rule,
+same doubling, no claim about a department they do not work in.
 
 **What earns it — all three, together:**
 
@@ -214,13 +216,27 @@ name, taken from the person's own stream.
    this person can do the job to the standard, not merely that the numbers
    landed. Without it the run still shows — somebody should be able to see where
    they are — and nothing doubles.
-2. **Every pillar at 90% or above.** On spec, not on average. A month at
-   100 / 100 / 100 / 62 averages 90.5% and does not count: a quarter of that
-   person's job is failing, and letting three strong pillars buy off a weak one
-   is the exact trade SPEC exists to refuse. A pillar nobody scored is not at the
-   standard either — a run is a positive claim about the whole board.
+2. **A combined score of 90% or above.** Kris: *"its 90% combined score - 4
+   quarters - for 3 months straight."* The four quadrants average into one
+   number and that number is the test — the same number the person is shown and
+   paid on all month. A quadrant nobody scored is left out of the average rather
+   than counted as zero.
 3. **Three consecutive CLOSED months.** Closed and signed. An open month never
    counts toward its own run.
+
+> **This is NOT the 90% rule in §6.** The two quote the same number and measure
+> different things, on purpose:
+>
+> | | Test | Months |
+> |---|---|---|
+> | **Being SPEC** (§6) | every pillar ≥ 90% | 2 closed |
+> | **Ace** (here) | the **combined** score ≥ 90% | 3 closed |
+>
+> The standing is the harder test because it is a claim about the whole business,
+> and a business does not get to call itself SPEC while a quadrant of it fails.
+> The incentive is a claim about one person's month and pays on the figure they
+> are shown. So 100 / 100 / 100 / 62 — 90.5% combined — **counts for Ace and is
+> not SPEC.** Do not unify them; it was tried, and it moved somebody's money.
 
 **What it pays: the month AFTER the run, doubled — then the count restarts.**
 Jul, Aug and Sep close on spec, and the incentive doubles for **October**. It is

@@ -92,10 +92,10 @@ export function IncentivePanel({ view, period }: { view: IncentiveView; period: 
             )}
             <p className="mt-3 text-xs text-ink-light">
               {view.ace.doublesNow
-                ? `Three closed months with every pillar at ${standardPct}% or above, trained on the job and signed off. The ceiling is doubled for this month, and the three-month challenge starts again.`
+                ? `Three closed months with a combined score of ${standardPct}% or above, trained on the job and signed off. The ceiling is doubled for this month, and the three-month challenge starts again.`
                 : view.ace.blockedBySignoff
-                  ? `Three closed months with every pillar at ${standardPct}% or above — the numbers are there. The doubling waits on being trained on the job and signed off, because Ace says somebody can do the job to the standard, not just that the numbers landed.`
-                  : `Trained on the job, signed off, and every pillar at ${standardPct}% or above for three consecutive closed months doubles the ceiling for the month after. Then the three-month challenge starts again. One month below the standard puts the count back to nothing.`}
+                  ? `Three closed months with a combined score of ${standardPct}% or above — the numbers are there. The doubling waits on being trained on the job and signed off, because Ace says somebody can do the job to the standard, not just that the numbers landed.`
+                  : `Trained on the job, signed off, and a combined score of ${standardPct}% or above for three consecutive closed months doubles the ceiling for the month after. Then the three-month challenge starts again. One month below the standard puts the count back to nothing.`}
             </p>
           </div>
 
