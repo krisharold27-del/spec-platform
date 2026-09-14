@@ -10,7 +10,12 @@ or **unknown**, and proven means there is a command you can run that fails if it
 stops being true. Anything I have only reasoned about is assumed, however
 confident the reasoning.
 
-Dated 12 September 2026. Re-run the commands rather than trusting the date.
+Dated 14 September 2026. Re-run the commands rather than trusting the date.
+
+**The last two steps are fixed, by Kris's instruction:** the Anthropic API key and
+Stripe go in *after* everything else is finished, in that order. Nothing above
+them depends on either — the product is complete and honest without both, which is
+what makes leaving them until last a decision rather than a delay.
 
 ---
 
@@ -20,7 +25,7 @@ Each of these is enforced by something that runs on every change.
 
 | What | Evidence |
 |---|---|
-| The engine's arithmetic | 623 tests across 42 files. Pillar, role and team maths, the 90% rule, incentive ceilings, the deduction and its cap, the seven statuses, the rule of 8 — all measured against `designs/the-rules.md` |
+| The engine's arithmetic | 852 tests across 59 files. Pillar, role and team maths, the 90% rule, incentive ceilings, the deduction and its cap, the seven statuses, the rule of 8 — all measured against `designs/the-rules.md` |
 | A customer can get in and stay in | `scripts/journey.mjs` — look around, sign up, keep the business you were looking at, sign out, sign back in. Driven in a real browser |
 | A stranger's problem reaches their page | `scripts/frontdoor-journey.mjs`, 17 checks. The landing page promises "your page is waiting, with this problem already sitting in the middle of it" and the last check verifies exactly that |
 | The improvement register works end to end | `scripts/register-journey.mjs`, 25 checks. Logged, read, ranked, assigned, accepted, marked done, raised again as one entry |
@@ -32,15 +37,19 @@ Each of these is enforced by something that runs on every change.
 | A personal mailbox stays private | `tests/mail.test.ts` reads the source and fails if any query forgets. It found five leaks the day it was written |
 | No query reads every business | `tests/tenant-isolation.test.ts`. It found six the day it was written, one of them a real cross-tenant bug — and a seventh on 12 September, before it shipped |
 | A seat can be taken exactly once | `scripts/seat-journey.mjs`, 14 checks. Single use, expiring, bound to that address, and a refusal that never says "invalid token" |
-| Every table is isolated in the database too | `npm run db:check-rls` applies the real policy file and then asks Postgres what it actually got. **24 of 24** |
-| The product carries what the designs say | `npm run designs:coverage` — 161 of 161 phrases, per design screen, named individually when one is missing |
+| Every table is isolated in the database too | `npm run db:check-rls` applies the real policy file and then asks Postgres what it actually got. **27 of 27** |
+| The product carries what the designs say | `npm run designs:coverage` — **175 of 175** headings and **473 of 473** labels, per design screen, named individually when one is missing |
+| Your own commercial numbers stay yours | `scripts/cockpit-journey.mjs`. `/cockpit` carries revenue, client count and the road to 20,000 seats — none of it a customer's business. Two real people in a browser: an ordinary customer turned away, an allowlisted address let in. Unlinked is not protected; the address is guessable |
+| The goals survive being set | `scripts/goals-journey.mjs`, 22 checks. Set at step one, visible afterwards on the board pack and monthly scoring, and gone from both when cleared |
+| SPEC reads the chart and the leader decides | `scripts/predict-journey.mjs`, 18 checks. Runs with **no API key**, finds a real gap, and a denied role is never proposed again |
+| The goal reaches a scorecard without setting anybody's target | `scripts/cascade-journey.mjs`, 17 checks. The last one opens the role's own KPI page and confirms the agreed target is still empty |
 | An expired ticket stops somebody working | `tests/obligations.test.ts`. It caught a real defect before release: a licence expiring **today** was reported expired, which would have blocked people who were fine |
 
 **One command runs all of it: `npm run check`.** It prints one line per thing in
 plain words and ends with a verdict. A skip is never counted as a pass, and
 "I could not check this" and "this is broken" are different sentences.
 
-Last run, 12 September: **WORKING — all 7 checks passed**, 65 seconds.
+Last run, 14 September: **WORKING — all 11 checks passed**, 160 seconds.
 
 ---
 
@@ -74,7 +83,10 @@ behaviour, its rate limits, or its email delivery.
 
 **Corrected, 12 September.** I first reported "5 of 23 tables have a policy". That
 was wrong — I had missed a loop covering eight more. The real figure was 12 of
-23, and it is now **22 of 22**, with `rulebook_rules` global by design.
+23, and it is now **27 of 27**, with `rulebook_rules` global by design and
+`health_pings` locked to everybody. Every table added since — the goals, the
+predicted roles, the cascade — was added to the policy file in the same commit
+as the schema, and `npm run db:check-rls` fails if one ever is not.
 
 Two things were genuinely wrong, and both are fixed:
 
@@ -93,12 +105,17 @@ Postgres lets bypass RLS. So for the app's own path RLS is still not the control
 — `tests/tenant-isolation.test.ts` is. The policies now genuinely protect every
 other route into the same database, which is what they were always for.
 
-### The diagnosis has never been read by Claude
+### Nothing has ever been read by Claude
 
-`ANTHROPIC_API_KEY` is unset everywhere I have run, so every diagnosis has come
-from the deterministic fallback. The prompt is the design's own and the
-invariants are enforced in code — but **no real reading has ever been seen**, and
-the front door's whole argument is that the reading is good.
+`ANTHROPIC_API_KEY` is unset everywhere I have run. Four things fall back because
+of it — the front-door diagnosis, the predicted roles, the KPI cascade and the
+board pack's written draft — and **every one of them degrades honestly and says
+which reading you are looking at.** That was built deliberately so this step could
+be left until last, which is where Kris has put it (step 5 below).
+
+What remains true: the prompts are the design's own and the invariants are
+enforced in code, but **no real reading has ever been seen**, and the front door's
+whole argument is that the reading is good.
 
 ---
 
@@ -106,11 +123,17 @@ the front door's whole argument is that the reading is good.
 
 Things I have no way to answer from here.
 
-- **Is production actually up?** The agent proxy blocks `vercel.app`, so I have
-  never loaded the live site. Every claim above is about this repository.
+- **Is production actually up?** The agent proxy blocks the live host, so I have
+  never loaded the site in a browser. `npm run check` now asks GitHub's own
+  commit-status API instead and reports the deployed commit, which answers "is
+  what I just pushed live?" but not "does it look right to a person".
 - **Backups.** Whatever Supabase does by default. Never configured, never tested,
-  never restored.
-- **Load.** Never tested. The heaviest page runs a query per role in a loop.
+  never restored. Still step 3.
+- ~~**Load.**~~ **Tested, 13 September.** `scripts/load-test.mjs` stands up 20,028
+  seats against a local Postgres and found three real scaling faults, including a
+  missing index that read 16,008 rows to return 24. Never run against the live
+  database, and never with 20,000 people using it at once — what was measured is
+  the shape of the queries, not the hosting.
 - **Security review.** None. No dependency audit, no penetration test.
 - **Legal.** Terms and Privacy are pages with words on them, written by me and
   never read by a lawyer. You are about to take money from businesses and hold
@@ -122,30 +145,52 @@ Things I have no way to answer from here.
 
 ## Before the first paying customer
 
-In order. The first three are the ones that would be discovered *by the customer*.
+In order, and the order is now fixed. Kris, 14 September: *"adding an anthropic
+api key and stripe completion are the final 2 steps once everything else is
+complete."*
+
+### First — the things a customer would find out for you
 
 1. **Send a real invitation.** Verify the sender domain, invite yourself from a
    second address, and confirm it does not land in spam. Without this a
    customer's team never arrives.
 2. **Sign in against real Supabase**, on the live site, as a person who has never
    signed in before.
-3. **Turn on `ANTHROPIC_API_KEY`** and read ten real problems. The front door
-   claims SPEC understands their business; check that it does.
-4. ~~**Apply the policies to the live database.**~~ **Done — and no longer a step
-   anybody has to remember.** The file used to say it should be "applied once, by
-   hand, via the Supabase SQL editor", and nobody ever had. It is now applied by
-   the deploy, every time, and CI proves the deploy does it. 24 of 24 tables.
-   Confirm once on the next deploy and this line can go.
-5. **Restore a backup** into a scratch database. A backup nobody has restored is
+3. **Restore a backup** into a scratch database. A backup nobody has restored is
    a belief.
-6. **Have somebody who is not you** sign up, on a phone, without help.
-7. **Take a real payment — last, by Kris's instruction.** Stripe in test mode end
-   to end, then one live transaction you refund. Nothing above depends on it, and
-   there is no point proving the till works before the shop does.
+4. **Have somebody who is not you** sign up, on a phone, without help.
 
-None of these is large. All seven are a day's work together, and every one of
-them is currently a thing you would find out about from a customer rather than
-from a test.
+None of those four is large, and every one is currently something you would hear
+about from a customer rather than from a test.
+
+### Then — and only then — the two keys
+
+Both of these are a paste into a settings box. Neither is a build, and nothing
+above depends on either: **the product is complete and honest without both.** That
+is what makes leaving them until last a decision rather than a delay.
+
+5. **Turn on `ANTHROPIC_API_KEY`** and read ten real problems.
+
+   What changes the moment it is set, with no deploy and no code change:
+
+   | | Without the key (today) | With it |
+   |---|---|---|
+   | A problem typed on the front door | The deterministic reading — right about the pillars, generic about the business | Claude's reading of their actual words |
+   | Predicted roles | The structural half: a stream nobody owns, a pillar nobody measures, a span past seven. True and checkable | That, **plus** a judgement about their trade against their own goals |
+   | The KPI cascade | Where the goal has nobody moving it. It refuses to invent a number | The measure **and** the figure, cascaded top down |
+   | The board pack | The written draft as generated | Rewritten in plain terms for an owner |
+
+   Every one of those degrades honestly rather than breaking, and says which
+   reading you are looking at — that was built deliberately so this step could
+   wait. But the front door's whole argument is that the reading is good, and
+   **no real reading has ever been seen.** Read ten before trusting it.
+
+6. **Take a real payment.** Stripe in test mode end to end, then one live
+   transaction you refund. `src/lib/stripe.ts` and three API routes exist and
+   typecheck; `STRIPE_SECRET_KEY` has never been set in any environment, so **no
+   payment has ever been attempted, succeeded, failed, or been refunded.**
+
+   Last, because there is no point proving the till works before the shop does.
 
 ---
 
