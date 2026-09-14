@@ -4,7 +4,7 @@ import { getRoles, getScorecard, PILLARS } from './queries';
 import { isScored } from './today-data';
 import { incentiveFor, aceState, DEFAULT_CEILINGS, FAILED_AT_OR_BELOW, type IncentiveResult } from './incentive';
 import { ceilingsFor } from './ceilings';
-import type { Pillar, Score } from './scoring';
+import { atTheStandard, type Pillar, type Score } from './scoring';
 
 /**
  * What one role's incentive comes to this month, read from what the business has actually recorded.
@@ -174,11 +174,18 @@ export async function incentiveView(
     .filter(p => p.status === 'locked' && p.id !== periodId)
     .sort((a, b) => a.period.localeCompare(b.period));
 
-  const history: { period: string; pct: Score }[] = [];
+  /*
+    Every pillar of every closed month, not the month's average.
+
+    A month holds for Ace when all four quadrants are at the standard — "90+ on spec", and the
+    design's "the board needs every pillar at 90% or better". This used to push the month's mean
+    through, which would have paid double to somebody at 100/100/100/62. The average is kept
+    alongside only to caption the run; nothing is decided by it.
+  */
+  const history: { period: string; pillars: Record<Pillar, Score> }[] = [];
   for (const p of closed) {
     const { score } = await getScorecard(roleId, p.id);
-    const scored = PILLARS.map(x => score.pillars[x]).filter((v): v is number => v !== null);
-    history.push({ period: p.period, pct: scored.length ? scored.reduce((s, v) => s + v, 0) / scored.length : null });
+    history.push({ period: p.period, pillars: score.pillars });
   }
 
   /*
@@ -191,14 +198,13 @@ export async function incentiveView(
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
   const signedOff = Boolean(assignment?.trainedAt);
 
-  const state = aceState(
-    history.map(h => ({ period: h.period, rolePct: h.pct })),
-    { signedOff },
-  );
+  const state = aceState(history, { signedOff });
 
   const ace: AceRun = {
     name: role.stream === 'operations' ? 'Ops Ace' : 'Sales Ace',
-    run: history.slice(-6).map(h => ({ period: h.period, held: h.pct !== null && h.pct >= 0.9 })),
+    // The tick marks read the same test the run does, so the strip can never tick a month that did
+    // not count — the two disagreeing is how somebody loses faith in the whole panel.
+    run: history.slice(-6).map(h => ({ period: h.period, held: atTheStandard(h.pillars) })),
     consecutive: state.consecutive,
     required: state.required,
     doublesNow: state.doublesNow,

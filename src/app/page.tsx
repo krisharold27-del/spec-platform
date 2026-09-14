@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Footer } from '@/components/ui';
@@ -92,20 +93,51 @@ export default async function Landing() {
 
       <div className="mx-auto max-w-4xl px-6">
         {/*
-          One word, and nothing else on the screen.
+          The mark, and nothing else on the screen.
 
           Everything below this asks a business owner to think about something difficult, and the
-          first thing they should feel is that this will not be hard. A whole viewport spent on a
-          single word is expensive and that is exactly what makes the claim credible — a page that
-          says "simple" while showing you nine panels is arguing against itself.
+          first thing they should feel is that this will not be hard. A whole viewport spent on one
+          thing is expensive, and that is exactly what makes the claim credible — a page that says
+          "simple" while showing you nine panels is arguing against itself.
+
+          This WAS the word "Simple." set enormous. The design replaced it with the wordmark, which
+          carries the word inside it, so nothing is lost and the first thing a stranger sees is now
+          the name of the company rather than an adjective about it.
+
+          ── Why it sits on its own dark ground ─────────────────────────────────────────────────────
+
+          The design slots a transparent PNG straight onto the cream. That file was never exported
+          and could not have worked if it had been: three quarters of the mark — the P, the C and
+          "Simple." — are white, and white on #f5ead8 is an empty rectangle. Rather than invent a
+          second colourway of somebody else's logo, the artwork is shown exactly as it was drawn,
+          on the deep navy it was drawn for, as a plate with a generous margin. It reads as a
+          deliberate lockup, and it is the only version that is both faithful to the file and
+          visible. The same navy answers the ProblemBox further down, so the page has two dark
+          moments rather than one orphan.
+
+          The file is 16:9 with a great deal of empty navy above and below the mark, which as a plate
+          reads as a hole rather than as breathing room. `object-cover` against a wider ratio trims
+          that dead height and leaves a generous margin — the crop is symmetrical and the mark sits
+          centred in the source, so nothing of the artwork is lost.
+
+          next/image rather than <img>: the source is a 1MB PNG and this is the front door. Next
+          re-encodes it to AVIF/WebP at the size actually needed, and `priority` puts it in the
+          first paint rather than letting the largest element on the page arrive late.
         */}
         <section
-          aria-label="Simple"
-          className="flex min-h-[52vh] items-center justify-center py-10 sm:min-h-[62vh]"
+          aria-label="SPEC. Simple."
+          className="flex items-center justify-center py-12 sm:py-20"
         >
-          <p className="font-serif text-[clamp(3.5rem,11vw,9.375rem)] leading-none tracking-tight text-ink">
-            Simple.
-          </p>
+          <Image
+            src="/spec-logo-hero.png"
+            alt="SPEC. Simple."
+            width={1672}
+            height={941}
+            priority
+            sizes="(max-width: 640px) 100vw, 720px"
+            className="w-full max-w-[720px] rounded-[32px] object-cover"
+            style={{ aspectRatio: '1672 / 660' }}
+          />
         </section>
 
         <section aria-label="Everyone else" className="pb-16 text-center sm:pb-20">

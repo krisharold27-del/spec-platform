@@ -7,8 +7,33 @@
 <https://claude.ai/code/artifact/4aee63b5-44c5-427b-be33-b3fb2900578a>
 
 Marked **settled, nothing open** — "a developer building from this page does not
-need to ask a question or infer anything from a screenshot." So where this
-document and the code disagree, this document wins.
+need to ask a question or infer anything from a screenshot."
+
+> ## Read this before you treat anything below as settled
+>
+> This page was written first and has since been overtaken in three places. It
+> used to say that where it and the code disagree, **it** wins. That sentence was
+> true when it was written and became dangerous the moment the rules moved,
+> because a stale rulebook with authority is how a corrected bug gets put back.
+>
+> The order of authority is now, highest first:
+>
+> 1. **What Kris says**, in his own words, in the transcript.
+> 2. **The later design screens** — My Page, Monthly Scoring, My Scorecard,
+>    Training, Board Pack — which are exported from the live design project.
+> 3. **This page**, for everything the two above do not touch.
+>
+> What has moved, all of it on 13–14 September 2026:
+>
+> - **The bands.** On track from 80%, Watch above 50%, Behind at or under 50%.
+>   The table in §5 said 100% / 50–99.9% / under 50%. See `lib/scoring`.
+> - **The failure line.** A quadrant fails **at or under** 50%, not under it.
+>   Exactly 50.0% is a failure. §7 says "under 50%" throughout and is wrong.
+> - **Ace.** §7's Sales Ace — outcome plus behaviours, held for as long as it
+>   lasts, lost over two months — is superseded entirely. See §7a, which replaces
+>   it, and `lib/incentive`.
+>
+> Everything else on this page is still current and still the reference.
 
 ## 0 · What the engine is for
 
@@ -110,12 +135,25 @@ Safety does not outrank Earnings in the arithmetic, whatever a leader feels.
 
 ### Bands
 
+Superseded — set by Kris on 13 September 2026: *"ok change red to 50% or under
+for both and amber 50-80% and green 80% or above"*. One line for the colour on a
+card and for the money, so red and a deduction mean the same thing.
+
 | Band | Range |
 |---|---|
-| On track | **100%** |
-| Watch | **50 – 99.9%** |
-| Behind | **under 50%** |
+| On track — green | **80% and above** |
+| Watch — amber | **above 50% and under 80%** |
+| Behind — red | **at or under 50%** |
 | Pending | no score — never coloured good or bad |
+
+Green is not SPEC. The standard is still 90% on every pillar — §6.
+
+<details><summary>What this table said before</summary>
+
+On track 100% · Watch 50–99.9% · Behind under 50%. It disagreed with the colour
+beside it on the same card, which showed 95% as a green tile labelled "Watch" and
+60% as a red tile labelled "Watch". Both were live.
+</details>
 
 ## 6 · The 90 per cent rule
 
@@ -130,7 +168,7 @@ below you. The deduction applies to the adjusted figure, not the ceiling.
 
 ```
 earned    = ceiling × role %
-deduction = 5% × (pillars under 50% anywhere in their chain), capped at 25%
+deduction = 5% × (pillars at or under 50% anywhere in their chain), capped at 25%
 payable   = earned × (1 − deduction)
 ```
 
@@ -147,38 +185,82 @@ payable   = earned × (1 − deduction)
 Each is half the last — that halving is what makes the ladder explainable in a
 pay conversation. **Ceilings are defaults, not law.**
 
-A failed pillar means **Behind — under 50%**. A pillar at 60% is a bad month,
-not a failure, and does not deduct. Failures flow upward only: a leader is never
-credited for a team doing well, only reduced for one doing badly.
+A failed pillar means **Behind — at or under 50%**. Fifty exactly is a failure:
+it is a round number people land on, and the difference is somebody's money. A
+pillar at 60% is a bad month, not a failure, and does not deduct. Failures flow
+upward only: a leader is never credited for a team doing well, only reduced for
+one doing badly.
+
+The ceilings below are **suggestions**. Kris: *"suggested but the business can
+increase or decrease"*. A business that has set its own is paid on its own —
+see `lib/ceilings`.
 
 **The rule of 8 does not apply to ceilings.** Every price SPEC *publishes*
 reduces to 8; an incentive ceiling is not a published price.
 
-### Sales Ace — the one thing that changes a ceiling
+## 7a · Ace — the one thing that changes a ceiling
 
-**Ceiling doubled, for as long as it is held.** Both halves must hold in the
-same month, **three months running**:
+*This section replaces the old "Sales Ace" rule below it entirely. Kris, 14
+September 2026: "sales ace — 90+ on spec 3 months in a row — ops ace — 90+ on
+spec 3 months in a row".*
 
-- **The outcome** — the growth meter at or above target, no month carried by a
-  single deal.
-- **The behaviours** — every sales KPI on their own card met.
+**There are two, and they are the same rule.** **Sales Ace** for a sales role,
+**Ops Ace** for an operations role. Nothing about the test differs; only the
+name, taken from the person's own stream.
 
-Lost by **two consecutive months** where either half fails. Deliberately
-asymmetric: three to earn so nobody gets it on a fluke quarter, two to lose
-because a standing that survives a bad quarter is not a standing.
+**What earns it — all three, together:**
 
-Applies from the month earned, forward — never backdated. Only roles with a
-growth meter and sales KPIs can hold it. The deduction still applies afterwards.
-More than one person can hold it — **a standard, not a ranking**.
+1. **Trained on the job and signed off.** A precondition, not a detail. Ace says
+   this person can do the job to the standard, not merely that the numbers
+   landed. Without it the run still shows — somebody should be able to see where
+   they are — and nothing doubles.
+2. **Every pillar at 90% or above.** On spec, not on average. A month at
+   100 / 100 / 100 / 62 averages 90.5% and does not count: a quarter of that
+   person's job is failing, and letting three strong pillars buy off a weak one
+   is the exact trade SPEC exists to refuse. A pillar nobody scored is not at the
+   standard either — a run is a positive claim about the whole board.
+3. **Three consecutive CLOSED months.** Closed and signed. An open month never
+   counts toward its own run.
+
+**What it pays: the month AFTER the run, doubled — then the count restarts.**
+Jul, Aug and Sep close on spec, and the incentive doubles for **October**. It is
+the only version that can work: a month is not known to have held until it is
+closed, so a run is read backwards and the reward applies forwards. Paying
+September would mean paying for September out of September's own result before
+it was final.
+
+Then the three-month challenge **starts again from nothing**. So a perfect year
+doubles **four** months, not twelve — Apr, Aug, Dec on a run started in January.
+
+**One closed month off the standard puts the count back to zero.** No partial
+credit: a run that survives a bad month is not a run.
+
+The deduction still applies afterwards — a doubled ceiling does not protect
+anybody from their team's failures. More than one person can hold it: **a
+standard, not a ranking**.
 
 > Doubling is the only number large enough to be worth three months of doing the
 > dull things on the bad weeks.
 
 **Exposure must be shown to the director before switching it on.** One sales
 manager and four specialists is $5,000/month at plain ceilings and
-**$10,000/month if all hold it** — $120,000 a year. Self-funding, because nobody
-holds it while the growth meter is under target, but the number has to be shown,
-not discovered.
+**$10,000/month in a month they all double** — but never twelve such months, so
+the old "$120,000 a year" figure overstated it by three times. The number has to
+be shown, not discovered.
+
+<details><summary>The superseded Sales Ace rule, kept for the audit trail</summary>
+
+Ceiling doubled **for as long as it is held**, on two halves holding together
+three months running — **the outcome** (the growth meter at or above target, no
+month carried by a single deal) and **the behaviours** (every sales KPI on their
+own card met) — lost by two consecutive months where either half failed.
+
+Superseded because it paid every month once earned. Twelve doubled months in a
+perfect year against the four the rule above gives, and the code built to it had
+that fault live. It also had no Ops Ace, no sign-off precondition, and read sales
+behaviours rather than the KPI board. `salesAceByMonth` still implements it and
+is no longer wired to anything.
+</details>
 
 ## 8 · Power meters
 

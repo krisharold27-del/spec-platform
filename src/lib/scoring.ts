@@ -137,10 +137,34 @@ export function band(score: Score): Band {
  */
 export function isSpec(closedMonths: (RoleScore | null)[], threshold = 0.9): boolean {
   if (closedMonths.length < 2) return false;
-  return closedMonths.slice(-2).every(m => m !== null && PILLARS.every(p => {
-    const v = m.pillars[p];
+  return closedMonths.slice(-2).every(m => m !== null && atTheStandard(m.pillars, threshold));
+}
+
+/**
+ * One month at the standard: EVERY pillar at 90% or better, none of them unscored.
+ *
+ * ── Why an average will not do ───────────────────────────────────────────────────────────────────
+ *
+ * The obvious reading of "90% or better" is the role's overall percentage, and it is wrong. A role
+ * at 100 / 100 / 100 / 62 averages 90.5% and is not at the standard by any honest account of it —
+ * a quarter of that person's job is failing. Averaging lets three strong pillars pay for a weak one,
+ * which is the exact trade SPEC exists to refuse.
+ *
+ * The design says it in Kris's own words, on My Page: "the board needs every pillar at 90% or
+ * better for three months straight", and again — "yes if October holds above 90% on every pillar".
+ * Both things that judge a month — the SPEC standing and the Ace run — now ask this one question,
+ * so they cannot drift apart or disagree about the same month.
+ *
+ * An unscored pillar is not at the standard. It is not a failure either, and nothing deducts for
+ * it, but a run is a positive claim: nobody can say the board held at 90% while a quarter of the
+ * board is blank. A role with no KPIs in a pillar therefore cannot earn Ace until it has some,
+ * which is the right answer — being measured is the price of being rewarded.
+ */
+export function atTheStandard(pillars: Record<Pillar, Score>, threshold = AT_THE_STANDARD): boolean {
+  return PILLARS.every(p => {
+    const v = pillars[p];
     return v !== null && v >= threshold;
-  }));
+  });
 }
 
 export interface GateInputs {
