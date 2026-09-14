@@ -11,6 +11,8 @@ import { currentPeriod } from '@/lib/period';
 import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
 import { detachedBranches, stages, type ChartRole } from '@/lib/orgchart';
+import { aceWatch } from '@/lib/ace-watch-data';
+import type { AceWatchRow } from '@/lib/ace-watch';
 import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { addRole, importChart } from './actions';
 import { Problems } from '@/components/problems';
@@ -46,6 +48,18 @@ export default async function OrgChart() {
   const criteria = ourRoleIds.length
     ? await db.select().from(schema.criteria).where(inArray(schema.criteria.roleId, ourRoleIds))
     : [];
+  /*
+    Every role's Ace run, read once for the whole chart.
+
+    This is where a run belongs, because this is the screen a leader actually works in. Before this,
+    finding out where somebody was in their three meant opening their scorecard, one role at a time,
+    which is not something anybody does for forty people. Read in a flat number of queries and
+    indexed by role, so putting it on every card costs the same as putting it on one.
+  */
+  const aces = period
+    ? new Map((await aceWatch(tenant.id, period.id, ourRoleIds)).map(a => [a.roleId, a]))
+    : new Map<string, AceWatchRow>();
+
   const roles: ChartRole[] = [];
   for (const r of scope.roles) {
     const own = criteria.filter(c => c.roleId === r.id && c.active);
@@ -63,6 +77,8 @@ export default async function OrgChart() {
       pillars, scored,
       // Two measures per pillar is the starting point the whole system is built around.
       hasKpis: PILLARS.every(p => own.filter(c => c.pillar === p && c.kpi).length >= 2),
+      // Null for a checklist role: no scorecard, so no run to be on.
+      ace: aces.get(r.id) ?? null,
     });
   }
 

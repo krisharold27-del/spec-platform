@@ -19,6 +19,10 @@ import { combinedScore } from '../src/lib/scoring';
 */
 
 const watch = readFileSync('src/components/ace-watch.tsx', 'utf8');
+const pips = readFileSync('src/components/ace-pips.tsx', 'utf8');
+const canvas = readFileSync('src/components/org-canvas.tsx', 'utf8');
+const orgPage = readFileSync('src/app/org/page.tsx', 'utf8');
+const key = readFileSync('src/components/chart-key.tsx', 'utf8');
 const read = readFileSync('src/lib/ace-watch-data.ts', 'utf8');
 const scoring = readFileSync('src/app/scoring/page.tsx', 'utf8');
 const board = readFileSync('src/app/board/[periodId]/page.tsx', 'utf8');
@@ -59,6 +63,57 @@ describe('Ace watch, where a director can see it', () => {
   it('never widens the set of roles it is given', () => {
     expect(read, 'the caller passes what the viewer may see').toContain('visibleRoleIds');
     expect(scoring, 'and Monthly scoring passes its own scope').toContain('inScope.map(r => r.id)');
+  });
+});
+
+/*
+  ── On the org chart, which is where Kris works ──────────────────────────────────────────────────
+
+  "Now show me the org chart with the aces on it."
+
+  Before this, finding out where somebody was in their three meant opening their scorecard, one role
+  at a time — not something anybody does for forty people. A run is a thing a leader should see
+  across the whole business at a glance, and the chart is the screen they are already looking at.
+*/
+describe('the Ace on every card', () => {
+  it('is on the chart, read once for the whole page', () => {
+    expect(orgPage, 'the chart reads the runs').toContain('aceWatch(');
+    expect(orgPage, 'indexed by role so forty cards cost what one does').toContain('new Map(');
+    expect(orgPage, 'and attached to the card').toContain('ace: aces.get(r.id)');
+    expect(canvas, 'which the card renders').toContain('<AcePips');
+  });
+
+  /* Three pips, not "2/3". The chart is read across forty cards at once, and a fraction makes a
+     leader stop and do arithmetic on every one of them. */
+  it('draws the run as pips rather than a number', () => {
+    expect(pips).toContain('ace.required');
+    expect(pips, 'filled left to right by months held').toContain('i < ace.consecutive');
+    expect(pips).not.toMatch(/\$\{ace\.consecutive\}\s*\/\s*\$\{ace\.required\}/);
+  });
+
+  /* The one state that costs the business money has to be unmistakable — three full pips is what
+     the month BEFORE payment looks like, so paying gets its own badge. */
+  it('marks the month that actually pays differently from the month before it', () => {
+    expect(pips).toContain('ace.doublesNow');
+    expect(pips).toContain('ACE');
+    expect(pips.indexOf('ACE')).toBeLessThan(pips.indexOf('i < ace.consecutive'));
+  });
+
+  /* Ace needs the sign-off before any run counts. Filling their good months would promise a
+     doubling that will not arrive. */
+  it('does not fill pips for somebody who is not signed off', () => {
+    expect(pips).toContain('held && ace.signedOff');
+  });
+
+  it('says what the circles mean, because an unexplained mark is the fault this key exists for', () => {
+    expect(key).toContain('The three circles');
+    expect(key, 'every role has one').toContain('Every role has an Ace');
+    expect(key, 'and the state that cannot be guessed from a picture').toContain('not yet signed off');
+  });
+
+  it('carries the whole sentence in a tooltip, so the chart never has to be left', () => {
+    expect(pips).toContain('ace.note');
+    expect(pips).toContain('aria-label');
   });
 });
 

@@ -11,6 +11,7 @@
  * under it; the whole branch leaves the chart together, is counted, and can be dragged back. It is
  * excluded from the roll-up while it is off, and the page says how many roles that is.
  */
+import type { AceWatchRow } from './ace-watch';
 
 export interface ChartRole {
   id: string;
@@ -27,6 +28,16 @@ export interface ChartRole {
   scored: boolean;
   /** Whether it has its KPIs set — what the Flow stage counts. */
   hasKpis: boolean;
+  /**
+   * This role's Ace run, or null when it has no scorecard to run one on.
+   *
+   * On the chart because the chart is where Kris works. Every role has an Ace — three closed months
+   * at 90% combined and the next month doubles — and until now the only way to find out where
+   * somebody was in their three was to open their scorecard one at a time. A run is a thing a
+   * leader should be able to see across the whole business at a glance, which is what this diagram
+   * is for.
+   */
+  ace?: AceWatchRow | null;
 }
 
 export const SLOT = 200;

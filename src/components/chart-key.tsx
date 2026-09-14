@@ -1,6 +1,7 @@
 import { GREEN_FROM, RED_AT_OR_BELOW, AT_THE_STANDARD } from '@/lib/pillars';
 import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 
+
 /**
  * What the colours on the chart mean.
  *
@@ -62,6 +63,66 @@ export function ChartKey() {
         5% off the manager above it, capped at 25%. Being green is not the same as being SPEC —
         that is {standard}% on every pillar, two months running.
       </p>
+
+      {/*
+        The three circles in the corner of every card. Written the same day they appeared, because
+        the reason this key exists at all is that the chart once showed four coloured letters with
+        nothing anywhere saying what they meant — and a second unexplained mark would be worse than
+        the first, not better.
+      */}
+      <div className="mt-5 border-t border-ink/10 pt-4">
+        <h3 className="font-serif text-base text-ink">The three circles</h3>
+        <p className="mt-1.5 max-w-3xl text-xs text-ink-light">
+          Every role has an Ace. Three closed months at a combined {standard}% or above — trained on
+          the job and signed off — doubles that person&rsquo;s incentive for the month after, and then
+          the three-month focus starts again. The circles are how many of the three are held.
+        </p>
+        <ul className="mt-3 grid gap-2.5 sm:grid-cols-3">
+          <li className="flex items-center gap-2.5">
+            <span aria-hidden className="flex shrink-0 items-center gap-[3px]">
+              {[true, true, false].map((on, i) => (
+                <span
+                  key={i}
+                  className="block h-[7px] w-[7px] rounded-full"
+                  style={{
+                    background: on ? LIGHT_COLOUR.green : 'transparent',
+                    boxShadow: on ? 'none' : `inset 0 0 0 1.5px ${LIGHT_INK.pending}`,
+                  }}
+                />
+              ))}
+            </span>
+            <span className="text-xs text-ink-light">Two of three months held.</span>
+          </li>
+          <li className="flex items-center gap-2.5">
+            <span
+              aria-hidden
+              className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold tracking-wide"
+              style={{ background: LIGHT_COLOUR.green, color: '#f5ead8' }}
+            >
+              ACE
+            </span>
+            <span className="text-xs text-ink-light">On Ace — this month is doubled.</span>
+          </li>
+          <li className="flex items-center gap-2.5">
+            <span aria-hidden className="flex shrink-0 items-center gap-[3px]">
+              {[0, 1, 2].map(i => (
+                <span
+                  key={i}
+                  className="block h-[7px] w-[7px] rounded-full"
+                  style={{ boxShadow: `inset 0 0 0 1.5px ${LIGHT_INK.pending}` }}
+                />
+              ))}
+            </span>
+            <span className="text-xs text-ink-light">
+              Nothing running — or not yet signed off, so the run cannot start.
+            </span>
+          </li>
+        </ul>
+        <p className="mt-3 max-w-3xl text-xs text-ink-light">
+          Hover a card for whose Ace it is, where the run stands and what broke it. A role with no
+          KPI scorecard has no circles: it is not failing, it is not being measured yet.
+        </p>
+      </div>
     </section>
   );
 }

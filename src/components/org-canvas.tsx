@@ -7,6 +7,7 @@ import {
 } from '@/lib/orgchart';
 import { PILLAR_META } from '@/lib/pillars';
 import { LIGHT_COLOUR, light } from '@/lib/today';
+import { AcePips } from '@/components/ace-pips';
 import { moveRole, movePerson, breakLink, vacateRole } from '@/app/org/actions';
 
 /**
@@ -129,7 +130,15 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
                 )}
 
                 {r.scored ? (
-                  <span className="mt-2 flex gap-1">
+                  /*
+                    Two readings on one row: this month on the left, the Ace run on the right.
+
+                    The run started in the top corner and pushed the titles into truncating — "Head
+                    of Commercial" became "Head of Commer…", which is a bad trade for three circles.
+                    Here it costs no width that was being used, and the card reads as one line of
+                    state: where they are this month, and where they are in their three.
+                  */
+                  <span className="mt-2 flex items-center gap-1">
                     {PILLARS.map(p => (
                       <span
                         key={p}
@@ -142,6 +151,11 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
                         }}
                       />
                     ))}
+                    {r.ace && (
+                      <span className="ml-auto flex items-center">
+                        <AcePips ace={r.ace} big={c.depth === 0} />
+                      </span>
+                    )}
                   </span>
                 ) : (
                   <span className="mt-2 block text-[10px] text-ink-light">Checklist role</span>
