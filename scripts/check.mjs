@@ -345,6 +345,7 @@ const JOURNEYS = [
   ['register', 'logging a problem once inside', 'register-journey'],
   ['goals', 'saying what the business is for, and it staying said', 'goals-journey'],
   ['predict', 'SPEC reading the chart and the leader deciding', 'predict-journey'],
+  ['cascade', 'the goal reaching a scorecard without setting anybody\u2019s target', 'cascade-journey'],
   ['seat', 'somebody you invited taking their seat', 'seat-journey'],
   ['cockpit', 'your own cockpit staying private', 'cockpit-journey'],
 ];

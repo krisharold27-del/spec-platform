@@ -151,6 +151,49 @@ export const predictedRoles = pgTable('predicted_roles', {
   uniqueIndex('predicted_roles_tenant_title').on(t.tenantId, t.title),
 ]).enableRLS();
 
+/**
+ * The goal, broken into what each role has to actually move.
+ *
+ * Design export 5: "The goal only means something once it is broken into what each role has to
+ * actually move. This is that cascade, once structure is approved."
+ *
+ * ── Why these are proposals and not criteria ─────────────────────────────────────────────────────
+ *
+ * A criterion on a role is a thing somebody is SCORED on, and the target on it was agreed with the
+ * person who holds the seat — "a target is agreed with whoever holds the role, never imposed on
+ * them." A cascade row is SPEC's suggestion about what would serve the goal, which is a different
+ * object with a different status, and writing it straight into `criteria` would have quietly turned
+ * a suggestion into a measurement nobody consented to.
+ *
+ * Adopting one creates a criterion with `proposedTarget` set and `target` still empty, so the
+ * negotiation the product already records — see lib/boards, which reports how many targets were
+ * agreed exactly as proposed — happens the same way it does for any other KPI.
+ */
+export const cascadeKpis = pgTable('cascade_kpis', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  roleId: text('role_id').notNull().references(() => roles.id),
+  pillar: text('pillar').notNull(),
+  /** What the role would measure — becomes the criterion's text. */
+  metric: text('metric').notNull(),
+  /** The number suggested. Lands on the criterion as proposedTarget, never as the agreed target. */
+  target: text('target').notNull(),
+  /** How this serves the goal, in terms of THIS business. A cascade row without it is a guess. */
+  why: text('why').notNull(),
+  /** pending | adopted | dismissed. Dismissed ones stay, so the same row is not proposed twice. */
+  state: text('state').notNull().default('pending'),
+  /** claude | structure — the same honesty the predicted roles carry. */
+  source: text('source').notNull().default('structure'),
+  proposedAt: text('proposed_at').notNull(),
+  decidedAt: text('decided_at'),
+  decidedBy: text('decided_by'),
+  /** The criterion created on adoption, so the trail from goal to scorecard is kept. */
+  criterionId: text('criterion_id').references(() => criteria.id),
+}, t => [
+  index('cascade_kpis_tenant').on(t.tenantId),
+  uniqueIndex('cascade_kpis_role_metric').on(t.roleId, t.metric),
+]).enableRLS();
+
 // One row per app user, linked to a Supabase Auth identity via authUserId (auth.users.id).
 // A person may hold roles in more than one tenant (e.g. a consultant); one row per tenant+email.
 export const users = pgTable('users', {

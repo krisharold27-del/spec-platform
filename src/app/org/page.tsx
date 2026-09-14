@@ -20,6 +20,10 @@ import { ChartFile } from '@/components/chart-file';
 import { ChartKey } from '@/components/chart-key';
 import { PredictedRoles } from '@/components/predicted-roles';
 import { pendingPredictions } from '@/lib/predict-data';
+import { Cascade } from '@/components/cascade';
+import { cascadeFor } from '@/lib/cascade-data';
+import { goalsFor } from '@/lib/goals-data';
+import { goalsAnswered } from '@/lib/goals';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +36,9 @@ export const dynamic = 'force-dynamic';
  * business that has not finished drawing itself.
  */
 export default async function OrgChart({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const read = String((await searchParams).read ?? '');
+  const sp = await searchParams;
+  const read = String(sp.read ?? '');
+  const cascadeRead = String(sp.cascade ?? '');
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
@@ -66,6 +72,10 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   // Proposals, which are deliberately NOT roles — see lib/predict-data. Nothing that walks the
   // business can see them, which is what stops one ever being counted, scored or billed for.
   const predicted = await pendingPredictions(user.tenantId);
+
+  // The goal, worked down the chart. Proposals too — a row becomes a KPI only when somebody takes it.
+  const cascade = await cascadeFor(user.tenantId);
+  const goalsSet = goalsAnswered(await goalsFor(user.tenantId));
 
   const roles: ChartRole[] = [];
   for (const r of scope.roles) {
@@ -163,6 +173,20 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
         predicted={predicted}
         read={read === '' ? null : Number(read)}
         canEdit={manage}
+      />
+
+      {/*
+        And then the goal, worked down the chart the structure just settled.
+
+        Below the predicted roles on purpose: the design says "this is that cascade, ONCE STRUCTURE
+        IS APPROVED", and the order on the page is the order of the thinking. There is no point
+        deciding what a role measures before deciding whether the role exists.
+      */}
+      <Cascade
+        view={cascade}
+        goalsSet={goalsSet}
+        canEdit={manage}
+        read={cascadeRead === '' ? null : Number(cascadeRead)}
       />
 
       {/* What the colours on every card mean. The design carries this and the product did not, so a

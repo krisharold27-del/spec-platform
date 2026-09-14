@@ -254,6 +254,12 @@ jobs:
           # denied role is never proposed again, however many times the chart is read.
           node scripts/predict-journey.mjs
 
+          # The goal reaching a scorecard. The check that matters is the last one: SPEC may
+          # suggest what a role measures, and may NEVER set the number a person is judged
+          # against. So it opens the role's own KPI page and confirms the agreed target is still
+          # empty, waiting for the conversation, with the suggestion on record as a proposal.
+          node scripts/cascade-journey.mjs
+
           # Taking a seat somebody gave you -- the other half of the way in, and the one that
           # reaches every person in a customer's business except the owner. Single use,
           # expiring, bound to that address, and a refusal that never says "invalid token".
