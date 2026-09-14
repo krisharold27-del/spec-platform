@@ -35,7 +35,7 @@ const month = (period: string, s: number | null, p: number | null, e: number | n
 const row = (over: Partial<AceWatchRow>): AceWatchRow => ({
   roleId: 'r', roleTitle: 'Role', person: null, aceName: 'Ace',
   run: [], consecutive: 0, required: 3, doublesNow: false, blockedBySignoff: false,
-  signedOff: true, note: '',
+  holdingAce: false, streak: 0, signedOff: true, note: '',
   ...over,
 });
 

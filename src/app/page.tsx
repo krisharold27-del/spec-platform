@@ -104,39 +104,33 @@ export default async function Landing() {
           carries the word inside it, so nothing is lost and the first thing a stranger sees is now
           the name of the company rather than an adjective about it.
 
-          ── Why it sits on its own dark ground ─────────────────────────────────────────────────────
+          It sat on a dark plate for a day, because the design referenced a transparent PNG that had
+          not been exported — and the only file that existed was white lettering on navy, which on
+          cream is an empty rectangle. Export 5 shipped the real one: the same mark with the P, the
+          C and "Simple." in ink instead of white, which is what a brand does when it needs a second
+          colourway. The plate is gone and this is now exactly what the design draws.
 
-          The design slots a transparent PNG straight onto the cream. That file was never exported
-          and could not have worked if it had been: three quarters of the mark — the P, the C and
-          "Simple." — are white, and white on #f5ead8 is an empty rectangle. Rather than invent a
-          second colourway of somebody else's logo, the artwork is shown exactly as it was drawn,
-          on the deep navy it was drawn for, as a plate with a generous margin. It reads as a
-          deliberate lockup, and it is the only version that is both faithful to the file and
-          visible. The same navy answers the ProblemBox further down, so the page has two dark
-          moments rather than one orphan.
+          next/image rather than <img>: this is the front door and the mark is the largest thing on
+          it. Next re-encodes to AVIF/WebP at the size actually needed, and `priority` puts it in the
+          first paint rather than letting the biggest element on the page arrive late.
 
-          The file is 16:9 with a great deal of empty navy above and below the mark, which as a plate
-          reads as a hole rather than as breathing room. `object-cover` against a wider ratio trims
-          that dead height and leaves a generous margin — the crop is symmetrical and the mark sits
-          centred in the source, so nothing of the artwork is lost.
-
-          next/image rather than <img>: the source is a 1MB PNG and this is the front door. Next
-          re-encodes it to AVIF/WebP at the size actually needed, and `priority` puts it in the
-          first paint rather than letting the largest element on the page arrive late.
+          The file is at a NEW path rather than overwriting the old one. Swapping the bytes under
+          /spec-logo-hero.png served the navy version for another day out of the image cache — and
+          what happened here on one dev server is what a CDN does to every visitor. A changed image
+          gets a changed name.
         */}
         <section
           aria-label="SPEC. Simple."
-          className="flex items-center justify-center py-12 sm:py-20"
+          className="flex items-center justify-center py-8 sm:py-14"
         >
           <Image
-            src="/spec-logo-hero.png"
+            src="/spec-wordmark.png"
             alt="SPEC. Simple."
             width={1672}
             height={941}
             priority
             sizes="(max-width: 640px) 100vw, 720px"
-            className="w-full max-w-[720px] rounded-[32px] object-cover"
-            style={{ aspectRatio: '1672 / 660' }}
+            className="h-auto w-full max-w-[720px]"
           />
         </section>
 
@@ -322,9 +316,22 @@ export default async function Landing() {
               <Link href="/pricing" className="btn-primary mt-6 inline-block">Talk to us</Link>
             </div>
           </div>
+          {/*
+            What starts the meter — and it is NOT scoring.
+
+            This said "seats are charged once you start scoring", which was never what the code did:
+            lib/plan bills a seat the moment a name and an email are attached to a role, and not
+            before. The two sentences described different products, and the wrong one was the one on
+            the public page in front of somebody deciding whether to trust us with a card.
+
+            Export 5's wording is also the better promise. It says the org chart is free to play
+            with, which is the thing a leader is most nervous about: drawing the structure they
+            might need, including roles nobody holds, without it quietly costing them money.
+          */}
           <p className="mt-6 text-sm leading-7 text-ink-light">
-            Building the business and setting the KPIs is free. Seats are charged once you start
-            scoring, and a person on the chart without a seat is free and still scored.
+            Free to move the org chart around and try structures — a role stays free until you add a
+            real name and email to it. A vacant or predicted role never carries a seat, however the
+            structure moves.
           </p>
         </section>
 

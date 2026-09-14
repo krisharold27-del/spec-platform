@@ -175,9 +175,25 @@ export interface AceMonth {
 }
 
 export interface AceState {
-  /** Consecutive closed months at the standard standing behind the open month. */
+  /**
+   * Where this person is in the CURRENT three-month sprint — 0, 1 or 2, resetting to nothing every
+   * time a sprint completes and pays. This is the number "2 of 3" comes from.
+   */
   consecutive: number;
   required: number;
+  /**
+   * Consecutive closed months at the standard, uninterrupted, and NEVER reset by a payment.
+   *
+   * Two numbers because there are two questions, and export 5 asked the second one: "a card stays
+   * badged Ace once it has reached 90%+ for 3 consecutive closed months — it holds the badge until
+   * a month drops below 90." Somebody nine months into an unbroken run has a streak of 9 and a
+   * sprint position of 0, and both are true: they ARE an Ace, and they are three months from their
+   * next doubled month. Reading the sprint as the standing would have taken the badge off the best
+   * performer in the business the day after they were paid.
+   */
+  streak: number;
+  /** Currently holding the standing — the streak has reached three and has not been broken. */
+  holdingAce: boolean;
   /** Whether the month now being paid is doubled. */
   doublesNow: boolean;
   /** Why not, when it does not — so the page can say something better than "no". */
@@ -189,15 +205,17 @@ export function aceState(
   opts: { signedOff: boolean; standard?: number } = { signedOff: false },
 ): AceState {
   const standard = opts.standard ?? AT_THE_STANDARD;
-  let run = 0;
+  let run = 0;      // position in the current sprint; reset by a payment
+  let streak = 0;   // the unbroken run; reset only by a month that misses
   let completedOnLast = false;
 
   closedMonths.forEach((m, i) => {
-    if (m.combined !== null && m.combined >= standard) run += 1;
-    else run = 0;
+    if (m.combined !== null && m.combined >= standard) { run += 1; streak += 1; }
+    else { run = 0; streak = 0; }
 
     if (run >= ACE_MONTHS_REQUIRED) {
-      // A run finished. The month AFTER this one doubles, and the count starts again.
+      // A sprint finished. The month AFTER this one doubles, and the count starts again — but the
+      // STREAK carries on, because the person has not stopped performing just because they got paid.
       completedOnLast = i === closedMonths.length - 1;
       run = 0;
     }
@@ -206,6 +224,10 @@ export function aceState(
   return {
     consecutive: run,
     required: ACE_MONTHS_REQUIRED,
+    streak,
+    // The standing needs the sign-off too: Ace says somebody can do the job to the standard, and
+    // wearing the badge is the loudest form of that claim.
+    holdingAce: streak >= ACE_MONTHS_REQUIRED && opts.signedOff,
     doublesNow: completedOnLast && opts.signedOff,
     blockedBySignoff: completedOnLast && !opts.signedOff,
   };

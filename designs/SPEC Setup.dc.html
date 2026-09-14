@@ -84,6 +84,18 @@
         <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 0;">{{ stepTitle }}</h2>
         <p style="font-size: 15px; line-height: 25px; margin: 12px 0 0; max-width: 54ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ stepBody }}</p>
 
+        <sc-if value="{{ onGoals }}" hint-placeholder-val="{{ true }}">
+          <div style="display: grid; gap: 20px; margin-top: 26px;">
+            <sc-for list="{{ goalFields }}" as="gf" hint-placeholder-count="3">
+              <label style="display: grid; gap: 8px;">
+                <span style="font-size: 14.5px; font-family: var(--font-heading); font-weight: var(--font-heading-weight); line-height: 1.3;">{{ gf.label }}</span>
+                <textarea aria-label="{{ gf.label }}" placeholder="{{ gf.placeholder }}" value="{{ gf.value }}" onChange="{{ gf.setValue }}" onInput="{{ gf.setValue }}" style="width: 100%; box-sizing: border-box; min-height: 68px; border-radius: 16px; border: 1px solid var(--color-accent-200); background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); font-size: 15px; padding: 12px 16px; resize: vertical;"></textarea>
+              </label>
+            </sc-for>
+            <button type="button" class="btn btn-primary" onClick="{{ saveGoals }}" style="flex: none; white-space: nowrap; justify-self: start;">{{ saveGoalsLabel }}</button>
+          </div>
+        </sc-if>
+
         <sc-if value="{{ onBusiness }}" hint-placeholder-val="{{ true }}">
           <div style="display: grid; gap: 14px; margin-top: 26px;">
             <label style="display: grid; gap: 8px;">
@@ -171,6 +183,41 @@
                 </div>
               </sc-for>
               <button type="button" onClick="{{ addKpi }}" style="{{ addKpiStyle }}">{{ addKpiLabel }}</button>
+            </div>
+
+            <div style="background: var(--color-bg); border-radius: var(--radius-lg); padding: clamp(22px,3vw,32px); margin-top: 24px;">
+              <h3 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.3; margin: 0;">A target has to be earned, not agreed</h3>
+              <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; max-width: 62ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">A target gets set in a room, everybody nods, and then it is never checked against anything again. A year later it has either been met every single month — so it was never a target — or missed every single month, so nobody is trying to meet it any more. Both look like a working scorecard from the outside.</p>
+              <p style="font-size: 14.5px; line-height: 23px; margin: 10px 0 0; max-width: 62ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">So SPEC reads every target against your own closed months: the middle month of the last 12, not the average, so one shutdown or one enormous job cannot reset what everybody is held to.</p>
+
+              <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 22px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Worked example — Gross Profit</p>
+
+              <div style="display: grid; gap: 12px; margin-top: 14px;">
+                <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 18px 20px; border-left: 4px solid #a63b26;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">Target 35%</span>
+                    <span style="font-size: 13px; font-weight: 600; color: #a63b26;">Too easy</span>
+                  </div>
+                  <p style="font-size: 13.5px; line-height: 21px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Below what the business already does. This business already runs Gross Profit at 40.5% across 8 closed months, so the target is met by carrying on exactly as before. A measure that cannot be missed is not measuring anything — it is quietly adding a green light to every month.</p>
+                </div>
+                <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 18px 20px; border-left: 4px solid #4f7a3f;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">Target 44%</span>
+                    <span style="font-size: 13px; font-weight: 600; color: #4f7a3f;">Sound</span>
+                  </div>
+                  <p style="font-size: 13.5px; line-height: 21px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Above it, inside what it has shown it can do. Gross Profit runs at 40.5% across 8 closed months, with the target at 44%. That is a stretch this business can be held to, because it is above what it does now and inside what it has shown it can do.</p>
+                </div>
+                <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 18px 20px; border-left: 4px solid #a63b26;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">Target 50%</span>
+                    <span style="font-size: 13px; font-weight: 600; color: #a63b26;">Out of reach</span>
+                  </div>
+                  <p style="font-size: 13.5px; line-height: 21px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Further than it has ever reached. The record says Gross Profit at 40.5% and the target says 50% — a fifth above what this business has actually managed in 8 months, so it will be missed every month, and a measure that is always red stops being read.</p>
+                </div>
+              </div>
+
+              <p style="font-size: 13.5px; line-height: 21px; margin: 20px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">The business above runs Gross Profit at 40.5% across 8 closed months, so the sound band is 40.5% to 48.6% — up to a fifth above what it already does. The fifth (20%) and the 6-month minimum are judgements rather than laws, and they are written down so you can disagree with them. Under 6 closed months SPEC declines to judge at all and says so, because a confident answer from evidence that does not support one is worse than no answer.</p>
+              <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">The figures here are an illustration. What a business in your trade actually runs at is a fact about that business, and SPEC ships the rule that finds it rather than somebody else's number.</p>
             </div>
           </div>
         </sc-if>
@@ -266,7 +313,7 @@
               </div>
             </sc-for>
           </div>
-          <p style="font-size: 13px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Building the business and setting the KPIs is free. Seats are charged once you start scoring.</p>
+          <p style="font-size: 13px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Free to move the org chart around and try structures — a role stays free until you add a real name and email to it. Seats are charged once you start scoring.</p>
         </section>
       </div>
     </div>
@@ -280,12 +327,19 @@ const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radi
 const dotOf = tone => 'width:12px;height:12px;border-radius:50%;display:block;flex:none;margin-top:5px;background:' + tone + ';';
 
 const STEPS = [
-  { key: 'business', kicker: 'Step 1', label: 'The business' },
-  { key: 'roles', kicker: 'Step 2', label: 'Roles it needs' },
-  { key: 'billing', kicker: 'Step 3', label: 'Set up billing' },
-  { key: 'kpis', kicker: 'Step 4', label: 'Two KPIs per pillar' },
-  { key: 'people', kicker: 'Step 5', label: 'People into roles' },
-  { key: 'cascade', kicker: 'Step 6', label: 'Cascade to managers' },
+  { key: 'goals', kicker: 'Step 1', label: 'The goals' },
+  { key: 'business', kicker: 'Step 2', label: 'The business' },
+  { key: 'roles', kicker: 'Step 3', label: 'Roles it needs' },
+  { key: 'billing', kicker: 'Step 4', label: 'Set up billing' },
+  { key: 'kpis', kicker: 'Step 5', label: 'Two KPIs per pillar' },
+  { key: 'people', kicker: 'Step 6', label: 'People into roles' },
+  { key: 'cascade', kicker: 'Step 7', label: 'Cascade to managers' },
+];
+
+const GOAL_PROMPTS = [
+  { id: 'g1', label: 'Where do you want the business in 3 years?', placeholder: 'e.g. Doubled revenue, second site open, off the tools myself' },
+  { id: 'g2', label: 'What would make this year a genuine win?', placeholder: 'e.g. Margin above 32% every month, no more than one resignation' },
+  { id: 'g3', label: 'What keeps you up at night about it?', placeholder: 'e.g. Whether it would survive me stepping back for a month' },
 ];
 
 const ROLES = [
@@ -347,12 +401,13 @@ const CASCADE = [
   { person: 'Tom Alderson', role: 'Site Supervisor', reports: '4 crew', note: 'Crew get the read-only checklist view, not a scorecard.' },
 ];
 
-const SECTORS = ['Electrical', 'Construction', 'Trades & services', 'Manufacturing', 'Professional services'];
+const SECTORS = ['Electrical', 'Transport', 'Construction', 'Trades & services', 'Manufacturing', 'Professional services'];
 const SIZES = ['1–10', '11–25', '26–60', '61–150', '150+'];
 
 class Component extends DCLogic {
   state = {
-    step: 'business',
+    step: 'goals',
+    goals: {},
     bizName: 'JBI Electrical',
     sector: 'Electrical',
     size: '26–60',
@@ -380,6 +435,13 @@ class Component extends DCLogic {
     const sentCount = Object.keys(this.state.sent).filter(k => this.state.sent[k]).length;
 
     const copy = {
+      goals: {
+        title: 'What is this business actually for?',
+        body: 'Before a single role or KPI, the owner or director says what winning looks like. Every target Claude proposes later gets checked against this — a KPI that doesn\u2019t serve one of these goals is a KPI worth questioning.',
+        footer: 'This stays visible on the board pack and the monthly scoring page, so the goals are never lost under the numbers.',
+        claude: 'Claude reads these goals before proposing a single role or KPI.',
+        steps: ['Reads the goals you\u2019ve set', 'Proposes roles that serve them', 'Checks every KPI target against them'],
+      },
       business: {
         title: 'Name the business. Nothing else.',
         body: 'A business name, the sector and a size band. Claude uses these three things to propose the roles and the KPIs, so they are worth getting right.',
@@ -458,6 +520,15 @@ class Component extends DCLogic {
       claudeNote: copy.claude,
       claudeSteps: copy.steps.map(s => ({ label: s, dot: dotOf(GREEN) })),
 
+      onGoals: step === 'goals',
+      goalFields: GOAL_PROMPTS.map(g => ({
+        label: g.label,
+        placeholder: g.placeholder,
+        value: this.state.goals[g.id] || '',
+        setValue: e => this.setState(s => ({ goals: { ...s.goals, [g.id]: e.target.value } })),
+      })),
+      saveGoalsLabel: Object.values(this.state.goals).some(v => v && v.trim()) ? 'Saved — carries through the whole setup ✓' : 'Save goals',
+      saveGoals: () => this.setState({ step: 'business' }),
       onBusiness: step === 'business',
       onRoles: step === 'roles',
       onKpis: step === 'kpis',
@@ -468,7 +539,7 @@ class Component extends DCLogic {
       setBizName: e => this.setState({ bizName: e.target.value }),
       sectors: SECTORS.map(s => ({
         label: s,
-        select: () => this.setState({ sector: s }),
+        select: () => { this.setState({ sector: s }); try { localStorage.setItem('spec_sector', s); } catch (e) {} },
         style: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
           + (this.state.sector === s ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
       })),

@@ -45,7 +45,19 @@ export const ROW = 168;
 const STUB = 28;
 
 export const cardWidth = (depth: number) => (depth === 0 ? 226 : depth === 1 ? 186 : 158);
-export const cardHeight = (depth: number) => (depth === 0 ? 108 : 100);
+/**
+ * ONE height for every card at every depth, whatever the role count or the title length.
+ *
+ * Export 5 made this explicit: "one fixed height for every card at every depth — the title is
+ * clamped to 2 lines so content can never grow past this, making the row-to-row gap a true
+ * structural constant." Two different heights meant the gap under a top-level card differed from
+ * the gap under its children, which reads as a wonky diagram rather than as a hierarchy.
+ *
+ * It is tall enough for two lines of title, the person pill, the four pillar dots with the Ace run
+ * beside them, and the edit row — the clamp in org-canvas is what guarantees the title cannot take
+ * more than its two lines and push the rest out.
+ */
+export const cardHeight = (_depth: number) => 116;
 
 export interface PlacedCard {
   role: ChartRole;

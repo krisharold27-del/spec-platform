@@ -133,6 +133,51 @@ describe('the Ace run', () => {
     expect(aceName('board')).toBe('Ace');
   });
 
+  /*
+    ── The standing and the sprint are two different numbers ──────────────────────────────────────
+
+    Design export 5, on the org-chart badge: "a card stays badged Ace once it has reached 90%+ for
+    3 consecutive closed months — it holds the badge until a month drops below 90."
+
+    So `streak` counts the unbroken run and is never reset by a payment, while `consecutive` is the
+    position in the current three-month sprint and resets every time one pays. Reading the sprint as
+    the standing would strip the badge off the best performer in the business the DAY AFTER they
+    were paid, which is the opposite of what a standing is for.
+  */
+  it('keeps the standing through the month that pays', () => {
+    const three = aceState(closed(0.95, 0.95, 0.95), ok);
+    expect(three.streak, 'the run is unbroken').toBe(3);
+    expect(three.holdingAce).toBe(true);
+    expect(three.consecutive, 'and the sprint has restarted').toBe(0);
+    expect(three.doublesNow).toBe(true);
+
+    // A fourth good month: still an Ace, one month into the next sprint.
+    const four = aceState(closed(0.95, 0.95, 0.95, 0.95), ok);
+    expect(four.streak).toBe(4);
+    expect(four.holdingAce).toBe(true);
+    expect(four.consecutive).toBe(1);
+    expect(four.doublesNow, 'but nothing pays again until the next three').toBe(false);
+  });
+
+  it('takes the standing away the month it is not held', () => {
+    const dropped = aceState(closed(0.95, 0.95, 0.95, 0.95, 0.89), ok);
+    expect(dropped.streak).toBe(0);
+    expect(dropped.holdingAce).toBe(false);
+  });
+
+  it('does not give the standing before three months', () => {
+    expect(aceState(closed(0.95, 0.95), ok).holdingAce).toBe(false);
+    expect(aceState(closed(0.95, 0.95), ok).streak).toBe(2);
+  });
+
+  /* Wearing the badge is the loudest form of "this person can do the job to the standard", so it
+     needs the same sign-off the money does. */
+  it('does not badge somebody who is not signed off', () => {
+    const notSigned = aceState(closed(0.95, 0.95, 0.95), { signedOff: false });
+    expect(notSigned.streak, 'the months are still counted, so they can see where they are').toBe(3);
+    expect(notSigned.holdingAce).toBe(false);
+  });
+
   it('doubles the ceiling in the month it applies', () => {
     const plain = incentiveFor({ roles: [{ level: 'manager', rolePct: 0.95 }], chainPillars: [] });
     const ace = incentiveFor({ roles: [{ level: 'manager', rolePct: 0.95 }], chainPillars: [], salesAce: true });

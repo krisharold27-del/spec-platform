@@ -50,11 +50,29 @@ const read = file => readFileSync(join(DESIGNS, file), 'utf8');
  * The logo has neither problem. It is one piece of markup, identical on every screen of an export,
  * carried by the marketing and product screens alike, and it changes when the project is
  * re-exported. Two logos in one folder means two exports, with no false positives to explain away.
+ *
+ * ── Why the markup is normalised before it is hashed ─────────────────────────────────────────────
+ *
+ * Export 5 serialised the same mark two ways: `<circle ... />` on twenty-two screens and
+ * `<circle ...></circle>` on the Org Chart. Not one pixel of difference, and a byte-wise hash
+ * called it a whole second export and told somebody to go and re-export the project.
+ *
+ * That is this check crying wolf, which is worse than not having it. The one thing it exists to
+ * catch is a stale screen quietly surviving an export, and a warning that fires on nothing gets
+ * ignored on the day it fires on something. So it compares the DRAWING, not the typing: empty
+ * elements are written one way before the hash is taken.
  */
+const normaliseMarkup = s => s
+  // <tag ...></tag> and <tag ... /> are the same element written two ways.
+  .replace(/<([a-zA-Z][\w-]*)\b([^>]*?)\s*><\/\1>/g, '<$1$2/>')
+  .replace(/\s*\/>/g, '/>')
+  .replace(/\s+/g, ' ')
+  .trim();
+
 function brandPrint(html) {
   const brand = /<a\b[^>]*class="nav-brand"[^>]*>([\s\S]*?)<\/a>/i.exec(html);
   if (!brand) return null;
-  const markup = brand[1].replace(/\s+/g, ' ').trim();
+  const markup = normaliseMarkup(brand[1]);
   // Only a DRAWN mark dates a screen. Sign In sets the brand as plain words, and a screen with no
   // artwork in its header cannot disagree with one that has it — treating "no mark" as a rival
   // export reported a single sign-in page as a whole second export of the project.

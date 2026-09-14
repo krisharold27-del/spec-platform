@@ -22,32 +22,32 @@
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
     <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
-          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
-          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"></circle>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"></circle>
           <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
-            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
-            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"></animate>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"></animate>
           </circle>
           <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
-            <line x1="50" y1="14" x2="50" y2="9"/>
-            <line x1="86" y1="50" x2="91" y2="50"/>
-            <line x1="50" y1="86" x2="50" y2="91"/>
-            <line x1="14" y1="50" x2="9" y2="50"/>
+            <line x1="50" y1="14" x2="50" y2="9"></line>
+            <line x1="86" y1="50" x2="91" y2="50"></line>
+            <line x1="50" y1="86" x2="50" y2="91"></line>
+            <line x1="14" y1="50" x2="9" y2="50"></line>
           </g>
           <g transform="translate(50 50)">
             <g fill="#f5ead8">
-              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
-              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
-              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
-              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"></animateTransform>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"></rect>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"></path>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"></path>
             </g>
           </g>
           <g opacity="0">
-            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
-            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
-            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
-            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
-            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"></animate>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"></circle>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"></circle>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"></circle>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"></circle>
           </g>
         </svg>SPEC</a>
     <a href="SPEC My Page.dc.html">My page</a>
@@ -90,10 +90,60 @@
       </div>
     </div>
 
+    <sc-if value="{{ hasPredicted }}" hint-placeholder-val="{{ false }}">
+      <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px); margin-bottom: clamp(20px,3vw,28px);">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <h2 style="font-family: var(--font-heading); font-weight: 700; font-size: 22px; line-height: 1.2; margin: 0;">Predicted roles — approve or deny</h2>
+          <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Read for {{ sectorLabel }} · against the goal: {{ predictedGoal }}</span>
+        </div>
+        <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; max-width: 62ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Claude's read of what this structure is still missing. Nothing here counts as real until you say so — approve to add it to the chart, deny to drop it.</p>
+        <div style="display: grid; gap: 12px; margin-top: 20px;">
+          <sc-for list="{{ predicted }}" as="pr" hint-placeholder-count="2">
+            <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 18px 20px; border: 2px dashed var(--color-accent-2-400);">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">{{ pr.title }} <span style="font-size: 12px; font-weight: 400; color: color-mix(in srgb, var(--color-text) 65%, transparent);">— under {{ pr.parentTitle }}</span></span>
+                <span style="display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 11px; font-size: 11.5px; background: var(--color-accent-2-200); color: var(--color-accent-2-900);">Predicted</span>
+              </div>
+              <p style="font-size: 13.5px; line-height: 21px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ pr.why }}</p>
+              <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button type="button" class="btn btn-primary" onClick="{{ pr.approve }}" style="flex: none; white-space: nowrap;">Approve — add to chart</button>
+                <button type="button" class="btn btn-ghost" onClick="{{ pr.deny }}" style="flex: none; white-space: nowrap;">Deny</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+
+    <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); margin-bottom: clamp(20px,3vw,28px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <h2 style="font-family: var(--font-heading); font-weight: 700; font-size: 22px; line-height: 1.2; margin: 0;">Predictive KPIs from the goal</h2>
+        <button type="button" class="btn btn-ghost" onClick="{{ toggleCascade }}" style="flex: none; white-space: nowrap;">{{ cascadeToggleLabel }}</button>
+      </div>
+      <p style="font-size: 14px; line-height: 22px; margin: 10px 0 0; max-width: 64ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">The goal — <strong>{{ cascadeGoal }}</strong> — only means something once it is broken into what each role has to actually move. This is that cascade, once structure is approved.</p>
+      <sc-if value="{{ showCascade }}" hint-placeholder-val="{{ true }}">
+        <div style="display: grid; gap: 10px; margin-top: 20px;">
+          <sc-for list="{{ cascadeRows }}" as="cr" hint-placeholder-count="5">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; background: var(--color-bg); border-radius: 18px; padding: 14px 18px;">
+              <span style="{{ cr.pillarTile }}">{{ cr.pillarLetter }}</span>
+              <span style="display: grid; gap: 2px; min-width: 160px; flex: 1 1 200px;">
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 14.5px;">{{ cr.role }}</span>
+                <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ cr.why }}</span>
+              </span>
+              <span style="display: grid; gap: 2px; text-align: right;">
+                <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ cr.metric }}</span>
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">{{ cr.target }}</span>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </section>
+
     <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); margin-bottom: clamp(20px,3vw,32px);">
       <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 14px;">
         <div>
-          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Start from what you already have</h2>
+          <h2 style="font-family: var(--font-heading); font-weight: 700; font-size: 22px; line-height: 1.2; margin: 0;">Start from what you already have</h2>
           <p style="font-size: 14.5px; line-height: 23px; margin: 10px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Nobody types their org chart twice. Bring it in from a document, a spreadsheet, or the system that already holds it.</p>
         </div>
         <button type="button" class="btn btn-ghost" onClick="{{ toggleImport }}" style="flex: none; white-space: nowrap;">{{ importToggleLabel }}</button>
@@ -107,7 +157,7 @@
             <p style="font-size: 13.5px; line-height: 21px; margin: 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Word, Excel or CSV. SPEC reads the role, the person and who they report to, then asks you to confirm before anything is drawn.</p>
             <label style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; background: var(--color-accent); color: #fff; border-radius: 999px; padding: 10px 20px; font-size: 13.5px; white-space: nowrap; justify-self: start;">
               Choose a file
-              <input type="file" accept=".csv,.xlsx,.xls,.docx,.doc,.txt" onChange="{{ onFile }}" style="display: none;" />
+              <input type="file" accept=".csv,.xlsx,.xls,.docx,.doc,.txt" onChange="{{ onFile }}" style="display: none;">
             </label>
             <p style="font-size: 13px; line-height: 20px; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ fileStatus }}</p>
           </div>
@@ -115,7 +165,9 @@
           <div style="background: var(--color-bg); border-radius: 20px; padding: 22px 24px; display: grid; align-content: start; gap: 12px;">
             <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; margin: 0;">Paste it in</p>
             <p style="font-size: 13.5px; line-height: 21px; margin: 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">One role per line: role, person, who they report to. Straight out of a document or a spreadsheet column.</p>
-            <textarea class="input" value="{{ importText }}" onChange="{{ setImportText }}" onInput="{{ setImportText }}" aria-label="Paste your structure" placeholder="Managing Director, Kris Harold&#10;Operations Manager, Dane Whitmore, Managing Director&#10;Scheduler, Amrit Kaur, Operations Manager" style="width: 100%; box-sizing: border-box; min-height: 120px; border-radius: 18px; padding: 14px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 20px; resize: vertical;"></textarea>
+            <textarea class="input" value="{{ importText }}" onChange="{{ setImportText }}" onInput="{{ setImportText }}" aria-label="Paste your structure" placeholder="Managing Director, Kris Harold
+Operations Manager, Dane Whitmore, Managing Director
+Scheduler, Amrit Kaur, Operations Manager" style="width: 100%; box-sizing: border-box; min-height: 120px; border-radius: 18px; padding: 14px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 20px; resize: vertical;"></textarea>
             <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
               <button type="button" class="btn btn-primary" onClick="{{ buildFromText }}" style="flex: none; white-space: nowrap;">Build the chart</button>
               <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ importStatus }}</span>
@@ -141,11 +193,23 @@
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
 
       <div style="grid-column: 1 / -1; position: relative; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,44px); overflow-x: auto;" data-canvas="true" onContextMenu="{{ canvasContextMenu }}">
-        <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: center; padding-bottom: 28px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 14px;">
+          <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Viewing: <strong style="color: var(--color-text);">{{ viewScopeLine }}</strong></span>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+            <select class="input" value="{{ viewAsId }}" onChange="{{ setViewAs }}" aria-label="View from role" style="min-height: 36px; font-size: 13px; padding: 4px 10px;">
+              <sc-for list="{{ viewAsOptions }}" as="vo" hint-placeholder-count="6">
+                <option value="{{ vo.value }}">{{ vo.label }}</option>
+              </sc-for>
+            </select>
+            <sc-if value="{{ viewingWholeCompany }}" hint-placeholder-val="{{ true }}"></sc-if>
+            <button type="button" class="btn btn-ghost" onClick="{{ showWholeCompany }}" style="flex: none; white-space: nowrap;">See whole company chart</button>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: center; padding-bottom: 16px;">
           <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #4f7a3f;"></span>80% and above</span>
           <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #c67139;"></span>Above 50%</span>
           <span style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #a63b26;"></span>50% or under, or not set</span>
-          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding-left: 8px; border-left: 1px solid var(--color-accent-200);">Green is not SPEC — SPEC is 90%+ on every pillar, two consecutive closed months.</span>
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding-left: 8px; border-left: 1px solid var(--color-accent-200);">Green is not SPEC — SPEC is 90%+ on every pillar.</span>
           <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ summaryLine }}</span>
         </div>
 
@@ -155,7 +219,13 @@
           </sc-for>
           <sc-for list="{{ cards }}" as="c" hint-placeholder-count="7">
             <div draggable="true" onClick="{{ c.select }}" onDoubleClick="{{ c.openScorecard }}" onContextMenu="{{ c.contextMenu }}" onDragStart="{{ c.dragStart }}" onDragEnd="{{ c.dragEnd }}" onDragOver="{{ c.dragOver }}" onDragLeave="{{ c.dragLeave }}" onDrop="{{ c.drop }}" style="{{ c.style }}">
-              <p style="{{ c.titleStyle }}">{{ c.title }}</p>
+              <sc-if value="{{ c.isAce }}" hint-placeholder-val="{{ false }}">
+                <span style="{{ c.aceBadgeStyle }}" title="Ace — 90%+ every pillar, 3 months running">★</span>
+              </sc-if>
+              <sc-if value="{{ c.hasTeam }}" hint-placeholder-val="{{ false }}">
+                <span style="position:absolute;top:-11px;left:-11px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--color-accent-700);color:#fff;display:grid;place-content:center;font-size:11.5px;font-weight:700;box-shadow:var(--shadow-sm);z-index:2;" title="{{ c.teamBadge }}">{{ c.teamCountLabel }}</span>
+              </sc-if>
+              <p style="height: 100%">{{ c.title }}</p>
               <span draggable="{{ c.personDraggable }}" onDragStart="{{ c.personDragStart }}" style="{{ c.personStyle }}">{{ c.person }}</span>
               <div style="display: flex; gap: 7px; justify-content: center; margin-top: 10px;">
                 <span style="{{ c.dotS }}">S</span>
@@ -194,8 +264,8 @@
 
       <aside style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
         <span style="display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-2-900); margin: 0 0 14px;">Role scorecard</span>
-        <input class="input" type="text" value="{{ selectedTitle }}" onChange="{{ renameRole }}" aria-label="Role title" style="width: 100%; box-sizing: border-box; font-family: var(--font-heading); font-size: 19px; min-height: 44px;" />
-        <input class="input" type="text" value="{{ selectedPerson }}" onChange="{{ renamePerson }}" aria-label="Person in the role" placeholder="Vacant" style="width: 100%; box-sizing: border-box; margin-top: 10px; min-height: 40px;" />
+        <input class="input" type="text" value="{{ selectedTitle }}" onChange="{{ renameRole }}" aria-label="Role title" style="width: 100%; box-sizing: border-box; font-family: var(--font-heading); font-size: 19px; min-height: 44px;">
+        <input class="input" type="text" value="{{ selectedPerson }}" onChange="{{ renamePerson }}" aria-label="Person in the role" placeholder="Vacant" style="width: 100%; box-sizing: border-box; margin-top: 10px; min-height: 40px;">
 
         <div style="display: grid; gap: 12px; margin-top: 22px;">
           <sc-for list="{{ selectedPillars }}" as="pl" hint-placeholder-count="4">
@@ -208,7 +278,7 @@
                 <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ pl.kpi1 }}</span>
                 <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ pl.kpi2 }}</span>
               </div>
-              <input type="range" min="0" max="100" value="{{ pl.value }}" onChange="{{ pl.set }}" onInput="{{ pl.set }}" aria-label="{{ pl.name }} score" style="width: 100%; margin-top: 14px; accent-color: var(--color-accent);" />
+              <input type="range" min="0" max="100" value="{{ pl.value }}" onChange="{{ pl.set }}" onInput="{{ pl.set }}" aria-label="{{ pl.name }} score" style="width: 100%; margin-top: 14px; accent-color: var(--color-accent);">
             </div>
           </sc-for>
         </div>
@@ -247,7 +317,7 @@
 
 <section style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); padding: 8px clamp(20px,5vw,72px) 72px;">
   <div style="max-width: 1320px; margin: 0 auto;">
-    <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,2.8vw,32px); line-height: 1.2; margin: 0; max-width: 24ch;">What the chart changes</h2>
+    <h2 style="font-family: var(--font-heading); font-weight: 700; font-size: clamp(24px,2.8vw,32px); line-height: 1.2; margin: 0; max-width: 24ch;">What the chart changes</h2>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-top: 24px;">
       <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 22px 24px;">
         <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 23px; margin: 0;">Key-person risk</p>
@@ -285,14 +355,55 @@ const PILLARS = [
 ];
 
 const SEED = [
-  { id: 'n1', parent: null, root: true, title: 'Managing Director', person: 'Kris Harold', s: 94, p: 88, e: 91, c: 100 },
-  { id: 'n2', parent: 'n1', title: 'Operations Manager', person: '', s: 92, p: 85, e: 89, c: 100 },
-  { id: 'n3', parent: 'n1', title: 'Commercial Manager', person: '', s: 90, p: 91, e: 93, c: 100 },
-  { id: 'n4', parent: 'n1', title: 'Safety & Compliance Lead', person: '', s: 97, p: 90, e: 92, c: 100 },
-  { id: 'n5', parent: 'n2', title: 'Site Supervisor', person: '', s: 96, p: 72, e: 94, c: 100 },
-  { id: 'n6', parent: 'n2', title: 'Scheduler', person: '', s: 93, p: 90, e: 90, c: 100 },
-  { id: 'n7', parent: 'n3', title: 'Estimator', person: '', s: 91, p: 88, e: 92, c: 100 },
+  { id: 'n1', parent: null, root: true, title: 'Managing Director', person: 'Kris Harold', s: 94, p: 88, e: 91, c: 100, aceStreak: 4 },
+  { id: 'n2', parent: 'n1', title: 'Operations Manager', person: '', s: 92, p: 85, e: 89, c: 100, aceStreak: 0 },
+  { id: 'n3', parent: 'n1', title: 'Commercial Manager', person: '', s: 90, p: 91, e: 93, c: 100, aceStreak: 3 },
+  { id: 'n4', parent: 'n1', title: 'Safety & Compliance Lead', person: '', s: 97, p: 90, e: 92, c: 100, aceStreak: 5 },
+  { id: 'n5', parent: 'n2', title: 'Site Supervisor', person: '', s: 96, p: 72, e: 94, c: 100, aceStreak: 0 },
+  { id: 'n6', parent: 'n2', title: 'Scheduler', person: '', s: 93, p: 90, e: 90, c: 100, aceStreak: 0 },
+  { id: 'n7', parent: 'n3', title: 'Estimator', person: '', s: 91, p: 88, e: 92, c: 100, aceStreak: 0 },
 ];
+// A card stays badged Ace once it has reached 90%+ on every pillar for 3 consecutive closed
+// months — aceStreak just counts those months; it holds the badge until a month drops below 90,
+// at which point aceStreak resets to 0 and the badge disappears.
+
+// Predictive roles + KPI cascade, keyed by sector — similar businesses need different roles and
+// different numbers. Read from Setup's sector choice (localStorage 'spec_sector'); 'Electrical' if unset.
+const SECTOR_PACKS = {
+  Electrical: {
+    goal: 'Net profit 10%',
+    predicted: [
+      { id: 'pr1', parent: 'n2', title: 'Yard Lead', why: 'Utilisation and plant checks have no single owner below Operations — that gap is where the People pillar is weakest.' },
+      { id: 'pr2', parent: 'n4', title: 'Training Coordinator', why: 'Ticket currency and inductions are tracked but not owned by anyone whose job is keeping them current.' },
+    ],
+    cascade: [
+      { role: 'Managing Director', pillar: 'E', metric: 'Net profit margin', target: '≥ 10%', why: 'The goal itself, held at the top of the chart.' },
+      { role: 'Operations Manager', pillar: 'E', metric: 'Labour utilisation', target: '≥ 90%', why: 'Profit at this size is won or lost on billable hours, not on quoting.' },
+      { role: 'Site Supervisor', pillar: 'E', metric: 'Billable hours', target: '≥ 86%', why: 'Every hour a crew is on the yard instead of on a job is a direct hit to the 10% goal.' },
+      { role: 'Commercial Manager', pillar: 'E', metric: 'Margin against quote', target: '≥ 32%', why: 'A won job that is quoted thin cannot reach 10% net, however busy the crews are.' },
+      { role: 'Safety & Compliance Lead', pillar: 'S', metric: 'Corrective actions on time', target: '95%', why: 'An incident at this margin erases a month of the goal in one event.' },
+    ],
+  },
+  Transport: {
+    goal: 'Net profit 10%',
+    predicted: [
+      { id: 'pr1', parent: 'n2', title: 'Fleet & Compliance Lead', why: 'Vehicle roadworthiness and driver fatigue rules have no single owner below Operations — a transport-specific gap electrical contracting doesn\u2019t have.' },
+      { id: 'pr2', parent: 'n3', title: 'Dispatch Coordinator', why: 'On-time delivery and load planning sit informally with whoever answers the phone first.' },
+    ],
+    cascade: [
+      { role: 'Managing Director', pillar: 'E', metric: 'Net profit margin', target: '≥ 10%', why: 'The goal itself, held at the top of the chart.' },
+      { role: 'Operations Manager', pillar: 'E', metric: 'Fleet utilisation', target: '≥ 88%', why: 'An idle truck earns nothing, the transport equivalent of billable hours.' },
+      { role: 'Fleet & Compliance Lead', pillar: 'S', metric: 'Roadworthy checks on time', target: '100%', why: 'A defect notice off the road erases a week of margin on that vehicle.' },
+      { role: 'Dispatch Coordinator', pillar: 'E', metric: 'On-time delivery', target: '≥ 95%', why: 'Late deliveries are the leading cause of lost repeat freight contracts.' },
+      { role: 'Fleet & Compliance Lead', pillar: 'C', metric: 'Driver fatigue logs current', target: '100%', why: 'A hard gate in this sector — a fatigue breach can suspend the operator\u2019s licence.' },
+    ],
+  },
+};
+const sectorPack = () => {
+  let s = 'Electrical';
+  try { s = localStorage.getItem('spec_sector') || 'Electrical'; } catch (e) {}
+  return SECTOR_PACKS[s] || SECTOR_PACKS.Electrical;
+};
 
 const rag = v => (v >= 80 ? GREEN : v > 50 ? AMBER : RED);
 const dot = (v, size) => 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:block;flex:none;background:' + rag(v) + ';';
@@ -300,7 +411,19 @@ const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 
 const stageDot = ok => 'width:14px;height:14px;border-radius:50%;display:block;flex:none;background:' + (ok ? GREEN : AMBER) + ';';
 
 class Component extends DCLogic {
-  state = { nodes: SEED.map(n => ({ ...n })), selectedId: 'n2', dragId: null, dropId: null, dragKind: null, seq: 8, menu: null, importOpen: false, importText: '', importStatus: 'Or drag the roles in by hand.', fileStatus: 'Nothing uploaded yet.', connected: {} };
+  state = { nodes: SEED.map(n => ({ ...n })), selectedId: 'n2', viewAsId: 'n2', collapsedIds: {}, dragId: null, dropId: null, dragKind: null, seq: 8, menu: null, importOpen: false, importText: '', importStatus: 'Or drag the roles in by hand.', fileStatus: 'Nothing uploaded yet.', connected: {}, predicted: sectorPack().predicted.map(p => ({ ...p })), showCascade: true, pack: sectorPack() };
+
+  approvePredicted(id) {
+    const p = this.state.predicted.find(x => x.id === id);
+    if (!p) return;
+    this.setState(s => ({
+      nodes: [...s.nodes, { id: p.id, parent: p.parent, title: p.title, person: '', s: 80, p: 80, e: 80, c: 80, aceStreak: 0 }],
+      predicted: s.predicted.filter(x => x.id !== id),
+    }));
+  }
+  denyPredicted(id) {
+    this.setState(s => ({ predicted: s.predicted.filter(x => x.id !== id) }));
+  }
 
   parseStructure(text) {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
@@ -344,6 +467,7 @@ class Component extends DCLogic {
 
   byId(id) { return this.state.nodes.find(n => n.id === id); }
   kids(id) { return this.state.nodes.filter(n => n.parent === id); }
+  descendantsOf(id) { let t = 0; this.kids(id).forEach(k => { t += 1 + this.descendantsOf(k.id); }); return t; }
   unlinkedNodes() { return this.state.nodes.filter(n => !n.root && !n.parent); }
 
   isAncestor(candidate, id) {
@@ -382,7 +506,7 @@ class Component extends DCLogic {
   addRole(parentId) {
     const id = 'n' + this.state.seq;
     this.setState(s => ({
-      nodes: s.nodes.concat([{ id, parent: parentId, title: 'New role', person: '', s: 0, p: 0, e: 0, c: 0 }]),
+      nodes: s.nodes.concat([{ id, parent: parentId, title: 'New role', person: '', s: 0, p: 0, e: 0, c: 0, aceStreak: 0 }]),
       seq: s.seq + 1, selectedId: id, menu: null,
     }));
   }
@@ -420,10 +544,21 @@ class Component extends DCLogic {
     if (dropping) style += 'box-shadow:0 0 0 3px ' + GREEN + ',0 12px 22px -8px rgba(0,0,0,0.28);transform:translateY(-4px) scale(1.035);background:color-mix(in srgb, ' + GREEN + ' 10%, ' + fills[Math.min(level, 3)] + ');';
     if (dragging) style += 'opacity:0.4;transform:scale(0.94) rotate(-1.5deg);cursor:grabbing;';
 
+    const isAce = (node.aceStreak || 0) >= 3;
+    const teamCount = this.kids(node.id).length ? this.descendantsOf(node.id) : 0;
+    const isCollapsed = !!this.state.collapsedIds[node.id];
+
     return {
       ...node,
       style,
-      titleStyle: 'font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + z.t + 'px;line-height:1.25;margin:0;',
+      isAce,
+      hasTeam: teamCount > 0,
+      teamCountLabel: (isCollapsed ? '+' : '') + teamCount,
+      isCollapsed,
+      teamBadge: 'Team of ' + teamCount + (isCollapsed ? ' — collapsed, double-click to expand' : ' — double-click to collapse'),
+      toggleCollapse: () => this.setState(s => ({ collapsedIds: { ...s.collapsedIds, [node.id]: !s.collapsedIds[node.id] } })),
+      aceBadgeStyle: 'position:absolute;top:-11px;right:-11px;width:26px;height:26px;border-radius:50%;background:#c08a2e;color:#fff;display:grid;place-content:center;font-size:14px;box-shadow:var(--shadow-sm);z-index:2;',
+      titleStyle: 'font-family:var(--font-heading);font-weight:var(--font-heading-weight);text-shadow:0.5px 0 currentColor,-0.5px 0 currentColor,0 0.5px currentColor,0 -0.5px currentColor;font-size:' + z.t + 'px;line-height:1.25;margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;',
       personStyle: 'display:inline-block;font-size:12.5px;line-height:18px;margin:5px 0 0;padding:2px 10px;border-radius:999px;'
         + (node.person
           ? 'cursor:grab;background:var(--color-bg);box-shadow:inset 0 0 0 1px var(--color-accent-200);color:color-mix(in srgb, var(--color-text) 85%, transparent);'
@@ -440,7 +575,9 @@ class Component extends DCLogic {
       dotE: tile(node.e, z.d),
       dotC: tile(node.c, z.d),
       select: () => this.setState({ selectedId: node.id, menu: null }),
-      openScorecard: () => { window.location.href = 'SPEC My Scorecard.dc.html'; },
+      openScorecard: teamCount > 0
+        ? () => this.setState(s => ({ collapsedIds: { ...s.collapsedIds, [node.id]: !s.collapsedIds[node.id] } }))
+        : () => { window.location.href = 'SPEC My Scorecard.dc.html'; },
       contextMenu: e => this.openMenu(e, node.id),
       dragStart: e => { if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; this.setState({ dragId: node.id, dragKind: 'role' }); },
       dragEnd: () => this.setState({ dragId: null, dropId: null, dragKind: null }),
@@ -456,30 +593,67 @@ class Component extends DCLogic {
   }
 
   layout(root) {
-    const SLOT = 200, ROW = 168, RAIL = 'var(--color-accent-200)';
+    const SLOT = 200, GAP = 56, RAIL = 'var(--color-accent-200)';
     const width = d => (d === 0 ? 226 : d === 1 ? 186 : 158);
-    const height = d => (d === 0 ? 108 : 100);
+    // ONE fixed height for every card at every depth, whatever role count or title length —
+    // the title is clamped to 2 lines (see titleStyle) so content can never grow past this,
+    // making the row-to-row gap a true structural constant.
+    const CARD_H = 138;
+    const height = d => CARD_H;
+    // Row tops are cumulative on each depth's own card height, so the visible gap between a
+    // card's bottom and the next row's top is the same constant GAP at every depth — a fixed
+    // ROW stride made that gap vary (60px vs 68px) since card heights differ by depth.
+    const rowTop = [];
+    for (let d = 0, y = 0; d < 8; d++) { rowTop[d] = y; y += height(d) + GAP; }
     const placed = [];
     const lines = [];
-    let slot = 0;
+    const MARGIN = 40; // fixed edge-to-edge gap between any two adjacent cards, any depth
 
-    const walk = (node, depth) => {
-      const kids = this.kids(node.id);
+    // Every node reserves a horizontal span sized to fit its own card OR its children's
+    // combined spans, whichever is larger — so a childless node (e.g. a leaf at depth 1)
+    // reserves the same margin as anyone else, instead of inheriting a slot pitch sized for
+    // a different depth's card width. That was the asymmetry: a depth-1 leaf got squeezed
+    // into a 200px slot meant for 158px depth-2 cards, while a 2-child branch got 400px.
+    const kidsFor = id => (this.state.collapsedIds[id] ? [] : this.kids(id));
+    const reserved = new Map();
+    const reserve = (node, depth) => {
+      const kids = kidsFor(node.id);
+      const own = width(depth) + MARGIN;
+      // Span is the children's combined span alone when there are children — never widened by
+      // this node's own card width. Widening it (max(own, childrenSum)) was the bug: the slack
+      // got redistributed into centering the children group, shifting a child sideways and
+      // throwing off its gap to an unrelated sibling in another branch. A wider parent card is
+      // now simply centered over its (possibly narrower) children span and may overhang it
+      // slightly on both sides — symmetric overhang, no sibling shift.
+      const w = kids.length ? kids.reduce((sum, k) => sum + reserve(k, depth + 1), 0) : own;
+      reserved.set(node.id, w);
+      return w;
+    };
+    reserve(root, 0);
+
+    const walk = (node, depth, xStart) => {
+      const kids = kidsFor(node.id);
+      const span = reserved.get(node.id);
       let centre;
+      let childCentres = [];
       if (!kids.length) {
-        centre = slot * SLOT + SLOT / 2;
-        slot += 1;
+        centre = xStart + span / 2;
       } else {
-        const centres = kids.map(k => walk(k, depth + 1));
-        centre = (centres[0] + centres[centres.length - 1]) / 2;
+        const kidsSpan = kids.reduce((sum, k) => sum + reserved.get(k.id), 0);
+        let cx = xStart + (span - kidsSpan) / 2; // centre the children group within this node's span
+        childCentres = kids.map(k => {
+          const c = walk(k, depth + 1, cx);
+          cx += reserved.get(k.id);
+          return c;
+        });
+        centre = (childCentres[0] + childCentres[childCentres.length - 1]) / 2;
       }
-      const y = depth * ROW;
+      const y = rowTop[depth];
       placed.push({ node, depth, centre, y, w: width(depth), h: height(depth) });
 
       if (kids.length) {
         const bottom = y + height(depth);
-        const railY = bottom + 28;
-        const childCentres = kids.map(k => placed.find(p => p.node.id === k.id).centre);
+        const railY = bottom + GAP / 2;
         const left = Math.min.apply(null, childCentres);
         const right = Math.max.apply(null, childCentres);
         const avgOf = n => Math.round((n.s + n.p + n.e + n.c) / 4);
@@ -488,35 +662,36 @@ class Component extends DCLogic {
         if (kids.length > 1) {
           lines.push({ style: 'position:absolute;left:' + left + 'px;top:' + (railY - 2) + 'px;width:' + (right - left) + 'px;height:5px;border-radius:999px;background:' + rag(worstKid) + ';' });
         }
-        kids.forEach(k => {
-          const cx = placed.find(p => p.node.id === k.id).centre;
-          lines.push({ style: 'position:absolute;left:' + (cx - 2.5) + 'px;top:' + railY + 'px;width:5px;height:' + (y + ROW - railY) + 'px;border-radius:999px;background:' + rag(avgOf(k)) + ';' });
+        kids.forEach((k, i) => {
+          const cx = childCentres[i];
+          lines.push({ style: 'position:absolute;left:' + (cx - 2.5) + 'px;top:' + railY + 'px;width:5px;height:' + (rowTop[depth + 1] - railY) + 'px;border-radius:999px;background:' + rag(avgOf(k)) + ';' });
         });
       }
       return centre;
     };
 
-    walk(root, 0);
+    walk(root, 0, 0);
 
     const maxDepth = placed.reduce((m, p) => Math.max(m, p.depth), 0);
     const cards = placed.map(p => {
       const d = this.decorate(p.node, p.depth);
       return {
         ...d,
-        style: 'position:absolute;left:' + (p.centre - p.w / 2) + 'px;top:' + p.y + 'px;width:' + p.w + 'px;' + d.style,
+        style: 'position:absolute;left:' + (p.centre - p.w / 2) + 'px;top:' + p.y + 'px;width:' + p.w + 'px;height:' + p.h + 'px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;' + d.style,
       };
     });
 
     return {
       cards,
       lines,
-      canvasInner: 'position:relative;width:' + Math.max(slot * SLOT, 680) + 'px;height:' + (maxDepth * ROW + 130) + 'px;margin:0 auto;',
+      canvasInner: 'position:relative;width:' + Math.max(reserved.get(root.id), 680) + 'px;height:' + (rowTop[maxDepth] + height(maxDepth) + 10) + 'px;margin:0 auto;',
     };
   }
 
   renderVals() {
     const nodes = this.state.nodes;
     const root = nodes.find(n => n.root) || nodes[0];
+    const viewRoot = this.byId(this.state.viewAsId) || root;
     const selected = this.byId(this.state.selectedId) || root;
     const unlinked = this.unlinkedNodes();
     const reachable = new Set();
@@ -565,7 +740,13 @@ class Component extends DCLogic {
     };
 
     return {
-      ...this.layout(root),
+      ...this.layout(viewRoot),
+      viewingWholeCompany: viewRoot.id === root.id,
+      viewScopeLine: viewRoot.id === root.id ? 'Whole company chart' : viewRoot.title + ' and below',
+      viewAsOptions: nodes.map(n => ({ label: n.title + (n.person ? ' — ' + n.person : ' — vacant'), value: n.id })),
+      viewAsId: viewRoot.id,
+      setViewAs: e => this.setState({ viewAsId: e.target.value }),
+      showWholeCompany: () => this.setState({ viewAsId: root.id }),
       hasUnlinked: unlinked.length > 0,
       unlinked: unlinked.map(n => {
         const d = this.decorate(n, 1);
@@ -577,6 +758,28 @@ class Component extends DCLogic {
         };
       }),
       summaryLine: nodes.length + ' roles · ' + detachedCount + ' off the chart · ' + linked.filter(n => Math.min(n.s, n.p, n.e, n.c) >= 90).length + ' all green',
+      hasPredicted: this.state.predicted.length > 0,
+      sectorLabel: (() => { try { return localStorage.getItem('spec_sector') || 'Electrical'; } catch (e) { return 'Electrical'; } })(),
+      predictedGoal: this.state.pack.goal,
+      predicted: this.state.predicted.map(p => ({
+        title: p.title,
+        why: p.why,
+        parentTitle: (nodes.find(n => n.id === p.parent) || {}).title || '',
+        approve: () => this.approvePredicted(p.id),
+        deny: () => this.denyPredicted(p.id),
+      })),
+      showCascade: this.state.showCascade,
+      cascadeToggleLabel: this.state.showCascade ? 'Hide' : 'Show',
+      toggleCascade: () => this.setState(s => ({ showCascade: !s.showCascade })),
+      cascadeGoal: this.state.pack.goal,
+      cascadeRows: this.state.pack.cascade.map(r => ({
+        role: r.role,
+        pillarTile: tile(r.pillar === 'S' ? 60 : 95, 11),
+        pillarLetter: r.pillar,
+        metric: r.metric,
+        target: r.target,
+        why: r.why,
+      })),
       linkStage: {
         style: stageStyle(detachedCount === 0),
         dot: stageDot(detachedCount === 0),
@@ -607,7 +810,7 @@ class Component extends DCLogic {
       verdictStyle: 'margin-top:26px;border-radius:var(--radius-lg);padding:20px 22px;background:' + (allGreen ? 'color-mix(in srgb, ' + GREEN + ' 12%, transparent)' : worst > 50 ? 'var(--color-accent-100)' : 'color-mix(in srgb, ' + RED + ' 10%, transparent)') + ';',
       verdictTitle: allGreen ? 'All four green' : worst > 50 ? 'Amber on the board' : 'Red on the board',
       verdictBody: allGreen
-        ? 'Hold this for two consecutive months and the business is SPEC.'
+        ? ''
         : 'The board sees the pillar below target and the role it comes from. Nothing needs explaining.',
       menu: {
         open: !!menuState,

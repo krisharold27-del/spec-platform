@@ -36,7 +36,8 @@ export default function Pricing() {
         <p className="mt-3 max-w-2xl text-base text-ink-light">
           No minimum. No tier that unlocks features. Drawing your whole business — every role, every
           reporting line, every KPI — is free and stays free however long it takes. A seat is billed when
-          a real person is invited in, because that is when SPEC starts doing work for them.
+          a real person is invited in, because that is when SPEC starts doing work for them. A vacant
+          or predicted role never carries a seat, however the structure moves.
         </p>
 
         <section className="mt-10 grid gap-4 sm:grid-cols-2">

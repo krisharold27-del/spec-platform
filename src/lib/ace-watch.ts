@@ -39,6 +39,17 @@ export interface AceWatchRow {
   /** The run is there and the sign-off is not. */
   blockedBySignoff: boolean;
   /**
+   * Currently an Ace: three or more consecutive closed months at the standard, unbroken.
+   *
+   * Separate from `consecutive`, which is the position in the current three-month sprint and resets
+   * every time one pays. Somebody nine months into an unbroken run is an Ace with a sprint position
+   * of nothing — reading the sprint as the standing would strip the badge off the best performer in
+   * the business the day after they were paid.
+   */
+  holdingAce: boolean;
+  /** The unbroken run itself, for saying how long they have held it. */
+  streak: number;
+  /**
    * Trained on the job and signed off in THIS role.
    *
    * Carried so the card cannot contradict itself. The months are counted whether or not somebody is

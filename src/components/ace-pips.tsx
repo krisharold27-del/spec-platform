@@ -1,4 +1,4 @@
-import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
+import { LIGHT_COLOUR, LIGHT_INK, ACE_GOLD } from '@/lib/today';
 import type { AceWatchRow } from '@/lib/ace-watch';
 
 /**
@@ -23,6 +23,35 @@ import type { AceWatchRow } from '@/lib/ace-watch';
  * The whole marker is a `title`, so hovering any card gives the sentence from Ace watch without
  * leaving the chart.
  */
+/**
+ * The Ace badge — the standing, not the sprint.
+ *
+ * Export 5 put it on the chart and gave it the rule: "a card stays badged Ace once it has reached
+ * three consecutive closed months — it holds the badge until a month drops below 90." So it is worn
+ * for as long as the run is unbroken, which is a different question from where somebody is in the
+ * three months to their next doubled month. Both live on the card because both are true and neither
+ * answers the other.
+ *
+ * It hangs off the TOP of the card rather than the corner. The design hangs it off the corner, and
+ * rendered against real spacing that put it on top of the neighbouring card — the chart packs
+ * siblings 200px apart with 186px cards, so fourteen pixels is the whole gap and a badge poking ten
+ * pixels right lands in somebody else's role. It now overhangs vertically only, into the connector
+ * space above the card, which is empty by construction.
+ */
+export function AceStar({ ace }: { ace: AceWatchRow }) {
+  const label = `${ace.aceName} — held ${ace.streak} closed month${ace.streak === 1 ? '' : 's'} running at the standard. It stays until a month drops below it.`;
+  return (
+    <span
+      title={label}
+      aria-label={label}
+      className="absolute right-2 -top-2.5 z-[2] grid h-[26px] w-[26px] place-content-center rounded-full text-sm shadow-sm"
+      style={{ background: ACE_GOLD, color: '#201e1d' }}
+    >
+      ★
+    </span>
+  );
+}
+
 export function AcePips({ ace, big }: { ace: AceWatchRow; big?: boolean }) {
   const size = big ? 8 : 7;
   const label = `${ace.aceName} — ${ace.doublesNow ? 'doubled this month' : !ace.signedOff ? 'not signed off' : `${ace.consecutive} of ${ace.required} months`}. ${ace.note}`;

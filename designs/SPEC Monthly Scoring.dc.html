@@ -187,7 +187,7 @@
             <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Ace watch</h2>
             <span style="font-size: 13.5px; color: var(--color-accent-2-900);">{{ aceLine }}</span>
           </div>
-          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Trained on the job, signed off, and holding a minimum 90% on the KPI board three consecutive closed months doubles the incentive — then the three-month challenge starts again. Only roles with an individual KPI scorecard can reach it, and the third month is what triggers the increased incentive.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Any employee with an individual KPI scorecard becomes an Ace by holding 90% or better across three consecutive closed months — that third month doubles the incentive, where the business has opened incentives to that person. The three-month challenge then starts again from the next closed month.</p>
           <div style="display: grid; gap: 12px; margin-top: 20px;">
             <sc-for list="{{ aces }}" as="ac" hint-placeholder-count="3">
               <div style="{{ ac.style }}">
@@ -198,11 +198,13 @@
                   </span>
                   <span style="{{ ac.chip }}">{{ ac.state }}</span>
                 </div>
-                <div style="display: flex; gap: 8px; margin-top: 14px;">
-                  <sc-for list="{{ ac.months }}" as="mo" hint-placeholder-count="3">
-                    <span style="{{ mo.style }}">{{ mo.label }}</span>
-                  </sc-for>
-                </div>
+                <sc-if value="{{ ac.certified }}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; gap: 8px; margin-top: 14px;">
+                    <sc-for list="{{ ac.months }}" as="mo" hint-placeholder-count="3">
+                      <span style="{{ mo.style }}">{{ mo.label }}</span>
+                    </sc-for>
+                  </div>
+                </sc-if>
                 <p style="font-size: 13.5px; line-height: 21px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ ac.note }}</p>
               </div>
             </sc-for>
@@ -308,10 +310,14 @@ const ROWS = {
   ],
 };
 
+// certified: false means the business hasn't turned the incentive on for this person yet —
+// SPEC certification is done, not just assumed, before any Ace run starts counting.
 const ACES = [
-  { person: 'Priya Raman', role: 'BD Manager · Sales Ace', months: ['Jul ✓', 'Aug ✓', 'Sep ✓'], hit: 3, note: 'Third month above 90% on the KPI board. Increased incentive applies from October.' },
-  { person: 'Dane Whitmore', role: 'Operations Manager · Ops Ace', months: ['Jul ✓', 'Aug ✓', 'Sep —'], hit: 2, note: 'People at 86% drops the board below 90% and breaks the run. One-to-one would have held it.' },
-  { person: 'Tom Alderson', role: 'Site Supervisor', months: ['Jul —', 'Aug ✓', 'Sep —'], hit: 1, note: 'Not yet signed off on the role\u2019s on-the-job training, so the run cannot start.' },
+  { person: 'Jordan', role: 'Head of Operations', months: ['Jul —', 'Aug —', 'Sep —'], hit: 0, note: 'SPEC certification due end of this month. Once open, the Ace run starts counting from the first closed month after.', certified: false },
+  { person: 'Anthony', role: 'Head of Operations', months: ['Jul —', 'Aug —', 'Sep —'], hit: 0, note: 'SPEC certification due end of this month. Once open, the Ace run starts counting from the first closed month after.', certified: false },
+  { person: 'Priya Raman', role: 'BD Manager · Sales Ace', months: ['Jul ✓', 'Aug ✓', 'Sep ✓'], hit: 3, note: 'Third month above 90% on the KPI board. Increased incentive applies from October.', certified: true },
+  { person: 'Dane Whitmore', role: 'Operations Manager · Ops Ace', months: ['Jul ✓', 'Aug ✓', 'Sep —'], hit: 2, note: 'People at 86% drops the board below 90% and breaks the run. One-to-one would have held it.', certified: true },
+  { person: 'Tom Alderson', role: 'Site Supervisor', months: ['Jul —', 'Aug ✓', 'Sep —'], hit: 1, note: 'Not yet signed off on the role\u2019s on-the-job training, so the run cannot start.', certified: true },
 ];
 
 class Component extends DCLogic {
@@ -449,14 +455,15 @@ class Component extends DCLogic {
           ? 'One more month like this and the business is SPEC.'
           : 'The board pack will name the roles behind the gap, not just the number.',
 
-      aceLine: ACES.filter(a => a.hit === 3).length + ' at Ace this month',
+      aceLine: ACES.filter(a => a.hit === 3).length + ' at Ace this month · ' + ACES.filter(a => !a.certified).length + ' not yet open to the incentive',
       aces: ACES.map(a => ({
         person: a.person,
         role: a.role,
         note: a.note,
-        state: a.hit === 3 ? 'Ace' : a.hit + ' of 3 months',
-        chip: chip(a.hit === 3 ? GREEN : a.hit === 2 ? AMBER : GREY),
-        style: 'background:var(--color-surface, #fff);border-radius:20px;padding:18px 20px;border-left:4px solid ' + (a.hit === 3 ? GREEN : a.hit === 2 ? AMBER : GREY) + ';',
+        certified: a.certified,
+        state: !a.certified ? 'Incentive not open' : a.hit === 3 ? 'Ace' : a.hit + ' of 3 months',
+        chip: chip(!a.certified ? GREY : a.hit === 3 ? GREEN : a.hit === 2 ? AMBER : GREY),
+        style: 'background:var(--color-surface, #fff);border-radius:20px;padding:18px 20px;border-left:4px solid ' + (!a.certified ? GREY : a.hit === 3 ? GREEN : a.hit === 2 ? AMBER : GREY) + (a.certified ? ';' : ';opacity:0.85;'),
         months: a.months.map(m => ({
           label: m,
           style: 'display:inline-flex;align-items:center;border-radius:999px;padding:6px 14px;font-size:12.5px;white-space:nowrap;'

@@ -1,5 +1,5 @@
 import { GREEN_FROM, RED_AT_OR_BELOW, AT_THE_STANDARD } from '@/lib/pillars';
-import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
+import { LIGHT_COLOUR, LIGHT_INK, ACE_GOLD } from '@/lib/today';
 
 
 /**
@@ -71,13 +71,18 @@ export function ChartKey() {
         the first, not better.
       */}
       <div className="mt-5 border-t border-ink/10 pt-4">
-        <h3 className="font-serif text-base text-ink">The three circles</h3>
+        <h3 className="font-serif text-base text-ink">The three circles, and the star</h3>
         <p className="mt-1.5 max-w-3xl text-xs text-ink-light">
           Every role has an Ace. Three closed months at a combined {standard}% or above — trained on
           the job and signed off — doubles that person&rsquo;s incentive for the month after, and then
           the three-month focus starts again. The circles are how many of the three are held.
         </p>
-        <ul className="mt-3 grid gap-2.5 sm:grid-cols-3">
+        <p className="mt-1.5 max-w-3xl text-xs text-ink-light">
+          The star is the standing rather than the money: it goes on when the run reaches three and
+          stays on for as long as it is unbroken, however many months that becomes. It comes off the
+          month somebody drops below the standard.
+        </p>
+        <ul className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
           <li className="flex items-center gap-2.5">
             <span aria-hidden className="flex shrink-0 items-center gap-[3px]">
               {[true, true, false].map((on, i) => (
@@ -101,7 +106,19 @@ export function ChartKey() {
             >
               ACE
             </span>
-            <span className="text-xs text-ink-light">On Ace — this month is doubled.</span>
+            <span className="text-xs text-ink-light">The month that is doubled.</span>
+          </li>
+          <li className="flex items-center gap-2.5">
+            <span
+              aria-hidden
+              className="grid h-[22px] w-[22px] shrink-0 place-content-center rounded-full text-xs"
+              style={{ background: ACE_GOLD, color: '#201e1d' }}
+            >
+              ★
+            </span>
+            <span className="text-xs text-ink-light">
+              Holding Ace — three months running and still unbroken.
+            </span>
           </li>
           <li className="flex items-center gap-2.5">
             <span aria-hidden className="flex shrink-0 items-center gap-[3px]">

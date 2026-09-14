@@ -46,6 +46,20 @@ export const LIGHT_COLOUR: Record<Light, string> = {
 };
 
 /**
+ * The Ace badge, and deliberately NOT one of the four lights above.
+ *
+ * A light answers "how is this scoring this month?". The badge answers a different question — "is
+ * this person holding the standard, month after month?" — and painting it green would make it a
+ * fifth thing that looks like a score without being one. Gold reads as a standing rather than a
+ * measurement, which is what it is. Taken from the design's own badge on the org chart.
+ *
+ * The glyph on it is ink rather than the cream the design uses: cream on this gold is about 2.8:1,
+ * and this codebase has already learned that lesson once — see SCORE_INK in lib/pillars, which
+ * exists because three of the four signal colours cannot be read as text.
+ */
+export const ACE_GOLD = '#c08a2e';
+
+/**
  * The same four lights, dark enough to read as words — see the note on SCORE_INK in lib/pillars.
  * A light you LOOK at takes LIGHT_COLOUR; a light you READ takes this one.
  */

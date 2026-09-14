@@ -232,6 +232,23 @@
 
       <div style="display: grid; gap: clamp(20px,3vw,32px); min-width: 0;">
 
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Already using Claude or another AI?</h2>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Keep it — SPEC doesn't have to be a second AI. Point it at your existing account or API key and every read/write still runs through your org chart and KPIs; only where the calls route changes.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+            <sc-for list="{{ aiProviders }}" as="ap" hint-placeholder-count="3">
+              <button type="button" onClick="{{ ap.select }}" style="{{ ap.style }}">{{ ap.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;">
+            <input class="input" type="password" value="{{ aiKey }}" onChange="{{ setAiKey }}" onInput="{{ setAiKey }}" aria-label="API key or account token" placeholder="Paste your API key or account token" style="flex: 1 1 220px; min-height: 40px;" />
+            <button type="button" class="btn btn-primary" onClick="{{ connectAi }}" style="flex: none; white-space: nowrap;">{{ aiButtonLabel }}</button>
+          </div>
+          <sc-if value="{{ aiConnected }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size: 13.5px; line-height: 21px; margin: 14px 0 0; color: var(--color-accent-2-800);">Connected — {{ aiProviderName }} is now the AI behind SPEC for this business. Existing spend and contract stay with your provider; nothing new to buy from SPEC for the AI layer.</p>
+          </sc-if>
+        </section>
+
         <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
           <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Not on the list?</h2>
           <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Describe the system in your own words. Claude works out what it holds, which pillar it belongs to and what it can feed, then brings you a mapping to approve.</p>
@@ -349,6 +366,7 @@ class Component extends DCLogic {
     connected: SYSTEMS.reduce((acc, s) => { acc[s.name] = s.connected; return acc; }, {}),
     open: {}, query: '', category: 'All', ask: '', proposal: '', authorised: true, synced: {},
     pending: {}, boardView: false, declined: {}, approvals: {}, logAdded: [],
+    aiProvider: 'Claude', aiKey: '', aiConnected: false,
   };
 
   renderVals() {
@@ -500,6 +518,18 @@ class Component extends DCLogic {
       })),
       emptyLine: available.length ? 'Claude reads what each system holds before anything is scored.' : 'Nothing left in this category — everything here is connected.',
 
+      aiProviders: ['Claude', 'Your own API key', 'Another AI'].map(name => ({
+        label: name,
+        select: () => this.setState({ aiProvider: name }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
+          + (this.state.aiProvider === name ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+      })),
+      aiKey: this.state.aiKey,
+      setAiKey: e => this.setState({ aiKey: e.target.value }),
+      aiButtonLabel: this.state.aiConnected ? 'Connected ✓' : 'Connect',
+      aiConnected: this.state.aiConnected,
+      aiProviderName: this.state.aiProvider,
+      connectAi: () => { if (this.state.aiKey.trim()) this.setState({ aiConnected: true }); },
       ask: this.state.ask,
       setAsk: e => this.setState({ ask: e.target.value }),
       runAsk: () => {

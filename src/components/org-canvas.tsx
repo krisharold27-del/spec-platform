@@ -7,7 +7,7 @@ import {
 } from '@/lib/orgchart';
 import { PILLAR_META } from '@/lib/pillars';
 import { LIGHT_COLOUR, light } from '@/lib/today';
-import { AcePips } from '@/components/ace-pips';
+import { AcePips, AceStar } from '@/components/ace-pips';
 import { moveRole, movePerson, breakLink, vacateRole } from '@/app/org/actions';
 
 /**
@@ -102,9 +102,23 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
                 } ${dragging ? 'opacity-40' : ''} ${canEdit ? 'cursor-grab' : ''}`}
                 style={{ left: c.x, top: c.y, width: c.w, height: c.h }}
               >
+                {/*
+                  The standing, hanging off the corner where it costs no card space at all — the
+                  design's own placement, and the thing the pips were moved off the title to protect.
+                */}
+                {r.ace?.holdingAce && <AceStar ace={r.ace} />}
+
+                {/*
+                  Two lines rather than one, clamped, with the card height fixed by the layout.
+
+                  Truncating to a single line turned "Safety & Compliance Lead" into "Safety & Comp…"
+                  — a role nobody can identify on a chart whose whole job is showing who does what.
+                  The clamp is what lets the height stay a structural constant: the title can never
+                  push the card taller than the row spacing allows.
+                */}
                 <Link
                   href={`/scorecard/${r.id}`}
-                  className="block truncate font-serif text-sm text-ink hover:text-rust"
+                  className={`block font-serif text-sm leading-tight text-ink hover:text-rust [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'pr-7' : ''}`}
                   title={r.title}
                 >
                   {r.title}
