@@ -149,6 +149,25 @@ In order, and the order is now fixed. Kris, 14 September: *"adding an anthropic
 api key and stripe completion are the final 2 steps once everything else is
 complete."*
 
+### Before JBI, specifically
+
+JBI can be migrated onto SPEC **now**, and the first two below are the only ones
+that have to happen before their crew touches it.
+
+- **Put them on the free beta.** /admin → the business → Billing → Beta. Nothing
+  is charged however many people are in it, and it survives Stripe being switched
+  on later. Without it they would be free only because the till is not plugged in,
+  and the first live invoice would go to the person who agreed to be the guinea
+  pig.
+- **Invite by link, not by email.** No invitation has ever been sent, so use the
+  copyable seat link on Setup → Your business. One link each, single use, bound to
+  that address. Proven by `scripts/seat-journey.mjs`.
+- **Prove sign-in with ONE person first.** Nobody has ever signed in against real
+  Supabase who had not signed in before. Do it with one JBI person before handing
+  links to forty.
+- **Know that no backup has ever been restored.** That is step 3 below, and it
+  matters more the moment the data is a real business's.
+
 ### First — the things a customer would find out for you
 
 1. **Send a real invitation.** Verify the sender domain, invite yourself from a

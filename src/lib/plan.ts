@@ -67,6 +67,26 @@ export const hasAssistant = (tier: Tier) => tier === 'advanced';
  */
 export const hasDiagnosis = (tier: Tier) => tier === 'advanced';
 
+/**
+ * The plans a person can put a business on from /admin.
+ *
+ * `lapsed` is not here on purpose: it is a CONSEQUENCE — a payment failed or a subscription was
+ * cancelled — and it makes a business read-only. Something Stripe decides is not something a button
+ * should be able to assert, and a business locked out of its own records by a misclick is a very
+ * bad afternoon.
+ */
+export const SETTABLE_PLANS = ['trial', 'beta', 'basic', 'program'] as const;
+export type SettablePlan = (typeof SETTABLE_PLANS)[number];
+
+/** What each one means, in the words the admin screen shows. */
+export const PLAN_MEANING: Record<string, string> = {
+  trial: 'Free until somebody is invited, then billed per seat.',
+  beta: 'Free, by agreement. Nothing is billed however many people are in it.',
+  basic: 'Billed per seat, self-serve.',
+  program: 'On the consulting engagement — principal on site.',
+  lapsed: 'A payment failed or the subscription was cancelled. Read-only.',
+};
+
 export interface TenantPlan {
   id: string;
   plan: string;
@@ -87,6 +107,20 @@ export interface PlanState {
   free: boolean;
   /** On the consulting engagement rather than self-serve. */
   program: boolean;
+  /**
+   * A real business running SPEC for free while it is being proven on them.
+   *
+   * Deliberately its own value rather than reusing `program`, which means something specific — a
+   * consulting engagement with the principal on site — and would have put "SPEC Program" on the
+   * account page of a business that is not on one. A label that is convenient and untrue is how a
+   * customer stops believing the rest of the page.
+   *
+   * It matters more than it looks, because nothing bills today: Stripe has never been switched on,
+   * so every business is accidentally free. The day it IS switched on, a beta business would start
+   * being charged without anybody deciding to. This is the difference between a business that is
+   * free because somebody said so and one that is free because the till is not plugged in.
+   */
+  beta: boolean;
   /** A payment failed or the subscription was cancelled. */
   lapsed: boolean;
   /**
@@ -102,15 +136,19 @@ export interface PlanState {
 
 export function planState(tenant: TenantPlan, seats: number, currency: Currency = HOME_CURRENCY): PlanState {
   const program = tenant.plan === 'program';
+  const beta = tenant.plan === 'beta';
   const lapsed = tenant.plan === 'lapsed';
   const tier = tierOf(tenant.tier);
   return {
     seats,
     currency,
+    // What it WOULD cost, kept even on a beta. A free arrangement somebody cannot see the value of
+    // is one they have no reason to be glad of, and one nobody can price when it ends.
     monthlyCost: seats * SEAT_PRICES[currency].seat,
-    billing: seats > 0 && !program,
+    billing: seats > 0 && !program && !beta,
     free: seats === 0,
     program,
+    beta,
     lapsed,
     readOnly: lapsed,
     tier,
@@ -122,6 +160,13 @@ export function planState(tenant: TenantPlan, seats: number, currency: Currency 
 /** "A$130 a month · 5 people" — the two numbers a leader actually wants to see together. */
 export function costLabel(state: PlanState): string {
   if (state.program) return 'SPEC Program';
+  // The figure stays visible on a beta. "Free" on its own tells somebody nothing about what they
+  // are being given, and leaves nothing to price when the arrangement ends.
+  if (state.beta) {
+    return state.seats > 0
+      ? `Beta — free. ${moneyLabel(state.currency, state.monthlyCost)} a month once it ends · ${state.seats} ${state.seats === 1 ? 'person' : 'people'}`
+      : 'Beta — free';
+  }
   if (state.free) return 'Free — nobody in it yet';
   return `${moneyLabel(state.currency, state.monthlyCost)} a month · ${state.seats} ${state.seats === 1 ? 'person' : 'people'}`;
 }

@@ -4,6 +4,9 @@ import { db, schema } from '@/db';
 import { Footer } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
+import { SETTABLE_PLANS, PLAN_MEANING, type SettablePlan } from '@/lib/plan';
+import { SubmitButton } from '@/components/submit-button';
+import { setPlan } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +19,9 @@ export const dynamic = 'force-dynamic';
  * "sign in as": SPEC as a company has no way into a customer's business. What support would do
  * inside a business is owed to the customer's own administrator screen instead.
  */
-const PLAN_LABEL: Record<string, string> = { trial: 'Free', basic: 'Paying', program: 'Program', lapsed: 'Lapsed' };
+const PLAN_LABEL: Record<string, string> = {
+  trial: 'Free', beta: 'Beta — free', basic: 'Paying', program: 'Program', lapsed: 'Lapsed',
+};
 
 export default async function Admin() {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
@@ -68,7 +73,7 @@ export default async function Admin() {
           <div className="mt-2 overflow-x-auto rounded-lg border bg-surface">
             <table className="w-full text-sm">
               <thead className="bg-cream text-left text-xs uppercase text-ink-light">
-                <tr><th className="p-3">Business</th><th className="p-3">Plan</th><th className="p-3">Started</th><th className="p-3">Administrator</th></tr>
+                <tr><th className="p-3">Business</th><th className="p-3">Plan</th><th className="p-3">Started</th><th className="p-3">Administrator</th><th className="p-3">Billing</th></tr>
               </thead>
               <tbody>
                 {rows.map(r => (
@@ -77,6 +82,30 @@ export default async function Admin() {
                     <td className="p-3">{PLAN_LABEL[r.tenant.plan] ?? r.tenant.plan}</td>
                     <td className="p-3">{r.tenant.startDate.slice(0, 10)}</td>
                     <td className="p-3">{r.contact ? <>{r.contact.name}<div className="text-xs text-ink-light">{r.contact.email}</div></> : <span className="text-ink-light/60">none</span>}</td>
+                    {/*
+                      Whether this business is charged, decided here rather than in the database.
+                      `lapsed` is deliberately not offered — that is Stripe's consequence, not a
+                      button, and it makes a business read-only.
+                    */}
+                    <td className="p-3">
+                      <form action={setPlan} className="flex flex-wrap items-center gap-2">
+                        <input type="hidden" name="tenantId" value={r.tenant.id} />
+                        <select
+                          name="plan"
+                          defaultValue={SETTABLE_PLANS.includes(r.tenant.plan as SettablePlan) ? r.tenant.plan : 'trial'}
+                          aria-label={`Plan for ${r.tenant.name}`}
+                          className="rounded-lg border border-ink/20 bg-surface px-2 py-1 text-sm"
+                        >
+                          {SETTABLE_PLANS.map(p => <option key={p} value={p}>{PLAN_LABEL[p]}</option>)}
+                        </select>
+                        <SubmitButton className="rounded-full border border-ink/20 px-3 py-1 text-xs text-ink hover:border-rust hover:text-rust">
+                          Set
+                        </SubmitButton>
+                      </form>
+                      <div className="mt-1 max-w-[28ch] text-xs text-ink-light">
+                        {PLAN_MEANING[r.tenant.plan] ?? ''}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
