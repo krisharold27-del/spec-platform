@@ -91,8 +91,33 @@ create policy tenant_isolation on board_outputs for all
   using (exists (select 1 from assessment_periods p where p.id = board_outputs.period_id and p.tenant_id = auth_tenant_id()))
   with check (exists (select 1 from assessment_periods p where p.id = board_outputs.period_id and p.tenant_id = auth_tenant_id()));
 
--- rulebook_rules has no tenant_id and RLS is not enabled on it (see schema.ts) — it's global,
--- anonymised cross-client learnings, readable by everyone. Nothing to do here.
+-- ───────────────────────────────────────────────────────────────────────────────────────────────
+-- rulebook_rules: readable by everyone, writable by nobody.
+--
+-- Added 15 September 2026, after Supabase sent a CRITICAL alert: `rls_disabled_in_public` —
+-- "anyone with your project URL can read, edit, and delete all data in this table".
+--
+-- This file used to say "it's global, anonymised cross-client learnings, readable by everyone.
+-- Nothing to do here." The first half was right and the conclusion was wrong. No tenant_id means no
+-- TENANT policy is needed; it does not mean no RLS. With RLS off in the public schema PostgREST
+-- hands the table to the anonymous role for select, insert, update AND delete, so "readable by
+-- everyone" quietly also meant "deletable by everyone".
+--
+-- The fix keeps the intent exactly: RLS on, a SELECT policy for all, and NO write policy. Everyone
+-- can read the method; only the role that owns the table can change it, which is how SPEC writes it.
+-- ───────────────────────────────────────────────────────────────────────────────────────────────
+do $$
+begin
+  if to_regclass('rulebook_rules') is not null then
+    execute 'alter table rulebook_rules enable row level security';
+  end if;
+end $$;
+
+drop policy if exists rulebook_readable on rulebook_rules;
+create policy rulebook_readable on rulebook_rules for select using (true);
+
+-- Deliberately no insert, update or delete policy. RLS denies what no policy allows, so the absence
+-- IS the protection — do not add one without deciding who should be able to rewrite the method.
 
 -- ───────────────────────────────────────────────────────────────────────────────────────────────
 -- The remaining ten, added 12 September 2026.

@@ -57,10 +57,12 @@ describe('the readiness list matches the product', () => {
     is checked here against the schema rather than against a memory of running the command, because
     the number moves every time a table is added — and it has moved three times this week.
 
-    Two tables are deliberately outside the tenant policy and are subtracted by name rather than by
-    a pattern, so adding a third exception has to be a decision somebody writes down here:
-      rulebook_rules  global, anonymised cross-client learnings, RLS off by design
-      health_pings    uptime readings, RLS on with NO policy, denying everybody
+    Two tables are deliberately outside the TENANT policy and are subtracted by name rather than by
+    a pattern, so adding a third exception has to be a decision somebody writes down here. Both have
+    RLS ON — outside the tenant policy is not the same as outside protection, which is the mistake
+    Supabase caught on 15 September:
+      rulebook_rules  the method itself. RLS on, readable by all, writable by nobody
+      health_pings    uptime readings. RLS on with NO policy at all, denying everybody
   */
   it('states the right number of tenant tables', () => {
     const OUTSIDE_THE_TENANT_POLICY = ['rulebook_rules', 'health_pings'];

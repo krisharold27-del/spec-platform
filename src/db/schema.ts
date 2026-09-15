@@ -701,14 +701,31 @@ export const boardOutputs = pgTable('board_outputs', {
   createdAt: text('created_at').notNull(),
 }).enableRLS();
 
-// Cross-client learnings. Never contains client names or figures. Global (no tenant_id) — RLS not needed.
+/**
+ * Cross-client learnings — the method itself. Never a client name, never a figure.
+ *
+ * ── Global does not mean unprotected ─────────────────────────────────────────────────────────────
+ *
+ * This said "Global (no tenant_id) — RLS not needed", and that sentence was wrong in a way that
+ * took Supabase emailing a CRITICAL alert to find: `rls_disabled_in_public`, "anyone with your
+ * project URL can read, edit, and delete all data in this table".
+ *
+ * No tenant_id means no TENANT policy is needed. It does not mean no RLS. With RLS off in the
+ * public schema, PostgREST exposes the table to the anonymous role for select, insert, update AND
+ * delete — so "readable by everyone", which was the intent, silently also meant writable and
+ * deletable by everyone, which never was.
+ *
+ * RLS is on now with a SELECT-only policy and no write policy at all. Everyone can still read it,
+ * which is the whole point of it being global; nobody but the role that owns the table — which is
+ * how SPEC writes it — can change a word.
+ */
 export const rulebookRules = pgTable('rulebook_rules', {
   id: text('id').primaryKey(),
   phase: text('phase').notNull(),
   pattern: text('pattern').notNull(),
   action: text('action').notNull(),
   version: text('version').notNull(),
-});
+}).enableRLS();
 
 export const rolesRelations = relations(roles, ({ one, many }) => ({
   reportsTo: one(roles, { fields: [roles.reportsToRoleId], references: [roles.id], relationName: 'org' }),
