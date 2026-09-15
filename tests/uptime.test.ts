@@ -13,7 +13,7 @@ describe('uptime, from checks that actually happened', () => {
     const u = summarise([], NOW);
     expect(u.pct).toBeNull();
     expect(uptimeLabel(u.pct)).toBe('—');
-    expect(basis(u)).toMatch(/Nothing measured yet/);
+    expect(basis(u, NOW)).toMatch(/Nothing measured yet/);
   });
 
   it('reports a clean run as complete', () => {
@@ -42,7 +42,7 @@ describe('uptime, from checks that actually happened', () => {
     expect(u.expected).toBeGreaterThan(7);
     expect(u.pct).toBeLessThan(100);
     expect(u.missed).toBeGreaterThan(0);
-    expect(basis(u)).toMatch(/never ran, counted against it/);
+    expect(basis(u, NOW)).toMatch(/never ran, counted against it/);
   });
 
   it('counts a check that ran and failed', () => {
@@ -120,7 +120,15 @@ describe('when checks arrive faster than the schedule', () => {
     const u = summarise(burst, NOW);
     expect(u.ok).toBe(17);
     expect(u.expected).toBeGreaterThanOrEqual(u.ok);
-    expect(basis(u)).toBe('17 of 17 checks answered over 1 day.');
+    /*
+      The clock is passed in, the same one summarise was given.
+
+      This read the wall clock, so it passed for two days and then failed overnight with nothing
+      changed — the fixture is dated and the real date had moved on. The failure was real: basis()
+      was measuring its window against a different clock from the count above it, on the one panel
+      whose whole job is to be believed.
+    */
+    expect(basis(u, NOW)).toBe('17 of 17 checks answered over 1 day.');
     expect(u.pct).toBe(100);
   });
 

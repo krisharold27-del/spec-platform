@@ -112,10 +112,23 @@ export function uptimeLabel(pct: number | null): string {
   return `${floored.toFixed(2)}%`;
 }
 
-/** What this figure is actually based on, said plainly under it. */
-export function basis(u: Uptime): string {
+/**
+ * What this figure is actually based on, said plainly under it.
+ *
+ * ── Why `now` is a parameter ─────────────────────────────────────────────────────────────────────
+ *
+ * It used to call `Date.now()` itself, which made it the one function in this file that could not be
+ * reasoned about: `summarise` is handed a clock and this quietly read a different one. The two agree
+ * only while the code runs on the same day the reading was taken.
+ *
+ * Found by its own test, which passed for two days and then failed overnight with nothing changed —
+ * the fixture is dated and the wall clock had moved on, so "17 of 17 checks over 1 day" became "over
+ * 2 days". A time bomb, and a real one: this is the panel whose entire job is to be believed, and it
+ * was reporting a window measured against a different clock from the count above it.
+ */
+export function basis(u: Uptime, now: Date = new Date()): string {
   if (u.pct === null) return 'Nothing measured yet. The first check writes a reading within a few minutes of the next deploy.';
-  const days = u.since ? Math.max(1, Math.round((Date.now() - Date.parse(u.since)) / 86_400_000)) : 1;
+  const days = u.since ? Math.max(1, Math.round((now.getTime() - Date.parse(u.since)) / 86_400_000)) : 1;
   const missed = u.missed > 0 ? ` ${u.missed} check${u.missed === 1 ? '' : 's'} never ran, counted against it.` : '';
   return `${u.ok} of ${u.expected} checks answered over ${days} day${days === 1 ? '' : 's'}.${missed}`;
 }
