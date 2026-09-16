@@ -8,7 +8,6 @@ import { SpecMark } from '@/components/spec-mark';
 import { ProblemBox } from '@/components/problem-box';
 import { SEAT_PRICES, HOME_CURRENCY, moneyLabel } from '@/lib/pricing';
 import { TRACK_RECORD } from '@/lib/calculator';
-import { PILLAR_META } from '@/lib/pillars';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +23,18 @@ export const dynamic = 'force-dynamic';
  * "welcome" were the same thing under two names — the same small confusion as My page living at
  * /today. One thing should have one name.
  *
- * Built to designs/SPEC Landing.dc.html, in its order: one word, then the thing everybody else is
- * selling struck out, then the box that asks for a real problem — and only after all of that, any
- * mention of what SPEC is or costs. Nothing is claimed before it is demonstrated. By the time a
- * price appears, the page has already told this person something true about their own business.
+ * Built to designs/SPEC Landing.dc.html — export 6, which stripped it back to one idea per section:
+ * the wordmark and the word "Simple.", then the box that asks for a real problem, then the reading,
+ * then the price. Nothing is claimed before it is demonstrated. By the time a price appears, the
+ * page has already told this person something true about their own business.
+ *
+ * Two sections were deliberately removed in that export and are not to be reinstated without a
+ * decision: the crossed-out buzzwords with the AI argument under them, and the four-question grid.
+ * Both said true things. Both said them BEFORE the page had earned the right to, which is the one
+ * thing this page is not allowed to do — and the argument they made is made better by the reading
+ * itself, where a stranger watches it happen on their own problem instead of being told it works.
+ * The order they defended is not lost: components/problem-box states it as the fix, at the moment
+ * it is demonstrated.
  *
  * The look-around is kept, further down, for people who would rather see the product than talk
  * about themselves. It is not in the design because it is a product decision rather than a visual
@@ -35,30 +42,6 @@ export const dynamic = 'force-dynamic';
  */
 
 const SEAT = SEAT_PRICES[HOME_CURRENCY];
-
-/** The four questions, in the design's own words. One yes is enough. */
-const QUESTIONS = [
-  { pillar: 'safety', ask: 'Do you have safety issues?' },
-  { pillar: 'people', ask: 'Do you have people issues?' },
-  { pillar: 'earnings', ask: 'Do you have earnings issues?' },
-  { pillar: 'compliance', ask: 'Do you have compliance issues?' },
-] as const;
-
-/*
-  The words everybody else is selling, struck out.
-
-  Not a swipe at the category, and the page says so immediately: SPEC runs on every one of these and
-  knows them well. Striking them out says the thing that is actually true — a business owner has
-  been sold all eight and still cannot answer whether their people are going well. Horsepower was
-  never what they were short of.
-
-  Struck through rather than argued with in prose, because the reader supplies the feeling
-  themselves and that lands harder than a sentence telling them to feel it.
-*/
-const BUZZWORDS = [
-  'AI', 'Agents', 'Automation', 'Machine learning',
-  'Dashboards', 'Integrations', 'Workflows', 'Platforms',
-];
 
 export default async function Landing() {
   /*
@@ -134,69 +117,6 @@ export default async function Landing() {
           />
         </section>
 
-        <section aria-label="Everyone else" className="pb-16 text-center sm:pb-20">
-          <div className="flex flex-wrap justify-center gap-x-[18px] gap-y-2.5">
-            {BUZZWORDS.map(w => (
-              <span
-                key={w}
-                className="text-[22px] font-semibold text-ink"
-                style={{
-                  textDecorationLine: 'line-through',
-                  textDecorationThickness: '2.5px',
-                  textDecorationColor: '#a63b26',
-                }}
-              >
-                {w}
-              </span>
-            ))}
-          </div>
-          <p className="mt-8 font-serif text-[clamp(2rem,4.5vw,3.25rem)] leading-tight text-ink sm:mt-14">
-            Everyone&rsquo;s selling you AI.
-            <br />
-            We harness it — with your people.
-          </p>
-          {/*
-            The differentiator, said plainly, because until now the page only demonstrated it.
-
-            Two claims, and the order matters. First that SPEC knows this ground — a business owner
-            who has been pitched AI four times this year stops reading the moment they smell somebody
-            who does not. Only then the disagreement: none of it tells you what is wrong, and no
-            machine has ever fixed a business by itself.
-
-            Then the method itself, in one sentence, with the order named. That order is not a
-            preference — it is enforced in lib/register and held by tests, and it is the thing
-            fifteen years and thirty businesses were spent proving.
-          */}
-          <p className="mx-auto mt-5 max-w-[56ch] text-[17px] leading-7 text-ink-light">
-            We know these inside out, and SPEC runs on them. But agents give you horsepower, and
-            horsepower was never what you were short of — none of it tells you what is actually
-            wrong, and no machine has ever fixed a business on its own.
-          </p>
-          {/*
-            The picture, because the argument above is abstract and this is not.
-
-            Enormous power with nothing aiming it levels whatever it looks at; the same power behind
-            a lens is a precision instrument. That is the whole case for SPEC in one image, and it
-            does what three paragraphs of positioning cannot — it stays with somebody after they
-            close the tab.
-
-            Deliberately not named after the comic-book character it came from. The idea is
-            unencumbered and the character is not, and this sentence also has to survive being
-            printed on something. Nothing is lost: the image carries itself.
-          */}
-          <p className="mx-auto mt-8 max-w-[46ch] font-serif text-[clamp(1.375rem,2.6vw,1.875rem)] leading-snug text-ink">
-            All that power, and nothing aiming it.
-            <br />
-            <span className="text-rust">SPEC puts the glasses on.</span>
-          </p>
-
-          <p className="mx-auto mt-8 max-w-[56ch] text-[17px] leading-7 text-ink">
-            SPEC finds what is really going on and fixes it in the one order that works:{' '}
-            <b>People, then Compliance, then Earnings.</b> Earnings is the result, never the lever.
-            It always starts with your people, because they are the only part of a business that
-            can actually change it.
-          </p>
-        </section>
       </div>
 
       {/*
@@ -245,26 +165,6 @@ export default async function Landing() {
                 {TRACK_RECORD.improvement}%
               </p>
             </div>
-          </div>
-        </section>
-
-        <section className="mt-16">
-          <span className="label-caps">Four questions. Answer honestly.</span>
-          <h2 className="mt-5 max-w-[26ch] font-serif text-[clamp(1.75rem,3.2vw,2.5rem)] leading-tight text-ink">
-            One yes is enough to need a system.
-          </h2>
-          <p className="mt-5 max-w-[54ch] text-base leading-7 text-ink-light">
-            Safety, people, earnings, compliance — yes to any one of them and you need a system. Then
-            you find out why, and that is where SPEC helps.
-          </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {QUESTIONS.map(q => (
-              <div key={q.pillar} className="card">
-                <span className="badge-letter">{PILLAR_META[q.pillar].letter}</span>
-                <div className="mt-3 label-caps">{PILLAR_META[q.pillar].name}</div>
-                <p className="mt-1 text-sm text-ink">{q.ask}</p>
-              </div>
-            ))}
           </div>
         </section>
 
@@ -346,12 +246,19 @@ export default async function Landing() {
 
         <section className="mt-14 pb-4">
           <div className="rounded-[32px] bg-sage-100 p-8 sm:p-14">
+            {/*
+              "Ready when you are." — the design's words, and it is doing a different job from the
+              heading it replaces.
+
+              The old one ("Your page opens as soon as a role has its KPIs") explained a mechanism,
+              at the bottom of a page whose whole argument has already been made. By this point a
+              reader has typed a real problem, watched SPEC read it, and seen the price. One more
+              explanation is not what is missing; a door is. So the last thing on the page asks for
+              nothing and states no claim.
+            */}
             <h3 className="max-w-[24ch] font-serif text-[28px] leading-tight text-ink">
-              Your page opens as soon as a role has its KPIs
+              Ready when you are.
             </h3>
-            <p className="mt-3.5 max-w-[54ch] text-base leading-7 text-ink-light">
-              Set two numbers per pillar for one role and it fills in. Start with a work email.
-            </p>
             <Link href="/signup" className="btn-primary mt-7 inline-block">Start free</Link>
             <p className="mt-5 text-sm text-ink-light">
               Already on SPEC? <Link href="/signin" className="underline">Sign in</Link>

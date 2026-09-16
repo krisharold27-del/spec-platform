@@ -32,7 +32,7 @@ The files in `designs/` are **design references built as Design Components** (a 
 ## THE ENTRY FLOW (public → signed-in)
 
 ### 1. `SPEC Landing.dc.html` — marketing + one-shot AI taste
-Sections, top to bottom: hero with the animated logo and headline **"Aligned people. Extraordinary outcomes."**, a labour-gap cost stat (sentence left, "20%" figure right), a **problem box** ("give me a safety, people, earnings or compliance problem you've faced recently that's been ONGOING" — the word ONGOING visually emphasised), a live AI diagnosis (bloom-out + P-first solution, see below), a routing question, pricing, final CTA.
+Simplified, stripped-back version. Sections, top to bottom: hero showing only the wordmark **"Simple."** (large display type, generous space below before the next section), a **problem box** ("Got problems? We'll fix them" — describe one ongoing problem), a live AI diagnosis (bloom-out + P-first solution, see below), a routing question, a labour-gap cost stat, pricing, a plain final CTA ("Ready when you are."), footer. The earlier crossed-out-buzzwords section and the four-pillar question grid were deliberately removed to keep the page to one idea per section.
 - **One-shot, stores nothing** on its own — no account, no persistence. Submitting Enter in the textarea runs the diagnosis (Shift+Enter = newline).
 - After a result, ask **"Would you like to solve some problems in your business?"** — YES/NO. NO ends here (self-qualifying, goes nowhere). YES asks for the business name (Enter submits) then the **routing question**: "Who is the leader of these solutions — is it you?"
   - **YES, IT'S ME** → straight into `SPEC My Page.dc.html` (do-it-myself), the typed problem carried over as **Opportunity #1** waiting in the register.
