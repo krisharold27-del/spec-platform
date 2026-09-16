@@ -112,12 +112,70 @@ const after = await page.evaluate(async () => {
 });
 check('the checkout route answers the button', after.status !== 404 && after.status !== 405, JSON.stringify(after));
 
+// ── And it sends them back to the address they came in on ────────────────────────────────────────
+//
+// The first real test payment worked and finished on the wrong website. The customer signed up on
+// www.specbizhq.com; Checkout returned them to app.specbizhq.com, because every link back was built
+// from APP_URL, one fixed address. A browser keeps its sign-in per address, so they landed inside a
+// different business, under a banner saying their payment had gone through.
+//
+// Two addresses are needed to catch that, and one is not enough — with a single host, a route that
+// ignores the request entirely looks identical to one that reads it. So the same signed-in request
+// is made twice, on two names for this machine, and the answer has to follow the request rather than
+// APP_URL. Asked from the browser this is unreadable (a manual redirect is opaque to page script),
+// so the cookies are carried over and the two requests are made from here, where Location is plain.
+const jar = (await page.context().cookies())
+  .map(c => `${c.name}=${c.value}`).join('; ');
+const alt = new URL(BASE);
+alt.hostname = alt.hostname === 'localhost' ? '127.0.0.1' : 'localhost';
+
+const startsOn = async origin => {
+  const res = await fetch(`${origin}/api/stripe/checkout`, {
+    method: 'POST', redirect: 'manual', headers: { cookie: jar },
+  });
+  return res.headers.get('location');
+};
+const [fromBase, fromAlt] = await Promise.all([startsOn(BASE), startsOn(alt.origin)]);
+
+check(
+  'a checkout started on one address comes back to THAT address',
+  fromBase?.startsWith(BASE) === true,
+  `started on ${BASE}, sent back to ${fromBase}`,
+);
+check(
+  'AND A CHECKOUT STARTED ON THE OTHER ADDRESS DOES NOT COME BACK TO THE FIRST',
+  fromAlt?.startsWith(alt.origin) === true,
+  `started on ${alt.origin}, sent back to ${fromAlt}`,
+);
+
+// ── The "payment received" banner has to agree with the page under it ────────────────────────────
+//
+// `?upgraded=1` is a word in an address bar. It says a checkout finished SOMEWHERE — never that this
+// business paid. Shown to the wrong business it reads "Payment received" directly above "Nothing has
+// been charged yet", which is what the first real test payment actually produced.
+await page.goto(`${BASE}/journey?upgraded=1`, { waitUntil: 'networkidle' });
+const unpaid = await page.evaluate(() => document.body.innerText);
+check(
+  'a business that has NOT paid is never told its payment came through',
+  !unpaid.includes('Payment received'),
+  unpaid.split('\n').find(l => l.includes('Payment received')) ?? '',
+);
+check(
+  'and is told plainly that the payment was not against it',
+  unpaid.includes('nothing is recorded against'),
+);
+
 // ── Once subscribed, the start button goes and the portal appears ────────────────────────────────
 await sql`update tenants set stripe_subscription_id = 'sub_test', stripe_customer_id = 'cus_test', plan = 'basic' where id = ${tenantId}`;
 await page.goto(`${BASE}/journey`, { waitUntil: 'networkidle' });
 const b3 = await buttons();
 check('ONCE SUBSCRIBED THE START BUTTON GOES AWAY', b3.startPaying.length === 0, b3.startPaying.join(', '));
 check('and the billing portal takes over', b3.billing.length > 0, b3.billing.join(', '));
+
+// And the cheerful banner is not withheld from a business that really did pay.
+await page.goto(`${BASE}/journey?upgraded=1`, { waitUntil: 'networkidle' });
+const paid = await page.evaluate(() => document.body.innerText);
+check('a business that HAS paid is told so', paid.includes('Payment received'));
 
 // ── And the portal never bounces somebody back in silence ────────────────────────────────────────
 // Reaching the portal with no Stripe customer used to reload the same page with nothing said, which

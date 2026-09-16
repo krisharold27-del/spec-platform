@@ -12,6 +12,7 @@
  */
 import { Resend } from 'resend';
 import { seatUrl, SEAT_TOKEN_DAYS } from './seat';
+import { currentOrigin } from './origin';
 
 const key = process.env.RESEND_API_KEY;
 const resend = key ? new Resend(key) : null;
@@ -69,7 +70,8 @@ const wrap = (body: string) => `<div style="font-family:sans-serif;font-size:15p
 export async function sendInviteEmail(opts: {
   to: string; name: string; businessName: string; roleTitle: string; token: string;
 }) {
-  const url = seatUrl(appUrl(), opts.token);
+  // The address the invitation was sent from, so the new person lands where their business is.
+  const url = seatUrl(await currentOrigin(), opts.token);
   await send(
     opts.to,
     `Take your seat at ${opts.businessName} on SPEC`,

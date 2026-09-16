@@ -28,31 +28,41 @@ async function seatPriceFor(stripe: Stripe, configuredPriceId: string, currency:
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
-import { getStripe, appUrl } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
+import { currentOrigin } from '@/lib/origin';
 import { countSeats } from '@/lib/plan';
 import { getScope, isTopOfChart } from '@/lib/scope';
 
 export async function POST() {
+  /*
+    Everything below goes back to the address the customer is actually on, not to APP_URL.
+
+    SPEC answers on more than one address, and a browser keeps its sign-in per address. Returning
+    somebody to a different one drops their session and lands them in whatever account that address
+    was holding — which on 16 September meant the first real payment finished on another business's
+    page, under a banner saying the payment had gone through. See lib/origin.
+  */
+  const here = await currentOrigin();
   const user = await getCurrentUser();
-  if (!user) return NextResponse.redirect(`${appUrl()}/signin`, 303);
+  if (!user) return NextResponse.redirect(`${here}/signin`, 303);
   // Paying for the business is administration. isTopOfChart keeps GMs created before the
   // administrator level existed (stored as 'full') able to pay.
   if (!(user.access === 'administrator' || isTopOfChart(await getScope(user)))) {
-    return NextResponse.redirect(`${appUrl()}/journey`, 303);
+    return NextResponse.redirect(`${here}/journey`, 303);
   }
 
   const stripe = getStripe();
   const priceId = process.env.STRIPE_PRICE_SEAT_MONTHLY;
   // Billing not configured yet — say so on the journey page rather than throwing at the user.
-  if (!stripe || !priceId) return NextResponse.redirect(`${appUrl()}/journey?billing_error=1`, 303);
+  if (!stripe || !priceId) return NextResponse.redirect(`${here}/journey?billing_error=1`, 303);
 
   const tenantRows = await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
   const tenant = tenantRows[0];
-  if (!tenant) return NextResponse.redirect(`${appUrl()}/journey`, 303);
+  if (!tenant) return NextResponse.redirect(`${here}/journey`, 303);
 
   // Nobody invited yet means nothing to bill — the structure is free and stays free.
   const seats = await countSeats(user.tenantId);
-  if (seats === 0) return NextResponse.redirect(`${appUrl()}/journey?nothing_to_bill=1`, 303);
+  if (seats === 0) return NextResponse.redirect(`${here}/journey?nothing_to_bill=1`, 303);
 
   // Billed in the business's own currency, set by where it is (BUILD_SPEC §8.2).
   const currency = currencyForCountry((await headers()).get('x-vercel-ip-country'));
@@ -68,11 +78,11 @@ export async function POST() {
     customer_email: tenant.stripeCustomerId ? undefined : user.email,
     subscription_data: { metadata: { tenantId: tenant.id } },
     metadata: { tenantId: tenant.id },
-    success_url: `${appUrl()}/journey?upgraded=1`,
-    cancel_url: `${appUrl()}/journey?upgrade_cancelled=1`,
+    success_url: `${here}/journey?upgraded=1`,
+    cancel_url: `${here}/journey?upgrade_cancelled=1`,
     allow_promotion_codes: true,
   });
 
-  if (!session.url) return NextResponse.redirect(`${appUrl()}/journey?billing_error=1`, 303);
+  if (!session.url) return NextResponse.redirect(`${here}/journey?billing_error=1`, 303);
   return NextResponse.redirect(session.url, 303);
 }

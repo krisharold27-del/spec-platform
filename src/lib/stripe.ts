@@ -21,6 +21,8 @@ export function billingConfigured() {
   return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_SEAT_MONTHLY);
 }
 
-export function appUrl() {
-  return process.env.APP_URL ?? 'http://localhost:3000';
-}
+/**
+ * Re-exported from lib/origin, which owns it. Most callers want `currentOrigin()` instead: this is
+ * the one configured address, and SPEC answers on more than one.
+ */
+export { appUrl } from './origin';

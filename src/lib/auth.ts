@@ -13,11 +13,11 @@ import { createAdminClient } from './supabase/admin';
 import { canSendEmail, sendSignInEmail } from './email';
 import { signInUrl } from './auth-redirect';
 import { createThrottle } from './throttle';
+import { currentOrigin } from './origin';
 
 const emailLinks = createThrottle(60_000);
 
 const now = () => new Date().toISOString();
-const appUrl = () => process.env.APP_URL ?? 'http://localhost:3000';
 
 /** See db/schema.ts users.access for what each level may do. */
 export type AccessLevel = 'administrator' | 'full' | 'readonly';
@@ -237,6 +237,15 @@ export async function sendEmailLink(email: string, purpose: 'password' | 'confir
   const address = email.toLowerCase().trim();
   if (!emailLinks.allow(address)) throw Object.assign(new Error('A link was sent within the last minute.'), { status: 429 });
   const landing = next ?? (purpose === 'password' ? '/account/password' : '/journey');
+  /*
+    The link comes back to the address they asked from, not to APP_URL.
+
+    SPEC answers on more than one address and a browser keeps its sign-in per address, so a link
+    that always pointed at one of them signed people in somewhere other than where they were
+    reading — which is how one person ends up holding two different businesses in two tabs. See
+    lib/origin.
+  */
+  const here = await currentOrigin();
 
   if (provingEnabled() && canSendEmail()) {
     const admin = createAdminClient();
@@ -249,7 +258,7 @@ export async function sendEmailLink(email: string, purpose: 'password' | 'confir
     if (!props?.hashed_token) throw new Error('No token was issued.');
     const type = props.verification_type === 'invite' ? 'invite' : purpose === 'password' ? 'recovery' : 'magiclink';
     await sendSignInEmail({
-      to: address, url: signInUrl(appUrl(), props.hashed_token, type, landing),
+      to: address, url: signInUrl(here, props.hashed_token, type, landing),
       subject: purpose === 'password' ? 'Set your SPEC password' : 'Confirm your email for SPEC',
       button: purpose === 'password' ? 'Set my password' : 'Confirm my email',
     });
@@ -258,7 +267,7 @@ export async function sendEmailLink(email: string, purpose: 'password' | 'confir
   // A fresh local copy: the provider's own email.
   const supabase = await createClient();
   if (!supabase) { console.error('[auth] cannot send a link: Supabase is not configured'); return; }
-  const redirectTo = `${appUrl()}/auth/callback?next=${encodeURIComponent(landing)}`;
+  const redirectTo = `${here}/auth/callback?next=${encodeURIComponent(landing)}`;
   const { error } = purpose === 'password'
     ? await supabase.auth.resetPasswordForEmail(address, { redirectTo })
     : await supabase.auth.signInWithOtp({ email: address, options: { emailRedirectTo: redirectTo } });

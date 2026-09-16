@@ -48,10 +48,31 @@ const BILLING_NOTICE: Record<string, { tone: 'ok' | 'warn'; text: string }> = {
 export default async function Journey({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   const sp = await searchParams;
-  const notice = BILLING_NOTICE[Object.keys(BILLING_NOTICE).find(k => sp[k]) ?? ''];
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
   const currency = await requestCurrency();
   const plan = await planStateFor(user.tenantId, currency);
+
+  /*
+    The banner has to agree with the page under it.
+
+    `?upgraded=1` is a word in an address bar. Anybody can type it, and Stripe puts it there on the
+    way back from a checkout that might have been started by a different business in a different
+    tab. On 16 September it said "Payment received" above a page that still read "Nothing has been
+    charged yet" — for a business that had never paid a cent.
+
+    Checkout now returns people to the address they started on (lib/origin), which is the cause. This
+    is the belt: the cheerful version is shown only when the business really is subscribed. When it
+    is not, the honest thing is to say a payment happened somewhere and it was not here — which is
+    also exactly right for the ordinary case where the webhook is two seconds behind the browser.
+  */
+  const flag = Object.keys(BILLING_NOTICE).find(k => sp[k]) ?? '';
+  const notice: { tone: 'ok' | 'warn'; text: string } | undefined =
+    flag === 'upgraded' && !plan.subscribed
+      ? {
+          tone: 'warn',
+          text: `Stripe took a payment, but nothing is recorded against ${tenant.name} yet. If you paid a moment ago, refresh this page — it usually lands within a few seconds. If you were signed in as a different business when you paid, the payment belongs to that one, not this one.`,
+        }
+      : BILLING_NOTICE[flag];
   const steps = await journeyFor(user.tenantId);
   const momentum = await momentumFor(user.tenantId);
   const next = steps.find(s => isCore(s) && s.status !== 'done');

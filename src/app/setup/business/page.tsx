@@ -12,6 +12,7 @@ import { addRole, removeRole } from '../roles/actions';
 import { nameRole, unplaceStaff, resolveRoleChange, invite } from '../people/actions';
 import { SeatLink } from '@/components/seat-link';
 import { seatUrl } from '@/lib/seat';
+import { currentOrigin } from '@/lib/origin';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,8 +90,15 @@ export default async function Business({ searchParams }: { searchParams: Promise
     isNull(schema.users.acceptedAt),
   ))).filter(p => p.token);
 
-  // The address this deployment actually answers on, so a copied link works from anywhere.
-  const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+  /*
+    The address this page is being read on, so a copied link lands where the business already is.
+
+    It used to be APP_URL, one fixed address. SPEC answers on more than one, and a browser keeps its
+    sign-in per address — so a link copied off www handed somebody a seat on app, signed in nowhere,
+    while the rest of their business was on www. Same fault that sent the first real payment back to
+    the wrong business. See lib/origin.
+  */
+  const appUrl = await currentOrigin();
   // Whether this deployment can actually send email. Never promise a send that will not happen.
   const emailOn = Boolean(process.env.RESEND_API_KEY?.trim());
 

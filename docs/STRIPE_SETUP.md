@@ -153,6 +153,36 @@ Still with `sk_test_…`:
 
 Step 3 and step 4 are the test. Steps 1 and 2 only prove Stripe works, which was never in doubt.
 
+**Done on 16 September, steps 1 to 3.** Stripe charged A$26, the webhook delivered first time (1
+delivered, 0 failed — the signing secret matches), and SPEC changed by itself from *"Nothing has been
+charged yet"* to *"A$26 a month · 1 person"*. A second person was not needed: the owner's own filled
+role is the billable seat.
+
+**Step 4 is still outstanding.** Cancel that test subscription and confirm the business goes
+`lapsed` and read-only. Payment failing is the half that has never been watched, and it is the half
+a customer meets on the day their card expires.
+
+### It also found a real one, which is why step 3 is written the way it is
+
+The payment worked and **finished on the wrong website.** The business was signed up on
+`www.specbizhq.com`; Checkout returned it to `app.specbizhq.com`, because every link back was built
+from `APP_URL`, one fixed address. A browser keeps its sign-in per address, so the return trip landed
+in a different business entirely, under a banner reading *"Payment received"*, above a page that
+still said nothing had been charged.
+
+Nothing threw. Stripe was happy, the database was right, and 996 tests passed — every one of them had
+asked whether the checkout worked, and it did. Nobody had asked where it sent the person afterwards.
+
+Fixed in `src/lib/origin.ts`: every link back now uses **the address the request arrived on**, so
+`www` returns to `www` and `app` returns to `app`, and both keep working. It covers the checkout, the
+billing portal, sign-in emails, seat invitations and copied seat links. The address is checked
+against SPEC's own domain first, so a handwritten `Host` header cannot point a customer's return trip
+at somebody else's website.
+
+**So both addresses are fine and neither needs turning off.** If you would rather have one — set
+`www` to redirect to `app` in Vercel → Domains — nothing here breaks either way. That is now a
+preference, not a repair.
+
 ## 8. One real payment
 
 Swap to `sk_live_…` and the live `whsec_…` (a live endpoint has its own signing secret — the test
