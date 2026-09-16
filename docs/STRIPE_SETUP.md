@@ -14,7 +14,7 @@ Nothing here needs me. Every step is a screen you log into.
 
 ## What the product actually needs
 
-Exactly three settings. There is no publishable key — SPEC uses Stripe's hosted Checkout and never
+Four settings. There is no publishable key — SPEC uses Stripe's hosted Checkout and never
 renders a card field, so there is nothing for a browser-side key to do.
 
 | Setting | What it is |
@@ -22,6 +22,12 @@ renders a card field, so there is nothing for a browser-side key to do.
 | `STRIPE_SECRET_KEY` | `sk_test_…`, then `sk_live_…` |
 | `STRIPE_PRICE_SEAT_MONTHLY` | The **AUD** seat price ID, `price_…` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…`, from the endpoint you create in step 5 |
+| `STRIPE_PRICE_SEAT_TRAINING_MONTHLY` | The **AUD** price ID for `SPEC seat plus training`, `price_…` |
+
+The fourth is only needed once a business puts a frontline leader on SPEC's training material. Until
+then nothing reads it. The moment one is on it, **checkout refuses rather than charging them the
+A$26 rate** — a subscription quietly A$18 a person short every month is the kind of thing nobody ever
+looks at, and stopping is recoverable where that is not.
 
 ---
 
@@ -59,6 +65,18 @@ reduces to 9 — `tests/packages.test.ts` records that, so nobody re-introduces 
 
 Products → **Add product** → `SPEC seat`, then `SPEC seat plus training`.
 
+**What the A$44 actually is**, because it was a number with nothing behind it until 16 September:
+the seat, plus **SPEC's own training material for frontline leaders** — twelve modules across the
+four pillars, done online at their own pace. The A$26 seat keeps everything it already had,
+including the training machinery itself: a curriculum per role, paths, progress, sign-off. What it
+does not get is the material, which a business on A$26 writes for itself.
+
+**It is a seat, not a plan.** The administrator puts individual people on it, and only people
+holding a frontline leader role — a supervisor or team leader. Not the stream heads, not the GM, not
+team members. So a business of forty with six supervisors is billed **six at A$44 and thirty-three
+at A$26** (one seat is free), on two lines of one subscription. A single line at one rate would have
+to pick which lie to tell.
+
 Each one gets **six monthly recurring prices on that same product** — not six products. The code
 finds the right currency by looking up other prices *on the same product*, so a second product is
 invisible to it.
@@ -72,7 +90,9 @@ invisible to it.
 | USD | 26 | 44 |
 | CAD | 35 | 53 |
 
-Copy the **AUD seat** price ID into `STRIPE_PRICE_SEAT_MONTHLY`. The rest are found through it.
+Copy the **AUD seat** price ID into `STRIPE_PRICE_SEAT_MONTHLY`, and the **AUD seat plus training**
+price ID into `STRIPE_PRICE_SEAT_TRAINING_MONTHLY`. The other currencies are found through whichever
+of the two applies, by matching the exact published amount on the same product.
 
 **The amounts have to match exactly.** `src/app/api/stripe/checkout/route.ts` matches on currency
 *and* the exact amount, so a price that has drifted from this table is never charged — it falls back

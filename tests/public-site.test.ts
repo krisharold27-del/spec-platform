@@ -112,8 +112,17 @@ describe('the front door asks before it tells', () => {
    * business.
    */
   it('shows the price only after the reading', () => {
+    /*
+      Anchored on the pricing SECTION, not on a card's label.
+
+      It used to look for the words "SPEC Basic", which is a label the page is free to change — and
+      when it did change, this failed while the rule it is protecting was perfectly intact. A test
+      that breaks on a copy edit teaches people to edit the test.
+    */
     const src = read('src/app/page.tsx');
-    expect(src.indexOf('SPEC Basic')).toBeGreaterThan(src.indexOf('<ProblemBox'));
+    const pricing = src.indexOf('<span className="label-caps">Pricing</span>');
+    expect(pricing, 'the pricing section has moved or been renamed').toBeGreaterThan(-1);
+    expect(pricing).toBeGreaterThan(src.indexOf('<ProblemBox'));
   });
 
   // Both doors still lead in. Somebody who would rather see the product than talk about themselves

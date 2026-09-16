@@ -480,6 +480,9 @@ round local number chosen to obey the rule, checked before publishing.
 ### 8.2 Rules
 
 - Priced **per seat per month** — per person who can sign in, **after the first, which is free**.
+- A **frontline leader** (supervisor or team leader) may be put on the **training seat** by the
+  administrator, which adds SPEC's own material for that job and takes that one seat to the higher
+  price. Per person, never per business: a bill is a mixture of the two rates.
 - **People on the chart without a seat are free** and still scored.
 - **Board roles are free.**
 - **No minimum. One seat is a complete product. No tier unlocks features.**

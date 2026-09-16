@@ -16,7 +16,7 @@
  * what the system will do — before spending a cent or entering a card.
  */
 
-import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, type Currency } from './pricing';
+import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatRate, type Currency } from './pricing';
 
 /** Per active named seat, per month, in the home currency (AUD). Other regions: see lib/pricing. */
 export const SEAT_PRICE_MONTHLY = SEAT_PRICES[HOME_CURRENCY].seat;
@@ -108,6 +108,8 @@ export interface PlanState {
   seats: number;
   /** How many of them are charged for: everyone after the first. See FREE_SEATS. */
   billable: number;
+  /** How many of THOSE are on a training seat, at the higher price. See seatBill. */
+  trainingSeats: number;
   /** The business's own currency — prices are decided per region, never converted. */
   currency: Currency;
   /** billable seats × the seat price in that currency — NOT every person in the business. */
@@ -202,20 +204,60 @@ export const FREE_SEATS = 1;
 /** How many of the people in a business are actually charged for. Never negative. */
 export const billableSeats = (seats: number) => Math.max(0, seats - FREE_SEATS);
 
-export function planState(tenant: TenantPlan, seats: number, currency: Currency = HOME_CURRENCY): PlanState {
+/**
+ * A bill made of two kinds of seat.
+ *
+ * Most people are a plain seat. Frontline leaders the administrator has put on training are a
+ * training seat, at the higher price, and a business is normally a mixture — a business of forty
+ * with six supervisors pays for six of one and thirty-three of the other, not forty of either.
+ * Multiplying everybody by the training price is what the old per-business `seat_training` would
+ * have done, and it would have charged thirty-four people for something nobody is giving them.
+ *
+ * **The free seat comes off a plain seat first.** It is the cheaper of the two, which is the less
+ * generous reading, and it is the right one: the free seat exists so a business of one pays nothing
+ * to get started, and the person who starts a business is its GM, who cannot be on a training seat
+ * at all. Taking it off the dearer seat would be giving away A$44 of training to make a point about
+ * A$26. If a business somehow has only training seats, the free one comes off those instead, because
+ * "the first seat is free" has to be true however the business is shaped.
+ */
+export function seatBill(seats: number, trainingSeats: number, currency: Currency = HOME_CURRENCY) {
+  const training = Math.max(0, Math.min(trainingSeats, seats));
+  const plain = seats - training;
+
+  const freeFromPlain = Math.min(FREE_SEATS, plain);
+  const billablePlain = plain - freeFromPlain;
+  const billableTraining = Math.max(0, training - (FREE_SEATS - freeFromPlain));
+
+  return {
+    plain: billablePlain,
+    training: billableTraining,
+    billable: billablePlain + billableTraining,
+    monthlyCost: billablePlain * seatRate(currency, false) + billableTraining * seatRate(currency, true),
+  };
+}
+
+export function planState(
+  tenant: TenantPlan,
+  seats: number,
+  currency: Currency = HOME_CURRENCY,
+  /** How many of those people are on a training seat. Defaults to none, which is every business today. */
+  trainingSeats = 0,
+): PlanState {
   const program = tenant.plan === 'program';
   const beta = tenant.plan === 'beta';
   const lapsed = tenant.plan === 'lapsed';
   const subscribed = Boolean(tenant.stripeSubscriptionId);
   const tier = tierOf(tenant.tier);
-  const billable = billableSeats(seats);
+  const bill = seatBill(seats, trainingSeats, currency);
+  const billable = bill.billable;
   return {
     seats,
     billable,
+    trainingSeats: bill.training,
     currency,
     // What it WOULD cost, kept even on a beta. A free arrangement somebody cannot see the value of
     // is one they have no reason to be glad of, and one nobody can price when it ends.
-    monthlyCost: billable * SEAT_PRICES[currency].seat,
+    monthlyCost: bill.monthlyCost,
     billing: billable > 0 && !program && !beta,
     free: billable === 0,
     program,
@@ -293,6 +335,7 @@ export async function countSeats(tenantId: string): Promise<number> {
 export async function planStateFor(tenantId: string, currency: Currency = HOME_CURRENCY): Promise<PlanState> {
   const { db, schema } = await import('../db');
   const { eq } = await import('drizzle-orm');
+  const { countTrainingSeats } = await import('./training-seat');
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, tenantId)))[0];
   if (!tenant) throw new Error('Business not found.');
   return planState({
@@ -300,7 +343,7 @@ export async function planStateFor(tenantId: string, currency: Currency = HOME_C
     // Without this the page cannot tell a business that has paid from one that never could, which
     // is exactly the gap that left the product with no way to start a subscription at all.
     stripeSubscriptionId: tenant.stripeSubscriptionId,
-  }, await countSeats(tenantId), currency);
+  }, await countSeats(tenantId), currency, await countTrainingSeats(tenantId));
 }
 
 /**

@@ -9,20 +9,28 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import type Stripe from 'stripe';
-import { currencyForCountry, SEAT_PRICES, type Currency } from '@/lib/pricing';
+import { currencyForCountry, seatRate, type Currency } from '@/lib/pricing';
 
 /**
  * The seat price in the business's own currency. Found on the same product as the configured
  * price, by currency AND by the exact amount in BUILD_SPEC §8.1 — so a price in Stripe that has
  * drifted from the published table is never charged. Falls back to the configured (home) price.
  */
-async function seatPriceFor(stripe: Stripe, configuredPriceId: string, currency: Currency): Promise<string> {
+async function seatPriceFor(
+  stripe: Stripe,
+  configuredPriceId: string,
+  currency: Currency,
+  training = false,
+): Promise<string> {
   const base = await stripe.prices.retrieve(configuredPriceId);
   const product = typeof base.product === 'string' ? base.product : base.product.id;
-  const want = SEAT_PRICES[currency].seat * 100;
+  const want = seatRate(currency, training) * 100;
   const prices = await stripe.prices.list({ product, currency, active: true, type: 'recurring', limit: 100 });
   const match = prices.data.find(p => p.unit_amount === want && p.recurring?.interval === 'month');
-  if (!match) console.error('[checkout] no published seat price in Stripe for', currency, '- charging the configured price');
+  if (!match) {
+    console.error('[checkout] no published', training ? 'training' : 'seat', 'price in Stripe for', currency,
+      '- charging the configured price');
+  }
   return match?.id ?? configuredPriceId;
 }
 import { eq } from 'drizzle-orm';
@@ -30,7 +38,8 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getStripe } from '@/lib/stripe';
 import { currentOrigin } from '@/lib/origin';
-import { countSeats, billableSeats } from '@/lib/plan';
+import { countSeats, seatBill } from '@/lib/plan';
+import { countTrainingSeats } from '@/lib/training-seat';
 import { getScope, isTopOfChart } from '@/lib/scope';
 
 export async function POST() {
@@ -67,16 +76,41 @@ export async function POST() {
     money, so it reads `billable` and never `seats`.
   */
   const seats = await countSeats(user.tenantId);
-  const billable = billableSeats(seats);
-  if (billable === 0) return NextResponse.redirect(`${here}/journey?nothing_to_bill=1`, 303);
+  const trainingSeats = await countTrainingSeats(user.tenantId);
+  const bill = seatBill(seats, trainingSeats);
+  if (bill.billable === 0) return NextResponse.redirect(`${here}/journey?nothing_to_bill=1`, 303);
 
   // Billed in the business's own currency, set by where it is (BUILD_SPEC §8.2).
   const currency = currencyForCountry((await headers()).get('x-vercel-ip-country'));
-  const price = await seatPriceFor(stripe, priceId, currency);
+
+  /*
+    Two rates, so two lines.
+
+    A frontline leader on SPEC's training material is a dearer seat than everybody else, and a
+    business is normally a mixture. One line at one rate would have to pick which lie to tell: the
+    training price for people nobody is training, or the plain price for people who are.
+
+    The training price comes off `STRIPE_PRICE_SEAT_TRAINING_MONTHLY`. Without it, nothing silently
+    falls back to the cheap rate — that would be giving the material away and never noticing. The
+    checkout says so and stops, which is recoverable; a subscription quietly short by A$18 a person
+    a month is not, because nobody ever looks.
+  */
+  const lines: { price: string; quantity: number }[] = [];
+  if (bill.plain > 0) {
+    lines.push({ price: await seatPriceFor(stripe, priceId, currency), quantity: bill.plain });
+  }
+  if (bill.training > 0) {
+    const trainingPriceId = process.env.STRIPE_PRICE_SEAT_TRAINING_MONTHLY;
+    if (!trainingPriceId) {
+      console.error('[checkout] somebody is on a training seat and STRIPE_PRICE_SEAT_TRAINING_MONTHLY is not set');
+      return NextResponse.redirect(`${here}/journey?training_price_missing=1`, 303);
+    }
+    lines.push({ price: await seatPriceFor(stripe, trainingPriceId, currency, true), quantity: bill.training });
+  }
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
-    line_items: [{ price, quantity: billable }],
+    line_items: lines,
     // client_reference_id is how the webhook maps the completed session back to a tenant —
     // more reliable than matching on customer email, which can differ from the app user's email.
     client_reference_id: tenant.id,

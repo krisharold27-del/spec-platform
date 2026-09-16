@@ -47,6 +47,14 @@ const OPTIONAL = [
     finds out is the person who paid.
   */
   'STRIPE_WEBHOOK_SECRET',
+  /*
+    The A$44 frontline-leader seat, added when the training material was built.
+
+    Optional in the sense that a business with no supervisor on training never needs it. Not optional
+    the moment one is: checkout refuses rather than quietly billing them at the A$26 rate, so this
+    line is how somebody finds out before a customer does.
+  */
+  'STRIPE_PRICE_SEAT_TRAINING_MONTHLY',
 ] as const;
 
 const present = (k: string) => Boolean(process.env[k]?.trim());

@@ -88,3 +88,35 @@ export async function resetCeilings() {
   revalidatePath('/settings');
   revalidatePath('/scorecard', 'layout');
 }
+
+/**
+ * Put somebody on SPEC's training material, or take them off it — the A$44 seat.
+ *
+ * Administration, because it changes the bill. Frontline leaders only: the server checks the role
+ * rather than trusting the form, since a form is a suggestion and this one decides money.
+ *
+ * Turning it on installs SPEC's material into the business and puts it on that role's path in the
+ * same operation. Doing only the billing half would have charged somebody A$44 for a page identical
+ * to the A$26 one, which is precisely the fault this whole change exists to fix.
+ */
+export async function setTrainingSeat(formData: FormData) {
+  const user = await administrator();
+  const userId = String(formData.get('userId') ?? '');
+  const on = String(formData.get('on') ?? '') === '1';
+  if (!userId) return;
+
+  const { giveTrainingSeat, removeTrainingSeat } = await import('@/lib/training-seat');
+  if (on) {
+    const done = await giveTrainingSeat(user.tenantId, userId);
+    if (!done) {
+      // Not a frontline leader. Say so rather than failing silently or throwing a page away.
+      revalidatePath('/settings');
+      redirect('/settings?training=not_frontline');
+    }
+  } else {
+    await removeTrainingSeat(user.tenantId, userId);
+  }
+  revalidatePath('/settings');
+  revalidatePath('/training');
+  revalidatePath('/journey');
+}

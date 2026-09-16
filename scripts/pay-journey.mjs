@@ -182,6 +182,98 @@ check(
   `started on ${alt.origin}, sent back to ${fromAlt}`,
 );
 
+// ── The A$44 seat: frontline leaders only, and it has to actually give them something ────────────
+//
+// Until 16 September the A$44 was a number on three screens with nothing behind it: a column on the
+// business, printed on the pricing page, charged by nothing and gating nothing. A business put on it
+// paid A$26 and received exactly what every other business received.
+//
+// Three things have to be true together, and the whole point is that they cannot drift apart: the
+// person is billed at the higher rate, the material exists in the business, and it is on the path
+// for the role they hold. Billing without the other two is charging A$44 for the A$26 page.
+const supervisorId = `sup-${stamp}`;
+const supervisorRole = `role-sup-${stamp}`;
+const [{ id: gmRoleId }] = await sql`
+  select id from roles where tenant_id = ${tenantId} and level = 'gm' limit 1`;
+
+await sql`
+  insert into users (id, tenant_id, email, name, access, invited_at)
+  values (${supervisorId}, ${tenantId}, ${`sup-${stamp}@example.test`}, 'A Supervisor', 'full', now())`;
+await sql`
+  insert into roles (id, tenant_id, title, stream, level, default_access, reports_to_role_id, sort_order, active)
+  values (${supervisorRole}, ${tenantId}, 'Site Supervisor', 'operations', 'supervisor', 'full', ${gmRoleId}, 9, true)`;
+await sql`
+  insert into role_assignments (id, role_id, user_id, from_date)
+  values (${`ra-${stamp}`}, ${supervisorRole}, ${supervisorId}, now())`;
+
+// Eligibility is a pure rule, so it is asked directly. Everything after it goes through the page.
+const { canBeTrained } = await import('../src/lib/pricing.ts');
+check(
+  'A TEAM MEMBER CANNOT BE PUT ON THE FRONTLINE LEADER SEAT',
+  canBeTrained('staff') === false && canBeTrained('gm') === false && canBeTrained('manager') === false,
+);
+check('and a supervisor can', canBeTrained('supervisor') === true);
+
+/*
+  The rest is done the way an administrator does it — on the page, with the button.
+
+  An earlier version of these checks imported the product's own functions and called them. That
+  proves the function works, which was never in doubt; it does not prove an administrator can reach
+  it, and "the code works but there is no way to press it" is exactly the fault that left this
+  product unable to take a first payment at all.
+*/
+await page.goto(`${BASE}/settings`, { waitUntil: 'networkidle' });
+const settings = await page.evaluate(() => document.body.innerText);
+check(
+  'the administrator is shown who may be put on SPEC\'s training',
+  // Case-insensitive, and the apostrophe is not part of the match: the heading is a label-caps,
+  // which CSS upper-cases, and innerText reports what is RENDERED rather than what is written.
+  /spec.{0,3}s training material/i.test(settings),
+);
+check('and the supervisor is on that list', settings.includes('A Supervisor'), '');
+
+const putOn = page.locator('form[action]:has(input[name="userId"])').first();
+if (await putOn.count()) {
+  await putOn.locator('button').click();
+  await page.waitForTimeout(3000);
+
+  const [{ n: billedAt44 }] = await sql`
+    select count(*)::int as n from users where id = ${supervisorId} and training_seat = true`;
+  check('PUTTING THEM ON IT CHANGES WHAT THEY ARE BILLED', billedAt44 === 1);
+
+  const [{ n: installed }] = await sql`
+    select count(*)::int as n from training_modules where tenant_id = ${tenantId} and source = 'spec'`;
+  check('AND SPEC\'S OWN MATERIAL IS INSTALLED IN THE BUSINESS', installed >= 12, `${installed} modules`);
+
+  const [{ n: withMaterial }] = await sql`
+    select count(*)::int as n from training_modules
+    where tenant_id = ${tenantId} and source = 'spec' and coalesce(length(content), 0) > 400`;
+  check(
+    'and every module has the actual material inside it, not just a title',
+    withMaterial === installed,
+    `${withMaterial} of ${installed} carry material`,
+  );
+
+  const [{ n: onPath }] = await sql`
+    select count(*)::int as n from role_curriculum rc
+    join training_modules tm on tm.id = rc.module_id
+    where rc.role_id = ${supervisorRole} and tm.source = 'spec'`;
+  check('AND IT IS ON THE PATH FOR THE ROLE THEY HOLD', onPath >= 12, `${onPath} on the path`);
+
+  // The bill is a MIXTURE. Three people now: owner (free), a mate, a supervisor on training.
+  await page.goto(`${BASE}/journey`, { waitUntil: 'networkidle' });
+  const mixed = await page.evaluate(() => document.body.innerText);
+  check(
+    'THE BILL IS A MIXTURE OF THE TWO RATES, NOT ALL OF EITHER',
+    mixed.includes('A$70 a month'),
+    // 3 people, one free: 1 plain at A$26 + 1 training at A$44 = A$70. A$78 would mean the
+    // training seat is being billed as a plain one; A$88 would mean everybody was charged for it.
+    mixed.match(/A\$[\d,]+ a month · \d+ (?:person|people), first seat free/)?.[0] ?? 'no cost line',
+  );
+} else {
+  check('an administrator can reach the training seat control', false, 'no control on /settings');
+}
+
 // ── The "payment received" banner has to agree with the page under it ────────────────────────────
 //
 // `?upgraded=1` is a word in an address bar. It says a checkout finished SOMEWHERE — never that this

@@ -73,6 +73,61 @@ export const moneyLabel = (currency: Currency, amount: number) => `${SEAT_PRICES
  */
 export type Package = 'seat' | 'seat_training' | 'sessions' | 'full_control';
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Who the training seat is for
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Kris, 16 September 2026:
+ *
+ *   "we need to be clear what the $44 price is about — i think we need to make training materials
+ *    available for front line leaders and so it need to be only $44 for people who are supervisors,
+ *    team leaders etc"
+ *
+ * ── What the $44 was, before this ────────────────────────────────────────────────────────────────
+ *
+ * A number on three screens and nothing behind it. `seat_training` was a column on the business,
+ * settable from /admin, printed on the pricing page and the landing page — and no line of code
+ * charged it or gated anything on it. Checkout only ever used the plain seat price. A business put
+ * on "Seat plus training" paid A$26 and received exactly what every other business received.
+ *
+ * Meanwhile the training MACHINERY already shipped to everyone: a curriculum per role, paths tied to
+ * pillars, progress that belongs to the person, sign-off that belongs to the placement. What was
+ * missing was the MATERIAL — every business had to write its own modules.
+ *
+ * So that is what the A$44 is, and the shape follows from it:
+ *
+ *   A$26  the seat, and the training machinery, and the modules you write yourself. Unchanged.
+ *   A$44  the same, plus SPEC's own material for frontline leaders, done online at their own pace.
+ *
+ * Nothing is taken away from anybody to make room for it.
+ *
+ * ── And it is a seat, not a plan ─────────────────────────────────────────────────────────────────
+ *
+ * This is the part that had to change structurally. `seat_training` sat on the BUSINESS, so it could
+ * only ever mean "everybody pays A$44". A business of forty with six supervisors would have been
+ * charged the training price for thirty-four people who are not being trained. The entitlement moves
+ * to the person, and a bill becomes a mixture.
+ */
+export const TRAINING_LEVELS = ['supervisor'] as const;
+
+/**
+ * May somebody in this role be put on a training seat?
+ *
+ * Frontline leaders only — the people who run a crew day to day. Not the stream heads, not the GM,
+ * not team members. That is the whole point of the price: it is what a supervisor needs in order to
+ * lead the people in front of them, and pretending it suits everybody would make it suit nobody.
+ *
+ * Levels are `gm | manager | supervisor | staff` (db/schema roles.level). `manager` is a stream head
+ * — Head of Commercial, Operations, Growth — which is a seat above the frontline, not on it.
+ */
+export const canBeTrained = (level: string | null | undefined): boolean =>
+  TRAINING_LEVELS.includes(String(level) as (typeof TRAINING_LEVELS)[number]);
+
+/** What one seat of each kind costs a month, in this currency. */
+export const seatRate = (currency: Currency, training: boolean): number =>
+  training ? SEAT_PRICES[currency].withTraining : SEAT_PRICES[currency].seat;
+
 export interface PackageSpec {
   label: string;
   /** What the business actually gets, in the words it was sold in. */
@@ -116,7 +171,8 @@ export const PACKAGES: Record<Package, PackageSpec> = {
   },
   seat_training: {
     label: 'Seat plus training',
-    what: 'The same, and the training built into SPEC — done online, through this system, at their own pace.',
+    what: 'The same, and SPEC\'s own training material for frontline leaders — done online, through '
+      + 'this system, at their own pace. A supervisor or team leader seat only; see canBeTrained.',
     per: 'seat',
     aud: 44,
     everyCurrency: true,
@@ -158,8 +214,7 @@ export const packageOf = (value: string | null | undefined): Package =>
 export function monthlyCostOf(pkg: Package, currency: Currency, seats: number): number {
   const spec = PACKAGES[pkg];
   if (spec.per === 'business') return spec.aud;
-  const each = pkg === 'seat_training' ? SEAT_PRICES[currency].withTraining : SEAT_PRICES[currency].seat;
-  return each * seats;
+  return seatRate(currency, pkg === 'seat_training') * seats;
 }
 
 /**

@@ -8,12 +8,13 @@ import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { getScope } from '@/lib/scope';
 import { planStateFor, costLabel, TIER, tierOf } from '@/lib/plan';
-import { moneyLabel } from '@/lib/pricing';
+import { moneyLabel, SEAT_PRICES, canBeTrained } from '@/lib/pricing';
+import { libraryLine, LIBRARY } from '@/lib/training-library';
 import { PERMISSIONS, LEVELS, stateOf, STATE_LABEL, levelOf } from '@/lib/permissions';
 import { cadenceOf, CADENCE } from '@/lib/governance';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { adminActivity } from '@/lib/admin-activity';
-import { setCadence, setTier, setCeilings, resetCeilings } from './actions';
+import { setCadence, setTier, setCeilings, resetCeilings, setTrainingSeat } from './actions';
 import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsFor, usesOwnCeilings } from '@/lib/ceilings';
 import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_AT_OR_BELOW } from '@/lib/incentive';
 
@@ -33,7 +34,8 @@ const STATE_COLOUR = {
  * permission table is a description of rules the server already enforces, laid out so it can be
  * read in one go — hiding a button was never access control.
  */
-export default async function Settings() {
+export default async function Settings({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
@@ -86,6 +88,19 @@ export default async function Settings() {
     const holder = r.holder?.email;
     return !holder || !billable.some(b => b.email === holder);
   });
+
+  /*
+    Who may be put on SPEC's training material, and who already is.
+
+    Read from the CHART, not from a list of people: the A$44 seat is for frontline leaders, and
+    whether somebody is one is a fact about the role they hold, which moves when they move. Asking
+    the chart means a supervisor who becomes a stream head stops being eligible the same minute,
+    without anybody remembering to change a second thing.
+  */
+  const frontline = scope.roles
+    .filter(r => canBeTrained(r.level) && r.holder?.email)
+    .map(r => ({ role: r, person: billable.find(b => b.email === r.holder!.email) }))
+    .filter((x): x is { role: typeof x.role; person: NonNullable<typeof x.person> } => Boolean(x.person));
 
   if (!scope.canAdminister) {
     return (
@@ -143,8 +158,58 @@ export default async function Settings() {
           <p className="mt-3 text-xs text-ink-light">
             {moneyLabel(plan.currency, 0).replace(/[\d.,]+/, '')}
             {' '}per seat per month in your own currency — decided per region, never converted. Drawing the
-            whole business costs nothing; the meter starts when a real person is invited in.
+            whole business costs nothing; the meter starts when the second person is invited in — the
+            first seat is free.
           </p>
+
+          {/*
+            SPEC's training material, and who is on it.
+
+            It sits inside Seats and billing rather than beside Training, because turning it on is a
+            billing decision an administrator makes, not a learning decision a supervisor makes.
+          */}
+          <div className="mt-6 border-t border-ink/10 pt-5">
+            <div className="label-caps">SPEC&apos;s training material</div>
+            <p className="mt-1 text-sm text-ink-light">
+              For frontline leaders — supervisors and team leaders. {libraryLine(LIBRARY)} It takes their
+              seat from {moneyLabel(plan.currency, SEAT_PRICES[plan.currency].seat)} to{' '}
+              {moneyLabel(plan.currency, SEAT_PRICES[plan.currency].withTraining)} a month, and the
+              modules go onto the path for the role they hold.
+            </p>
+            {sp.training === 'not_frontline' && (
+              <p className="mt-2 rounded-lg border-l-4 border-rust-400 bg-surface p-3 text-sm text-ink">
+                That person does not hold a frontline leader role, so the training seat does not apply
+                to them. It is for supervisors and team leaders — the people running a crew.
+              </p>
+            )}
+            {frontline.length === 0 ? (
+              <p className="mt-3 text-sm text-ink-light">
+                Nobody here holds a supervisor or team leader role yet. When somebody does, they can
+                be put on it from here.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {frontline.map(({ role, person }) => (
+                  <li key={person.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 p-3 text-sm">
+                    <span className="text-ink">{person.name}</span>
+                    <span className="text-xs text-ink-light">{role.title}</span>
+                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${person.trainingSeat ? 'bg-sage-200 text-sage-900' : 'bg-cream text-ink-light'}`}>
+                      {person.trainingSeat
+                        ? `On training · ${moneyLabel(plan.currency, SEAT_PRICES[plan.currency].withTraining)}`
+                        : `${moneyLabel(plan.currency, SEAT_PRICES[plan.currency].seat)}`}
+                    </span>
+                    <form action={setTrainingSeat} className="ml-auto">
+                      <input type="hidden" name="userId" value={person.id} />
+                      <input type="hidden" name="on" value={person.trainingSeat ? '0' : '1'} />
+                      <SubmitButton className="btn-secondary text-xs" pending="Saving…">
+                        {person.trainingSeat ? 'Take off training' : 'Put on training'}
+                      </SubmitButton>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
 
         <section className="card">

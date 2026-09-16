@@ -12,6 +12,9 @@ import { currentPeriod } from '@/lib/period';
 import { getScorecard } from '@/lib/queries';
 import { getToday } from '@/lib/today-data';
 import { pathFor, pathProgress, signoffFor, aceSteps, type TrainingModule } from '@/lib/training';
+import { hasTrainingSeat } from '@/lib/training-seat';
+import { PILLAR_META } from '@/components/ui';
+import { Material } from '@/components/material';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { signOffTraining } from '@/app/my-page/actions';
 import { Problems } from '@/components/problems';
@@ -35,13 +38,26 @@ export default async function Training() {
   const manage = canManage(user.access);
   const data = await getToday(user);
 
-  const modules = await db.select().from(schema.trainingModules)
+  const allModules = await db.select().from(schema.trainingModules)
     .where(eq(schema.trainingModules.tenantId, user.tenantId))
     .orderBy(schema.trainingModules.sortOrder);
+
+  /*
+    SPEC's own material is the A$44 seat, so it is shown to somebody on one — and to whoever manages
+    them, who has to be able to see what their supervisor has been asked to do.
+
+    Filtering the catalogue is enough to take it off a path as well: pathFor skips a curriculum entry
+    whose module it was not given, so somebody taken off the seat stops being asked to do the modules
+    without anybody having to unpick their role's path. What they already learned stays recorded.
+  */
+  const onTraining = await hasTrainingSeat(user.tenantId, user.id);
+  const mayReadLibrary = onTraining || manage;
+  const modules = allModules.filter(m => m.source !== 'spec' || mayReadLibrary);
   const catalogue: TrainingModule[] = modules.filter(m => m.active).map(m => ({
     id: m.id, title: m.title, summary: m.summary,
     pillar: m.pillar as TrainingModule['pillar'], minutes: m.minutes, core: m.core,
   }));
+  const specModules = allModules.filter(m => m.source === 'spec' && m.active && mayReadLibrary);
 
   // The roles this person manages, and where each holder is on that role's path.
   const managed = scope.roles.filter(r => scope.canEdit(r.id) && r.id !== scope.myRoleId);
@@ -85,6 +101,41 @@ export default async function Training() {
       title="Training"
       subtitle="Trained on the role, not on the software. Every module is tied to a number somebody owns."
     >
+      {specModules.length > 0 && (
+        <section className="card mb-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-serif text-xl text-ink">SPEC&apos;s training for frontline leaders</h2>
+            <span className="text-sm text-ink-light">
+              {specModules.length} modules · about {Math.round(specModules.reduce((t, m) => t + m.minutes, 0) / 6) / 10} hours
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-ink-light">
+            {onTraining
+              ? 'Yours to work through whenever suits. Nothing here is about the software — it is about leading the people in front of you.'
+              : 'What the supervisors and team leaders you manage have been given. Nothing here is about the software.'}
+          </p>
+          <ul className="mt-4 space-y-2">
+            {specModules.map(m => (
+              <li key={m.id} className="rounded-lg border border-ink/10">
+                <details className="group">
+                  <summary className="flex cursor-pointer flex-wrap items-center gap-3 p-4 text-sm">
+                    <span className="rounded bg-cream px-2 py-0.5 text-xs font-medium text-ink-light">
+                      {PILLAR_META[m.pillar as keyof typeof PILLAR_META]?.name ?? 'All four'}
+                    </span>
+                    <span className="font-medium text-ink">{m.title}</span>
+                    <span className="ml-auto text-xs text-ink-light">{m.minutes} min</span>
+                  </summary>
+                  <div className="border-t border-ink/10 p-4">
+                    <p className="text-sm text-ink-light">{m.summary}</p>
+                    {m.content && <Material text={m.content} />}
+                  </div>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <div className="grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
         <section className="card">
           <div className="flex flex-wrap items-baseline justify-between gap-2">

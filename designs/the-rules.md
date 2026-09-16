@@ -389,7 +389,13 @@ $26 while the product told them building was free: the owner has a way in, so
 starts with the second person, which is also when SPEC starts doing work for more
 than one of them. The price per seat does not move, so the rule of 8 stands.
 
-| Region | A seat | With training |
+**The training seat is for frontline leaders only** — supervisors and team
+leaders, the people running a crew. Not the stream heads, not the GM, not team
+members. It adds SPEC's own material for that job: twelve modules across the four
+pillars, done online. The administrator puts individual people on it, so a bill
+is normally a mixture of the two rates rather than one of them.
+
+| Region | A seat | Frontline leader, with training |
 |---|---|---|
 | Australia | AUD $26 | AUD $44 |
 | New Zealand | NZD $35 | NZD $53 |

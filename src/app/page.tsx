@@ -288,32 +288,41 @@ export default async function Landing() {
           </h2>
           <p className="mt-3 max-w-[52ch] text-base leading-7 text-ink-light">
             A price is set for your region and never moves because an exchange rate did. You are
-            billed where the business is.
+            billed where the business is, and <b className="text-ink">the first seat is free</b>.
           </p>
           <div className="mt-8 grid gap-5 sm:grid-cols-2">
             <div className="card p-8">
-              <div className="label-caps">SPEC Basic</div>
+              <div className="label-caps">A seat</div>
               <div className="mt-3 font-serif text-[44px] leading-tight text-ink">
                 {moneyLabel(HOME_CURRENCY, SEAT.seat)}
               </div>
               <p className="mt-1.5 text-sm text-ink-light">per seat, per month</p>
               <p className="mt-5 text-base leading-7 text-ink">
-                The platform with no AI support: org chart, roles, monthly scoring, hard gates and the
-                board pack. Every number typed by hand.
+                Org chart, roles, monthly scoring, hard gates and the board pack. Connectors and the
+                assistant are the same price, because it is the same system — the difference is where
+                the numbers come from.
               </p>
               <Link href="/signup" className="btn-secondary mt-6 inline-block">Start free</Link>
             </div>
+            {/*
+              This card used to print the A$44 above the words "SPEC Advanced", which is two
+              different products wearing one number. Advanced is connectors and the assistant — the
+              same price, because it is the same system, which is what /pricing has always said. The
+              A$44 is the frontline leader seat, a different question entirely, and a customer
+              reading both pages was being told two things that could not both be true.
+            */}
             <div className="rounded-lg bg-sage-100 p-8">
-              <div className="label-caps text-sage-800">SPEC Advanced</div>
+              <div className="label-caps text-sage-800">Seat plus training</div>
               <div className="mt-3 font-serif text-[44px] leading-tight text-ink">
                 {moneyLabel(HOME_CURRENCY, SEAT.withTraining)}
               </div>
-              <p className="mt-1.5 text-sm text-ink-light">per seat, per month</p>
+              <p className="mt-1.5 text-sm text-ink-light">per frontline leader, per month</p>
               <p className="mt-5 text-base leading-7 text-ink">
-                Everything in Basic, plus the connectors, KPIs fed from your systems, Claude on every
-                page, and the AI paid for through SPEC.
+                The same seat, plus SPEC&rsquo;s own training for supervisors and team leaders — twelve
+                modules across the four pillars, done online at their own pace. For the people running
+                a crew, not for everybody.
               </p>
-              <Link href="/pricing" className="btn-primary mt-6 inline-block">Talk to us</Link>
+              <Link href="/pricing" className="btn-primary mt-6 inline-block">See what is in it</Link>
             </div>
           </div>
           {/*
