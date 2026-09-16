@@ -267,7 +267,20 @@ for (const file of screens) {
   for (const miss of misses) console.log(`    no ${miss.kind === 'does' ? 'action' : 'wording'} in code: ${miss.text}`);
 }
 
-const pct = totalPhrases ? Math.round((totalFound / totalPhrases) * 100) : 100;
+/*
+  Rounded DOWN, and 100 is only ever printed when every phrase is really there.
+
+  It used to round to nearest. On 16 September the deep run was 470 of 472 — two lines of the People
+  screen that the product did not carry — and it printed "100%", directly under a line saying two
+  were not found, and then "holding at or above the floor of 100%". So the page said the product
+  matched the designs while the same page listed where it did not.
+
+  Two phrases is a small gap. A check that reports a small gap as no gap is not a small problem: it
+  is the difference between a number somebody can trust and a number that is 100% whenever it is
+  close enough, which is every number nobody checks.
+*/
+const exact = totalPhrases ? (totalFound / totalPhrases) * 100 : 100;
+const pct = totalFound === totalPhrases ? 100 : Math.min(99, Math.floor(exact));
 console.log(`\n${totalFound} of ${totalPhrases} design phrases appear in the product (${pct}%).`);
 if (gaps.length) {
   console.log(`${gaps.length} screen(s) have wording the code does not carry — listed above.`);

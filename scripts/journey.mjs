@@ -24,6 +24,30 @@ const BUSINESS = `Journey Electrical ${stamp}`;
 const failures = [];
 const at = p => (p.url().replace(BASE, '') || '/').split('?')[0];
 
+/**
+ * Is the sign-in stand-in actually answering?
+ *
+ * Asked only once sign-up has already failed, to tell two very different things apart: SPEC is
+ * broken, or the thing SPEC signs people in through is not running. On 16 September those looked
+ * identical — five failing checks and a screen reading "That didn't work" — and an hour went on the
+ * wrong one. A harness that is not up is not a fault in the product, and reporting it as one is how
+ * a verdict stops being trusted.
+ *
+ * Any answer at all counts as up. It replies 401 to this route, which is correct, and is also why
+ * `curl -f` could never be used to wait for it.
+ */
+async function authStandInUp() {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://localhost:54321';
+  try {
+    await fetch(`${base}/auth/v1/user`, { signal: AbortSignal.timeout(3000) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const HARNESS_DOWN = ' [THE SIGN-IN STAND-IN IS NOT ANSWERING — this is the harness, not SPEC]';
+
 function check(label, ok, detail = '') {
   console.log(`${ok ? '  ok  ' : ' FAIL '} ${label}${detail ? ` — ${detail}` : ''}`);
   if (!ok) failures.push(label);
@@ -171,7 +195,23 @@ try {
     process.exit(0);
   }
 
-  check('SIGN-UP SUCCEEDS and lands them on MY PAGE', at(page) === '/my-page', at(page));
+  /*
+    When sign-up fails, say WHY — not just where it ended up.
+
+    In CI this reported `/signup` and nothing else, and every check after it fell over, and the only
+    place the reason existed was a log served from a host that is not always reachable. `at()` drops
+    the query string, so even the error code the page was carrying went missing. A check that can
+    only say "not the page I expected" makes the next person guess, and guessing is what cost three
+    rounds here.
+  */
+  const landed = at(page) === '/my-page';
+  const why = landed ? '' : await (async () => {
+    const url = page.url();
+    const visible = (await page.evaluate(() => document.body.innerText))
+      .split('\n').map(l => l.trim()).filter(Boolean).slice(0, 6).join(' / ');
+    return `${url} :: ${visible.slice(0, 220)}${(await authStandInUp()) ? '' : HARNESS_DOWN}`;
+  })();
+  check('SIGN-UP SUCCEEDS and lands them on MY PAGE', landed, why || at(page));
   check('and My Page greets them rather than leaving them to work it out',
     (await page.content()).includes('This is your page'));
 

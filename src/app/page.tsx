@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Footer } from '@/components/ui';
@@ -76,45 +75,32 @@ export default async function Landing() {
 
       <div className="mx-auto max-w-4xl px-6">
         {/*
-          The mark, and nothing else on the screen.
+          The hero is the word, set enormous. Cream ground, ink type, and a deliberately large gap
+          underneath it.
 
           Everything below this asks a business owner to think about something difficult, and the
           first thing they should feel is that this will not be hard. A whole viewport spent on one
-          thing is expensive, and that is exactly what makes the claim credible — a page that says
-          "simple" while showing you nine panels is arguing against itself.
+          word is expensive, and that expense is exactly what makes the claim credible — a page that
+          says "simple" while showing you nine panels is arguing against itself.
 
-          This WAS the word "Simple." set enormous. The design replaced it with the wordmark, which
-          carries the word inside it, so nothing is lost and the first thing a stranger sees is now
-          the name of the company rather than an adjective about it.
+          It was a wordmark PNG for two days, on a comment claiming "the design replaced it with the
+          wordmark". The design does not. `SPEC Landing.dc.html` has NO `<img>` in it at all: the
+          hero is one `<p>` in the heading face at clamp(56px,10vw,120px), and the export Kris sent
+          on 16 September is byte-identical to the one in this repo, so it was never true for this
+          export. What a stranger actually met was a rainbow gradient wordmark in cyan, magenta and
+          orange — four colours that appear nowhere in the Organic palette — as the first thing on
+          the front door of a company whose whole argument is restraint.
 
-          It sat on a dark plate for a day, because the design referenced a transparent PNG that had
-          not been exported — and the only file that existed was white lettering on navy, which on
-          cream is an empty rectangle. Export 5 shipped the real one: the same mark with the P, the
-          C and "Simple." in ink instead of white, which is what a brand does when it needs a second
-          colourway. The plate is gone and this is now exactly what the design draws.
-
-          next/image rather than <img>: this is the front door and the mark is the largest thing on
-          it. Next re-encodes to AVIF/WebP at the size actually needed, and `priority` puts it in the
-          first paint rather than letting the biggest element on the page arrive late.
-
-          The file is at a NEW path rather than overwriting the old one. Swapping the bytes under
-          /spec-logo-hero.png served the navy version for another day out of the image cache — and
-          what happened here on one dev server is what a CDN does to every visitor. A changed image
-          gets a changed name.
+          The padding is asymmetric on purpose and copied from the design: a little above, a lot
+          below. That gap is what makes the word land.
         */}
         <section
-          aria-label="SPEC. Simple."
-          className="flex items-center justify-center py-8 sm:py-14"
+          aria-label="SPEC"
+          className="flex items-center justify-center px-5 pt-12 pb-[clamp(140px,20vh,240px)] sm:pt-24"
         >
-          <Image
-            src="/spec-wordmark.png"
-            alt="SPEC. Simple."
-            width={1672}
-            height={941}
-            priority
-            sizes="(max-width: 640px) 100vw, 720px"
-            className="h-auto w-full max-w-[720px]"
-          />
+          <p className="m-0 font-serif text-[clamp(56px,10vw,120px)] leading-none text-ink">
+            Simple.
+          </p>
         </section>
 
       </div>

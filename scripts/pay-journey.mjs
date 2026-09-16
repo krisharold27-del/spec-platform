@@ -38,6 +38,30 @@ const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 140)); });
 page.on('pageerror', e => errors.push(String(e).slice(0, 140)));
 
+/**
+ * Is the sign-in stand-in actually answering?
+ *
+ * Asked only once sign-up has already failed, to tell two very different things apart: SPEC is
+ * broken, or the thing SPEC signs people in through is not running. On 16 September those looked
+ * identical — five failing checks and a screen reading "That didn't work" — and an hour went on the
+ * wrong one. A harness that is not up is not a fault in the product, and reporting it as one is how
+ * a verdict stops being trusted.
+ *
+ * Any answer at all counts as up. It replies 401 to this route, which is correct, and is also why
+ * `curl -f` could never be used to wait for it.
+ */
+async function authStandInUp() {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://localhost:54321';
+  try {
+    await fetch(`${base}/auth/v1/user`, { signal: AbortSignal.timeout(3000) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const HARNESS_DOWN = ' [THE SIGN-IN STAND-IN IS NOT ANSWERING — this is the harness, not SPEC]';
+
 let failed = 0;
 const check = (label, condition, detail = '') => {
   console.log(`${condition ? 'ok  ' : 'FAIL'} ${label}${condition || !detail ? '' : `  — ${detail}`}`);
@@ -75,7 +99,12 @@ await page.fill('input[name="password"]', 'a-good-password-123');
 await page.waitForTimeout(3500);
 await page.click('button[type="submit"]');
 await page.waitForTimeout(2500);
-check('signed up and landed inside', !page.url().includes('/signup'), page.url());
+const inside = !page.url().includes('/signup');
+check(
+  'signed up and landed inside',
+  inside,
+  `${page.url()}${inside || (await authStandInUp()) ? '' : HARNESS_DOWN}`,
+);
 
 await page.goto(`${BASE}/journey`, { waitUntil: 'networkidle' });
 let b1 = await buttons();

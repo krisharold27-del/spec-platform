@@ -187,6 +187,26 @@ export default async function People({ searchParams }: { searchParams: Promise<{
       title="People"
       subtitle={hiring ? 'The roles you need filled, and who is in front of you.' : 'Who is where, and who is clear to work.'}
     >
+      {/*
+        The two lines the design carries above this page and the product did not.
+
+        Found on 16 September by the deep coverage check, which had them as "2 not found" and then
+        printed 100% underneath — 470 of 472 rounds up. The claim that the product says what the
+        designs say was very nearly true and was being reported as exactly true.
+
+        Both say what this page IS, which is the part a leader has to believe before the tabs below
+        mean anything: not a list of staff, the one place the whole of people is run from.
+      */}
+      <p className="label-caps mb-2">People · one stop shop</p>
+      <section className="card mb-6">
+        <h2 className="font-serif text-xl text-ink">Your people agent runs this, end to end</h2>
+        <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-ink-light">
+          A vacancy in the org chart becomes an ad, a shortlist, an interview scorecard against the
+          four pillars, an offer, an onboarding plan and a training path — without you opening another
+          system. For a people business, this is the system.
+        </p>
+      </section>
+
       <div className="flex flex-wrap gap-2">
         <Link href="/people" className={`rounded-full px-4 py-2 text-sm ${!hiring ? 'bg-rust text-cream' : 'bg-surface text-ink hover:bg-cream'}`}>
           Who you have
