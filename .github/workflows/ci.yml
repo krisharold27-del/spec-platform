@@ -267,7 +267,30 @@ jobs:
           }
 
           node scripts/fake-auth.mjs 54321 &
-          until curl -fsS -o /dev/null http://localhost:54321/auth/v1/user; do sleep 1; done
+
+          # ── Wait for the stand-in, WITHOUT -f ────────────────────────────────────────────────
+          #
+          # This line is where every run since 64ce20e actually died.
+          #
+          # It was `until curl -fsS ...; do sleep 1; done`. fake-auth answers **401** on that route,
+          # which is correct — nobody is signed in — and `curl -f` treats 401 as a failure. So the
+          # loop could never exit. The step spun on its first line for the whole budget: no build, no
+          # journeys, no output. Raising the timeout twice made the spin longer, and my own reading
+          # of it — "the runner is just slower than a laptop" — was wrong, and was only shown to be
+          # wrong once each journey started reporting its own time and NONE of them reported at all.
+          #
+          # scripts/check.mjs has carried a comment about this exact trap for days. CI never got it.
+          #
+          # So: any answer at all means it is up, the wait is bounded, and running out says so.
+          up=
+          for _ in $(seq 1 30); do
+            curl -sS -o /dev/null --max-time 3 http://localhost:54321/auth/v1/user && { up=1; break; }
+            sleep 1
+          done
+          if [ -z "$up" ]; then
+            echo "::error title=fake-auth::never answered on :54321 after 30s"
+            exit 1
+          fi
 
           # Rebuilt so the client is compiled against the stand-in, then started for real.
           # Timed, because it shares this step's budget with ten browser journeys and until now
@@ -276,10 +299,17 @@ jobs:
           npm run build
           echo "::notice title=npm run build::$((SECONDS - BUILD_START))s"
           npm start &
-          for i in $(seq 1 40); do
-            curl -fsS -o /dev/null http://localhost:3000/ && break
+          serving=
+          for _ in $(seq 1 40); do
+            curl -fsS -o /dev/null http://localhost:3000/ && { serving=1; break; }
             sleep 2
           done
+          # Say so, rather than running nine journeys against nothing and reporting nine failures
+          # that all mean the same thing.
+          if [ -z "$serving" ]; then
+            echo "::error title=npm start::the app never served on :3000"
+            exit 1
+          fi
 
           journey journey.mjs
 
