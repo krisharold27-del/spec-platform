@@ -86,12 +86,26 @@ try {
     the visitor had the same fault all along and nobody had walked into it.
   */
   await page.goto(`${BASE}/setup/business`, { waitUntil: 'networkidle' });
-  // Adding a role rather than naming one: the business a visitor is shown is fully staffed, so there
-  // is no empty "who does this?" box on it — and adding is the one that changes nothing if refused.
-  const adding = page.locator('form:has(input[name="title"])').first();
-  if (await adding.count()) {
-    await adding.locator('input[name="title"]').fill('Role A Visitor Added');
-    await adding.locator('button').click();
+  /*
+    Find something to submit, whatever shape the demo business happens to be in.
+
+    The first version looked only for the "add a role by hand" form, which exists only when that
+    stream has no template proposal waiting — so whether this check could run at all depended on the
+    seeded chart. It passed here and failed in CI, which is the least useful way for a check to
+    behave. Three shapes are tried, and only if none of them is on the page is that a failure, with
+    the page named.
+  */
+  const adding = await (async () => {
+    for (const sel of ['form:has(input[name="title"])', 'form:has(input[name="name"])', 'form:has(input[name="template"])']) {
+      const f = page.locator(sel).first();
+      if (await f.count()) return f;
+    }
+    return null;
+  })();
+  if (adding) {
+    const box = adding.locator('input[name="title"], input[name="name"]').first();
+    if (await box.count()) await box.fill('Role A Visitor Added');
+    await adding.locator('button').first().click();
     await page.waitForTimeout(2500);
     const said = await page.evaluate(() => document.body.innerText);
     check('A VISITOR WHO TRIES TO SAVE IS NEVER SHOWN AN ERROR PAGE',
@@ -110,7 +124,8 @@ try {
     check('and is offered the way to keep what they have been doing',
       await page.locator('a', { hasText: 'Set up my business' }).count() > 0);
   } else {
-    check('a visitor reaches a page with something to save on it', false, `nothing to submit on ${at(page)}`);
+    check('a visitor reaches a page with something to save on it', false,
+      `nothing to submit on ${at(page)} — ${await page.locator('form').count()} forms`);
   }
 
   // ── 2. They decide they like it and sign up ───────────────────────────────────────────────────

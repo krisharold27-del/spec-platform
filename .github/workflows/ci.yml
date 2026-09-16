@@ -252,18 +252,29 @@ jobs:
           # guess. Same rule as everywhere else here: a failure nobody can locate is barely better
           # than no failure at all.
           journey () {
-            local script="$1" start=$SECONDS code=0
-            timeout 420 node "scripts/$script" || code=$?
+            local script="$1" start=$SECONDS code=0 log="/tmp/$1.log"
+            timeout 420 node "scripts/$script" 2>&1 | tee "$log"
+            code=${PIPESTATUS[0]}
             local took=$((SECONDS - start))
             if [ "$code" -eq 0 ]; then
               echo "::notice title=$script::passed in ${took}s"
-            elif [ "$code" -eq 124 ]; then
+              return 0
+            fi
+            if [ "$code" -eq 124 ]; then
               echo "::error title=$script::HUNG — still running after ${took}s, and was stopped"
-              return 1
             else
               echo "::error title=$script::failed after ${took}s (exit $code)"
-              return "$code"
             fi
+            # ── Say WHICH check, not just which journey ─────────────────────────────────────────
+            #
+            # Every journey prints "FAIL <the thing that is not true>". Those lines are the entire
+            # value of the journey and they were going only to the log — which is served from a host
+            # that is not always reachable, so a failure could be seen and not read. Lifting them
+            # into annotations means the run carries its own explanation wherever it is read from.
+            grep -E '(^|[[:space:]])FAIL' "$log" | head -8 | while IFS= read -r line; do
+              echo "::error title=$script::${line}"
+            done
+            return 1
           }
 
           node scripts/fake-auth.mjs 54321 &
