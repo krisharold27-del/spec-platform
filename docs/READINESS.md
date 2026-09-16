@@ -25,7 +25,7 @@ Each of these is enforced by something that runs on every change.
 
 | What | Evidence |
 |---|---|
-| The engine's arithmetic | 979 tests across 66 files. Pillar, role and team maths, the 90% rule, incentive ceilings, the deduction and its cap, the seven statuses, the rule of 8 — all measured against `designs/the-rules.md` |
+| The engine's arithmetic | 980 tests across 66 files. Pillar, role and team maths, the 90% rule, incentive ceilings, the deduction and its cap, the seven statuses, the rule of 8 — all measured against `designs/the-rules.md` |
 | A customer can get in and stay in | `scripts/journey.mjs` — look around, sign up, keep the business you were looking at, sign out, sign back in. Driven in a real browser |
 | A stranger's problem reaches their page | `scripts/frontdoor-journey.mjs`, 17 checks. The landing page promises "your page is waiting, with this problem already sitting in the middle of it" and the last check verifies exactly that |
 | The improvement register works end to end | `scripts/register-journey.mjs`, 25 checks. Logged, read, ranked, assigned, accepted, marked done, raised again as one entry |
@@ -52,7 +52,7 @@ Each of these is enforced by something that runs on every change.
 plain words and ends with a verdict. A skip is never counted as a pass, and
 "I could not check this" and "this is broken" are different sentences.
 
-Last run, 16 September: **WORKING — all 11 checks passed**.
+Last run, 16 September: **WORKING — all 12 checks passed**, nothing skipped.
 
 ---
 
@@ -183,14 +183,17 @@ complete."*
 
 ### Before JBI, specifically
 
-JBI can be migrated onto SPEC **now**, and the first two below are the only ones
-that have to happen before their crew touches it.
+JBI is the first paying customer and the complete test case at the same time.
+Every line below is a real thing that has never been done, and they are about to
+be the first to do it.
 
-- **Put them on the free beta.** /admin → the business → Billing → Beta. Nothing
-  is charged however many people are in it, and it survives Stripe being switched
-  on later. Without it they would be free only because the till is not plugged in,
-  and the first live invoice would go to the person who agreed to be the guinea
-  pig.
+- **Nothing to set up. They pay.** Kris, 16 September: *"i will pay for JBI and
+  use it as a complete test case — don't modify."* That reverses the earlier plan
+  to put them on the free beta, and it is the stronger call: a customer who is not
+  billed never tests billing, and the checkout, the webhook and the seat count
+  would have stayed unexercised until a stranger walked them. There is no flag, no
+  exception and no branch — they sign up at the front door like anybody else.
+  **Which means Stripe (step 6) now comes BEFORE they start, not after.**
 - **Invite by link, not by email.** No invitation has ever been sent, so use the
   copyable seat link on Setup → Your business. One link each, single use, bound to
   that address. Proven by `scripts/seat-journey.mjs`.

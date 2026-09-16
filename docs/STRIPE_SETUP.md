@@ -163,7 +163,18 @@ later does not change the subscription on its own.
 **A business is billed in its own currency**, from the country Vercel reports for the request, and
 falls back to AUD when it cannot tell.
 
-**JBI is on `beta` and will not be billed by any of this.** That was a decision recorded in the
-product, not an accident of Stripe being off — which is exactly why it was worth building before
-today. Check `/admin` shows them as Beta before you go live, because the day the till is plugged in
-is the day that decision gets tested.
+**JBI pays, like any other customer.** Kris, 16 September: *"i will pay for JBI and use it as a
+complete test case — don't modify."*
+
+That reverses the earlier plan to let them run for nothing, and it is the stronger decision. A
+customer who is not billed never tests billing: the checkout, the webhook, the seat count, the
+invoice, the card that expires in eleven months. Running the first real business on a free
+arrangement would have left the single most expensive path in the product unexercised until a
+stranger walked it.
+
+So there is **nothing to set up for JBI** — no flag, no exception, no branch. They sign up at the
+front door and pay at the checkout like anybody else, and every line of this document applies to
+them exactly as written. That is the point of using them as the test case.
+
+The free-beta capability still exists on /admin for some future customer who is genuinely a guinea
+pig. Nothing is on it, and it is not needed here.

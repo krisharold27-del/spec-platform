@@ -110,21 +110,47 @@ describe('the Stripe setup list matches the code', () => {
     expect(() => src('src/app/api/stripe/portal/route.ts')).not.toThrow();
   });
 
-  /*
-    The two things the product does that would otherwise be a surprise on the day.
-
-    A business with nobody in it is never billed, and JBI is on a free beta by a decision somebody
-    made rather than because the till was unplugged. The second is the one to re-check the morning
-    the live key goes in.
-  */
+  /* A business with nobody in it is never billed, and the document has to say so. */
   it('says a business with nobody in it is never billed', () => {
     expect(src('src/app/api/stripe/checkout/route.ts')).toContain('nothing_to_bill');
     expect(doc).toContain('nothing_to_bill');
   });
 
-  it('warns that the beta decision is about to be tested', () => {
-    expect(doc.toLowerCase()).toContain('beta');
-    expect(doc).toContain('/admin');
+  /*
+    ── The first customer gets no exception, and the document must not offer one ──────────────────
+
+    An earlier version of this test asserted the OPPOSITE: that the document warned JBI was on a
+    free beta. Kris reversed it — *"i will pay for JBI and use it as a complete test case — don't
+    modify"* — and the reversal is the stronger decision, which is why the test now guards the other
+    direction rather than simply being deleted.
+
+    A customer who is not billed never tests billing. The checkout, the webhook, the seat count, the
+    invoice, the card that expires in eleven months: on a free arrangement every one of those stays
+    unexercised until a stranger walks it. Running the first real business at full price is what
+    makes it a test case rather than a demo.
+
+    So the document may not tell anybody to flag, exempt or discount the first customer. There is no
+    such branch in the code and there must be no such instruction in the instructions.
+  */
+  it('offers the first customer no exception, because that is what makes it a test', () => {
+    expect(doc).toContain('like any other customer');
+    for (const escape of [
+      'put them on the free beta',
+      'shows them as beta',
+      'will not be billed',
+    ]) {
+      expect(doc.toLowerCase(), `the setup list still says "${escape}"`).not.toContain(escape);
+    }
+  });
+
+  /* And no tenant may be special-cased anywhere in the shipping code, whatever a document says. */
+  it('has no customer hardcoded in the product', () => {
+    for (const file of walk('src')) {
+      const body = src(file);
+      // Comments may name the business the product was built around. Code may not branch on it.
+      const code = body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+      expect(code, `${file} branches on a named customer`).not.toMatch(/['"`]jbi/i);
+    }
   });
 });
 
