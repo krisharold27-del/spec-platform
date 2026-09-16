@@ -109,6 +109,27 @@ export type Package = 'seat' | 'seat_training' | 'sessions' | 'full_control';
  * charged the training price for thirty-four people who are not being trained. The entitlement moves
  * to the person, and a bill becomes a mixture.
  */
+/**
+ * Is the A$44 seat sellable yet?
+ *
+ * Kris, 16 September: *"happy to remove the 44 from the plan for the short term and start
+ * cleanly... leave it as a price for the future - i havent finished the supervisor training pack
+ * anyway"*.
+ *
+ * So the price stays — it is published, it reduces to 8, the material that exists is real — and
+ * nobody can be put on it until the pack is finished. One switch, because the alternative is
+ * deleting the work and rebuilding it in a month, and because a half-removed price is how a number
+ * ends up on a page with nothing behind it, which is the fault this whole area was just fixed for.
+ *
+ * Flipping this to `true` is the only change needed when the pack is done. Everything downstream —
+ * the Administration control, the eligibility check, the two-line Stripe bill — is already built and
+ * tested and simply has nothing to act on while it is false.
+ *
+ * It also takes STRIPE_PRICE_SEAT_TRAINING_MONTHLY off the critical path for the first real payment:
+ * no training seats can exist, so checkout never needs the training price.
+ */
+export const TRAINING_SEAT_ON_SALE = false;
+
 export const TRAINING_LEVELS = ['supervisor'] as const;
 
 /**
@@ -122,6 +143,11 @@ export const TRAINING_LEVELS = ['supervisor'] as const;
  * — Head of Commercial, Operations, Growth — which is a seat above the frontline, not on it.
  */
 export const canBeTrained = (level: string | null | undefined): boolean =>
+  TRAINING_SEAT_ON_SALE
+  && TRAINING_LEVELS.includes(String(level) as (typeof TRAINING_LEVELS)[number]);
+
+/** The same question, ignoring whether it is on sale yet — for describing the rule on a page. */
+export const isFrontlineLeader = (level: string | null | undefined): boolean =>
   TRAINING_LEVELS.includes(String(level) as (typeof TRAINING_LEVELS)[number]);
 
 /** What one seat of each kind costs a month, in this currency. */

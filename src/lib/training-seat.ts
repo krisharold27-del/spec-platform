@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '../db';
-import { canBeTrained } from './pricing';
+import { canBeTrained, TRAINING_SEAT_ON_SALE } from './pricing';
 import { LIBRARY, libraryOrder } from './training-library';
 
 /**
@@ -132,6 +132,20 @@ export async function removeTrainingSeat(tenantId: string, userId: string): Prom
  * anybody should be charged for.
  */
 export async function countTrainingSeats(tenantId: string): Promise<number> {
+  /*
+    While the seat is not on sale, nobody is billed for it — whatever the column says.
+
+    Found by a check that asked the database rather than the switch: somebody put on a training seat
+    BEFORE the pack was held back would have gone on being charged A$44 a month for material that is
+    not finished. Nobody in production is in that position, which is exactly why it would never have
+    been noticed. The switch has to mean what it says, so it is read here, at the point the number
+    becomes money, rather than only where the button used to be.
+
+    The column is left alone on purpose: when the pack is finished, the people already chosen for it
+    are still chosen, and nobody has to remember who they were.
+  */
+  if (!TRAINING_SEAT_ON_SALE) return 0;
+
   const rows = await db
     .select({
       trainingSeat: schema.users.trainingSeat,

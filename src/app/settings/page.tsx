@@ -8,7 +8,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { getScope } from '@/lib/scope';
 import { planStateFor, costLabel, TIER, tierOf } from '@/lib/plan';
-import { moneyLabel, SEAT_PRICES, canBeTrained } from '@/lib/pricing';
+import { moneyLabel, SEAT_PRICES, isFrontlineLeader, TRAINING_SEAT_ON_SALE } from '@/lib/pricing';
 import { libraryLine, LIBRARY } from '@/lib/training-library';
 import { PERMISSIONS, LEVELS, stateOf, STATE_LABEL, levelOf } from '@/lib/permissions';
 import { cadenceOf, CADENCE } from '@/lib/governance';
@@ -98,7 +98,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
     without anybody remembering to change a second thing.
   */
   const frontline = scope.roles
-    .filter(r => canBeTrained(r.level) && r.holder?.email)
+    .filter(r => isFrontlineLeader(r.level) && r.holder?.email)
     .map(r => ({ role: r, person: billable.find(b => b.email === r.holder!.email) }))
     .filter((x): x is { role: typeof x.role; person: NonNullable<typeof x.person> } => Boolean(x.person));
 
@@ -182,7 +182,21 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                 to them. It is for supervisors and team leaders — the people running a crew.
               </p>
             )}
-            {frontline.length === 0 ? (
+            {!TRAINING_SEAT_ON_SALE ? (
+              /*
+                Kris, 16 September: "happy to remove the 44 from the plan for the short term and
+                start cleanly... leave it as a price for the future - i havent finished the
+                supervisor training pack anyway".
+
+                The price stays published and everything behind it stays built; nobody can be put on
+                it until the pack is done. Said plainly rather than the control quietly vanishing,
+                because a leader who saw it yesterday would otherwise think SPEC had lost something.
+              */
+              <p className="mt-3 rounded-lg bg-cream p-3 text-sm text-ink-light">
+                Not open yet. The supervisor pack is still being written, so nobody can be put on it
+                and nobody is being charged for it. The price is set for when it is ready.
+              </p>
+            ) : frontline.length === 0 ? (
               <p className="mt-3 text-sm text-ink-light">
                 Nobody here holds a supervisor or team leader role yet. When somebody does, they can
                 be put on it from here.

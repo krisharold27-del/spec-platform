@@ -350,6 +350,9 @@ const JOURNEYS = [
   ['pay', 'a business that wants to pay being able to', 'pay-journey'],
   ['seat', 'somebody you invited taking their seat', 'seat-journey'],
   ['cockpit', 'your own cockpit staying private', 'cockpit-journey'],
+  // Not a browser journey: it drives the real delete function against a real database, because what
+  // is worth checking is the guards, not a page. '.mts' so it can import the product's TypeScript.
+  ['delete', 'clearing a test business, and every guard that stops the wrong one going', 'delete-journey.mts'],
 ];
 
 if (!serving) {
@@ -375,7 +378,11 @@ if (!serving) {
         // The address is passed explicitly. Every journey defaults to :3000, so when this command
         // has stood up its own app on another port they would all have driven at whatever happened
         // to be on :3000 instead — or at nothing.
-        return run(`node scripts/${script}.mjs ${APP}`, {
+        // A journey named with its extension runs through tsx; the rest are plain .mjs on node.
+        const cmd = script.endsWith('.mts')
+          ? `npx tsx scripts/${script} ${APP}`
+          : `node scripts/${script}.mjs ${APP}`;
+        return run(cmd, {
           env: { ...process.env, CHROME_PATH: browser, APP_URL: APP },
         });
       } catch (error) {

@@ -77,3 +77,34 @@ export async function setPackage(form: FormData) {
   revalidatePath('/settings');
   redirect('/admin?changed=1');
 }
+
+/**
+ * Delete a business, permanently.
+ *
+ * Kris, 16 September: "yes build a safe way to clear the test businesses". The alternative was
+ * somebody typing DELETE into a console at the same keyboard that holds the only copy of every real
+ * customer, so the safety is the feature — see lib/delete-business for the guards and for the
+ * orphan check that rolls the whole thing back rather than leaving half a business behind.
+ *
+ * Here it only does the two things a server action must never delegate: prove who is asking, and
+ * refuse to act on anything the form claims about itself. The name is compared against the database,
+ * never against a hidden field.
+ */
+export async function removeBusiness(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user || !isAdminEmail(user.email)) redirect('/signin');
+
+  const tenantId = String(form.get('tenantId') ?? '');
+  const typedName = String(form.get('confirmName') ?? '');
+  if (!tenantId) redirect('/admin');
+
+  const { deleteBusiness } = await import('@/lib/delete-business');
+  const outcome = await deleteBusiness(tenantId, typedName, user.tenantId);
+
+  // Said out loud in the server log either way: this is the one action with no undo.
+  console.warn('[admin] delete business', tenantId, 'by', user.email, '→',
+    outcome.ok ? `DELETED ${outcome.deleted.name}` : `refused: ${outcome.refusal}`);
+
+  revalidatePath('/admin');
+  redirect(outcome.ok ? '/admin?deleted=1' : `/admin?refused=${outcome.refusal}`);
+}

@@ -202,11 +202,12 @@ export default async function Landing() {
               <div className="mt-3 font-serif text-[44px] leading-tight text-ink">
                 {moneyLabel(HOME_CURRENCY, SEAT.withTraining)}
               </div>
-              <p className="mt-1.5 text-sm text-ink-light">per frontline leader, per month</p>
+              <p className="mt-1.5 text-sm text-ink-light">per frontline leader, per month · not open yet</p>
               <p className="mt-5 text-base leading-7 text-ink">
                 The same seat, plus SPEC&rsquo;s own training for supervisors and team leaders — twelve
                 modules across the four pillars, done online at their own pace. For the people running
-                a crew, not for everybody.
+                a crew, not for everybody. The pack is still being written — the price is set for when
+                it is ready, and nobody is charged for it before then.
               </p>
               <Link href="/pricing" className="btn-primary mt-6 inline-block">See what is in it</Link>
             </div>

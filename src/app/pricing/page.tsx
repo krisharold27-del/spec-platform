@@ -96,7 +96,7 @@ export default function Pricing() {
           <div className="mt-4 overflow-x-auto">
             <table className="table-clean min-w-[480px]">
               <thead>
-                <tr><th>Region</th><th>Per seat, per month</th><th>Frontline leader, with SPEC&rsquo;s own training</th></tr>
+                <tr><th>Region</th><th>Per seat, per month</th><th>Frontline leader, with training (not open yet)</th></tr>
               </thead>
               <tbody>
                 {ORDER.map(c => (

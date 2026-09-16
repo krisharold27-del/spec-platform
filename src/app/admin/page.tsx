@@ -4,10 +4,11 @@ import { db, schema } from '@/db';
 import { Footer } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
+import { REFUSAL_SAID } from '@/lib/delete-business';
 import { SETTABLE_PLANS, PLAN_MEANING, type SettablePlan } from '@/lib/plan';
 import { PACKAGES, PACKAGE_KEYS, packageOf, packagePrice } from '@/lib/pricing';
 import { SubmitButton } from '@/components/submit-button';
-import { setPlan, setPackage } from './actions';
+import { setPlan, setPackage, removeBusiness } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,8 @@ const PLAN_LABEL: Record<string, string> = {
   trial: 'Free', beta: 'Beta — free', basic: 'Paying', program: 'Program', lapsed: 'Lapsed',
 };
 
-export default async function Admin() {
+export default async function Admin({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   if (!isAdminEmail(user.email)) redirect('/journey');
 
@@ -141,6 +143,65 @@ export default async function Admin() {
             </table>
           </div>
         </section>
+        {/*
+          Clearing a test business, permanently.
+
+          Kris, 16 September: "yes build a safe way to clear the test businesses". The safety IS the
+          feature — see lib/delete-business. It sits at the bottom, behind typing the name, because
+          nothing above it is irreversible and this is.
+
+          A business Stripe has ever heard of cannot be deleted here at any amount of typing. That
+          guard is not about slips; it is about being wrong that a business is a test.
+        */}
+        <section className="mt-12 rounded-lg border border-rust-300 bg-rust-100 p-5">
+          <h2 className="font-serif text-xl text-rust-800">Clear a test business</h2>
+          <p className="mt-1 max-w-3xl text-sm text-ink">
+            Permanent, and there is no undo. Everything the business has — its chart, its people, its
+            months, its problems — goes. A business that has ever been through Stripe is refused here
+            however carefully you type, because money means it is somebody&apos;s real business
+            whatever it is called.
+          </p>
+
+          {sp.deleted && (
+            <p className="mt-3 rounded-lg bg-surface p-3 text-sm text-ink">
+              Deleted, and the database was checked afterwards: nothing was left pointing at it.
+            </p>
+          )}
+          {typeof sp.refused === 'string' && (
+            <p className="mt-3 rounded-lg border-l-4 border-rust-400 bg-surface p-3 text-sm text-ink">
+              {REFUSAL_SAID[sp.refused as keyof typeof REFUSAL_SAID] ?? 'Nothing was deleted.'}
+            </p>
+          )}
+
+          <ul className="mt-4 space-y-2">
+            {rows.filter(r => r.tenant.id !== user.tenantId).map(({ tenant }) => {
+              const paid = Boolean(tenant.stripeCustomerId) || Boolean(tenant.stripeSubscriptionId);
+              return (
+                <li key={tenant.id} className="flex flex-wrap items-center gap-3 rounded-lg bg-surface p-3 text-sm">
+                  <span className="font-medium text-ink">{tenant.name}</span>
+                  <span className="text-xs text-ink-light">{tenant.plan} · started {tenant.startDate}</span>
+                  {paid ? (
+                    <span className="ml-auto rounded bg-sage-200 px-2 py-0.5 text-xs font-medium text-sage-900">
+                      Has been through Stripe — cannot be deleted here
+                    </span>
+                  ) : (
+                    <form action={removeBusiness} className="ml-auto flex flex-wrap items-center gap-2">
+                      <input type="hidden" name="tenantId" value={tenant.id} />
+                      <input
+                        name="confirmName"
+                        placeholder="type the name to confirm"
+                        autoComplete="off"
+                        className="rounded-lg border border-ink/20 px-3 py-1.5 text-xs"
+                      />
+                      <SubmitButton className="btn-secondary text-xs" pending="Deleting…">Delete</SubmitButton>
+                    </form>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
         <p className="mt-6 text-xs text-ink-light"><Link href="/journey" className="underline">Back to the app</Link></p>
         <Footer />
       </main>

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { canBeTrained, seatRate, SEAT_PRICES, PACKAGES, digitRoot } from '../src/lib/pricing';
+import { canBeTrained, isFrontlineLeader, TRAINING_SEAT_ON_SALE, seatRate, SEAT_PRICES, PACKAGES, digitRoot } from '../src/lib/pricing';
 import { seatBill, planState, FREE_SEATS } from '../src/lib/plan';
 import { LIBRARY, libraryOrder, libraryMinutes, libraryLine } from '../src/lib/training-library';
 
@@ -20,17 +20,37 @@ const t = (plan: string) => ({ id: 'x', plan, startDate: '2026-01-01' });
 
 describe('who the training seat is for', () => {
   it('frontline leaders, and nobody else', () => {
-    expect(canBeTrained('supervisor')).toBe(true);
-    expect(canBeTrained('staff'), 'a team member is not a leader').toBe(false);
-    expect(canBeTrained('manager'), 'a stream head is above the frontline, not on it').toBe(false);
-    expect(canBeTrained('gm')).toBe(false);
+    expect(isFrontlineLeader('supervisor')).toBe(true);
+    expect(isFrontlineLeader('staff'), 'a team member is not a leader').toBe(false);
+    expect(isFrontlineLeader('manager'), 'a stream head is above the frontline, not on it').toBe(false);
+    expect(isFrontlineLeader('gm')).toBe(false);
   });
 
   it('refuses anything it does not recognise, rather than guessing', () => {
-    expect(canBeTrained(null)).toBe(false);
-    expect(canBeTrained(undefined)).toBe(false);
-    expect(canBeTrained('')).toBe(false);
-    expect(canBeTrained('SUPERVISOR'), 'levels are stored lowercase; a near miss is not a match').toBe(false);
+    expect(isFrontlineLeader(null)).toBe(false);
+    expect(isFrontlineLeader(undefined)).toBe(false);
+    expect(isFrontlineLeader('')).toBe(false);
+    expect(isFrontlineLeader('SUPERVISOR'), 'levels are stored lowercase; a near miss is not a match').toBe(false);
+  });
+
+  /*
+    Kris, 16 September: "happy to remove the 44 from the plan for the short term and start
+    cleanly... leave it as a price for the future - i havent finished the supervisor training pack
+    anyway".
+
+    So nobody can be put on it at all while the pack is unfinished, whatever role they hold — and
+    the price, the material and the whole two-rate bill stay built and tested behind the switch,
+    because deleting them and rebuilding in a month is how a feature comes back worse.
+  */
+  it('AND NOBODY AT ALL WHILE THE PACK IS UNFINISHED', () => {
+    expect(TRAINING_SEAT_ON_SALE, 'the supervisor pack is not finished yet').toBe(false);
+    expect(canBeTrained('supervisor'), 'not even a supervisor, until it is on sale').toBe(false);
+    expect(canBeTrained('staff')).toBe(false);
+  });
+
+  it('but the price is still published, for when it is', () => {
+    expect(PACKAGES.seat_training.aud).toBe(44);
+    expect(SEAT_PRICES.aud.withTraining).toBe(44);
   });
 });
 

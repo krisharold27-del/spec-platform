@@ -253,7 +253,10 @@ jobs:
           # than no failure at all.
           journey () {
             local script="$1" start=$SECONDS code=0 log="/tmp/$1.log"
-            timeout 420 node "scripts/$script" 2>&1 | tee "$log"
+            # .mts runs through tsx, because it imports the product's own TypeScript rather than
+            # driving a browser — the delete guard is worth checking against the real function.
+            local runner=(node); case "$script" in *.mts) runner=(npx tsx);; esac
+            timeout 420 "${runner[@]}" "scripts/$script" 2>&1 | tee "$log"
             code=${PIPESTATUS[0]}
             local took=$((SECONDS - start))
             if [ "$code" -eq 0 ]; then
@@ -370,3 +373,9 @@ jobs:
           # reaches every person in a customer's business except the owner. Single use,
           # expiring, bound to that address, and a refusal that never says "invalid token".
           journey seat-journey.mjs
+
+          # Clearing a test business, and — the half that matters — every guard that stops the wrong
+          # one going. A business Stripe has ever heard of is refused however carefully it is typed,
+          # and a table somebody forgot rolls the whole thing back rather than half-deleting a
+          # business. Proven by taking a table out of the list and watching it refuse.
+          journey delete-journey.mts

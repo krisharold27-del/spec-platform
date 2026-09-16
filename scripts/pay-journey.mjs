@@ -235,73 +235,60 @@ await sql`
   insert into role_assignments (id, role_id, user_id, from_date)
   values (${`ra-${stamp}`}, ${supervisorRole}, ${supervisorId}, now())`;
 
-// Eligibility is a pure rule, so it is asked directly. Everything after it goes through the page.
-const { canBeTrained } = await import('../src/lib/pricing.ts');
+// Eligibility is a pure rule, so it is asked directly.
+const { canBeTrained, isFrontlineLeader, TRAINING_SEAT_ON_SALE } = await import('../src/lib/pricing.ts');
 check(
-  'A TEAM MEMBER CANNOT BE PUT ON THE FRONTLINE LEADER SEAT',
-  canBeTrained('staff') === false && canBeTrained('gm') === false && canBeTrained('manager') === false,
+  'A TEAM MEMBER IS NEVER A FRONTLINE LEADER',
+  isFrontlineLeader('staff') === false && isFrontlineLeader('gm') === false && isFrontlineLeader('manager') === false,
 );
-check('and a supervisor can', canBeTrained('supervisor') === true);
+check('and a supervisor is', isFrontlineLeader('supervisor') === true);
 
 /*
-  The rest is done the way an administrator does it — on the page, with the button.
+  ── And nobody can be put on it at all, because the pack is not finished ────────────────────────
 
-  An earlier version of these checks imported the product's own functions and called them. That
-  proves the function works, which was never in doubt; it does not prove an administrator can reach
-  it, and "the code works but there is no way to press it" is exactly the fault that left this
-  product unable to take a first payment at all.
+  Kris, 16 September: "happy to remove the 44 from the plan for the short term and start cleanly...
+  leave it as a price for the future - i havent finished the supervisor training pack anyway".
+
+  So the check is the opposite of what it was an hour ago: not that an administrator CAN do this,
+  but that they cannot, and that the page says why rather than the control quietly disappearing. The
+  machinery behind it — the two-rate bill, the install, the eligibility rule — stays built and stays
+  unit-tested, so turning it on is one constant.
 */
+check(
+  'NOBODY CAN BE PUT ON THE A$44 SEAT WHILE THE PACK IS UNFINISHED',
+  TRAINING_SEAT_ON_SALE === false && canBeTrained('supervisor') === false,
+);
+
 await page.goto(`${BASE}/settings`, { waitUntil: 'networkidle' });
 const settings = await page.evaluate(() => document.body.innerText);
 check(
-  'the administrator is shown who may be put on SPEC\'s training',
-  // Case-insensitive, and the apostrophe is not part of the match: the heading is a label-caps,
-  // which CSS upper-cases, and innerText reports what is RENDERED rather than what is written.
-  /spec.{0,3}s training material/i.test(settings),
+  'the administrator is told it is coming, not left wondering where it went',
+  /not open yet/i.test(settings),
 );
-check('and the supervisor is on that list', settings.includes('A Supervisor'), '');
+check(
+  'and there is no way to put anybody on it',
+  (await page.locator('form:has(input[name="userId"])').count()) === 0,
+);
+/*
+  Somebody already on a seat, from before the pack was held back — asked of the PAGE, where the
+  number becomes money, rather than of the column.
 
-const putOn = page.locator('form[action]:has(input[name="userId"])').first();
-if (await putOn.count()) {
-  await putOn.locator('button').click();
-  await page.waitForTimeout(3000);
+  This is the case nobody would ever find: production has nobody on a training seat, so a switch
+  that closed the door and went on charging the people already through it would have looked perfect.
+  The column is deliberately left alone — when the pack is finished those people are still chosen —
+  so the only honest test is what the bill says.
 
-  const [{ n: billedAt44 }] = await sql`
-    select count(*)::int as n from users where id = ${supervisorId} and training_seat = true`;
-  check('PUTTING THEM ON IT CHANGES WHAT THEY ARE BILLED', billedAt44 === 1);
-
-  const [{ n: installed }] = await sql`
-    select count(*)::int as n from training_modules where tenant_id = ${tenantId} and source = 'spec'`;
-  check('AND SPEC\'S OWN MATERIAL IS INSTALLED IN THE BUSINESS', installed >= 12, `${installed} modules`);
-
-  const [{ n: withMaterial }] = await sql`
-    select count(*)::int as n from training_modules
-    where tenant_id = ${tenantId} and source = 'spec' and coalesce(length(content), 0) > 400`;
-  check(
-    'and every module has the actual material inside it, not just a title',
-    withMaterial === installed,
-    `${withMaterial} of ${installed} carry material`,
-  );
-
-  const [{ n: onPath }] = await sql`
-    select count(*)::int as n from role_curriculum rc
-    join training_modules tm on tm.id = rc.module_id
-    where rc.role_id = ${supervisorRole} and tm.source = 'spec'`;
-  check('AND IT IS ON THE PATH FOR THE ROLE THEY HOLD', onPath >= 12, `${onPath} on the path`);
-
-  // The bill is a MIXTURE. Three people now: owner (free), a mate, a supervisor on training.
-  await page.goto(`${BASE}/journey`, { waitUntil: 'networkidle' });
-  const mixed = await page.evaluate(() => document.body.innerText);
-  check(
-    'THE BILL IS A MIXTURE OF THE TWO RATES, NOT ALL OF EITHER',
-    mixed.includes('A$70 a month'),
-    // 3 people, one free: 1 plain at A$26 + 1 training at A$44 = A$70. A$78 would mean the
-    // training seat is being billed as a plain one; A$88 would mean everybody was charged for it.
-    mixed.match(/A\$[\d,]+ a month · \d+ (?:person|people), first seat free/)?.[0] ?? 'no cost line',
-  );
-} else {
-  check('an administrator can reach the training seat control', false, 'no control on /settings');
-}
+  Three people now, one free: A$26 if the switch holds, A$44 if it does not.
+*/
+await sql`update users set training_seat = true where id = ${supervisorId}`;
+await page.goto(`${BASE}/journey`, { waitUntil: 'networkidle' });
+const stillCheap = await page.evaluate(() => document.body.innerText);
+check(
+  'AND SOMEBODY ALREADY ON ONE IS NOT BILLED FOR IT',
+  stillCheap.includes('A$70 a month') === false && /A\$\d+ a month · 3 people, first seat free/.test(stillCheap),
+  stillCheap.match(/A\$[\d,]+ a month · \d+ (?:person|people), first seat free/)?.[0] ?? 'no cost line',
+);
+await sql`update users set training_seat = false where id = ${supervisorId}`;
 
 // ── The "payment received" banner has to agree with the page under it ────────────────────────────
 //
