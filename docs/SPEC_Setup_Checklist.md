@@ -32,6 +32,10 @@ Keep every key and password in a password manager, never in a chat. Where a step
 5. Bring to B3: those four values.
 
 **A5. Stripe** — You · 30 min (identity checks may take a day to clear)
+
+> **Superseded by `docs/STRIPE_SETUP.md`**, which is generated from the code and held to it
+> by `tests/stripe-setup.test.ts`. This section named `STRIPE_PRICE_BASIC_ANNUAL` and a
+> publishable key; the code reads neither. Follow the other document.
 1. stripe.com → create account for SPEC Business Solutions (Australia). Complete the business verification: ABN, business address, director ID details, bank account for payouts.
 2. Settings → Tax → enable **Stripe Tax**, confirm GST registration status.
 3. Product catalogue → Add product: **SPEC Basic**, recurring, **A$100 per year**, tax behaviour "inclusive" (the customer sees $100). Copy the **Price ID** (starts with `price_`).
@@ -73,8 +77,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<A4.3 anon key>
 SUPABASE_SERVICE_ROLE_KEY=<A4.3 service_role key>
 ANTHROPIC_API_KEY=<A3>
 STRIPE_SECRET_KEY=<A5 sk_test_ for now>
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<A5 pk_test_ for now>
-STRIPE_PRICE_BASIC_ANNUAL=<A5 price_>
+STRIPE_PRICE_SEAT_MONTHLY=<the AUD seat price id — see docs/STRIPE_SETUP.md>
 STRIPE_WEBHOOK_SECRET=<filled in at C3>
 RESEND_API_KEY=<A6>
 APP_URL=http://localhost:3000
