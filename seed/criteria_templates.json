@@ -248,6 +248,63 @@
       }
     },
     {
+      "template_id": "sales_supervisor",
+      "title": "Sales Supervisor",
+      "stream": "growth",
+      "level": "supervisor",
+      "note": "General sales supervisor. {focus} is the business's own word for what this role sells — 'Solar' at JBI Electrical, 'New Homes' or 'Service Contracts' elsewhere. The measures below are the same in every business; only the focus changes.",
+      "focus_default": "Sales",
+      "criteria": {
+        "safety": "organisational_standard",
+        "people": [
+          {
+            "text": "Every completed {focus} job asked for a review",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "{reviews_per_week, default 2 per week}"
+          },
+          {
+            "text": "Team trained and confident to quote without help",
+            "weight": 0.5,
+            "kpi": true
+          }
+        ],
+        "earnings": [
+          {
+            "text": "{focus} quote turnaround within target",
+            "weight": 0.4,
+            "kpi": true,
+            "target": "{quote_turnaround, default 1 day}"
+          },
+          {
+            "text": "Quote-to-win conversion at target",
+            "weight": 0.3,
+            "kpi": true,
+            "target": "{conversion_target}"
+          },
+          {
+            "text": "{focus} revenue at or above target",
+            "weight": 0.3,
+            "kpi": true,
+            "target": "{revenue_target}"
+          }
+        ],
+        "compliance": [
+          {
+            "text": "Every enquiry logged in the client system and the job system",
+            "weight": 0.5,
+            "kpi": true,
+            "target": "100%"
+          },
+          {
+            "text": "Quotes issued only from current pricing",
+            "weight": 0.5,
+            "kpi": true
+          }
+        ]
+      }
+    },
+    {
       "template_id": "supervisor",
       "title": "Supervisor",
       "stream": "operations",

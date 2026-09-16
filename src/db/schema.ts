@@ -286,6 +286,17 @@ export const roles = pgTable('roles', {
   level: text('level').notNull(),            // gm | manager | supervisor | staff
   defaultAccess: text('default_access').notNull().default('readonly'), // administrator | full | readonly
   reportsToRoleId: text('reports_to_role_id'), // org chart: roles report to roles
+  /**
+   * What this role covers, in the business's own word for it.
+   *
+   * A general role made specific without being redefined. "Sales Supervisor" is the same job with
+   * the same measures in every business; what changes is what it sells — Solar at JBI Electrical,
+   * New Homes or Service Contracts somewhere else. The focus is substituted into the role's title
+   * and into its criteria wherever the template wrote {focus}.
+   *
+   * Null is normal, and means the role needs no qualifier: a General Manager is a General Manager.
+   */
+  focus: text('focus'),
   pnlView: text('pnl_view'),                 // operational_ebitda | controllable_net_profit | full_statutory
   sortOrder: integer('sort_order').notNull().default(0),
   active: boolean('active').notNull().default(true),
@@ -774,3 +785,35 @@ export const healthPings = pgTable('health_pings', {
   stays invisible through PostgREST, the Supabase table editor, and anything that ever connects as
   `anon` — without anybody having to remember to write a rule for it.
 */
+
+/**
+ * What the leader decided about each measure a process could take on.
+ *
+ * ── Why the decision is stored and the proposal is not ───────────────────────────────────────────
+ *
+ * `lib/automation` works out a proposal from the criterion, its target and whether the numbers
+ * already arrive from a connected system. That is a derivation: it changes the moment a system is
+ * connected or a target is agreed, and storing it would leave the business acting on a verdict that
+ * stopped being true weeks ago. So it is computed every time and never written down.
+ *
+ * What IS written down is the part SPEC has no right to derive — a person's decision about a
+ * person's job, with their name and the date on it. `verdict` here overrides the proposal;
+ * `hoursPerMonth` is the business saying how long the work actually takes, and is the ONLY source
+ * of any hours or dollars figure SPEC will print (see lib/automation.saving).
+ *
+ * A missing row means undecided, which is a real state and reads as such. It never reads as
+ * agreement.
+ */
+export const roleAutomation = pgTable('role_automation', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  criterionId: text('criterion_id').notNull().references(() => criteria.id),
+  /** person | assisted | automated | unknown — the leader's answer, not SPEC's. */
+  verdict: text('verdict').notNull(),
+  /** How long this takes somebody each month, as the business measured it. Null means nobody said. */
+  hoursPerMonth: real('hours_per_month'),
+  /** Why the leader landed where they did. Their words, kept so the decision can be revisited. */
+  note: text('note'),
+  decidedBy: text('decided_by').notNull(),
+  decidedAt: text('decided_at').notNull(),
+}, t => [uniqueIndex('role_automation_criterion').on(t.criterionId), index('role_automation_tenant').on(t.tenantId)]).enableRLS();

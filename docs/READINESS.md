@@ -25,7 +25,7 @@ Each of these is enforced by something that runs on every change.
 
 | What | Evidence |
 |---|---|
-| The engine's arithmetic | 899 tests across 62 files. Pillar, role and team maths, the 90% rule, incentive ceilings, the deduction and its cap, the seven statuses, the rule of 8 — all measured against `designs/the-rules.md` |
+| The engine's arithmetic | 924 tests across 63 files. Pillar, role and team maths, the 90% rule, incentive ceilings, the deduction and its cap, the seven statuses, the rule of 8 — all measured against `designs/the-rules.md` |
 | A customer can get in and stay in | `scripts/journey.mjs` — look around, sign up, keep the business you were looking at, sign out, sign back in. Driven in a real browser |
 | A stranger's problem reaches their page | `scripts/frontdoor-journey.mjs`, 17 checks. The landing page promises "your page is waiting, with this problem already sitting in the middle of it" and the last check verifies exactly that |
 | The improvement register works end to end | `scripts/register-journey.mjs`, 25 checks. Logged, read, ranked, assigned, accepted, marked done, raised again as one entry |
@@ -37,12 +37,13 @@ Each of these is enforced by something that runs on every change.
 | A personal mailbox stays private | `tests/mail.test.ts` reads the source and fails if any query forgets. It found five leaks the day it was written |
 | No query reads every business | `tests/tenant-isolation.test.ts`. It found six the day it was written, one of them a real cross-tenant bug — and a seventh on 12 September, before it shipped |
 | A seat can be taken exactly once | `scripts/seat-journey.mjs`, 14 checks. Single use, expiring, bound to that address, and a refusal that never says "invalid token" |
-| Every table is isolated in the database too | `npm run db:check-rls` applies the real policy file and then asks Postgres what it actually got. **27 of 27** |
+| Every table is isolated in the database too | `npm run db:check-rls` applies the real policy file and then asks Postgres what it actually got. **28 of 28** |
 | A stranger with the project URL can change nothing | The same command stands up a role with exactly what PostgREST hands an anonymous caller, then tries it: reads the shared rulebook (must work) and deletes it (must not). Added 15 September after Supabase found `rulebook_rules` open to anonymous **delete** |
 | The product carries what the designs say | `npm run designs:coverage` — **175 of 175** headings and **473 of 473** labels, per design screen, named individually when one is missing |
 | **SPEC Business Solutions' own numbers reach nobody else** | `/cockpit` is not part of the client product. It is the founder's own page for the company that sells SPEC — revenue, client count, the road to 20,000 seats — and it concerns no customer at all. `scripts/cockpit-journey.mjs` drives two real people: an ordinary customer, who is redirected away and is shown none of it on the way past, and an allowlisted address, which gets in. Gated on `ADMIN_EMAILS`, checked on the server on every request — a hidden link is not access control, and the address is guessable |
 | The goals survive being set | `scripts/goals-journey.mjs`, 22 checks. Set at step one, visible afterwards on the board pack and monthly scoring, and gone from both when cleared |
 | SPEC reads the chart and the leader decides | `scripts/predict-journey.mjs`, 18 checks. Runs with **no API key**, finds a real gap, and a denied role is never proposed again |
+| **Which parts of a role a process could do — and who may see that** | `scripts/automation-journey.mjs`, 22 checks. It drives the real page: every verdict carries its reason, the section saying what must STAY with a person is present, hours nobody counted produce no figure, six hours somebody DID count produce one, and no dollar amount is invented from a rate nobody set. The last checks are the point — another business never sees this one's review, and a stranger is sent to sign in |
 | The goal reaches a scorecard without setting anybody's target | `scripts/cascade-journey.mjs`, 17 checks. The last one opens the role's own KPI page and confirms the agreed target is still empty |
 | An expired ticket stops somebody working | `tests/obligations.test.ts`. It caught a real defect before release: a licence expiring **today** was reported expired, which would have blocked people who were fine |
 
@@ -73,6 +74,23 @@ new seat depends on — "take your seat" — has never left the building. If the
 sender domain is unverified, invitations land in spam and the customer's team
 never arrives.
 
+### The automation review has never been opened by a manager
+
+The gate — Managing Director, CEO and board only — is one function,
+`mayReadAutomationReview`, called by both the page and the server action, and
+`tests/automation.test.ts` proves it refuses every level below the top of the
+chart. `scripts/automation-journey.mjs` then proves the real thing for the two
+cases it can reach without an invitation: another business never sees this one's
+review, and a signed-out stranger is sent to sign in.
+
+What has **not** been done in a browser is the case in the middle: a manager,
+inside the same business, signed in as themselves, opening that URL. That needs a
+second seat, which needs an invitation, which needs `RESEND_API_KEY` — step 1 of
+the list below. It is the same code path as the two that are proven, and I still
+would not call it proven until somebody has actually tried it.
+
+Do it the day the first invitation goes out.
+
 ### Sign-in has never run against real Supabase
 
 The journeys run against `scripts/fake-auth.mjs`, which speaks enough of the
@@ -84,7 +102,7 @@ behaviour, its rate limits, or its email delivery.
 
 **Corrected, 12 September.** I first reported "5 of 23 tables have a policy". That
 was wrong — I had missed a loop covering eight more. The real figure was 12 of
-23, and it is now **27 of 27**, with `rulebook_rules` global by design and
+23, and it is now **28 of 28**, with `rulebook_rules` global by design and
 `health_pings` locked to everybody. Every table added since — the goals, the
 predicted roles, the cascade — was added to the policy file in the same commit
 as the schema, and `npm run db:check-rls` fails if one ever is not.

@@ -260,6 +260,12 @@ jobs:
           # empty, waiting for the conversation, with the suggestion on record as a proposal.
           node scripts/cascade-journey.mjs
 
+          # Which parts of a role a process could do, and -- the part worth a browser -- who can
+          # see that. Read one desk down it is a page about whether somebody still has a job,
+          # while it is still a proposal. A unit test proves the function says no; only a real
+          # request proves the page and the WRITE both refuse.
+          node scripts/automation-journey.mjs
+
           # Taking a seat somebody gave you -- the other half of the way in, and the one that
           # reaches every person in a customer's business except the owner. Single use,
           # expiring, bound to that address, and a refusal that never says "invalid token".
