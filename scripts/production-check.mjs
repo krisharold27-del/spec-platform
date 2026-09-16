@@ -103,13 +103,89 @@ if (!body) {
   }
 }
 
-/* ── Is it serving the commit we think it is? ──────────────────────────────────────────────────
-   Only when told which one to expect, so this stays useful run by hand at any time. */
+/*
+  ── Is it serving the commit we think it is? ────────────────────────────────────────────────────
+
+  Only when told which one to expect, so this stays useful run by hand at any time.
+
+  ── Why "it is serving a different commit" is not automatically a fault ─────────────────────────
+
+  On 16 September this emailed Kris **"Production: All jobs have failed"** — the subject line you
+  would read as the site being down — about a site that was completely fine. Two commits had been
+  pushed 38 seconds apart. The run for the first one slept its 150 seconds, asked the site which
+  version it was serving, and was correctly told the second one. Everything had worked exactly as
+  intended and the alarm went off anyway.
+
+  That is the cry-wolf failure this repository has already removed one whole check for. It is worse
+  than a missing check, because the cost lands on the one person who cannot ignore it: he was on a
+  phone, away from a desk, reading that his business was down.
+
+  So a newer commit is recognised as what it is. "Live is AHEAD of the commit this run was for"
+  means somebody pushed again — the deploy worked, twice. Only behind, or unrelated, is a fault.
+*/
 const expected = (process.env.EXPECTED_SHA ?? '').trim();
+
+/**
+ * How `head` stands relative to `base` on GitHub: ahead, behind, identical, diverged — or null when
+ * GitHub could not be asked, which is said out loud rather than assumed to be either.
+ */
+function standing(base, head) {
+  const repo = process.env.GITHUB_REPOSITORY ?? 'krisharold27-del/spec-platform';
+  const token = process.env.GITHUB_TOKEN ?? '';
+  try {
+    const out = execFileSync('curl', [
+      '-s', '--max-time', '20', '-H', 'accept: application/vnd.github+json',
+      // Unauthenticated GitHub allows 60 requests an hour per address, shared across every runner
+      // on that address. A rate-limited answer must read as "could not ask", never as a fault.
+      ...(token ? ['-H', `authorization: Bearer ${token}`] : []),
+      `https://api.github.com/repos/${repo}/compare/${base}...${head}`,
+    ], { encoding: 'utf8', maxBuffer: 1 << 24, stdio: ['ignore', 'pipe', 'pipe'] });
+
+    /*
+      Only the four answers GitHub gives when it actually compared two commits.
+
+      Its error bodies carry a `status` field too — "404" for a commit it cannot find, and a rate
+      limit answers similarly — so reading `.status` and trusting it would turn "I could not ask"
+      into a confident verdict. That is the whole fault being fixed here, one level down.
+    */
+    const said = JSON.parse(out).status;
+    return ['ahead', 'behind', 'identical', 'diverged'].includes(said) ? said : null;
+  } catch {
+    return null;
+  }
+}
+
 if (expected && body?.commit) {
   console.log('\nWhich version is live');
-  const same = body.commit.startsWith(expected.slice(0, 7)) || expected.startsWith(body.commit.slice(0, 7));
-  check('serving this commit', same, `live is ${String(body.commit).slice(0, 7)}, expected ${expected.slice(0, 7)}`);
+  const live = String(body.commit);
+  const same = live.startsWith(expected.slice(0, 7)) || expected.startsWith(live.slice(0, 7));
+
+  if (same) {
+    check('serving this commit', true);
+  } else {
+    const how = standing(expected, live);
+    if (how === 'ahead') {
+      // Somebody pushed again while this was waiting. The deploy worked; this run is just late.
+      notes.push(
+        `Live is ${live.slice(0, 7)}, which is NEWER than the ${expected.slice(0, 7)} this run was for — `
+        + 'somebody pushed again while it was waiting. Not a fault.',
+      );
+      console.log(`  ✓ serving this commit or a newer one — live is ${live.slice(0, 7)}, newer than ${expected.slice(0, 7)}`);
+    } else if (how === null) {
+      /*
+        Could not ask GitHub. Do NOT guess in either direction: reporting a fault might be crying
+        wolf again, and reporting success would hide a deploy that never landed. Say what is known.
+      */
+      check(
+        'serving this commit',
+        false,
+        `live is ${live.slice(0, 7)}, expected ${expected.slice(0, 7)} — and GitHub could not be asked `
+        + 'whether that is a newer commit or an older one',
+      );
+    } else {
+      check('serving this commit', false, `live is ${live.slice(0, 7)} (${how}), expected ${expected.slice(0, 7)}`);
+    }
+  }
 } else if (expected) {
   notes.push('The site does not report its commit, so which version is live could not be confirmed here.');
 }

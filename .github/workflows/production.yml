@@ -34,7 +34,17 @@ on:
 
 concurrency:
   group: production-${{ github.ref }}
-  cancel-in-progress: false
+  # A newer push makes an older run's question obsolete before it can answer it.
+  #
+  # This run waits 150 seconds for the deploy, then asks the site which commit it is serving. Push
+  # twice inside two and a half minutes and the first run wakes to find the SECOND commit live —
+  # which is correct, and which it reported on 16 September as "Production: All jobs have failed",
+  # to a phone, about a site that was entirely fine.
+  #
+  # So a superseded push run is cancelled rather than left to cry wolf. Scheduled and manual runs
+  # are never cancelled: those ask "is it up right now", and that question does not go stale just
+  # because somebody pushed.
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   live:
@@ -58,4 +68,9 @@ jobs:
           PRODUCTION_URL: https://www.specbizhq.com
           # On a push, hold the site to THIS commit rather than merely to being up.
           EXPECTED_SHA: ${{ github.event_name == 'push' && github.sha || '' }}
+          # Only so the check can ask GitHub whether a different live commit is NEWER than this one
+          # or older. Unauthenticated that is 60 requests an hour shared across every runner on the
+          # address, and a rate-limited answer would read as "could not ask" — true, but useless
+          # exactly when two pushes land together, which is when it is needed.
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/production-check.mjs
