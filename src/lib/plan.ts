@@ -92,6 +92,15 @@ export interface TenantPlan {
   plan: string;
   startDate: string;
   tier?: string;
+  /**
+   * Set the first time a checkout completes, and the only reliable sign that a subscription exists.
+   *
+   * The plan column cannot answer this. A business is `basic` the moment the webhook lands, but it
+   * is also `basic` if an administrator set it there by hand, and `trial` is what a business with a
+   * perfectly good card looks like right up until the first payment. Only Stripe's own id says
+   * whether Stripe has ever heard of them.
+   */
+  stripeSubscriptionId?: string | null;
 }
 
 export interface PlanState {
@@ -124,6 +133,26 @@ export interface PlanState {
   /** A payment failed or the subscription was cancelled. */
   lapsed: boolean;
   /**
+   * Has this business ever actually subscribed?
+   *
+   * ── The gap this was written for ─────────────────────────────────────────────────────────────
+   *
+   * Found 16 September, minutes before the first real payment. The journey page showed a business
+   * with seats its monthly cost and a **Billing** button — which opens Stripe's customer portal.
+   * The portal needs a Stripe customer, which only exists once a checkout has completed. So a
+   * business that had never paid clicked Billing and was silently redirected back to the page it
+   * started on, with no message and no other button anywhere.
+   *
+   * The checkout route existed, worked, and was reachable from exactly one place: a "Fix payment"
+   * button shown only when the plan is `lapsed` — a state only a failed subscription can produce.
+   *
+   * **So there was no way for anybody to start paying.** Not a bug in checkout; a missing door.
+   * Every test passed, because every test tested the rooms rather than whether you could get in.
+   */
+  subscribed: boolean;
+  /** Seats to bill, no subscription yet — the state that needs a Start paying button. */
+  needsCheckout: boolean;
+  /**
    * No writes allowed. Only ever true for a lapsed subscription — never for a business that simply
    * has not paid yet, because until they invite someone they owe nothing.
    */
@@ -138,6 +167,7 @@ export function planState(tenant: TenantPlan, seats: number, currency: Currency 
   const program = tenant.plan === 'program';
   const beta = tenant.plan === 'beta';
   const lapsed = tenant.plan === 'lapsed';
+  const subscribed = Boolean(tenant.stripeSubscriptionId);
   const tier = tierOf(tenant.tier);
   return {
     seats,
@@ -150,6 +180,13 @@ export function planState(tenant: TenantPlan, seats: number, currency: Currency 
     program,
     beta,
     lapsed,
+    subscribed,
+    /*
+      A card is needed and Stripe has never heard of them. Excludes `lapsed` on purpose: that state
+      already has its own, more urgent button, and showing both would ask somebody whose payment
+      just failed to choose between "Fix payment" and "Start paying".
+    */
+    needsCheckout: seats > 0 && !program && !beta && !subscribed && !lapsed,
     readOnly: lapsed,
     tier,
     connectors: hasConnectors(tier),
@@ -200,7 +237,12 @@ export async function planStateFor(tenantId: string, currency: Currency = HOME_C
   const { eq } = await import('drizzle-orm');
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, tenantId)))[0];
   if (!tenant) throw new Error('Business not found.');
-  return planState({ id: tenant.id, plan: tenant.plan, startDate: tenant.startDate, tier: tenant.tier }, await countSeats(tenantId), currency);
+  return planState({
+    id: tenant.id, plan: tenant.plan, startDate: tenant.startDate, tier: tenant.tier,
+    // Without this the page cannot tell a business that has paid from one that never could, which
+    // is exactly the gap that left the product with no way to start a subscription at all.
+    stripeSubscriptionId: tenant.stripeSubscriptionId,
+  }, await countSeats(tenantId), currency);
 }
 
 /**

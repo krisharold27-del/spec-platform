@@ -25,7 +25,7 @@ Each of these is enforced by something that runs on every change.
 
 | What | Evidence |
 |---|---|
-| The engine's arithmetic | 988 tests across 66 files. Pillar, role and team maths, the 90% rule, incentive ceilings, the deduction and its cap, the seven statuses, the rule of 8 — all measured against `designs/the-rules.md` |
+| The engine's arithmetic | 996 tests across 66 files. Pillar, role and team maths, the 90% rule, incentive ceilings, the deduction and its cap, the seven statuses, the rule of 8 — all measured against `designs/the-rules.md` |
 | A customer can get in and stay in | `scripts/journey.mjs` — look around, sign up, keep the business you were looking at, sign out, sign back in. Driven in a real browser |
 | A stranger's problem reaches their page | `scripts/frontdoor-journey.mjs`, 17 checks. The landing page promises "your page is waiting, with this problem already sitting in the middle of it" and the last check verifies exactly that |
 | The improvement register works end to end | `scripts/register-journey.mjs`, 25 checks. Logged, read, ranked, assigned, accepted, marked done, raised again as one entry |
@@ -36,6 +36,7 @@ Each of these is enforced by something that runs on every change.
 | A visitor can never write | One chokepoint, `assertWritable`, and the look-around journey checks it |
 | A personal mailbox stays private | `tests/mail.test.ts` reads the source and fails if any query forgets. It found five leaks the day it was written |
 | No query reads every business | `tests/tenant-isolation.test.ts`. It found six the day it was written, one of them a real cross-tenant bug — and a seventh on 12 September, before it shipped |
+| **A business that wants to pay can** | `scripts/pay-journey.mjs`, 12 checks in a real browser. On 16 September the answer was **no**: `/api/stripe/checkout` existed, worked, was unit-tested, and was reachable from exactly one button — "Fix payment", shown only after a subscription had already FAILED. A business with seats was shown its monthly cost and a Billing button that opened a portal needing a Stripe customer it had never had, and was silently redirected back to the same page. Every test passed; they all checked the rooms rather than whether you could get into the building. The journey now holds the invariant — **a business is either free or has a way to pay** — and was proven by putting the fault back: 5 of its 12 checks fail on the old code |
 | A seat can be taken exactly once | `scripts/seat-journey.mjs`, 14 checks. Single use, expiring, bound to that address, and a refusal that never says "invalid token" |
 | Every table is isolated in the database too | `npm run db:check-rls` applies the real policy file and then asks Postgres what it actually got. **30 of 30** |
 | A stranger with the project URL can change nothing | The same command stands up a role with exactly what PostgREST hands an anonymous caller, then tries it: reads the shared rulebook (must work) and deletes it (must not). Added 15 September after Supabase found `rulebook_rules` open to anonymous **delete** |

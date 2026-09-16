@@ -41,6 +41,7 @@ const BILLING_NOTICE: Record<string, { tone: 'ok' | 'warn'; text: string }> = {
   upgraded: { tone: 'ok', text: 'Payment received — you are on SPEC Basic. Nothing you set up during the trial has changed.' },
   upgrade_cancelled: { tone: 'warn', text: 'Checkout was cancelled, so nothing has been charged. Your trial is untouched and you can subscribe whenever you are ready.' },
   nothing_to_bill: { tone: 'ok', text: 'Nothing to pay — you have not invited anyone in yet, and the structure you are building is free.' },
+  no_subscription: { tone: 'warn', text: "There's no subscription to manage yet — nothing has ever been charged. Use Start paying to set one up, and the Billing page appears once it's running." },
   billing_error: { tone: 'warn', text: "We couldn't open the payment page just then. Nothing has been charged. Try again, and if it happens twice email hello@specbizhq.com and we'll sort it at our end." },
 };
 
@@ -98,7 +99,28 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
           </p>
         </div>
       )}
-      {plan.billing && (
+      {/*
+        Two different states, and conflating them was how the product ended up with no way to pay.
+
+        A business that HAS subscribed gets Billing — Stripe's portal, for the card and the invoices.
+        A business that has seats and has never subscribed needs a way to START, and for a long time
+        there wasn't one: it was shown the same Billing button, the portal found no Stripe customer,
+        and it was silently redirected back to this page with nothing said and nowhere else to click.
+      */}
+      {plan.needsCheckout && (
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">
+          <span>
+            <b>{costLabel(plan)}</b>
+            <span className="text-ink-light"> · each extra person is {seatLabel(currency)} a month. Nothing has been charged yet.</span>
+          </span>
+          <form action="/api/stripe/checkout" method="post">
+            <button className="shrink-0 rounded-full bg-rust-800 px-4 py-2 text-sm font-medium text-cream hover:bg-rust-900">
+              Start paying
+            </button>
+          </form>
+        </div>
+      )}
+      {plan.billing && plan.subscribed && (
         <div className="mb-4 flex items-baseline justify-between gap-3 rounded-lg bg-surface p-4 text-sm">
           <span><b>{costLabel(plan)}</b> <span className="text-ink-light">· each extra person is {seatLabel(currency)} a month</span></span>
           <form action="/api/stripe/portal" method="post"><button className="text-sm text-ink-light underline hover:text-rust">Billing</button></form>

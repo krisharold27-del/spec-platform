@@ -23,7 +23,17 @@ export async function POST() {
 
   const tenantRows = await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
   const tenant = tenantRows[0];
-  if (!tenant?.stripeCustomerId) return NextResponse.redirect(`${appUrl()}/journey`, 303);
+  /*
+    No Stripe customer means they have never subscribed, and there is nothing for the portal to open.
+
+    This used to redirect to /journey with NOTHING SAID — the page reloaded, looked identical, and a
+    leader was left clicking the same button wondering what they had done wrong. It was half of the
+    reason the product had no way to take a first payment: the other half was that the page offered
+    this button to businesses that had never paid, instead of one that starts a subscription.
+
+    The page no longer does that, so reaching here should be rare. When it happens, say so.
+  */
+  if (!tenant?.stripeCustomerId) return NextResponse.redirect(`${appUrl()}/journey?no_subscription=1`, 303);
 
   const session = await stripe.billingPortal.sessions.create({
     customer: tenant.stripeCustomerId,

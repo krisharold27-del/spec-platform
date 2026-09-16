@@ -106,3 +106,82 @@ describe('who can put a business on one', () => {
     expect(page).toContain('PLAN_MEANING');
   });
 });
+
+/*
+  ── There has to be a way in ─────────────────────────────────────────────────────────────────────
+
+  Found on 16 September, minutes before the first real payment was due to be taken.
+
+  The journey page showed a business with seats its monthly cost and a **Billing** button. Billing
+  opens Stripe's customer portal, which needs a Stripe customer, which only exists once a checkout
+  has completed. A business that had never paid clicked it and was silently redirected back to the
+  page it started on — no message, no other button anywhere on the site.
+
+  `/api/stripe/checkout` existed, worked, and was reachable from exactly one place: a "Fix payment"
+  button shown only when the plan is `lapsed`, a state only a failed subscription can produce.
+
+  **So nobody could ever start paying.** Not a bug in checkout — a missing door. Every test passed,
+  because every test checked the rooms rather than whether you could get into the building.
+*/
+describe('a business that wants to start paying can', () => {
+  const withSub = (over: Partial<TenantPlan> = {}): TenantPlan =>
+    ({ id: 't', plan: 'trial', startDate: '2026-09-01', ...over });
+
+  it('is offered a way to start when it has seats and has never subscribed', () => {
+    const s = planState(withSub(), 12);
+    expect(s.needsCheckout, 'nothing would let them pay').toBe(true);
+    expect(s.subscribed).toBe(false);
+  });
+
+  /* And once they have, the start button goes away and the portal takes over. */
+  it('stops offering it once a subscription exists', () => {
+    const s = planState(withSub({ plan: 'basic', stripeSubscriptionId: 'sub_123' }), 12);
+    expect(s.subscribed).toBe(true);
+    expect(s.needsCheckout).toBe(false);
+    expect(s.billing).toBe(true);
+  });
+
+  /*
+    `plan` cannot answer this and must not be asked to. A business is `basic` the moment the webhook
+    lands, and also `basic` if an administrator set it by hand; `trial` is what a business with a
+    perfectly good card looks like until the first payment clears. Only Stripe's own id knows.
+  */
+  it('asks Stripe rather than the plan column', () => {
+    expect(planState(withSub({ plan: 'basic' }), 12).subscribed, 'basic by hand, never paid').toBe(false);
+    expect(planState(withSub({ plan: 'trial', stripeSubscriptionId: 'sub_1' }), 12).subscribed).toBe(true);
+  });
+
+  it('never asks a business with nobody in it to pay', () => {
+    expect(planState(withSub(), 0).needsCheckout).toBe(false);
+  });
+
+  it('never asks a free beta or the Program to pay', () => {
+    expect(planState(withSub({ plan: 'beta' }), 12).needsCheckout).toBe(false);
+    expect(planState(withSub({ plan: 'program' }), 12).needsCheckout).toBe(false);
+  });
+
+  /*
+    A lapsed business already has "Fix payment", which is more urgent and goes to the same place.
+    Showing both would ask somebody whose payment just failed to choose between two buttons.
+  */
+  it('does not offer two buttons to somebody whose payment just failed', () => {
+    expect(planState(withSub({ plan: 'lapsed' }), 12).needsCheckout).toBe(false);
+  });
+
+  /* The button has to exist on the page, not just in the state. */
+  it('puts the button on the page, pointing at checkout', () => {
+    const page = readFileSync('src/app/journey/page.tsx', 'utf8');
+    expect(page).toContain('plan.needsCheckout');
+    expect(page).toContain('/api/stripe/checkout');
+    expect(page).toContain('Start paying');
+  });
+
+  /* And the portal stops bouncing people back with nothing said. */
+  it('tells somebody why the portal has nothing to show, instead of reloading the page', () => {
+    const portal = readFileSync('src/app/api/stripe/portal/route.ts', 'utf8');
+    expect(portal).toContain('no_subscription=1');
+    const page = readFileSync('src/app/journey/page.tsx', 'utf8');
+    expect(page).toContain('no_subscription');
+    expect(page).toContain('Start paying to set one up');
+  });
+});

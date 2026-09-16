@@ -266,6 +266,12 @@ jobs:
           # request proves the page and the WRITE both refuse.
           node scripts/automation-journey.mjs
 
+          # Can a business that wants to pay actually start? On 16 September the answer was no:
+          # checkout existed, worked, was unit-tested, and was reachable only from a button that
+          # appears after a subscription has already FAILED. Every test passed because they all
+          # tested the rooms rather than whether you could get into the building.
+          node scripts/pay-journey.mjs
+
           # Taking a seat somebody gave you -- the other half of the way in, and the one that
           # reaches every person in a customer's business except the owner. Single use,
           # expiring, bound to that address, and a refusal that never says "invalid token".
