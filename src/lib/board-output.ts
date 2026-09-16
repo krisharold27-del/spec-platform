@@ -6,6 +6,7 @@
 import type { getTeamRollup, getGates } from './queries';
 import type { Pillar } from './scoring';
 import type { GovernanceCheck } from './governance';
+import { CLAUDE_MODEL, anthropicHeaders } from './claude';
 
 type Rollup = Awaited<ReturnType<typeof getTeamRollup>>;
 type Gates = Awaited<ReturnType<typeof getGates>>;
@@ -164,9 +165,9 @@ export async function generateBoardOutput(i: BoardInputs): Promise<string> {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      headers: anthropicHeaders(key),
       body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-5',
+        model: CLAUDE_MODEL,
         max_tokens: 1500,
         system: 'You write monthly board outputs for the SPEC operating system (Safety, People, Earnings, Compliance). Principles: make money, do it safely, ensure everyone loves their job. Rules: never present an empty template as a result; every miss needs a proposed fix; the business is SPEC only when all four pillars hold at 90%+ for two consecutive months; hard gates are pass/fail. Rewrite the draft below in plain terms for a business owner, keeping every figure exactly as given, adding one paragraph of reasoning per pillar below target from SPEC principles. Australian English. Markdown. No preamble.',
         messages: [{ role: 'user', content: base }],

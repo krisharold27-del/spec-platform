@@ -15,6 +15,7 @@
  * usable proposal rather than an error.
  */
 import { CATEGORIES, categoryName, guessCategory, isSensitive, type CategoryId } from './systems';
+import { CLAUDE_MODEL, anthropicHeaders } from './claude';
 
 export interface Mapping {
   /** What SPEC would call it — their words, trimmed to something that fits a row. */
@@ -112,9 +113,9 @@ export async function propose(text: string): Promise<Mapping> {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      headers: anthropicHeaders(key),
       body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5',
+        model: CLAUDE_MODEL,
         max_tokens: 400,
         system: SYSTEM,
         messages: [{ role: 'user', content: clean }],

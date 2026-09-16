@@ -18,6 +18,7 @@
  */
 import type { Pillar } from './scoring';
 import { fixOrder, type Bloom, type Certainty } from './register';
+import { CLAUDE_MODEL, anthropicHeaders } from './claude';
 
 export interface Diagnosis {
   bloom: Bloom[];
@@ -200,9 +201,9 @@ async function askClaude(text: string, key: string): Promise<Diagnosis> {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      headers: anthropicHeaders(key),
       body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5',
+        model: CLAUDE_MODEL,
         max_tokens: 1200,
         system: SYSTEM,
         messages: [{ role: 'user', content: text }],
