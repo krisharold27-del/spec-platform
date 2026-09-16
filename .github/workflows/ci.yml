@@ -25,7 +25,22 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # ── Why 45, and why the browser step has its own ────────────────────────────────────────────
+    #
+    # It was 20. On 16 September the browser step was still running at 18 minutes, the job hit its
+    # limit, and GitHub ended the run as **cancelled** — which sends nobody an email, because a
+    # cancellation is what you get when a person presses the button. So CI had not passed for two
+    # commits and nothing anywhere said so, on a project whose whole discipline is that a check
+    # whose failure mode is silence is worse than no check.
+    #
+    # Nothing was wrong: the step does a full production build and then walks ten journeys in a
+    # real browser, and there are ten because each one was added the day something got out that
+    # every unit test had missed. It needs the time.
+    #
+    # The step below carries its own 30, and that is the part that matters. A step that runs out of
+    # time FAILS, and a failed job is a red run and an email. A job that runs out of time is
+    # cancelled, and cancelled is quiet.
+    timeout-minutes: 45
 
     services:
       postgres:
@@ -210,6 +225,9 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Walk the whole customer journey in a browser
+        # Its own budget, so running out of time is reported as a FAILURE rather than as a quiet
+        # cancellation of the whole job. See the note on timeout-minutes above.
+        timeout-minutes: 30
         env:
           DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
