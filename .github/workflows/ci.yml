@@ -37,10 +37,15 @@ jobs:
     # real browser, and there are ten because each one was added the day something got out that
     # every unit test had missed. It needs the time.
     #
-    # The step below carries its own 30, and that is the part that matters. A step that runs out of
-    # time FAILS, and a failed job is a red run and an email. A job that runs out of time is
+    # The step below carries its own budget, and that is the part that matters. A step that runs out
+    # of time FAILS, and a failed job is a red run and an email. A job that runs out of time is
     # cancelled, and cancelled is quiet.
-    timeout-minutes: 45
+    #
+    # 20 became 45 and the browser step still ran out at 30. The nine journeys take 205 seconds on a
+    # developer machine, all nine, so nothing is hanging — a two-core runner is simply several times
+    # slower and nobody had ever measured it. Each journey now reports its own time as an annotation,
+    # so the next tightening of this number is done from figures rather than from guessing.
+    timeout-minutes: 60
 
     services:
       postgres:
@@ -227,7 +232,7 @@ jobs:
       - name: Walk the whole customer journey in a browser
         # Its own budget, so running out of time is reported as a FAILURE rather than as a quiet
         # cancellation of the whole job. See the note on timeout-minutes above.
-        timeout-minutes: 30
+        timeout-minutes: 45
         env:
           DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
@@ -235,62 +240,92 @@ jobs:
           APP_URL: http://localhost:3000
           NODE_ENV: test
         run: |
+          # ── Why each journey is timed and fenced ────────────────────────────────────────────
+          #
+          # This step ran out of time twice and the run said only that the step ran out of time. The
+          # logs are the one place that would have said WHICH journey, and reading them from a
+          # sandbox is not always possible — so the step is made to say it itself, through
+          # annotations, which come back on the ordinary API alongside the run.
+          #
+          # Each journey gets seven minutes. One that hangs now fails in seven minutes WITH ITS NAME
+          # on it, instead of eating the whole budget anonymously and leaving the next person to
+          # guess. Same rule as everywhere else here: a failure nobody can locate is barely better
+          # than no failure at all.
+          journey () {
+            local script="$1" start=$SECONDS code=0
+            timeout 420 node "scripts/$script" || code=$?
+            local took=$((SECONDS - start))
+            if [ "$code" -eq 0 ]; then
+              echo "::notice title=$script::passed in ${took}s"
+            elif [ "$code" -eq 124 ]; then
+              echo "::error title=$script::HUNG — still running after ${took}s, and was stopped"
+              return 1
+            else
+              echo "::error title=$script::failed after ${took}s (exit $code)"
+              return "$code"
+            fi
+          }
+
           node scripts/fake-auth.mjs 54321 &
           until curl -fsS -o /dev/null http://localhost:54321/auth/v1/user; do sleep 1; done
 
           # Rebuilt so the client is compiled against the stand-in, then started for real.
+          # Timed, because it shares this step's budget with ten browser journeys and until now
+          # nobody knew which of the two was eating it.
+          BUILD_START=$SECONDS
           npm run build
+          echo "::notice title=npm run build::$((SECONDS - BUILD_START))s"
           npm start &
           for i in $(seq 1 40); do
             curl -fsS -o /dev/null http://localhost:3000/ && break
             sleep 2
           done
 
-          node scripts/journey.mjs
+          journey journey.mjs
 
           # The improvement register, all the way through: a problem typed in plain words,
           # read, ranked, assigned, accepted, marked done, and raised again as one entry
           # rather than two. It is the mechanism the front door and My Page share, so a
           # break here is a break in both.
-          node scripts/register-journey.mjs
+          journey register-journey.mjs
 
           # The front door: a stranger with a problem becomes a business with that problem
           # already in its register. The landing page promises this literally -- "your page
           # is waiting, with this problem already sitting in the middle of it" -- so the last
           # check is whether the thing they typed on a public page is really there afterwards.
-          node scripts/frontdoor-journey.mjs
+          journey frontdoor-journey.mjs
 
           # What the business is FOR, and it staying said. The design puts this before any role
           # or KPI exists and promises it stays visible on the board pack and the monthly
           # scoring page. Both halves of that are claims about what a customer SEES, which no
           # unit test can make -- so they are driven here, in a browser, against a real save.
-          node scripts/goals-journey.mjs
+          journey goals-journey.mjs
 
           # What the chart is missing, and who decides. Runs with NO api key on purpose: SPEC
           # Basic is a complete way to run the system, so the structural reading has to stand on
           # its own. Also proves the part that makes this trustworthy rather than annoying -- a
           # denied role is never proposed again, however many times the chart is read.
-          node scripts/predict-journey.mjs
+          journey predict-journey.mjs
 
           # The goal reaching a scorecard. The check that matters is the last one: SPEC may
           # suggest what a role measures, and may NEVER set the number a person is judged
           # against. So it opens the role's own KPI page and confirms the agreed target is still
           # empty, waiting for the conversation, with the suggestion on record as a proposal.
-          node scripts/cascade-journey.mjs
+          journey cascade-journey.mjs
 
           # Which parts of a role a process could do, and -- the part worth a browser -- who can
           # see that. Read one desk down it is a page about whether somebody still has a job,
           # while it is still a proposal. A unit test proves the function says no; only a real
           # request proves the page and the WRITE both refuse.
-          node scripts/automation-journey.mjs
+          journey automation-journey.mjs
 
           # Can a business that wants to pay actually start? On 16 September the answer was no:
           # checkout existed, worked, was unit-tested, and was reachable only from a button that
           # appears after a subscription has already FAILED. Every test passed because they all
           # tested the rooms rather than whether you could get into the building.
-          node scripts/pay-journey.mjs
+          journey pay-journey.mjs
 
           # Taking a seat somebody gave you -- the other half of the way in, and the one that
           # reaches every person in a customer's business except the owner. Single use,
           # expiring, bound to that address, and a refusal that never says "invalid token".
-          node scripts/seat-journey.mjs
+          journey seat-journey.mjs
