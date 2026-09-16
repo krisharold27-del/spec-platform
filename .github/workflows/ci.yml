@@ -184,7 +184,20 @@ jobs:
           DATABASE_URL: postgres://spec:spec@localhost:5432/spec_ci
           APP_URL: http://localhost:3000
         run: |
+          # ── Stopped at the end of this step, and that matters ──────────────────────────────────
+          #
+          # This one is started with NO Supabase configuration on purpose: the public pages have to
+          # serve without it, which is the failure that took production down on 11 September.
+          #
+          # It used to be left running. The browser step further down then ran its own `npm start`,
+          # could not bind to 3000, died — and every journey drove at THIS server instead. Sign-up
+          # correctly answered "setting up is temporarily unavailable, that is our end", because for
+          # that process it genuinely was: no Supabase URL, no sign-in. Five red checks a run, about
+          # a product that was working perfectly.
+          #
+          # Invisible until today, because the step below used to hang before it ever got here.
           npm start &
+          SERVED_PID=$!
           for i in $(seq 1 30); do
             curl -fsS -o /dev/null http://localhost:3000/ && break
             sleep 2
@@ -215,6 +228,14 @@ jobs:
             }
             console.log("schema ok:", h.schema.tables, "tables");
           ' || fail=1
+
+          # Hand the port back. Anything still on 3000 after this step is a stranger, and the step
+          # below now refuses to run against one.
+          kill "$SERVED_PID" 2>/dev/null || true
+          for _ in $(seq 1 10); do
+            curl -sS -o /dev/null --max-time 1 http://localhost:3000/ || break
+            sleep 1
+          done
 
           exit $fail
 
@@ -312,6 +333,17 @@ jobs:
           BUILD_START=$SECONDS
           npm run build
           echo "::notice title=npm run build::$((SECONDS - BUILD_START))s"
+          # ── Nobody else's server ───────────────────────────────────────────────────────────────
+          #
+          # If something is already on 3000, `npm start` cannot bind, dies quietly, and every journey
+          # below drives at whatever IS there. That is exactly what happened: the step above left a
+          # copy running that was started with no Supabase configuration on purpose, so sign-up
+          # answered "that is our end" for nine runs in a row while the product was perfect.
+          if curl -sS -o /dev/null --max-time 2 http://localhost:3000/; then
+            echo "::error title=port 3000::something was already serving before this step started it"
+            exit 1
+          fi
+
           npm start &
           serving=
           for _ in $(seq 1 40); do
@@ -324,6 +356,20 @@ jobs:
             echo "::error title=npm start::the app never served on :3000"
             exit 1
           fi
+
+          # And prove it is the one we meant: a server without a sign-in configured can serve every
+          # public page perfectly and fail every journey, which is indistinguishable from a broken
+          # product unless somebody asks. So ask.
+          curl -s http://localhost:3000/api/health > /tmp/journey-health.json
+          node -e '
+            const h = require("/tmp/journey-health.json");
+            const missing = h.missing ?? [];
+            if (missing.length) {
+              console.error("::error title=wrong server::the app on :3000 is missing " + missing.join(", "));
+              process.exit(1);
+            }
+            console.log("::notice title=app on :3000::wired, nothing missing");
+          '
 
           journey journey.mjs
 
