@@ -379,8 +379,15 @@ No digests, no marketing, no re-engagement.
 
 ## 12 · Seats and billing
 
-**$26 a month per person who can sign in (AUD).** People on the chart without a
-seat are free and still scored.
+**$26 a month per person who can sign in, after the first — the first seat is
+free (AUD).** A business of one pays nothing. People on the chart without a seat
+are free and still scored.
+
+Decided 16 September, by Kris, on finding that a solo owner was being charged
+$26 while the product told them building was free: the owner has a way in, so
+`countSeats` counted them, and the promise and the invoice disagreed. Billing now
+starts with the second person, which is also when SPEC starts doing work for more
+than one of them. The price per seat does not move, so the rule of 8 stands.
 
 | Region | A seat | With training |
 |---|---|---|

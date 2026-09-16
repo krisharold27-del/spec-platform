@@ -302,8 +302,10 @@ export default async function Business({ searchParams }: { searchParams: Promise
               person never arrived.
             */}
             An invite creates a login link{emailOn ? ', emails it to them,' : ' for you to send them,'} and starts that
-            person&apos;s seat at {seatLabel(currency)} a month.
-            {plan.free ? ' You have not been charged anything yet.' : ` You are currently at ${moneyLabel(plan.currency, plan.monthlyCost)} a month for ${plan.seats} ${plan.seats === 1 ? 'person' : 'people'}.`}
+            person&apos;s seat at {seatLabel(currency)} a month — {plan.seats === 0 ? 'and the first seat is free' : 'after the first, which is free'}.
+            {plan.free
+              ? ' You have not been charged anything yet.'
+              : ` You are currently at ${moneyLabel(plan.currency, plan.monthlyCost)} a month: ${plan.seats} ${plan.seats === 1 ? 'person' : 'people'}, ${plan.billable} charged for.`}
           </p>
           {/*
             Anybody invited who has not come in yet, with their link.

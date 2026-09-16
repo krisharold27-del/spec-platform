@@ -47,8 +47,8 @@ SPEC sells four things, and the administrator decides which one a business is on
 
 | | What it is | Price | Billed | Sold where |
 |---|---|---|---|---|
-| **Seat** | One person in SPEC | **A$26** | per person, monthly | anywhere |
-| **Seat plus training** | The same, plus the training built into SPEC, done online | **A$44** | per person, monthly | anywhere |
+| **Seat** | One person in SPEC | **A$26** | per person, monthly, **first seat free** | anywhere |
+| **Seat plus training** | The same, plus the training built into SPEC, done online | **A$44** | per person, monthly, **first seat free** | anywhere |
 | **SPEC sessions** | Four one-hour sessions a month, delivered by you, built around their roles and how they actually use SPEC | **A$1,007** | flat, monthly | anywhere — delivered from Australia |
 | **Full SPEC control** | One full day a week on site, and the monthly board meeting chaired | **A$20,888** | flat, monthly | **Australia only** |
 
@@ -201,7 +201,7 @@ something that customer finds out before you do.
 chart, the goals and the whole structure are free and stay free — billing starts when somebody is
 invited, and a seat is a person who can sign in.
 
-**Quantity is the seat count at the moment of checkout.** `countSeats` decides it. Adding people
+**Quantity is the seat count at the moment of checkout, minus the free first seat.** `countSeats` counts the people and `billableSeats` decides how many are charged for. Adding people
 later does not change the subscription on its own.
 
 **A business is billed in its own currency**, from the country Vercel reports for the request, and

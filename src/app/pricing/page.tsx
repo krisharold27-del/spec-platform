@@ -31,13 +31,14 @@ export default function Pricing() {
 
       <main className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="font-serif text-3xl tracking-tight text-ink sm:text-4xl">
-          {home.symbol}{home.seat} per seat per month.
+          {home.symbol}{home.seat} per seat per month. The first one is free.
         </h1>
         <p className="mt-3 max-w-2xl text-base text-ink-light">
-          No minimum. No tier that unlocks features. Drawing your whole business — every role, every
-          reporting line, every KPI — is free and stays free however long it takes. A seat is billed when
-          a real person is invited in, because that is when SPEC starts doing work for them. A vacant
-          or predicted role never carries a seat, however the structure moves.
+          <b>The first seat is free</b>, so a business of one pays nothing at all. No minimum. No tier
+          that unlocks features. Drawing your whole business — every role, every reporting line, every
+          KPI — is free and stays free however long it takes. Billing starts with the second person,
+          because that is when SPEC starts doing work for more than one of you. A vacant or predicted
+          role never carries a seat, however the structure moves.
         </p>
 
         <section className="mt-10 grid gap-4 sm:grid-cols-2">
@@ -51,7 +52,7 @@ export default function Pricing() {
               <h2 className="mt-1 font-serif text-2xl text-ink">{TIER[t].label}</h2>
               <p className="mt-2 text-sm text-ink-light">{TIER[t].blurb}</p>
               <p className="mt-2 text-sm text-ink-light">{TIER[t].consequence}</p>
-              <div className="mt-4 font-serif text-2xl text-ink">{home.symbol}{home.seat}<span className="text-sm text-ink-light"> / seat / month</span></div>
+              <div className="mt-4 font-serif text-2xl text-ink">{home.symbol}{home.seat}<span className="text-sm text-ink-light"> / seat / month, first seat free</span></div>
               {t === 'basic' && (
                 <p className="mt-2 text-xs text-ink-light">
                   The same price, because it is the same system. Basic is not a cheaper SPEC — it is SPEC

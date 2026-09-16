@@ -123,8 +123,14 @@ export default async function Settings() {
           <dl className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="card-inset">
               <dt className="label-caps">Paid seats</dt>
-              <dd className="mt-1 font-serif text-2xl text-ink">{plan.seats}</dd>
-              <dd className="mt-1 text-xs text-ink-light">Anyone with a way in: invited, accepted or signed up.</dd>
+              {/* `billable`, not `seats`. This box is headed "Paid seats" and the first one is not
+                  paid, so printing the head count here would be the invoice contradicting itself
+                  two lines under the price. */}
+              <dd className="mt-1 font-serif text-2xl text-ink">{plan.billable}</dd>
+              <dd className="mt-1 text-xs text-ink-light">
+                Anyone with a way in — invited, accepted or signed up — after the first, who is free.
+                {plan.seats > 0 && ` ${plan.seats} ${plan.seats === 1 ? 'person has' : 'people have'} a way in.`}
+              </dd>
             </div>
             <div className="card-inset">
               <dt className="label-caps">Free</dt>

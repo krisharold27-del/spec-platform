@@ -50,8 +50,20 @@ const buttons = () => page.evaluate(() => ({
     .map(el => (el.textContent ?? '').trim()),
   billing: [...document.querySelectorAll('form[action="/api/stripe/portal"] button')]
     .map(el => (el.textContent ?? '').trim()),
-  free: (document.body.textContent ?? '').includes('Free — nothing to pay yet'),
-  cost: (document.body.textContent ?? '').match(/A\$[\d,]+ a month/)?.[0] ?? null,
+  // The words the product actually uses. This looked for "Free — nothing to pay yet", which is a
+  // sentence SPEC has never said, so it read false for every business including the free ones —
+  // and the invariant below was passing on its other half alone.
+  free: (document.body.textContent ?? '').includes('Free —'),
+  /*
+    The label of a business that IS being charged, in full.
+
+    A loose /A\$\d+ a month/ was not good enough once the first seat became free: the free label
+    itself says "A$26 a month for each person you add", so a business paying nothing reported a
+    cost. Matching the whole charged sentence is the difference between "this number appears
+    somewhere on the page" and "this business is being billed".
+  */
+  cost: (document.body.textContent ?? '')
+    .match(/A\$[\d,]+ a month · \d+ (?:person|people), first seat free/)?.[0] ?? null,
 }));
 
 // ── A real business ──────────────────────────────────────────────────────────────────────────────
@@ -84,6 +96,21 @@ check(
   `billing buttons: ${b1.billing.join(', ')}`,
 );
 
+// ── The first seat is free ───────────────────────────────────────────────────────────────────────
+// Kris, 16 September: "yes do the first seat free". At this point the business contains exactly one
+// person — the owner who just signed up — and they have a way in, so countSeats counts them. Before
+// this decision they were charged A$26 while the page promised that building was free.
+check(
+  'A BUSINESS OF ONE PAYS NOTHING',
+  b1.free && b1.cost === null,
+  `free=${b1.free} cost=${b1.cost}`,
+);
+check(
+  'and is not sent to a checkout for nothing',
+  b1.startPaying.length === 0,
+  b1.startPaying.join(', '),
+);
+
 // ── Now put somebody in it, which is what starts the meter ───────────────────────────────────────
 const [{ id: tenantId }] = await sql`select id from tenants where name = ${BUSINESS}`;
 await sql`
@@ -94,6 +121,13 @@ await page.goto(`${BASE}/journey`, { waitUntil: 'networkidle' });
 const b2 = await buttons();
 
 check('a business with people in it is shown what it costs', b2.cost !== null, String(b2.cost));
+// Two people, one seat charged for. The number is the whole decision: A$52 here would mean the free
+// seat exists in the label and nowhere else.
+check(
+  'AND THE SECOND PERSON IS THE FIRST ONE CHARGED FOR',
+  b2.cost === 'A$26 a month · 2 people, first seat free',
+  `two people, and the page says ${b2.cost}`,
+);
 check(
   'AND IS GIVEN A WAY TO START PAYING',
   b2.startPaying.length > 0,

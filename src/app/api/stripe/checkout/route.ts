@@ -30,7 +30,7 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getStripe } from '@/lib/stripe';
 import { currentOrigin } from '@/lib/origin';
-import { countSeats } from '@/lib/plan';
+import { countSeats, billableSeats } from '@/lib/plan';
 import { getScope, isTopOfChart } from '@/lib/scope';
 
 export async function POST() {
@@ -60,9 +60,15 @@ export async function POST() {
   const tenant = tenantRows[0];
   if (!tenant) return NextResponse.redirect(`${here}/journey`, 303);
 
-  // Nobody invited yet means nothing to bill — the structure is free and stays free.
+  /*
+    Nothing to bill means nothing to bill, and there are two ways to get there: nobody in the
+    business at all, or nobody past the first person — because the first seat is free (lib/plan,
+    FREE_SEATS). Charging the quantity Stripe is given here is the ONLY place the decision becomes
+    money, so it reads `billable` and never `seats`.
+  */
   const seats = await countSeats(user.tenantId);
-  if (seats === 0) return NextResponse.redirect(`${here}/journey?nothing_to_bill=1`, 303);
+  const billable = billableSeats(seats);
+  if (billable === 0) return NextResponse.redirect(`${here}/journey?nothing_to_bill=1`, 303);
 
   // Billed in the business's own currency, set by where it is (BUILD_SPEC §8.2).
   const currency = currencyForCountry((await headers()).get('x-vercel-ip-country'));
@@ -70,7 +76,7 @@ export async function POST() {
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
-    line_items: [{ price, quantity: seats }],
+    line_items: [{ price, quantity: billable }],
     // client_reference_id is how the webhook maps the completed session back to a tenant —
     // more reliable than matching on customer email, which can differ from the app user's email.
     client_reference_id: tenant.id,

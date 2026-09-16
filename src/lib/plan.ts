@@ -104,15 +104,17 @@ export interface TenantPlan {
 }
 
 export interface PlanState {
-  /** People with a way into the business — this is what is billed. */
+  /** People with a way into the business. The truth about the business, not the invoice. */
   seats: number;
+  /** How many of them are charged for: everyone after the first. See FREE_SEATS. */
+  billable: number;
   /** The business's own currency — prices are decided per region, never converted. */
   currency: Currency;
-  /** seats × the seat price in that currency. */
+  /** billable seats × the seat price in that currency — NOT every person in the business. */
   monthlyCost: number;
-  /** The meter has started: at least one person can get in. */
+  /** The meter has started: somebody beyond the first person can get in. */
   billing: boolean;
-  /** Still free: structure only, nobody with an account yet. */
+  /** Nothing to pay — an empty business, or one that is still just the person who started it. */
   free: boolean;
   /** On the consulting engagement rather than self-serve. */
   program: boolean;
@@ -163,20 +165,59 @@ export interface PlanState {
   assistant: boolean;
 }
 
+/**
+ * The first seat is free. Billing starts at the second person.
+ *
+ * ── The decision, and what it reverses ───────────────────────────────────────────────────────────
+ *
+ * Kris, 16 September: *"yes do the first seat free"*.
+ *
+ * It settles a contradiction he spotted the day the first payment went through. This file has always
+ * said billing starts when somebody is INVITED — and the leader who signs themselves up was never
+ * invited by anybody. But `countSeats` counts a way in, not an invitation, and the owner has one. So
+ * a business of one was being charged A$26 while the page promised it was free, and both statements
+ * were sitting in the same product.
+ *
+ * `countSeats` is not what changes. An earlier fix deliberately made it count the owner, because a
+ * one-person business used to show as free while using the whole system, and a number that is wrong
+ * is worse than a number that is generous. `seats` stays the truth — how many people can get in —
+ * and this is a separate question: how many of them are charged for.
+ *
+ * Why it is also the better arrangement, not just the kinder one:
+ *
+ *   One person alone gets the least out of SPEC. It is a system about roles reporting to each other,
+ *   and charging the most per head at the point of least value is backwards.
+ *
+ *   It moves the first payment to the moment SPEC starts doing work for more than one person, which
+ *   is the moment a leader can see what they are paying for.
+ *
+ *   It costs one seat per business — about 4% at twenty thousand seats, and A$26 of A$1,040 for a
+ *   business the size of JBI. The whole of that cost lands on the smallest accounts, which are the
+ *   ones least likely to have paid at all.
+ *
+ * The seat PRICE does not move, so the rule of 8 is untouched.
+ */
+export const FREE_SEATS = 1;
+
+/** How many of the people in a business are actually charged for. Never negative. */
+export const billableSeats = (seats: number) => Math.max(0, seats - FREE_SEATS);
+
 export function planState(tenant: TenantPlan, seats: number, currency: Currency = HOME_CURRENCY): PlanState {
   const program = tenant.plan === 'program';
   const beta = tenant.plan === 'beta';
   const lapsed = tenant.plan === 'lapsed';
   const subscribed = Boolean(tenant.stripeSubscriptionId);
   const tier = tierOf(tenant.tier);
+  const billable = billableSeats(seats);
   return {
     seats,
+    billable,
     currency,
     // What it WOULD cost, kept even on a beta. A free arrangement somebody cannot see the value of
     // is one they have no reason to be glad of, and one nobody can price when it ends.
-    monthlyCost: seats * SEAT_PRICES[currency].seat,
-    billing: seats > 0 && !program && !beta,
-    free: seats === 0,
+    monthlyCost: billable * SEAT_PRICES[currency].seat,
+    billing: billable > 0 && !program && !beta,
+    free: billable === 0,
     program,
     beta,
     lapsed,
@@ -186,7 +227,7 @@ export function planState(tenant: TenantPlan, seats: number, currency: Currency 
       already has its own, more urgent button, and showing both would ask somebody whose payment
       just failed to choose between "Fix payment" and "Start paying".
     */
-    needsCheckout: seats > 0 && !program && !beta && !subscribed && !lapsed,
+    needsCheckout: billable > 0 && !program && !beta && !subscribed && !lapsed,
     readOnly: lapsed,
     tier,
     connectors: hasConnectors(tier),
@@ -204,13 +245,30 @@ export function costLabel(state: PlanState): string {
       ? `Beta — free. ${moneyLabel(state.currency, state.monthlyCost)} a month once it ends · ${state.seats} ${state.seats === 1 ? 'person' : 'people'}`
       : 'Beta — free';
   }
-  if (state.free) return 'Free — nobody in it yet';
-  return `${moneyLabel(state.currency, state.monthlyCost)} a month · ${state.seats} ${state.seats === 1 ? 'person' : 'people'}`;
+  /*
+    Two different kinds of free, and saying the wrong one is how a leader stops believing the page.
+
+    An empty business has nobody in it. A business of one has somebody in it and still pays nothing,
+    because the first seat is free — and being told "nobody in it yet" while you are plainly in it is
+    the sort of small wrongness that makes everything beside it suspect.
+  */
+  if (state.seats === 0) return 'Free — nobody in it yet';
+  if (state.free) return `Free — the first seat is, and so far it is just you. ${seatLabel(state.currency)} a month for each person you add`;
+  const people = `${state.seats} ${state.seats === 1 ? 'person' : 'people'}`;
+  return `${moneyLabel(state.currency, state.monthlyCost)} a month · ${people}, first seat free`;
 }
 
-/** What inviting one more person adds, for the line shown next to an invite button. */
-export function nextSeatLabel(currency: Currency = HOME_CURRENCY): string {
-  return `Inviting someone adds ${seatLabel(currency)} a month. Roles with no one in them are always free.`;
+/**
+ * What inviting one more person adds, for the line shown next to an invite button.
+ *
+ * It takes the seat count because the answer genuinely differs: the first person into a business
+ * costs nothing, and telling them otherwise would be asking for money that is not owed.
+ */
+export function nextSeatLabel(currency: Currency = HOME_CURRENCY, seats = 2): string {
+  if (billableSeats(seats + 1) === 0) {
+    return 'The first seat is free. Roles with no one in them are always free too.';
+  }
+  return `Inviting someone adds ${seatLabel(currency)} a month — the first seat is free. Roles with no one in them are always free.`;
 }
 
 /**

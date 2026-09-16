@@ -479,7 +479,7 @@ round local number chosen to obey the rule, checked before publishing.
 
 ### 8.2 Rules
 
-- Priced **per seat per month** — per person who can sign in.
+- Priced **per seat per month** — per person who can sign in, **after the first, which is free**.
 - **People on the chart without a seat are free** and still scored.
 - **Board roles are free.**
 - **No minimum. One seat is a complete product. No tier unlocks features.**
