@@ -10,7 +10,7 @@ or **unknown**, and proven means there is a command you can run that fails if it
 stops being true. Anything I have only reasoned about is assumed, however
 confident the reasoning.
 
-Dated 14 September 2026. Re-run the commands rather than trusting the date.
+Dated 16 September 2026. Re-run the commands rather than trusting the date.
 
 **The last two steps are fixed, by Kris's instruction:** the Anthropic API key and
 Stripe go in *after* everything else is finished, in that order. Nothing above
@@ -25,7 +25,7 @@ Each of these is enforced by something that runs on every change.
 
 | What | Evidence |
 |---|---|
-| The engine's arithmetic | 852 tests across 59 files. Pillar, role and team maths, the 90% rule, incentive ceilings, the deduction and its cap, the seven statuses, the rule of 8 — all measured against `designs/the-rules.md` |
+| The engine's arithmetic | 899 tests across 62 files. Pillar, role and team maths, the 90% rule, incentive ceilings, the deduction and its cap, the seven statuses, the rule of 8 — all measured against `designs/the-rules.md` |
 | A customer can get in and stay in | `scripts/journey.mjs` — look around, sign up, keep the business you were looking at, sign out, sign back in. Driven in a real browser |
 | A stranger's problem reaches their page | `scripts/frontdoor-journey.mjs`, 17 checks. The landing page promises "your page is waiting, with this problem already sitting in the middle of it" and the last check verifies exactly that |
 | The improvement register works end to end | `scripts/register-journey.mjs`, 25 checks. Logged, read, ranked, assigned, accepted, marked done, raised again as one entry |
@@ -50,7 +50,7 @@ Each of these is enforced by something that runs on every change.
 plain words and ends with a verdict. A skip is never counted as a pass, and
 "I could not check this" and "this is broken" are different sentences.
 
-Last run, 14 September: **WORKING — all 11 checks passed**, 160 seconds.
+Last run, 16 September: **WORKING — all 11 checks passed**.
 
 ---
 
@@ -106,17 +106,29 @@ Postgres lets bypass RLS. So for the app's own path RLS is still not the control
 — `tests/tenant-isolation.test.ts` is. The policies now genuinely protect every
 other route into the same database, which is what they were always for.
 
-### Nothing has ever been read by Claude
+### The key is on. Nothing has been read by a person yet
 
-`ANTHROPIC_API_KEY` is unset everywhere I have run. Four things fall back because
-of it — the front-door diagnosis, the predicted roles, the KPI cascade and the
-board pack's written draft — and **every one of them degrades honestly and says
-which reading you are looking at.** That was built deliberately so this step could
-be left until last, which is where Kris has put it (step 5 below).
+`ANTHROPIC_API_KEY` was set in Vercel and deployed on 16 September 2026, and the
+live site confirms it the only way worth confirming: `/status` asks Anthropic for
+a real reading every fifteen minutes and reports what came back. It says
+**working**.
 
-What remains true: the prompts are the design's own and the invariants are
-enforced in code, but **no real reading has ever been seen**, and the front door's
-whole argument is that the reading is good.
+That settles the half of step 5 that is plumbing. It does not settle the other
+half. **No real reading has ever been judged by a person.** The prompts are the
+design's own and the invariants are enforced in code, but the front door's whole
+argument is that the reading is good, and nobody has yet typed ten real problems
+into it and decided whether it is.
+
+Until somebody has, the honest position is that five things — the front-door
+diagnosis, the category mapping, the predicted roles, the KPI cascade and the
+board pack's written draft — are now asking Claude instead of falling back, and
+what they get back is unreviewed.
+
+Worth keeping in view: every one of them still **degrades honestly** if the key
+dies, the credit runs out or Anthropic is down, and says which reading you are
+looking at. That is why this step could safely be left until last. It is also why
+a dead key would produce no error and no complaint — which is what `/status` now
+exists to catch, because nothing else would.
 
 ---
 
@@ -195,12 +207,23 @@ else. A key that has been seen outside that path is burnt and has to be reissued
 this has already happened once, to a Resend key, and reissuing takes under a
 minute where finding out later does not.
 
-5. **Turn on `ANTHROPIC_API_KEY`** and read ten real problems.
+5. **Turn on `ANTHROPIC_API_KEY`** ✅ — *and read ten real problems* ⬜
 
-   No code change. One redeploy — Vercel binds environment variables when a
-   deployment is built, so a key added to the settings box does nothing until the
-   next deploy picks it up. There is a Redeploy button on the latest deployment;
-   that is the whole of it.
+   The key went in on 16 September 2026 and `/status` says **working**, which it
+   only says after asking Anthropic for a real reading and getting one back. The
+   plumbing half is done and provable.
+
+   The half that is left is the one that matters, and it is not something I can
+   do: **type ten real problems into the front door, in the words a sparky would
+   use, and decide whether the reading is any good.** The whole landing page is an
+   argument that it is. Nobody has tested that argument yet.
+
+   Do it before JBI sees it, not after.
+
+   No code change was needed. One redeploy — Vercel binds environment variables
+   when a deployment is built, so a key added to the settings box does nothing
+   until the next deploy picks it up. There is a Redeploy button on the latest
+   deployment; that is the whole of it.
 
    The Console needs credit on it. Without any, the key is valid and every call is
    refused, which looks exactly like not having a key at all: the product falls
@@ -228,19 +251,24 @@ minute where finding out later does not.
    The other four callers are all behind a sign-in, so their spending is bounded
    by paying customers doing their jobs.
 
-   What changes once it is set and redeployed:
+   What changed when it went on — and what to judge when reading the ten:
 
-   | | Without the key (today) | With it |
+   | | Before the key | Now |
    |---|---|---|
    | A problem typed on the front door | The deterministic reading — right about the pillars, generic about the business | Claude's reading of their actual words |
    | Predicted roles | The structural half: a stream nobody owns, a pillar nobody measures, a span past seven. True and checkable | That, **plus** a judgement about their trade against their own goals |
    | The KPI cascade | Where the goal has nobody moving it. It refuses to invent a number | The measure **and** the figure, cascaded top down |
    | The board pack | The written draft as generated | Rewritten in plain terms for an owner |
 
-   Every one of those degrades honestly rather than breaking, and says which
-   reading you are looking at — that was built deliberately so this step could
-   wait. But the front door's whole argument is that the reading is good, and
-   **no real reading has ever been seen.** Read ten before trusting it.
+   Every one of those still degrades honestly rather than breaking if the key
+   dies, the credit runs out or Anthropic is down, and says which reading you are
+   looking at — that is what made leaving this until last safe. It is also why a
+   dead key would raise no error and draw no complaint, which is what `/status`
+   is now for.
+
+   **Still not done: the reading has never been judged.** Right column, ten real
+   problems, a person deciding. Until then the front door is making a promise
+   nobody has checked.
 
 6. **Take a real payment.** Stripe in test mode end to end, then one live
    transaction you refund. `src/lib/stripe.ts` and three API routes exist and

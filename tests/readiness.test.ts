@@ -81,6 +81,28 @@ describe('the readiness list matches the product', () => {
   });
 
   /*
+    The test count, which is the figure it has been wrong about most often.
+
+    "623 tests when there were 852" was one of the four stale numbers found on 14 September. It was
+    stale again by 16 September — 852 against 898 — because it had been corrected by hand, and a
+    number corrected by hand goes stale the same afternoon somebody adds a test.
+
+    So it is counted rather than remembered. Counting `it(` and `test(` is not how vitest counts,
+    and in principle the two could disagree; they are exactly equal today, and this says out loud
+    which number the document is being held to, so a future disagreement surfaces as a failure to
+    explain rather than as a silence.
+  */
+  it('states the right number of tests, and of test files', () => {
+    const files = readdirSync('tests').filter(f => f.endsWith('.ts'));
+    const blocks = files
+      .map(f => readFileSync(`tests/${f}`, 'utf8').match(/^\s*(it|test)(\.[a-z]+)?\(/gm)?.length ?? 0)
+      .reduce((a, b) => a + b, 0);
+
+    expect(doc, `there are ${blocks} tests, not what the document says`).toContain(`${blocks} tests`);
+    expect(doc, `there are ${files.length} test files`).toContain(`${files.length} files`);
+  });
+
+  /*
     The two steps Kris fixed to the end of the list.
 
     Not a count, but the one instruction in the document that is a decision rather than an
