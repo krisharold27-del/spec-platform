@@ -1,10 +1,13 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { SpecLockup } from './spec-mark';
 import { band, type Pillar, type Score } from '@/lib/scoring';
 import { myBusinesses, getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
 import { currentLook } from '@/lib/look';
+import { isLapsed } from '@/lib/plan';
 import { LookBar } from './look-bar';
+import { ReadOnlyNotice } from './read-only-notice';
 import { PILLAR_META, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk, pct } from '@/lib/pillars';
 
 // Re-exported so existing pages keep importing them from here; they live in lib/pillars because a
@@ -35,6 +38,19 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
   */
   const me = await getCurrentUser().catch(() => null);
   const runsSpec = Boolean(me && isAdminEmail(me.email));
+
+  /*
+    A business that has gone read-only says so at the top of every page, before anybody types.
+
+    It lives in the Shell rather than on the pages because the pages are where it was missed: a
+    lapsed business could open Setup, see live text fields and Add buttons with nothing anywhere
+    saying otherwise, type a name, click Add — and be shown the generic "something went wrong"
+    screen. The refusal was right; everything the customer could see about it was wrong.
+
+    Put here, no page has to remember, and no page built later can forget. Only the `plan` column is
+    read, which is a single row and the same query the page was going to make anyway.
+  */
+  const lapsed = me ? await isLapsed(me.tenantId) : false;
   return (
     <div className="min-h-screen">
       {looking && <LookBar />}
@@ -69,7 +85,24 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
       <main className="mx-auto max-w-6xl px-6 py-8">
         <h1 className="font-serif text-2xl tracking-tight text-ink">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-ink-light">{subtitle}</p>}
-        <div className="mt-6">{children}</div>
+        <div className="mt-6">
+          {lapsed && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rust-300 bg-rust-100 p-4 text-sm text-rust-800">
+              <p>
+                <b>Read-only until the payment is sorted.</b> You can see everything and change
+                nothing. Nothing has been deleted, and it all comes back the moment the payment goes
+                through.
+              </p>
+              <Link href="/journey" className="shrink-0 rounded-md bg-rust px-3 py-1.5 text-sm font-semibold text-cream hover:bg-rust-600">
+                Fix payment
+              </Link>
+            </div>
+          )}
+          {/* Reading the address needs the client, and the client needs a boundary. Nothing to show
+              while it arrives, so the fallback is nothing. */}
+          <Suspense fallback={null}><ReadOnlyNotice /></Suspense>
+          {children}
+        </div>
         <Footer />
       </main>
     </div>

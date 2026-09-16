@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
-import { getCurrentUser, canManage } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
+import { requireManager } from '@/lib/guard';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 
@@ -16,8 +17,7 @@ import { assertWritable } from '@/lib/plan';
  * it rather than sitting in the queue forever.
  */
 async function decide(formData: FormData, state: 'approved' | 'declined') {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
 
   const id = String(formData.get('approvalId') ?? '');

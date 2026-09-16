@@ -246,6 +246,85 @@ export async function planStateFor(tenantId: string, currency: Currency = HOME_C
 }
 
 /**
+ * Is this business read-only because a payment failed?
+ *
+ * One column of one row. The Shell asks it on every page to put the banner up, and that is a lot of
+ * pages, so it deliberately does not go through planStateFor — which also counts seats and works out
+ * a price, none of which a banner needs.
+ */
+export async function isLapsed(tenantId: string): Promise<boolean> {
+  const { db, schema } = await import('../db');
+  const { eq } = await import('drizzle-orm');
+  const row = (await db.select({ plan: schema.tenants.plan }).from(schema.tenants).where(eq(schema.tenants.id, tenantId)))[0];
+  return row?.plan === 'lapsed';
+}
+
+/**
+ * The two reasons SPEC ever refuses to save something. Neither is a fault.
+ *
+ *   look   — a visitor walking through. Nothing they type was ever going to be kept.
+ *   lapsed — a payment failed or a subscription was cancelled. Nothing has been deleted.
+ */
+export type WriteRefusal = 'look' | 'lapsed';
+
+export const REFUSAL: Record<WriteRefusal, string> = {
+  look: 'This is a look around, so nothing is saved. Set up your own business to keep what you change — it takes about a minute.',
+  lapsed: 'That change was not saved, because the business is read-only until the payment is sorted. Nothing has been deleted, and everything comes back the moment it is.',
+};
+
+/**
+ * Send them back to the page they were on, with the reason, instead of throwing.
+ *
+ * ── Why ──────────────────────────────────────────────────────────────────────────────────────────
+ *
+ * Refusing used to throw. Every write in SPEC goes through a server action, and an uncaught error in
+ * a server action is rendered by Next as the generic failure page: **"This page did not load —
+ * Something went wrong on our end, not yours"**, with a reference ID.
+ *
+ * So the refusal was correct — the write really was blocked — and the sentence the customer read was
+ * a lie in both halves. It was not on our end, and nothing went wrong. Somebody whose card had just
+ * expired was told SPEC was broken, on the one screen where they most need to be told the opposite:
+ * that their work is safe and this is fixable in two minutes.
+ *
+ * Kris found it on 16 September, on the throwaway business, minutes after cancelling the test
+ * subscription — reference ID 1007727349. The visitor path had exactly the same fault and nobody had
+ * ever hit it, because no check had ever tried to write while looking around.
+ *
+ * The referer is where a form was posted from, and it is written by the browser, so it is checked
+ * against our own domain before it is used (see lib/origin — same reasoning, same week). Only the
+ * path is kept: anything else could point a person's next step at a website we do not own.
+ */
+export async function refuseWrite(why: WriteRefusal): Promise<never> {
+  let back: string | null = null;
+  try {
+    const [{ headers }, { isOurs }] = await Promise.all([import('next/headers'), import('./origin')]);
+    const referer = (await headers()).get('referer');
+    let path = '/my-page';
+    if (referer) {
+      try {
+        const from = new URL(referer);
+        // The old query string is dropped on purpose: it stops `?readonly=` stacking up on itself,
+        // and a stale parameter reappearing beside this message would be its own small confusion.
+        if (isOurs(from.host)) path = from.pathname;
+      } catch { /* not an address — keep the default */ }
+    }
+    back = `${path}?readonly=${why}`;
+  } catch {
+    /*
+      No request to read: a seeding script, or a test calling this directly. There is nowhere to send
+      anybody, so the old behaviour stands — and outside a browser an exception is the right answer.
+    */
+  }
+  if (back) {
+    // Outside the try. redirect() works by throwing, and catching that would turn a redirect into
+    // the exception it exists to replace.
+    const { redirect } = await import('next/navigation');
+    redirect(back);
+  }
+  throw new Error(REFUSAL[why]);
+}
+
+/**
  * Guard for every write path. Server actions are public endpoints, so the check belongs here and
  * not only in the UI that hides the button.
  */
@@ -259,10 +338,8 @@ export async function assertWritable(tenantId: string): Promise<void> {
     reach anything that bills.
   */
   const { isLookTenant } = await import('./look');
-  if (await isLookTenant(tenantId)) {
-    throw new Error('This is a look around, so nothing is saved. Set up your own business to keep what you change — it takes about a minute.');
-  }
+  if (await isLookTenant(tenantId)) await refuseWrite('look');
 
   const state = await planStateFor(tenantId);
-  if (state.lapsed) throw new Error('This subscription has lapsed. Renew to keep making changes — nothing has been deleted.');
+  if (state.lapsed) await refuseWrite('lapsed');
 }

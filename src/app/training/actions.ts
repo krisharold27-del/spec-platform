@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
-import { getCurrentUser, canManage } from '@/lib/auth';
+import { requireManager } from '@/lib/guard';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 
@@ -19,8 +19,7 @@ import { assertWritable } from '@/lib/plan';
  * somebody has already passed stays passed.
  */
 export async function setCurriculum(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
 
   const roleId = String(formData.get('roleId') ?? '');

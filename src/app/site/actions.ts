@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
-import { getCurrentUser, canManage } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
+import { requireManager } from '@/lib/guard';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { actionsOf, mondayOf } from '@/lib/meeting';
@@ -19,8 +20,7 @@ import { actionsOf, mondayOf } from '@/lib/meeting';
 
 /** Log the talk. It is a record that the crew was told, not a transcript of what was said. */
 export async function logToolbox(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
 
   const topic = String(formData.get('topic') ?? '').trim();

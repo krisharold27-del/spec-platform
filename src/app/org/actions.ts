@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { and, eq, isNull } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
-import { getCurrentUser, canManage } from '@/lib/auth';
+import { requireManager } from '@/lib/guard';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { getRoles } from '@/lib/queries';
@@ -20,8 +20,7 @@ import { canMove, parseRoles, parseCsv, resolveImport, type ChartRole } from '@/
  */
 
 async function editor() {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
   return user;
 }

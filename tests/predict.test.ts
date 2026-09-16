@@ -206,7 +206,9 @@ describe('what the product does with them', () => {
   });
 
   it('needs manage rights to change the shape of the business', () => {
-    expect(actions).toContain('canManage');
+    // requireManager is where canManage now lives — plus the look-around refusal, which
+    // used to bounce a visitor to a sign-in page with nothing said. See lib/guard.
+    expect(actions).toContain('requireManager');
     expect(actions).toContain('assertWritable');
   });
 

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
-import { getCurrentUser, canManage } from '@/lib/auth';
+import { requireManager } from '@/lib/guard';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { PILLARS } from '@/lib/scoring';
@@ -18,8 +18,7 @@ import { STAGES } from '@/lib/people';
  * rather than a CV in a pile.
  */
 async function manager(roleId?: string) {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
   if (roleId) {
     const scope = await getScope(user);
@@ -118,8 +117,7 @@ function holderFrom(raw: string): { staffId?: string; userId?: string; roleId?: 
  * than an honest "does not expire".
  */
 export async function addObligation(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
 
   const what = String(formData.get('what') ?? '').trim().slice(0, 120);
@@ -164,8 +162,7 @@ export async function addObligation(formData: FormData) {
  * typed, and refusing it teaches nothing.
  */
 export async function bookLeave(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
 
   const holder = holderFrom(String(formData.get('person') ?? ''));
@@ -197,8 +194,7 @@ export async function bookLeave(formData: FormData) {
  * an approval does, and the row stays visible so nobody has to remember the conversation.
  */
 export async function decideLeave(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
 
   const id = String(formData.get('id') ?? '');

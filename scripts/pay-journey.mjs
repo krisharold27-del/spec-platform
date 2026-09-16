@@ -188,6 +188,68 @@ check(
   (said ?? '').includes('no subscription to manage yet'),
 );
 
+// ── And when the payment fails, the customer is told THAT — not that SPEC is broken ──────────────
+//
+// Kris walked this on 16 September, minutes after cancelling the test subscription. Setup rendered
+// fully editable — no banner, live fields, live Add buttons. He typed a name into Head of Commercial
+// and clicked Add. The write was correctly refused, and what he was shown was the generic failure
+// page: "This page did not load — Something went wrong on our end, not yours", reference ID
+// 1007727349.
+//
+// Both halves of that sentence are untrue, and it is said to somebody whose card has just expired —
+// the one moment they most need to hear that their work is safe and this takes two minutes to fix.
+await sql`update tenants set plan = 'lapsed' where id = ${tenantId}`;
+await page.goto(`${BASE}/setup/business`, { waitUntil: 'networkidle' });
+
+const onArrival = await page.evaluate(() => document.body.innerText);
+check(
+  'a read-only business is told so BEFORE it types anything',
+  onArrival.includes('Read-only until the payment is sorted'),
+);
+check(
+  'and is given the way out on the same line',
+  await page.locator('a[href="/journey"]', { hasText: 'Fix payment' }).count() > 0,
+);
+
+// Now do exactly what he did.
+const naming = page.locator('form:has(input[name="name"])').first();
+await naming.locator('input[name="name"]').fill('Head of Commercial');
+await naming.locator('button').click();
+await page.waitForTimeout(2500);
+
+const afterSaving = await page.evaluate(() => document.body.innerText);
+check(
+  'A REFUSED SAVE IS NEVER SHOWN AS A FAULT IN SPEC',
+  !afterSaving.includes('Something went wrong on our end'),
+  afterSaving.split('\n').find(l => l.includes('went wrong')) ?? '',
+);
+check(
+  'and never as a reference number to quote back at us',
+  // The wording the error page actually uses. The first version of this check looked for the words
+  // "reference ID" — which is what the screen is CALLED, not what it says — so it passed while the
+  // error page was on screen. A check that cannot fail is worse than no check.
+  !afterSaving.includes('we can find exactly what happened'),
+);
+check(
+  'it says the change was not saved, and why',
+  afterSaving.includes('was not saved') && afterSaving.includes('payment'),
+);
+check(
+  'it says nothing has been lost',
+  afterSaving.includes('Nothing has been deleted'),
+);
+check(
+  'and leaves them on the page they were working on',
+  new URL(page.url()).pathname === '/setup/business',
+  page.url(),
+);
+
+// The refusal still has to be a refusal. A kind message over a write that went through would be
+// worse than the error page.
+const [{ n }] = await sql`
+  select count(*)::int as n from staff where tenant_id = ${tenantId} and name = 'Head of Commercial'`;
+check('AND THE WRITE REALLY WAS BLOCKED', n === 0, `${n} found`);
+
 check('no console errors', errors.length === 0, errors.join(' | '));
 
 await sql.end();

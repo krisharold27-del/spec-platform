@@ -73,6 +73,46 @@ try {
   await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
   check('a visitor can read Today', at(page) === '/my-page', at(page));
 
+  /*
+    ── A visitor can never write, and finding that out is not frightening ──────────────────────────
+
+    READINESS has claimed for a fortnight that "a visitor can never write — the look-around journey
+    checks it". It did not. It checked that a visitor could READ, and never once tried to save
+    anything, so the claim rested on reading the code rather than on doing it.
+
+    What actually happened when you tried was the generic failure page: "Something went wrong on our
+    end, not yours", with a reference number. To a stranger three minutes into evaluating SPEC, that
+    is the product falling over in the shop window. It was found on the lapsed path on 16 September;
+    the visitor had the same fault all along and nobody had walked into it.
+  */
+  await page.goto(`${BASE}/setup/business`, { waitUntil: 'networkidle' });
+  // Adding a role rather than naming one: the business a visitor is shown is fully staffed, so there
+  // is no empty "who does this?" box on it — and adding is the one that changes nothing if refused.
+  const adding = page.locator('form:has(input[name="title"])').first();
+  if (await adding.count()) {
+    await adding.locator('input[name="title"]').fill('Role A Visitor Added');
+    await adding.locator('button').click();
+    await page.waitForTimeout(2500);
+    const said = await page.evaluate(() => document.body.innerText);
+    check('A VISITOR WHO TRIES TO SAVE IS NEVER SHOWN AN ERROR PAGE',
+      !said.includes('Something went wrong on our end'),
+      said.split('\n').find(l => l.includes('went wrong')) ?? '');
+    /*
+      Looking for the words of the NOTICE, not for "look around".
+
+      The first version of these two checked for the phrase "look around" and for a link to
+      /look/decide — both of which the look-around bar puts at the top of every page anyway. They
+      would have passed with no message on the screen at all. A check that cannot tell the difference
+      between the thing working and the thing missing is not a check.
+    */
+    check('and is told plainly that it was not saved, and why',
+      said.includes('That was not saved, because this is a look around'));
+    check('and is offered the way to keep what they have been doing',
+      await page.locator('a', { hasText: 'Set up my business' }).count() > 0);
+  } else {
+    check('a visitor reaches a page with something to save on it', false, `nothing to submit on ${at(page)}`);
+  }
+
   // ── 2. They decide they like it and sign up ───────────────────────────────────────────────────
   await page.goto(`${BASE}/look/decide`, { waitUntil: 'networkidle' });
   check('the decision is asked once, after they have seen it', await page.locator('text=Do you like what you see').count() > 0);

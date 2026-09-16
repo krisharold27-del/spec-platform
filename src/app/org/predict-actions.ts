@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { getCurrentUser, canManage } from '@/lib/auth';
+import { requireManager } from '@/lib/guard';
 import { assertWritable } from '@/lib/plan';
 import { readTheChart, approvePrediction, denyPrediction } from '@/lib/predict-data';
 
@@ -15,8 +15,7 @@ import { readTheChart, approvePrediction, denyPrediction } from '@/lib/predict-d
  */
 
 async function manager() {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
   return user;
 }

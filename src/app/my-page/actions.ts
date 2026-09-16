@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { and, eq, isNull } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
-import { getCurrentUser, canManage } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
+import { requireManager } from '@/lib/guard';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { weekStart } from '@/lib/today-data';
@@ -17,8 +18,7 @@ import { weekStart } from '@/lib/today-data';
  * that can be honestly scored. Logging twice in one week is a no-op rather than a second row.
  */
 export async function logWeeklyMeeting() {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
 
   const since = weekStart(new Date());
@@ -93,8 +93,7 @@ export async function continueModule(formData: FormData) {
  * and only once the path is actually finished.
  */
 export async function signOffTraining(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
 
   const roleId = String(formData.get('roleId') ?? '');

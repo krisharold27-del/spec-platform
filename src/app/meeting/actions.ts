@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
-import { getCurrentUser, canManage } from '@/lib/auth';
+import { requireManager } from '@/lib/guard';
 import { assertWritable } from '@/lib/plan';
 import { actionsOf, decisionsOf, attendeesOf, mondayOf } from '@/lib/meeting';
 
@@ -29,8 +29,7 @@ async function thisWeek(tenantId: string) {
 }
 
 async function writer() {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
   return user;
 }

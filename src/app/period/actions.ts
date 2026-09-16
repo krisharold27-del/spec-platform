@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
-import { getCurrentUser, canManage, MANAGING_ACCESS } from '@/lib/auth';
+import { MANAGING_ACCESS } from '@/lib/auth';
+import { requireManager } from '@/lib/guard';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { getTeamRollup, getGates, PILLARS } from '@/lib/queries';
@@ -14,7 +15,7 @@ import { sendBoardOutputReadyEmail } from '@/lib/email';
 
 /** Enter the two hard gates for the current period. */
 export async function saveGates(formData: FormData) {
-  const user = await getCurrentUser(); if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   // Whole-business action: restricted to the top of the org chart, not to every full-access user.
   if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
@@ -40,7 +41,7 @@ export async function saveGates(formData: FormData) {
 
 /** Lock the period, generate the board output, open the next month. */
 export async function lockPeriod(formData: FormData) {
-  const user = await getCurrentUser(); if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   // Whole-business action: restricted to the top of the org chart, not to every full-access user.
   if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
@@ -74,7 +75,7 @@ export async function lockPeriod(formData: FormData) {
 }
 
 export async function approveBoardOutput(formData: FormData) {
-  const user = await getCurrentUser(); if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   // Whole-business action: restricted to the top of the org chart, not to every full-access user.
   if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
@@ -96,7 +97,7 @@ export async function approveBoardOutput(formData: FormData) {
  * account of them is.
  */
 export async function sendBackBoardOutput(formData: FormData) {
-  const user = await getCurrentUser(); if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
   const periodId = String(formData.get('periodId'));

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
-import { getCurrentUser, canManage } from '@/lib/auth';
+import { requireManager } from '@/lib/guard';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 
@@ -23,8 +23,7 @@ async function periodFor(tenantId: string, periodId: string) {
 
 /** Submit the month for sign-off. Business-wide, so it belongs to the top of the chart. */
 export async function submitPeriod(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   const scope = await getScope(user);
   if (!isTopOfChart(scope)) throw new Error('Only the top of the org chart submits the month.');
   await assertWritable(user.tenantId);
@@ -46,8 +45,7 @@ export async function submitPeriod(formData: FormData) {
  * corrected, because a locked month is history and history is never rewritten.
  */
 export async function reopenPeriod(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   const scope = await getScope(user);
   if (!isTopOfChart(scope)) throw new Error('Only the top of the org chart reopens the month.');
   await assertWritable(user.tenantId);
@@ -66,8 +64,7 @@ export async function reopenPeriod(formData: FormData) {
  * done by the person whose name goes on it. Locking is the separate act that follows.
  */
 export async function signPeriod(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   const scope = await getScope(user);
   if (!isTopOfChart(scope)) throw new Error('Only the top of the org chart signs the month.');
   await assertWritable(user.tenantId);

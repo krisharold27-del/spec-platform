@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
-import { getCurrentUser, canManage, emailConfirmed } from '@/lib/auth';
+import { emailConfirmed } from '@/lib/auth';
+import { requireManager } from '@/lib/guard';
 import { assertWritable } from '@/lib/plan';
 import { sendInviteEmail } from '@/lib/email';
 import { newSeatToken, seatTokenExpiry } from '@/lib/seat';
@@ -13,8 +14,7 @@ import { roleChangeFor, type AssignmentRow, type RoleRow, type StaffRow } from '
 const now = () => new Date().toISOString();
 
 async function requireLeader() {
-  const user = await getCurrentUser();
-  if (!user || !canManage(user.access)) redirect('/signin');
+  const user = await requireManager();
   await assertWritable(user.tenantId);
   return user;
 }
