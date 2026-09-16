@@ -83,6 +83,29 @@ describe('the constants themselves', () => {
     readable by anybody who can read the project. Every caller already swallows the failure and
     falls back to the deterministic reading; none of them may print what they were holding.
   */
+  /*
+    ── The one paid call a stranger can make ──────────────────────────────────────────────────────
+
+    Four of the five callers are behind a sign-in, so their spending is bounded by paying customers
+    doing their jobs. The fifth is the front door's problem box, and it is open to the internet on
+    purpose: the free reading before anybody gives up an email address is the entire argument of the
+    landing page, and putting it behind a form would be removing the thing that works.
+
+    Open to the internet and spending money is a combination that has to keep its cap. The cap is
+    one paid read per cookie, twelve an hour from any one address, and after that everyone still
+    gets a reading — the deterministic one — rather than being turned away.
+
+    A refactor that drops the `spent` branch would not fail anything. The endpoint would keep
+    working, the readings would get better, and the only symptom would arrive on a bill.
+  */
+  it('caps the one endpoint that spends money for people who are not signed in', () => {
+    const route = readFileSync('src/app/api/enquiry/route.ts', 'utf8');
+    expect(route, 'the front door no longer throttles by address').toContain('createThrottle');
+    expect(route, 'nothing decides whether the free read is spent').toContain('spent');
+    expect(route, 'a spent read must fall back to the deterministic one, not to a paid call')
+      .toMatch(/spent\s*\?\s*deterministic\(/);
+  });
+
   it('is never logged by any caller', () => {
     for (const f of files) {
       const body = source(f);

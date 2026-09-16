@@ -202,10 +202,31 @@ minute where finding out later does not.
    next deploy picks it up. There is a Redeploy button on the latest deployment;
    that is the whole of it.
 
-   The Console also needs credit on it. Without any, the key is valid and every
-   call is refused, which looks exactly like not having a key at all: the product
-   falls back to the deterministic reading and says so, and nothing appears to be
-   wrong. Put some credit on before judging the reading.
+   The Console needs credit on it. Without any, the key is valid and every call is
+   refused, which looks exactly like not having a key at all: the product falls
+   back to the deterministic reading and says so, and nothing appears to be wrong.
+   (Funded, $100, 16 September 2026.)
+
+   **Set a monthly spend limit in the Console at the same time.** One endpoint in
+   SPEC spends money for people who are not signed in — the front door's problem
+   box, `src/app/api/enquiry/route.ts` — because that free reading is the entire
+   argument of the landing page. It is capped two ways: one paid read per cookie,
+   and twelve an hour from any one address, after which everybody still gets a
+   reading, just the deterministic one. Nobody is ever turned away.
+
+   That address cap is a floor and not a ceiling. It counts in the memory of the
+   server instance that handled the request, so a busy site with several instances
+   running counts several times over, and a spread of addresses is not held to any
+   single one of those tallies. Against one person it holds; against a thousand
+   machines it does not.
+
+   The limit that does hold is the one Anthropic enforces. A monthly ceiling in
+   the Console bounds the worst case absolutely, whatever anybody points at the
+   front door, and the failure when it is reached is the good one: the product
+   falls back to the deterministic reading and keeps working.
+
+   The other four callers are all behind a sign-in, so their spending is bounded
+   by paying customers doing their jobs.
 
    What changes once it is set and redeployed:
 
