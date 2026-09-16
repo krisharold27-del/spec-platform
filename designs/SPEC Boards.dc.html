@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+  ::selection { background: var(--color-accent-200); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;">SPEC</a>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="#" style="color: var(--color-text); font-weight: 700;">Boards</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <sc-if value="{{ isGrid }}" hint-placeholder-val="{{ true }}">
+      <div>
+        <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; padding: clamp(28px,4vw,44px) 0 8px;">
+          <span style="display: grid; gap: 4px;">
+            <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(26px,3vw,34px); margin: 0;">Boards</h1>
+            <span style="font-size: 15px; line-height: 24px; color: color-mix(in srgb, var(--color-text) 70%, transparent); max-width: 58ch;">Live boards your team pins, builds on and discusses — wired to the data connected through SPEC. Not a snapshot; it updates as the numbers move.</span>
+          </span>
+          <button type="button" class="btn btn-primary" onClick="{{ newBoard }}" style="flex: none; white-space: nowrap;">+ New board</button>
+        </header>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 0 24px;">
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="6">
+            <button type="button" onClick="{{ f.select }}" style="{{ f.style }}">{{ f.label }}</button>
+          </sc-for>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 18px;">
+          <sc-for list="{{ visibleBoards }}" as="b" hint-placeholder-count="6">
+            <button type="button" onClick="{{ b.open }}" style="text-align: left; cursor: pointer; background: var(--color-surface, #fff); border: none; border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm); display: grid; gap: 12px; font-family: var(--font-body); color: var(--color-text);">
+              <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <span class="tag {{ b.tagClass }}" style="font-size: 11px;">{{ b.type }}</span>
+                <sc-if value="{{ b.isLive }}" hint-placeholder-val="{{ false }}">
+                  <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--color-accent-2-700);"><span style="width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent-2-500); display: inline-block;"></span>Live data</span>
+                </sc-if>
+              </span>
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 18px; line-height: 1.25;">{{ b.title }}</span>
+              <span style="font-size: 13.5px; line-height: 21px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ b.summary }}</span>
+              <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px;">
+                <span style="display: flex;">
+                  <sc-for list="{{ b.avatars }}" as="a" hint-placeholder-count="2">
+                    <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-content: center; margin-left: -7px; border: 2px solid var(--color-surface, #fff);">{{ a.initials }}</span>
+                  </sc-for>
+                </span>
+                <span style="font-size: 12px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ b.meta }}</span>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+      <div style="padding: clamp(20px,3vw,32px) 0 0;">
+        <button type="button" onClick="{{ backToGrid }}" style="background: none; border: none; padding: 0; font-size: 13.5px; font-weight: 600; color: var(--color-accent-700); cursor: pointer; margin-bottom: 16px;">&larr; All boards</button>
+
+        <div style="display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 24px; align-items: start;">
+          <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px); box-shadow: var(--shadow-sm); display: grid; gap: 20px;">
+            <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px;">
+              <span style="display: grid; gap: 6px;">
+                <span class="tag {{ active.tagClass }}" style="font-size: 11px; width: fit-content;">{{ active.type }}</span>
+                <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(22px,2.6vw,30px); margin: 4px 0 0;">{{ active.title }}</h1>
+              </span>
+              <button type="button" class="btn btn-secondary" onClick="{{ copyLink }}" style="flex: none; white-space: nowrap;">{{ linkLabel }}</button>
+            </div>
+
+            <sc-if value="{{ active.isRate }}" hint-placeholder-val="{{ false }}">
+              <div style="display: grid; gap: 16px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                  <span style="font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 999px; background: var(--color-accent-2-100); color: var(--color-accent-2-800);">Simpro — job cost feed</span>
+                  <span style="font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 999px; background: var(--color-accent-2-100); color: var(--color-accent-2-800);">Xero — actuals feed</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 20px; padding: 18px 20px; border-radius: var(--radius-lg); background: var(--color-bg);">
+                  <span style="display: grid; gap: 2px;">
+                    <span style="font-size: 12px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Was</span>
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; text-decoration: line-through; text-decoration-color: #a63b26; text-decoration-thickness: 2px;">$115/hr</span>
+                  </span>
+                  <span style="font-size: 22px; color: color-mix(in srgb, var(--color-text) 50%, transparent);">&rarr;</span>
+                  <span style="display: grid; gap: 2px;">
+                    <span style="font-size: 12px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Now</span>
+                    <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; color: var(--color-accent-2-700);">$105/hr</span>
+                  </span>
+                  <span style="margin-left: auto; text-align: right; font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Set where the market needs us —<br/>validated against actuals, not guesswork.</span>
+                </div>
+                <table class="table">
+                  <thead><tr><th>Rate input</th><th>Source</th><th>Value</th></tr></thead>
+                  <tbody>
+                    <sc-for list="{{ rateRows }}" as="r" hint-placeholder-count="5">
+                      <tr><td>{{ r.label }}</td><td>{{ r.source }}</td><td>{{ r.value }}</td></tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ active.isMountain }}" hint-placeholder-val="{{ false }}">
+              <div style="display: grid; gap: 14px;">
+                <p style="font-size: 14.5px; line-height: 24px; color: color-mix(in srgb, var(--color-text) 78%, transparent); margin: 0;">What needs fixing, and who's doing it — the plan the team climbs together.</p>
+                <div style="display: grid; gap: 10px;">
+                  <sc-for list="{{ mountainSteps }}" as="s" hint-placeholder-count="5">
+                    <div style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; background: var(--color-bg);">
+                      <span style="{{ s.dotStyle }}"></span>
+                      <span style="flex: 1; font-size: 14.5px; line-height: 21px;">{{ s.text }}</span>
+                      <span style="font-size: 12px; font-weight: 600; color: var(--color-accent-700); flex: none;">{{ s.owner }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ active.isGeneric }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size: 14.5px; line-height: 24px; color: color-mix(in srgb, var(--color-text) 75%, transparent); margin: 0;">{{ active.summary }} This board fills in as your team pins items to it — from an improvement opportunity, a scorecard, a training result or a meeting output.</p>
+            </sc-if>
+          </div>
+
+          <div style="display: grid; gap: 14px;">
+            <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 16px 18px; box-shadow: var(--shadow-sm);">
+              <span style="font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">Editing now</span>
+              <div style="display: flex; margin-top: 10px;">
+                <sc-for list="{{ active.avatars }}" as="a" hint-placeholder-count="2">
+                  <span style="width: 30px; height: 30px; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-content: center; margin-left: -8px; border: 2px solid var(--color-surface, #fff);" title="{{ a.name }}">{{ a.initials }}</span>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 16px 18px; box-shadow: var(--shadow-sm); display: grid; gap: 12px;">
+              <span style="font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">Discussion</span>
+              <sc-for list="{{ active.comments }}" as="c" hint-placeholder-count="2">
+                <div style="display: grid; gap: 3px;">
+                  <span style="font-size: 12.5px; font-weight: 700;">{{ c.name }}</span>
+                  <span style="font-size: 13.5px; line-height: 20px;">{{ c.text }}</span>
+                </div>
+              </sc-for>
+              <input class="input" type="text" placeholder="Add a comment…" style="margin-top: 4px;" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { view: 'grid', filter: 'all', activeId: null, linkCopied: false };
+
+  boards = [
+    { id: 'rate', title: 'Rate Board — Labour Sell Rate', type: 'Live data', filter: 'live', tagClass: 'tag-accent-2', isLive: true, summary: 'Sell rate inputs, live from Simpro and Xero. Fixed our rate: $115 → $105.', avatars: [{initials:'KH'},{initials:'JD'}], meta: '3 editors · updated today', isRate: true, comments: [
+      { name: 'Jordan', text: 'Xero actuals confirm we can hold $105 through Q3.' },
+      { name: 'Kris', text: 'This is the one — market-validated, not a guess.' },
+    ]},
+    { id: 'mountain', title: 'King of the Mountain — Solar Fix Plan', type: 'Plan', filter: 'plans', tagClass: 'tag-accent', isLive: false, summary: 'What needs fixing on the solar install line, and who owns each piece.', avatars: [{initials:'AR'},{initials:'KH'}], meta: '2 editors · updated 2d ago', isMountain: true, comments: [
+      { name: 'Anthony', text: 'Permitting step is the bottleneck — moved it up.' },
+    ]},
+    { id: 'scorecard', title: 'Q3 KPI Scorecard — Ops', type: 'Scorecard', filter: 'kpi', tagClass: 'tag-neutral', isLive: true, summary: 'Rolled-up scorecard for the Ops team, pinned for the board pack.', avatars: [{initials:'AR'}], meta: '1 editor · updated 1d ago', isGeneric: true, comments: []},
+    { id: 'improve', title: 'Vehicle Condition — Improvement Plan', type: 'Improvement opportunity', filter: 'improve', tagClass: 'tag-outline', isLive: false, summary: 'Weekly audit fix pinned from My Page, now tracked as a live plan.', avatars: [{initials:'JD'}], meta: '1 editor · updated 4d ago', isGeneric: true, comments: []},
+    { id: 'training', title: 'New Starter Ramp — Sales Ace', type: 'Training', filter: 'training', tagClass: 'tag-neutral', isLive: false, summary: 'Onboarding milestones and training results for the Sales Ace track.', avatars: [{initials:'MK'}], meta: '2 editors · updated 5d ago', isGeneric: true, comments: []},
+    { id: 'cogs', title: 'COGS Meeting — 8 Sept Outputs', type: 'Meeting output', filter: 'meetings', tagClass: 'tag-outline', isLive: false, summary: 'Decisions and owners locked in from the weekly COGS meeting.', avatars: [{initials:'KH'},{initials:'AR'}], meta: '2 editors · updated 1w ago', isGeneric: true, comments: []},
+  ];
+
+  rateRows = [
+    { label: 'Base hourly cost', source: 'Simpro', value: '$61.20' },
+    { label: 'On-costs / super', source: 'Xero', value: '$18.40' },
+    { label: 'Overheads allocation', source: 'Simpro', value: '$14.10' },
+    { label: 'Margin target', source: 'Board pack', value: '11.3%' },
+    { label: 'Effective sell rate', source: 'Validated', value: '$105.00' },
+  ];
+
+  mountainSteps = [
+    { text: 'Standardise the mounting kit list across every install', owner: 'Anthony', dotStyle: 'width:10px;height:10px;border-radius:50%;background:var(--color-accent-2-500);flex:none;' },
+    { text: 'Fix the permitting bottleneck — apply at contract signing, not install week', owner: 'Anthony', dotStyle: 'width:10px;height:10px;border-radius:50%;background:var(--color-accent-500);flex:none;' },
+    { text: 'Train installers on the new inverter model', owner: 'Jordan', dotStyle: 'width:10px;height:10px;border-radius:50%;background:var(--color-accent-500);flex:none;' },
+    { text: 'Weekly stock check against the job schedule', owner: 'Kris', dotStyle: 'width:10px;height:10px;border-radius:50%;background:color-mix(in srgb, var(--color-text) 30%, transparent);flex:none;' },
+  ];
+
+  filterDefs = [
+    { id: 'all', label: 'All' },
+    { id: 'live', label: 'Live data' },
+    { id: 'plans', label: 'Plans' },
+    { id: 'kpi', label: 'Scorecards' },
+    { id: 'improve', label: 'Improvement opportunities' },
+    { id: 'training', label: 'Training' },
+    { id: 'meetings', label: 'Meeting outputs' },
+  ];
+
+  open(id) { this.setState({ view: 'detail', activeId: id, linkCopied: false }); }
+  back() { this.setState({ view: 'grid' }); }
+  copyLink() {
+    this.setState({ linkCopied: true });
+    setTimeout(() => this.setState({ linkCopied: false }), 1500);
+  }
+
+  renderVals() {
+    const chip = (id, on) => `font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 999px; border: none; cursor: pointer; background: ${on ? 'var(--color-accent)' : 'var(--color-surface, #fff)'}; color: ${on ? '#fff' : 'var(--color-text)'}; box-shadow: ${on ? 'none' : 'var(--shadow-sm)'};`;
+    const filters = this.filterDefs.map(f => ({ label: f.label, style: chip(f.id, this.state.filter === f.id), select: () => this.setState({ filter: f.id }) }));
+    const visibleBoards = this.boards
+      .filter(b => this.state.filter === 'all' || b.filter === this.state.filter)
+      .map(b => ({ ...b, open: () => this.open(b.id) }));
+    const active = this.boards.find(b => b.id === this.state.activeId) || this.boards[0];
+    return {
+      isGrid: this.state.view === 'grid',
+      isDetail: this.state.view === 'detail',
+      filters,
+      visibleBoards,
+      active,
+      rateRows: this.rateRows,
+      mountainSteps: this.mountainSteps,
+      backToGrid: () => this.back(),
+      newBoard: () => {},
+      copyLink: () => this.copyLink(),
+      linkLabel: this.state.linkCopied ? 'Link copied' : 'Copy link',
+    };
+  }
+}
+</script>
+</body>
+</html>

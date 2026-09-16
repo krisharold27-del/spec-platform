@@ -167,6 +167,23 @@ const SUPERSEDED = [...supersededFile.matchAll(/^### `([^`]+)`/gm)].map(m => m[1
  */
 const REFERENCE_SCREENS = [...supersededFile.matchAll(/^### Screen: (.+)$/gm)].map(m => m[1].trim());
 
+/**
+ * Screens the designs have and the product does not — designs/not-built-yet.md.
+ *
+ * A new screen in an export is not a regression in the product, so it must not turn this check red
+ * on the day it arrives: the pressure would then be to delete the screen from the set. But it must
+ * not vanish either, which is what putting it in superseded.md would do — that file is for
+ * references, and a real screen nobody has built yet is not a reference.
+ *
+ * So a screen named there is left out of the percentage AND printed on every run, with the date it
+ * arrived. Adding one is a line in a diff with a reason next to it.
+ */
+const notBuiltFile = (() => {
+  try { return readFileSync(join(DESIGNS, 'not-built-yet.md'), 'utf8'); }
+  catch { return ''; } // No file is the ordinary case: everything drawn has been built.
+})();
+const NOT_BUILT = [...notBuiltFile.matchAll(/^### Screen: (.+)$/gm)].map(m => m[1].trim());
+
 const isSampleData = text =>
   isAPerson(text) || isGeneratedDate(text)
   || SAMPLE_IDENTITIES.some(n => text.includes(n))
@@ -238,6 +255,8 @@ for (const file of screens) {
   // A reference page — a logo study, a palette — is design thinking, not a screen anybody signs in
   // to see. Named in designs/superseded.md with its reasoning, and skipped whole.
   if (REFERENCE_SCREENS.includes(name)) continue;
+  // Drawn but not built. Counted nowhere and announced at the end — never silently dropped.
+  if (NOT_BUILT.includes(name)) continue;
   const html = readFileSync(join(DESIGNS, file), 'utf8');
   const phrases = [
     ...headings(html).filter(t => !isSampleData(t)).map(text => ({ text, kind: 'says' })),
@@ -282,6 +301,19 @@ for (const file of screens) {
 const exact = totalPhrases ? (totalFound / totalPhrases) * 100 : 100;
 const pct = totalFound === totalPhrases ? 100 : Math.min(99, Math.floor(exact));
 console.log(`\n${totalFound} of ${totalPhrases} design phrases appear in the product (${pct}%).`);
+
+/*
+  Said after the number and before the verdict, so a green run can never be read as "everything the
+  designs draw exists". The percentage is about the screens that HAVE been built; this line is the
+  rest of the truth.
+*/
+if (NOT_BUILT.length) {
+  console.log(
+    `\nNOT BUILT YET — ${NOT_BUILT.length} screen(s) the designs have and the product does not: `
+    + `${NOT_BUILT.join(', ')}.`,
+  );
+  console.log('They are left out of the number above. designs/not-built-yet.md says why, and since when.');
+}
 if (gaps.length) {
   console.log(`${gaps.length} screen(s) have wording the code does not carry — listed above.`);
 }

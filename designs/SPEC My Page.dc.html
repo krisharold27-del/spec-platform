@@ -54,6 +54,7 @@
     <a href="SPEC Org Chart.dc.html">Org chart</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Boards.dc.html">Boards</a>
     <a href="SPEC Connections.dc.html">Connections</a>
     <a href="SPEC Home.dc.html">All pages</a>
     <button type="button" onClick="{{ toggleNotifs }}" style="{{ notifButtonStyle }}" title="Notifications">🔔<sc-if value="{{ hasNotifs }}" hint-placeholder-val="{{ false }}"><span style="{{ notifDotStyle }}"></span></sc-if></button>
@@ -62,9 +63,9 @@
         <div style="position: absolute; top: 8px; right: 0; background: var(--color-surface, #fff); box-shadow: var(--shadow-md); border-radius: 16px; padding: 10px; width: min(320px, calc(100vw - 40px)); z-index: 20;">
           <div style="padding: 6px 10px 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">Notifications</div>
           <sc-for list="{{ notifItems }}" as="n" hint-placeholder-count="3">
-            <div style="padding: 10px; border-radius: 10px; background: var(--color-bg); margin-bottom: 6px;">
+            <a href="{{ n.href }}" style="display: block; padding: 10px; border-radius: 10px; background: var(--color-bg); margin-bottom: 6px; color: var(--color-text);">
               <p style="font-size: 13px; line-height: 19px; margin: 0;">{{ n.text }}</p>
-            </div>
+            </a>
           </sc-for>
           <sc-if value="{{ noNotifs }}" hint-placeholder-val="{{ false }}">
             <p style="padding: 10px; font-size: 13px; color: color-mix(in srgb, var(--color-text) 60%, transparent); margin: 0;">Nothing waiting on you right now.</p>
@@ -876,6 +877,8 @@ class Component extends DCLogic {
       if (e.deniedByBoard && e.createdBy === myName) notifList.push({ text: 'Board sent back for a new owner: "' + e.text + '"' });
       if (e.deadline && e.status !== 'closed' && new Date(e.deadline) < new Date()) notifList.push({ text: 'Overdue: "' + e.text + '" was due ' + e.deadline });
     });
+    notifList.push({ text: 'New on Boards: the Rate Board was updated — check it out.', href: 'SPEC Boards.dc.html' });
+    notifList.push({ text: 'A new connection was linked in Connections — check it out.', href: 'SPEC Connections.dc.html' });
     const doneCount = p.tasks.filter(t => this.state.done[t.id]).length;
     const answer = this.state.answer;
     const worst = Math.min.apply(null, p.pillars.map(x => x.score));
@@ -1056,7 +1059,7 @@ class Component extends DCLogic {
       toggleNotifs: () => this.setState(s => ({ notifsOpen: !s.notifsOpen, bizMenuOpen: false })),
       notifButtonStyle: 'position:relative;cursor:pointer;border:0;background:var(--color-bg);border-radius:999px;width:38px;height:38px;font-size:16px;',
       notifDotStyle: 'position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:50%;background:#a63b26;display:block;',
-      notifItems: notifList,
+      notifItems: notifList.map(n => ({ text: n.text, href: n.href || '#' })),
       noNotifs: notifList.length === 0,
       closeImprovement: () => this.setState({ improvementOpen: false }),
       improvementTabLabel: this.state.improvementOpen ? 'Close ✕' : '💡 Improvement opportunity',

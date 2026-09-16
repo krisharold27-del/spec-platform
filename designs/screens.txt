@@ -22,6 +22,7 @@ The same ratchet the wording coverage uses: growth is free, loss is loud.
 ## The roll
 
 SPEC Admin
+SPEC Boards
 SPEC Board Pack
 SPEC Cockpit
 SPEC Colour System

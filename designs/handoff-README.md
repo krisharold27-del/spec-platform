@@ -84,6 +84,9 @@ Every entry: problem text + bloom-out + solution + **owner** + **manager above t
 #### Snap Score
 The renamed "problem-solving power meter" — a single red/amber/green dial computed from the register's real signals (close rate, speed to close, reopens, recurrence), not a raw count. **Visible only to people who attend the COGS meeting** (i.e. managers and above) — an individual contributor's My Page never shows it. On Landing it's shown once as a static explainer of what it will become.
 
+### 3b. `SPEC Boards.dc.html` — Boards (live artifacts, linked from My Page nav)
+A gallery of pinned, shareable "boards" — like Claude's artifacts, but wired to a business's live connected data. Grid view (filterable by type: live data, plans, scorecards, improvement opportunities, training, meeting outputs) opens into a detail view: board content on the left, a right-hand panel showing who's editing now and a comment thread. Two worked examples: a **Rate Board** pulling live Simpro (job cost) and Xero (actuals) feeds to validate a labour sell-rate change ($115→$105), and a **"King of the Mountain" plan** — a fix-it plan with owners per step. Other board types render generically until real data/pins exist. My Page's notification bell links out to Boards and Connections activity so users are prompted to check updates.
+
 ### 4. `SPEC Weekly Meeting.dc.html` — the COGS meeting
 Runs the register: pulls a live "From the improvement register" section ranked by the same priority hierarchy, shows accept/deny state, and is where DONE-CLAIMED items get validated and locked. Logging this meeting is itself counted as a People KPI (4 logged meetings/month expected).
 
