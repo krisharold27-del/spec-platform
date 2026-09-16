@@ -37,6 +37,16 @@ const REQUIRED = ['DATABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPAB
 */
 const OPTIONAL = [
   'RESEND_API_KEY', 'ANTHROPIC_API_KEY', 'STRIPE_SECRET_KEY', 'STRIPE_PRICE_SEAT_MONTHLY',
+  /*
+    The webhook secret, added 16 September, on the day Stripe was switched on for real.
+
+    It was missing here while /api/health reported it, so the status page could see two thirds of
+    the billing settings and had no way to notice the third. That is the worst one to be blind to:
+    without it Stripe accepts the payment, SPEC rejects the notification, and the customer is
+    charged AND still locked out. Everything looks fine from both dashboards. The only person who
+    finds out is the person who paid.
+  */
+  'STRIPE_WEBHOOK_SECRET',
 ] as const;
 
 const present = (k: string) => Boolean(process.env[k]?.trim());

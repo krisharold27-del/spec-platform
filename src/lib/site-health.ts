@@ -273,6 +273,82 @@ export function lines(f: HealthFacts): HealthLine[] {
                   },
   );
 
+  /*
+    ── Can SPEC take money? ───────────────────────────────────────────────────────────────────────
+
+    Added 16 September, the day Stripe was switched on — and found missing by the instructions that
+    told Kris to "check the Stripe line on /status". There wasn't one. A page whose whole job is
+    answering "is SPEC working" said nothing at all about whether it could be paid.
+
+    THREE STATES, AND THE MIDDLE ONE IS THE POINT.
+
+    Off is fine and normal: a business on a trial is not being charged and nothing is wrong. Fully
+    on is fine. What this line exists for is the state in between — SOME of the three settings
+    present — because every one of those combinations fails silently and expensively:
+
+      key, no price       checkout cannot start. Looks configured. Nobody finds out until somebody
+                          tries to pay and lands on an error page.
+      key and price, no webhook secret
+                          Stripe takes the money and SPEC rejects the notification. The customer is
+                          charged AND still locked out. Both dashboards look healthy. The only
+                          person who finds out is the one who paid.
+
+    Neither of those can be detected by looking at Stripe, and neither throws an error anywhere.
+    This line is the only place they become visible.
+  */
+  const stripe = {
+    key: has('STRIPE_SECRET_KEY'),
+    price: has('STRIPE_PRICE_SEAT_MONTHLY'),
+    webhook: has('STRIPE_WEBHOOK_SECRET'),
+  };
+  const onCount = Number(stripe.key) + Number(stripe.price) + Number(stripe.webhook);
+  const TAKING_MONEY = 'Taking a payment';
+
+  out.push(
+    onCount === 0
+      ? {
+        what: TAKING_MONEY,
+        severity: 'limited',
+        says: 'Nobody is being charged. Everything else works — businesses can use SPEC in full, '
+          + 'they are just not being billed for it.',
+        fix: `Set STRIPE_SECRET_KEY, STRIPE_PRICE_SEAT_MONTHLY and STRIPE_WEBHOOK_SECRET. ${VERCEL}`,
+      }
+      : onCount === 3
+        ? {
+          what: TAKING_MONEY,
+          severity: 'working',
+          says: 'Working. Checkout can start, and SPEC will hear back from Stripe when somebody pays.',
+          fix: null,
+        }
+        : !stripe.price
+          ? {
+            what: TAKING_MONEY,
+            severity: 'broken',
+            says: 'HALF SET UP. The key is there but the price is not, so checkout cannot start at all — '
+              + 'anybody clicking upgrade lands on an error.',
+            word: 'Needs attention',
+            fix: `Add STRIPE_PRICE_SEAT_MONTHLY — the AUD seat price ID from Stripe. ${VERCEL}`,
+          }
+          : !stripe.webhook
+            ? {
+              what: TAKING_MONEY,
+              severity: 'broken',
+              says: 'HALF SET UP, AND THE DANGEROUS HALF. Stripe will take the money and SPEC will '
+                + 'refuse the notification, so the customer is charged and still locked out. Nothing '
+                + 'looks wrong from either dashboard.',
+              word: 'Fix before anybody pays',
+              fix: `Add STRIPE_WEBHOOK_SECRET — the signing secret from the webhook endpoint. ${VERCEL}`,
+            }
+            : {
+              what: TAKING_MONEY,
+              severity: 'broken',
+              says: 'HALF SET UP. A price and a webhook are configured but the secret key is missing, '
+                + 'so nothing can talk to Stripe at all.',
+              word: 'Needs attention',
+              fix: `Add STRIPE_SECRET_KEY. ${VERCEL}`,
+            },
+  );
+
   return out;
 }
 

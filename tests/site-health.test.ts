@@ -3,7 +3,12 @@ import { lines, verdict, type HealthFacts } from '../src/lib/site-health';
 
 const healthy: HealthFacts = {
   required: { DATABASE_URL: true, NEXT_PUBLIC_SUPABASE_URL: true, NEXT_PUBLIC_SUPABASE_ANON_KEY: true, APP_URL: true },
-  optional: { RESEND_API_KEY: true, ANTHROPIC_API_KEY: true },
+  // Everything on means EVERYTHING — the three billing settings included, or "says working when
+  // everything is on" would be quietly testing a page with billing half set up.
+  optional: {
+    RESEND_API_KEY: true, ANTHROPIC_API_KEY: true,
+    STRIPE_SECRET_KEY: true, STRIPE_PRICE_SEAT_MONTHLY: true, STRIPE_WEBHOOK_SECRET: true,
+  },
   database: { status: 'ok' },
   schema: { status: 'ok' },
   // Asked and answered. Leaving either out is itself a state — "not tested" — covered further down.
@@ -277,5 +282,94 @@ describe('the badge never contradicts the sentence under it', () => {
     for (const l of lines(never)) {
       if (l.severity === 'limited') expect(l.word, l.what).toBeUndefined();
     }
+  });
+});
+
+/*
+  ── Can SPEC take money? ─────────────────────────────────────────────────────────────────────────
+
+  Added 16 September, the day Stripe was switched on — and found missing by the setup instructions,
+  which told Kris to "check the Stripe line on /status". There wasn't one. A page whose entire job
+  is answering "is SPEC working" said nothing about whether it could be paid.
+
+  The states that matter are the PARTIAL ones. Off is normal and fine. Fully on is fine. In between,
+  every combination fails silently and expensively, and none of them can be spotted by looking at
+  Stripe's own dashboard.
+*/
+describe('whether SPEC can actually take a payment', () => {
+  const stripe = (over: Record<string, boolean>): HealthFacts => ({
+    ...healthy,
+    optional: {
+      ...healthy.optional,
+      STRIPE_SECRET_KEY: false, STRIPE_PRICE_SEAT_MONTHLY: false, STRIPE_WEBHOOK_SECRET: false,
+      ...over,
+    },
+  });
+  const billing = (f: HealthFacts) => lines(f).find(l => l.what === 'Taking a payment')!;
+
+  it('is on the page at all', () => {
+    expect(billing(stripe({})), 'the line the setup document sends somebody to find').toBeTruthy();
+  });
+
+  /* Nobody being charged is not a fault. A business on a trial is working perfectly. */
+  it('does not call "nobody is being charged" a problem', () => {
+    const l = billing(stripe({}));
+    expect(l.severity).toBe('limited');
+    expect(l.says).toContain('Everything else works');
+    expect(verdict(lines(stripe({})))).not.toBe('broken');
+  });
+
+  it('says working only when all three are set', () => {
+    const l = billing(stripe({
+      STRIPE_SECRET_KEY: true, STRIPE_PRICE_SEAT_MONTHLY: true, STRIPE_WEBHOOK_SECRET: true,
+    }));
+    expect(l.severity).toBe('working');
+    expect(l.fix).toBeNull();
+  });
+
+  /*
+    A key with no price: checkout cannot start. Looks configured from Stripe's side. The first
+    person to find out is a customer landing on an error page after clicking upgrade.
+  */
+  it('catches a key with no price, which looks configured and is not', () => {
+    const l = billing(stripe({ STRIPE_SECRET_KEY: true, STRIPE_WEBHOOK_SECRET: true }));
+    expect(l.severity).toBe('broken');
+    expect(l.says).toContain('checkout cannot start');
+    expect(l.fix).toContain('STRIPE_PRICE_SEAT_MONTHLY');
+  });
+
+  /*
+    THE EXPENSIVE ONE. Key and price but no webhook secret: Stripe takes the money, SPEC rejects the
+    notification, and the customer is charged AND still locked out. Both dashboards look healthy.
+    The only person who finds out is the one who paid.
+  */
+  it('SHOUTS about a missing webhook secret, which charges a customer and locks them out', () => {
+    const l = billing(stripe({ STRIPE_SECRET_KEY: true, STRIPE_PRICE_SEAT_MONTHLY: true }));
+    expect(l.severity).toBe('broken');
+    expect(l.says).toContain('charged and still locked out');
+    expect(l.says, 'and that nothing else will reveal it').toContain('Nothing looks wrong');
+    expect(l.word).toContain('before anybody pays');
+    expect(l.fix).toContain('STRIPE_WEBHOOK_SECRET');
+  });
+
+  it('catches a price and webhook with no key', () => {
+    const l = billing(stripe({ STRIPE_PRICE_SEAT_MONTHLY: true, STRIPE_WEBHOOK_SECRET: true }));
+    expect(l.severity).toBe('broken');
+    expect(l.fix).toContain('STRIPE_SECRET_KEY');
+  });
+
+  /* Every partial state is broken. None of them may quietly read as fine. */
+  it('treats every half-configured combination as broken', () => {
+    const keys = ['STRIPE_SECRET_KEY', 'STRIPE_PRICE_SEAT_MONTHLY', 'STRIPE_WEBHOOK_SECRET'];
+    for (let mask = 1; mask < 7; mask++) {
+      const over = Object.fromEntries(keys.map((k, i) => [k, Boolean(mask & (1 << i))]));
+      expect(billing(stripe(over)).severity, JSON.stringify(over)).toBe('broken');
+    }
+  });
+
+  it('never leaks a key, whatever is set', () => {
+    const said = lines(stripe({ STRIPE_SECRET_KEY: true })).map(l => `${l.says} ${l.fix ?? ''}`).join(' ');
+    expect(said).not.toMatch(/sk_(test|live)_/);
+    expect(said).not.toMatch(/whsec_[A-Za-z0-9]/);
   });
 });

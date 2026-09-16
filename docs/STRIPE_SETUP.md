@@ -125,7 +125,21 @@ that costs you a customer.
 Vercel → spec-platform → Settings → Environment Variables. Add all three. Then Deployments → the top
 one → ⋯ → **Redeploy**, because Vercel binds environment variables when a deployment is built.
 
-Check `www.specbizhq.com/status` — the Stripe line should stop saying it is not switched on.
+Then check **`www.specbizhq.com/status`** and read the line called **"Taking a payment"**. It says
+one of four things:
+
+| It says | What it means |
+|---|---|
+| **Working** | All three set. Checkout can start and SPEC will hear back from Stripe. |
+| **Not switched on** | None set. Fine and normal — nobody is being charged. |
+| **Needs attention** | Some set, some not. Checkout will fail. The line names the missing one. |
+| **Fix before anybody pays** | Key and price set, webhook secret missing. Stripe takes the money and SPEC never hears — the customer is charged **and** still locked out, and nothing looks wrong from either dashboard. |
+
+That last one is why the line exists. It cannot be spotted from Stripe's side, it throws no error,
+and the only person who would ever find out is the one who paid.
+
+*(This line was added on 16 September because these instructions told somebody to check a Stripe
+line on /status and there wasn't one.)*
 
 ## 7. Prove it in test mode
 
