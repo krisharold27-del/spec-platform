@@ -107,10 +107,25 @@ export default async function Journey({ searchParams }: { searchParams: Promise<
           {notice.text}
         </div>
       )}
-      {plan.lapsed && (
+      {/*
+        `plan.readOnly`, not `plan.lapsed` — and the button goes wherever the fix actually is.
+
+        Both halves were wrong on 16 September. A lapsed business of one was locked although the
+        first seat is free and it owed nothing, and the one button on the screen posted to checkout,
+        which found nothing to bill and returned it to this page. A dead end, over A$0.
+
+        And where the fix lives depends on whether Stripe still has them. A subscription that is
+        merely unpaid needs a new card, which is the portal; one that has been cancelled no longer
+        exists, and the portal has nothing to open, so that business has to start a new one.
+      */}
+      {plan.readOnly && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-rust-300 bg-rust-100 p-4 text-sm text-rust-800">
           <span>A payment didn&apos;t go through, so the business is read-only until it&apos;s sorted. Nothing has been deleted.</span>
-          <form action="/api/stripe/checkout" method="post"><button className="ml-4 shrink-0 rounded-full bg-rust-800 px-4 py-2 text-sm font-medium text-cream hover:bg-rust-900">Fix payment</button></form>
+          <form action={plan.subscribed ? '/api/stripe/portal' : '/api/stripe/checkout'} method="post">
+            <button className="ml-4 shrink-0 rounded-full bg-rust-800 px-4 py-2 text-sm font-medium text-cream hover:bg-rust-900">
+              {plan.subscribed ? 'Update card' : 'Start paying again'}
+            </button>
+          </form>
         </div>
       )}
       {/*

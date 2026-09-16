@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { planState, costLabel, billableSeats, FREE_SEATS, SEAT_PRICE_MONTHLY } from '../src/lib/plan';
+import { planState, costLabel, billableSeats, FREE_SEATS, SEAT_PRICE_MONTHLY, type TenantPlan } from '../src/lib/plan';
 
-const t = (plan: string) => ({ id: 'x', plan, startDate: '2026-01-01' });
+const t = (plan: string, over: Partial<TenantPlan> = {}): TenantPlan =>
+  ({ id: 'x', plan, startDate: '2026-01-01', ...over });
 
 describe('seat-based plan', () => {
   it('is free with structure but nobody invited, and never read-only', () => {
@@ -67,6 +68,49 @@ describe('seat-based plan', () => {
     expect(planState(t('lapsed'), 5).readOnly).toBe(true);
     expect(planState(t('basic'), 5).readOnly).toBe(false);
     expect(planState(t('trial'), 0).readOnly).toBe(false);
+  });
+
+  /*
+    ── A lapsed business is never a dead end ──────────────────────────────────────────────────────
+
+    Found on the evening of 16 September, hours after the first seat became free.
+
+    A business of one lets its card expire. Stripe gives up on the subscription, the webhook writes
+    `lapsed`, and every page in SPEC goes read-only. But the first seat is free, so the bill is A$0
+    — and the only button on the screen, "Fix payment", opened a checkout that had nothing to charge
+    for and sent them straight back to the page they came from. Locked out of their own records with
+    no door, over a debt that does not exist.
+
+    The rule that settles it: **read-only follows the money.** Being lapsed is Stripe's opinion about
+    a subscription; owing something is a fact about this business today. Only the second may lock a
+    door, because only the second is something a customer can act on.
+  */
+  it('never locks a lapsed business that owes nothing', () => {
+    expect(planState(t('lapsed'), 0).readOnly, 'nobody in it, nothing owed').toBe(false);
+    expect(planState(t('lapsed'), 1).readOnly, 'one person, and the first seat is free').toBe(false);
+  });
+
+  it('locks a lapsed business the moment it owes something', () => {
+    // Two people is the first seat that is actually billed, so it is the first that can be a debt.
+    expect(planState(t('lapsed'), 2).billable).toBe(1);
+    expect(planState(t('lapsed'), 2).readOnly).toBe(true);
+  });
+
+  /*
+    Read-only is about the debt, not about which kind of failure produced it. Both a cancelled
+    subscription and one that simply stopped being paid lock the same way — what differs is where
+    the journey page sends them, the portal or a fresh checkout, which `subscribed` decides.
+  */
+  it('locks the same whether Stripe still has them or not', () => {
+    const cancelled = planState(t('lapsed'), 5);
+    const unpaid = planState(t('lapsed', { stripeSubscriptionId: 'sub_123' }), 5);
+    expect(cancelled.subscribed, 'the id is cleared when a subscription is deleted').toBe(false);
+    expect(unpaid.subscribed).toBe(true);
+    expect(cancelled.readOnly).toBe(true);
+    expect(unpaid.readOnly).toBe(true);
+    // And neither is offered a second button: the banner already carries the one that fits.
+    expect(cancelled.needsCheckout).toBe(false);
+    expect(unpaid.needsCheckout).toBe(false);
   });
 
   it('does not bill a business on the consulting program', () => {

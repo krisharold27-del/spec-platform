@@ -1,16 +1,21 @@
 /**
- * Stripe webhook. Three events matter (see docs/SPEC_GoLive_and_Operations.md §6 and C3 in the
+ * Stripe webhook. Four events matter (see docs/SPEC_GoLive_and_Operations.md §6 and C3 in the
  * setup checklist, which registers this endpoint and its signing secret):
  *   checkout.session.completed  → plan = basic, store the Stripe customer/subscription ids,
  *                                  open the tenant's first period.
  *   invoice.payment_failed      → plan = lapsed (read-only; never deletes data).
- *   customer.subscription.deleted → plan = lapsed (cancelled, same treatment as a failed payment).
+ *   customer.subscription.deleted → plan = lapsed, and the subscription id is cleared: it no longer
+ *                                  exists, so nothing may go on quoting it.
+ *   invoice.paid                → a lapsed business is let back in. Without it nothing on either
+ *                                  side ever undid `lapsed`: the customer fixed their card, Stripe
+ *                                  took the money, and SPEC stayed read-only until somebody noticed
+ *                                  and changed a column by hand.
  * Signature verification needs the raw request body, so this route reads it with `.text()`
  * rather than `.json()`.
  */
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getStripe } from '@/lib/stripe';
 import { openFirstPeriod } from '@/lib/provision';
@@ -72,11 +77,45 @@ export async function POST(request: Request) {
     }
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription;
-      await markLapsed(subscription.id);
+      /*
+        Lapsed, and the id goes with it — in that order, matched on the id before it is cleared.
+
+        A cancelled subscription is gone from Stripe, so an id still sitting in the row is a claim
+        that is no longer true, and the pages read it: `subscribed` is exactly "does Stripe know
+        them", and it decides whether a read-only business is offered the customer portal or a
+        checkout. Leaving the id behind sends somebody whose subscription no longer exists to a
+        portal that has nothing to manage, which is the dead end this is being fixed out of.
+      */
+      await db.update(schema.tenants)
+        .set({ plan: 'lapsed', stripeSubscriptionId: null })
+        .where(eq(schema.tenants.stripeSubscriptionId, subscription.id));
+      break;
+    }
+    case 'invoice.paid': {
+      /*
+        The way back in, and the half that never existed.
+
+        `lapsed` had three ways to be entered and none to leave. A customer whose card expired put a
+        new one in, Stripe collected, and SPEC went on refusing every save — the product's own
+        promise, "everything comes back the moment it is sorted", kept only if a human remembered to
+        go and change a column.
+
+        Only a lapsed business is touched. A paid invoice is the ordinary monthly event for every
+        subscriber alive, and an unconditional write here would set `basic` over `beta`, `program`
+        and anything an administrator had decided, once a month, silently.
+      */
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscriptionId = subscriptionIdFromInvoice(invoice);
+      if (subscriptionId) {
+        await db.update(schema.tenants).set({ plan: 'basic' }).where(and(
+          eq(schema.tenants.stripeSubscriptionId, subscriptionId),
+          eq(schema.tenants.plan, 'lapsed'),
+        ));
+      }
       break;
     }
     default:
-      break; // Ignored — we only act on the three events above.
+      break; // Ignored — we only act on the four events above.
   }
 
   return NextResponse.json({ received: true });

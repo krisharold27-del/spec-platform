@@ -157,8 +157,20 @@ export interface PlanState {
   /** Seats to bill, no subscription yet — the state that needs a Start paying button. */
   needsCheckout: boolean;
   /**
-   * No writes allowed. Only ever true for a lapsed subscription — never for a business that simply
-   * has not paid yet, because until they invite someone they owe nothing.
+   * No writes allowed — **read-only follows the money.**
+   *
+   * A lapsed subscription AND something actually owed. Never a business that simply has not paid
+   * yet, because until they invite someone they owe nothing — and never a lapsed business whose
+   * bill is now zero, which is the dead end found on 16 September:
+   *
+   *   A business of one cancels or lets a card expire. Stripe says the subscription is gone, the
+   *   plan goes `lapsed`, and every page locks. But the first seat is free, so there is nothing to
+   *   bill — and "Fix payment" opened a checkout that found nothing to charge for and returned them
+   *   to the page they started on. Locked out of their own records, with the only button on the
+   *   screen a loop back to itself, over a debt of A$0.
+   *
+   * So the lock follows what is owed rather than what Stripe last said. A lapsed business that grows
+   * back past the free seat locks then, which is correct: that is the moment it owes something.
    */
   readOnly: boolean;
   /** basic or advanced — whether connectors and the assistant are part of this business's SPEC. */
@@ -270,7 +282,9 @@ export function planState(
       just failed to choose between "Fix payment" and "Start paying".
     */
     needsCheckout: billable > 0 && !program && !beta && !subscribed && !lapsed,
-    readOnly: lapsed,
+    // Lapsed AND owing something. A lapsed business with nothing to bill is not a debtor, and
+    // locking it sends somebody to a checkout that has nothing to charge them for.
+    readOnly: lapsed && billable > 0,
     tier,
     connectors: hasConnectors(tier),
     assistant: hasAssistant(tier),
@@ -349,15 +363,23 @@ export async function planStateFor(tenantId: string, currency: Currency = HOME_C
 /**
  * Is this business read-only because a payment failed?
  *
- * One column of one row. The Shell asks it on every page to put the banner up, and that is a lot of
- * pages, so it deliberately does not go through planStateFor — which also counts seats and works out
- * a price, none of which a banner needs.
+ * The Shell asks it on every page to decide whether to put the banner up, so it starts with the one
+ * column of the one row that can rule the question out — and for almost every business that is the
+ * whole answer, with no seat count and no price worked out.
+ *
+ * When the plan IS `lapsed` it has to ask the full question, because the banner must say exactly
+ * what the write guard does. A banner promising "read-only until the payment is sorted" above pages
+ * that save perfectly well is the same class of untruth as the generic failure screen this file
+ * already exists to have stopped: the customer is told something about their own business that is
+ * not so, and there is no way for them to tell which half to believe. So the seat count is paid for
+ * in the one case where the answer depends on it.
  */
 export async function isLapsed(tenantId: string): Promise<boolean> {
   const { db, schema } = await import('../db');
   const { eq } = await import('drizzle-orm');
   const row = (await db.select({ plan: schema.tenants.plan }).from(schema.tenants).where(eq(schema.tenants.id, tenantId)))[0];
-  return row?.plan === 'lapsed';
+  if (row?.plan !== 'lapsed') return false;
+  return (await planStateFor(tenantId)).readOnly;
 }
 
 /**
@@ -441,6 +463,12 @@ export async function assertWritable(tenantId: string): Promise<void> {
   const { isLookTenant } = await import('./look');
   if (await isLookTenant(tenantId)) await refuseWrite('look');
 
+  /*
+    `readOnly`, not `lapsed`. The two came apart the day the first seat became free: a business of
+    one can be lapsed and owe nothing, and locking it put the customer behind a "Fix payment" button
+    that opened a checkout with nothing to bill, which returned them to the page they came from. A
+    closed door and a key that does not turn. Read-only follows what is owed.
+  */
   const state = await planStateFor(tenantId);
-  if (state.lapsed) await refuseWrite('lapsed');
+  if (state.readOnly) await refuseWrite('lapsed');
 }

@@ -128,11 +128,18 @@ detect that in advance.
 
 Developers → Webhooks → **Add endpoint** → `https://app.specbizhq.com/api/stripe/webhook`
 
-Send exactly these three events. SPEC ignores everything else, so adding more is noise:
+Send exactly these four events. SPEC ignores everything else, so adding more is noise:
 
 - `checkout.session.completed` — the business becomes `basic` and its first period opens
 - `invoice.payment_failed` — the business is marked `lapsed` and goes read-only
-- `customer.subscription.deleted` — the same
+- `customer.subscription.deleted` — the same, and the subscription id is cleared: it no longer
+  exists in Stripe, so the business is offered a fresh checkout rather than a portal with nothing
+  in it
+- `invoice.paid` — **the way back.** A business sitting on `lapsed` is returned to `basic` the
+  moment Stripe collects. Nothing else in the product ever undid `lapsed`: a customer could put a
+  new card in, be charged, and stay read-only until somebody changed a column by hand. Only a
+  lapsed business is touched, so the ordinary monthly invoice of every other subscriber changes
+  nothing
 
 Copy the **Signing secret** (`whsec_…`) into `STRIPE_WEBHOOK_SECRET`.
 
