@@ -185,13 +185,29 @@ about from a customer rather than from a test.
 
 ### Then — and only then — the two keys
 
-Both of these are a paste into a settings box. Neither is a build, and nothing
-above depends on either: **the product is complete and honest without both.** That
-is what makes leaving them until last a decision rather than a delay.
+Both of these are a paste into a settings box and a redeploy. Neither is a build,
+and nothing above depends on either: **the product is complete and honest without
+both.** That is what makes leaving them until last a decision rather than a delay.
+
+Neither key is ever pasted into a chat, an email, a document, or a commit. It goes
+from the console that issued it straight into the Vercel settings box, and nowhere
+else. A key that has been seen outside that path is burnt and has to be reissued —
+this has already happened once, to a Resend key, and reissuing takes under a
+minute where finding out later does not.
 
 5. **Turn on `ANTHROPIC_API_KEY`** and read ten real problems.
 
-   What changes the moment it is set, with no deploy and no code change:
+   No code change. One redeploy — Vercel binds environment variables when a
+   deployment is built, so a key added to the settings box does nothing until the
+   next deploy picks it up. There is a Redeploy button on the latest deployment;
+   that is the whole of it.
+
+   The Console also needs credit on it. Without any, the key is valid and every
+   call is refused, which looks exactly like not having a key at all: the product
+   falls back to the deterministic reading and says so, and nothing appears to be
+   wrong. Put some credit on before judging the reading.
+
+   What changes once it is set and redeployed:
 
    | | Without the key (today) | With it |
    |---|---|---|
