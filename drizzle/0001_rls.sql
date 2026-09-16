@@ -140,7 +140,11 @@ begin
     'approvals', 'business_goals', 'candidates', 'cascade_kpis', 'directors', 'leave_entries',
     'intake_entries', 'obligations', 'predicted_roles', 'register_entries', 'role_automation',
     'role_tasks', 'scorecard_comments', 'staff', 'system_connections', 'training_modules',
-    'training_records'
+    'training_records',
+    -- Boards, and the two tables that hang off them. All three carry their own tenant_id — a
+    -- comment and a viewer are scoped by the business, not only by the board, so that a board id
+    -- guessed from a shared link still reaches nothing.
+    'boards', 'board_comments', 'board_viewers'
   ]
   loop
     continue when to_regclass(t) is null;

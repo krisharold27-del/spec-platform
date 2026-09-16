@@ -73,7 +73,8 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
         { href: '/me', label: 'My scorecard', note: 'Your own four pillars, with the working shown.' },
         { href: '/summary', label: 'Executive summary', note: 'The whole business this month, on one screen.' },
         { href: '/curve', label: 'Your J curve', note: 'What SPEC has cost and returned, measured.' },
-        { href: '/boards', label: 'Conversation boards', note: 'The decisions being worked through.' },
+        { href: '/boards', label: 'Boards', note: 'What your team pins, builds on and argues about.' },
+        { href: '/boards/conversations', label: 'Conversation boards', note: 'The decisions being worked through.' },
       ],
     },
     {

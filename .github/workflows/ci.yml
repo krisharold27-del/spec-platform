@@ -429,6 +429,11 @@ jobs:
           # Taking a seat somebody gave you -- the other half of the way in, and the one that
           # reaches every person in a customer's business except the owner. Single use,
           # expiring, bound to that address, and a refusal that never says "invalid token".
+          # Boards — the live artifacts a team pins and argues over. The check that matters most is
+          # that a board whose feeds are not connected never claims to be live: "partly current"
+          # reads as "current", on the screen where somebody drops a sell rate by ten dollars an hour.
+          journey boards-journey.mjs
+
           journey seat-journey.mjs
 
           # Clearing a test business, and — the half that matters — every guard that stops the wrong

@@ -349,6 +349,7 @@ const JOURNEYS = [
   ['automation', 'what a process could do, seen only by the people who decide', 'automation-journey'],
   ['pay', 'a business that wants to pay being able to', 'pay-journey'],
   ['seat', 'somebody you invited taking their seat', 'seat-journey'],
+  ['boards', 'a board a team can pin, read the working on, and argue over', 'boards-journey'],
   ['cockpit', 'your own cockpit staying private', 'cockpit-journey'],
   // Not a browser journey: it drives the real delete function against a real database, because what
   // is worth checking is the guards, not a page. '.mts' so it can import the product's TypeScript.

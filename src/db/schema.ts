@@ -951,3 +951,96 @@ export const intakeEntries = pgTable('intake_entries', {
   taskId: text('task_id').references(() => roleTasks.id),
   createdAt: text('created_at').notNull(),
 }, t => [index('intake_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * Boards — the live artifacts a team pins, builds on and argues about.
+ *
+ * Kris, 16 September: *"no build these boards (artifacts) now - this is a key component of running
+ * the business properly"*, from design export 3.
+ *
+ * ── What makes this different from everything else in SPEC ───────────────────────────────────────
+ *
+ * Every other screen is SPEC's own reading of the business: a scorecard, a register, a board pack.
+ * A board is the business's own artifact — the thing a team makes together and comes back to. The
+ * design's line for it is the whole brief: *"Live boards your team pins, builds on and discusses —
+ * wired to the data connected through SPEC. Not a snapshot; it updates as the numbers move."*
+ *
+ * The worked example says it best. A Rate Board pulling base cost and on-costs from the systems the
+ * business already runs, and landing on a sell rate of $105 instead of $115 — where the argument is
+ * had against actuals rather than against somebody's memory of what the rate used to be.
+ *
+ * ── Rows and steps live as JSON, on purpose ──────────────────────────────────────────────────────
+ *
+ * A board's body is a handful of lines that only that board cares about: the inputs of a rate
+ * calculation, the steps of a plan. Two more tables would buy nothing — nothing else joins to them,
+ * nothing else queries across them — and would cost two more sets of row-level security policies and
+ * two more things for a delete to remember. Same shape as `register_entries.bloom`.
+ */
+export const boards = pgTable('boards', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  title: text('title').notNull(),
+  summary: text('summary').notNull().default(''),
+  /** live | plans | kpi | improve | training | meetings — see BOARD_TYPES in lib/boards-live. */
+  kind: text('kind').notNull().default('improve'),
+  /**
+   * Wired to systems that are actually connected, rather than to numbers somebody typed once.
+   *
+   * It is a fact about the board, not a decoration: the design badges it, because "this updates as
+   * the numbers move" and "this was true in August" are different things to be looking at.
+   */
+  live: boolean('live').notNull().default(false),
+  /** The named feeds behind it, as JSON `[{ system, what }]`. Empty for a board with no data in it. */
+  feeds: text('feeds').notNull().default('[]'),
+  /** A live-data board's working, as JSON `[{ label, source, value }]`. */
+  rows: text('rows').notNull().default('[]'),
+  /** A plan's steps, as JSON `[{ text, owner, state }]`. */
+  steps: text('steps').notNull().default('[]'),
+  /** The headline pair a rate-style board turns on, as JSON `{ wasLabel, was, nowLabel, now, note }`. */
+  headline: text('headline'),
+  createdBy: text('created_by').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [index('boards_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * The discussion on a board.
+ *
+ * Kept against the board rather than against a person's inbox: the argument about the sell rate
+ * belongs next to the sell rate, where the next person to ask the question will find it, and not in
+ * a thread three people were on.
+ */
+export const boardComments = pgTable('board_comments', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  boardId: text('board_id').notNull().references(() => boards.id),
+  authorName: text('author_name').notNull(),
+  text: text('text').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('board_comments_board').on(t.boardId),
+  // Scoped by business as well as by board: every tenant table is indexed on tenant_id, because a
+  // read that has to scan every business is a read that gets slower with every customer SPEC signs.
+  index('board_comments_tenant').on(t.tenantId),
+]).enableRLS();
+
+/**
+ * Who has this board open — the design's "Editing now".
+ *
+ * A timestamp per person per board, refreshed when they open it, and read back within a few
+ * minutes. Deliberately not presence over a socket: this is a page somebody reads for a minute, and
+ * the question it answers is "is anybody else in here" rather than "where is their cursor".
+ *
+ * It is also the honest version. A fabricated row of avatars would look exactly like this one and
+ * mean nothing, and a board is a place where two people are about to disagree about a number.
+ */
+export const boardViewers = pgTable('board_viewers', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  boardId: text('board_id').notNull().references(() => boards.id),
+  userId: text('user_id').notNull().references(() => users.id),
+  seenAt: text('seen_at').notNull(),
+}, t => [
+  uniqueIndex('board_viewers_unique').on(t.boardId, t.userId),
+  index('board_viewers_tenant').on(t.tenantId),
+]).enableRLS();

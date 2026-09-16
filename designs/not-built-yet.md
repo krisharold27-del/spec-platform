@@ -20,25 +20,8 @@ whole point.
 
 ---
 
-### Screen: SPEC Boards
+*Nothing is on this list right now.*
 
-Arrived 16 September 2026, in design export 3, along with a change to My Page.
-
-**What it is.** A gallery of pinned, shareable boards wired to a business's live connected data —
-filterable by type, opening into a detail view with the board on the left and, on the right, who is
-editing now and a comment thread. Two worked examples: a Rate Board pulling live Simpro job cost and
-Xero actuals to validate a sell-rate change from $115 to $105, and a "King of the Mountain" plan with
-an owner against each step.
-
-**Why it is not built.** It is a feature, not a copy edit. It needs live feeds, presence, and
-threaded comments, none of which exist. The product's `/boards` today is *Conversation boards* — a
-different and deliberate thing: a mirror built to raise one question, with no verdict and no live
-data in it. They share a word and nothing else, and quietly turning one into the other would lose a
-piece of the method.
-
-**The one phrase it leaves uncovered** is `Xero — actuals feed`. It would be easy to put that string
-somewhere and make the number go green, which is why it is written down here instead.
-
-**Also unbuilt, from the same export:** My Page's notification bell, whose entries became links in
-this export so that "something changed" can be followed rather than hunted. There is no bell in the
-product at all, so there is nothing yet for that change to apply to.
+SPEC Boards was on it for a few hours on 16 September and is built at `/boards`, with the two worked
+examples in a look-around, live-or-not derived from the connections rather than stored, presence that
+is real, and the discussion kept next to the numbers it is about.

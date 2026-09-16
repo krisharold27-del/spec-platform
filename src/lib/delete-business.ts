@@ -89,6 +89,24 @@ export const INDIRECT: { table: string; clear: (tenantId: string) => ReturnType<
     table: 'criteria',
     clear: id => sql`delete from criteria where role_id in (select id from roles where tenant_id = ${id})`,
   },
+  /*
+    Boards' children go before boards, and boards goes before users — a viewer points at both. They
+    all carry a tenant id, so the generated pass would reach them, but the ORDER is what matters:
+    without this, deleting `users` trips the viewer foreign key. The orphan check would have caught
+    it and rolled back, which is the safe answer and not the right one.
+  */
+  {
+    table: 'board_viewers',
+    clear: id => sql`delete from board_viewers where tenant_id = ${id}`,
+  },
+  {
+    table: 'board_comments',
+    clear: id => sql`delete from board_comments where tenant_id = ${id}`,
+  },
+  {
+    table: 'boards',
+    clear: id => sql`delete from boards where tenant_id = ${id}`,
+  },
 ];
 
 /**
@@ -106,6 +124,9 @@ const ORPHAN_CHECKS: { label: string; query: string }[] = [
   { label: 'board packs without a period', query: 'select count(*)::int as n from board_outputs b left join assessment_periods p on p.id = b.period_id where p.id is null' },
   { label: 'gates without a period', query: 'select count(*)::int as n from gates g left join assessment_periods p on p.id = g.period_id where p.id is null' },
   { label: 'training records without a person', query: "select count(*)::int as n from training_records t left join users u on u.id = t.user_id where t.user_id is not null and u.id is null" },
+  { label: 'board comments without a board', query: 'select count(*)::int as n from board_comments c left join boards b on b.id = c.board_id where b.id is null' },
+  { label: 'board viewers without a board', query: 'select count(*)::int as n from board_viewers v left join boards b on b.id = v.board_id where b.id is null' },
+  { label: 'board viewers without a person', query: 'select count(*)::int as n from board_viewers v left join users u on u.id = v.user_id where u.id is null' },
 ];
 
 /** What is about to be destroyed, in numbers, so nobody deletes a business they have not looked at. */

@@ -87,6 +87,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  /*
+    Two worked boards, so a visitor sees what a board IS rather than an empty gallery and a button.
+
+    Only ever here — this business already contains invented people and invented months and says so
+    at the top of every page. A real business's first board has to be their own. See lib/boards-examples.
+  */
+  await (await import('@/lib/boards-examples')).addExampleBoards(tenantId).catch(() => {});
+
   await beginLook(tenantId);
   return NextResponse.redirect(new URL('/org?look=1', request.url));
 }
