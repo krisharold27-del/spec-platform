@@ -18,7 +18,12 @@ export const metadata = { title: 'SPEC — is it working?' };
  * disagree about whether the product is working would be worse than either of them alone.
  *
  * It names no business and no person, and reports settings only as present or absent — never a
- * value, never a prefix, never a length. Nothing is cached; a cached status page is worse than none.
+ * value, never a prefix, never a length.
+ *
+ * Nothing is cached, with one exception that is written on the page rather than hidden: whether a
+ * problem actually gets read is the only check that costs money to make, and this page has no
+ * sign-in, so it is asked once every fifteen minutes rather than once per visitor. A cached status
+ * page is worse than none — a status page that quietly spends on every visitor is worse still.
  */
 export default async function Status() {
   const facts = await healthFacts();
@@ -39,8 +44,10 @@ export default async function Status() {
 
       <p className="mt-8 text-xs text-ink-light">
         Checked just now, {new Date().toISOString().replace('T', ' ').slice(0, 16)} UTC. Refresh to
-        check again — nothing on this page is remembered between visits. It names no business and no
-        person, and never shows the value of a setting.
+        check again. Every line is asked fresh except whether a problem gets read properly, which is
+        asked once every fifteen minutes — that one costs a fraction of a penny each time, and this
+        page has no sign-in on it. It names no business and no person, and never shows the value of
+        a setting.
       </p>
       <p className="mt-3 text-xs text-ink-light">
         <Link href="/" className="underline">SPEC</Link>

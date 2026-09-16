@@ -26,6 +26,14 @@ export interface HealthLine {
   says: string;
   /** Exactly what to do, or null when there is nothing to do. */
   fix: string | null;
+  /**
+   * The badge word, when the severity alone would get it wrong.
+   *
+   * `limited` means two different things — never switched on, and switched on but failing — and the
+   * badge is the part somebody scans before reading anything. "Not switched on" beside "the key is
+   * there but Anthropic refuses it" sends them hunting for a setting that is already set.
+   */
+  word?: string;
 }
 
 export interface HealthFacts {
@@ -42,9 +50,33 @@ export interface HealthFacts {
    * the moment somebody is relying on it. See lib/email.checkEmailSending.
    */
   email?: { state: string; detail?: string };
+  /**
+   * What Anthropic actually said when asked, rather than whether a setting exists.
+   *
+   * Same reasoning as `email` above, and the stakes are higher here because every caller degrades
+   * so gracefully. A dead key raises no error anywhere in the product: the simple reading is served,
+   * honestly labelled, and everything looks perfectly healthy. Nobody would find out by using it.
+   * See lib/claude.checkClaudeReading.
+   */
+  claude?: { state: string; detail?: string };
 }
 
 const VERCEL = 'In Vercel: your project → Settings → Environment Variables → Add New. Then Deployments → the top one → ⋮ → Redeploy.';
+
+/*
+  Nothing key-shaped reaches the page, whoever put it in the sentence.
+
+  The `detail` fields are written by SPEC and carry a model name or a status code — nothing secret.
+  But they are the only free text on a page anybody on the internet can open, they come from code
+  that talks to services which put keys in their own error messages, and this page's single
+  promise is that it never shows the value of a setting. One future caller passing an error body
+  straight through is all it would take, and that is not a promise to leave resting on everyone who
+  edits this file afterwards remembering.
+
+  Cheap, blunt, and it cannot be forgotten.
+*/
+const SECRET_SHAPED = /\b(sk-[A-Za-z0-9_-]+|re_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_.-]{10,})|postgres(ql)?:\/\/\S+/gi;
+const safe = (s: string | undefined): string => (s ?? '').replace(SECRET_SHAPED, '[removed]');
 
 export function lines(f: HealthFacts): HealthLine[] {
   const out: HealthLine[] = [];
@@ -129,20 +161,23 @@ export function lines(f: HealthFacts): HealthLine[] {
           what: 'Inviting people by email',
           severity: 'limited',
           says: 'The key is there but the email service refuses it — it has been deleted or replaced. Invitations would fail. Nothing else is affected.',
+          word: 'Needs attention',
           fix: `Make a new key at resend.com → API Keys → Create API Key, then replace RESEND_API_KEY. ${VERCEL}`,
         }
         : email === 'no_verified_domain'
           ? {
             what: 'Inviting people by email',
             severity: 'limited',
-            says: `${f.email?.detail ?? 'The sending domain is not verified.'} The key works; every invitation would still bounce.`,
+            says: `${safe(f.email?.detail) || 'The sending domain is not verified.'} The key works; every invitation would still bounce.`,
+            word: 'Needs attention',
             fix: 'In resend.com → Domains, add the sending domain and follow its DNS steps. Verification usually takes a few minutes once the records are in.',
           }
           : email === 'unreachable'
             ? {
               what: 'Inviting people by email',
               severity: 'limited',
-              says: `Could not reach the email service to check.${f.email?.detail ? ` ${f.email.detail}` : ''} This does not mean it is broken — it means nobody can say right now.`,
+              says: `Could not reach the email service to check.${f.email?.detail ? ` ${safe(f.email.detail)}` : ''} This does not mean it is broken — it means nobody can say right now.`,
+              word: 'Needs attention',
               fix: 'Refresh in a minute. If it keeps saying this, the email service is having trouble rather than SPEC.',
             }
             : email === 'unknown'
@@ -150,6 +185,7 @@ export function lines(f: HealthFacts): HealthLine[] {
                 what: 'Inviting people by email',
                 severity: 'limited',
                 says: 'A key is set, but it has not been tested, so nobody can say whether an invitation would arrive.',
+                word: 'Needs attention',
                 fix: 'Refresh the page — this one is checked live.',
               }
               : {
@@ -160,15 +196,81 @@ export function lines(f: HealthFacts): HealthLine[] {
               },
   );
 
+  /*
+    Asked, not assumed — and here it matters more than anywhere else on this page.
+
+    This line used to read the setting and say "Working. A problem typed in plain words gets read
+    properly." It would have said that about a key that was deleted, mistyped, or attached to a
+    Console with nothing left on it.
+
+    Every other failure on this page announces itself: a database that will not answer takes the
+    site down, a build that outruns its schema throws 500s. This one is silent by design. All five
+    callers fall back to the simple reading and say so, which is exactly right for a customer and
+    exactly wrong for the person who needs to know the key stopped working three weeks ago.
+
+    SIMPLE IS NOT BROKEN. `limited` is used throughout, never `broken` — SPEC with no reading is the
+    Basic tier, a complete product, and a status page that cries about it teaches somebody to stop
+    reading the page.
+  */
+  const claude = f.claude?.state ?? (has('ANTHROPIC_API_KEY') ? 'unknown' : 'no_key');
+  const READING = 'SPEC reading a problem';
+  const SIMPLE = 'Problems are still logged, ranked and assigned — they just get the simple reading rather than the full one.';
   out.push(
-    has('ANTHROPIC_API_KEY')
-      ? { what: 'SPEC reading a problem', severity: 'working', says: 'Working. A problem typed in plain words gets read properly.', fix: null }
-      : {
-        what: 'SPEC reading a problem',
-        severity: 'limited',
-        says: 'Problems are still logged, ranked and assigned — they just get the simple reading rather than the full one. This is exactly what the Basic tier is.',
-        fix: `Add ANTHROPIC_API_KEY for the full reading. ${VERCEL}`,
-      },
+    claude === 'ok'
+      ? { what: READING, severity: 'working', says: 'Working. A real reading was asked for just now and came back.', fix: null }
+      : claude === 'no_key'
+        ? {
+          what: READING,
+          severity: 'limited',
+          says: `${SIMPLE} This is exactly what the Basic tier is.`,
+          fix: `Add ANTHROPIC_API_KEY for the full reading. ${VERCEL}`,
+        }
+        : claude === 'refused'
+          ? {
+            what: READING,
+            severity: 'limited',
+            says: `The key is there but Anthropic refuses it — it has been deleted or replaced. ${SIMPLE} Nothing else is affected.`,
+            word: 'Needs attention',
+            fix: `Make a new key at console.anthropic.com → Settings → API keys, then replace ANTHROPIC_API_KEY. ${VERCEL}`,
+          }
+          : claude === 'no_credit'
+            ? {
+              what: READING,
+              severity: 'limited',
+              says: `The key works, but the Anthropic account has run out of credit, so every reading is refused. ${SIMPLE}`,
+              word: 'Needs attention',
+              fix: 'Top up at console.anthropic.com → Billing. It starts working again by itself — no redeploy.',
+            }
+            : claude === 'no_model'
+              ? {
+                what: READING,
+                severity: 'limited',
+                says: `The key works, but the model it is asked for does not exist.${f.claude?.detail ? ` ${safe(f.claude.detail)}` : ''} ${SIMPLE}`,
+                word: 'Needs attention',
+                fix: `Clear ANTHROPIC_MODEL to go back to the built-in default, or set it to a current model. ${VERCEL}`,
+              }
+              : claude === 'busy'
+                ? {
+                  what: READING,
+                  severity: 'working',
+                  says: 'Working. Anthropic asked us to slow down for a moment, which means the key is good and the service is busy.',
+                  fix: null,
+                }
+                : claude === 'unreachable'
+                  ? {
+                    what: READING,
+                    severity: 'limited',
+                    says: `Could not reach Anthropic to check.${f.claude?.detail ? ` ${safe(f.claude.detail)}` : ''} This does not mean it is broken — it means nobody can say right now.`,
+                    word: 'Needs attention',
+                    fix: 'Refresh in a minute. If it keeps saying this, Anthropic is having trouble rather than SPEC.',
+                  }
+                  : {
+                    what: READING,
+                    severity: 'limited',
+                    says: 'A key is set, but it has not been tested, so nobody can say whether a problem would be read properly.',
+                    word: 'Needs attention',
+                    fix: 'Refresh the page — this one is checked live.',
+                  },
   );
 
   return out;

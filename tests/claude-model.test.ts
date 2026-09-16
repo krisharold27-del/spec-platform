@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
-import { CLAUDE_MODEL, ANTHROPIC_VERSION, anthropicHeaders } from '../src/lib/claude';
+import {
+  CLAUDE_MODEL, ANTHROPIC_VERSION, anthropicHeaders, checkClaudeReading, forgetClaudeCheck,
+} from '../src/lib/claude';
 
 /*
   ── Five callers, one model ──────────────────────────────────────────────────────────────────────
@@ -77,13 +79,6 @@ describe('the constants themselves', () => {
   });
 
   /*
-    The key must never reach a log, a page or an error message.
-
-    A secret that is printed once is a secret that is in a log file forever, and Vercel's logs are
-    readable by anybody who can read the project. Every caller already swallows the failure and
-    falls back to the deterministic reading; none of them may print what they were holding.
-  */
-  /*
     ── The one paid call a stranger can make ──────────────────────────────────────────────────────
 
     Four of the five callers are behind a sign-in, so their spending is bounded by paying customers
@@ -106,6 +101,13 @@ describe('the constants themselves', () => {
       .toMatch(/spent\s*\?\s*deterministic\(/);
   });
 
+  /*
+    The key must never reach a log, a page or an error message.
+
+    A secret that is printed once is a secret that is in a log file forever, and Vercel's logs are
+    readable by anybody who can read the project. Every caller already swallows the failure and
+    falls back to the deterministic reading; none of them may print what they were holding.
+  */
   it('is never logged by any caller', () => {
     for (const f of files) {
       const body = source(f);
@@ -115,5 +117,121 @@ describe('the constants themselves', () => {
         expect(line, `${f} logs something next to the API key`).not.toMatch(/\bkey\b/);
       }
     }
+  });
+});
+
+/*
+  ── The probe itself ─────────────────────────────────────────────────────────────────────────────
+
+  This decides what /status tells Kris about whether SPEC is doing the thing the front door
+  promises. Four failures reach it and they need four different answers, one of which — "Anthropic
+  could not be reached" — must never be reported as a fault of ours.
+*/
+describe('asking whether a reading would actually work', () => {
+  const answering = (status: number, body = '') => {
+    globalThis.fetch = (async () => new Response(body, { status })) as typeof fetch;
+  };
+
+  let realFetch: typeof fetch;
+  let hadKey: string | undefined;
+  beforeEach(() => {
+    realFetch = globalThis.fetch;
+    hadKey = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-not-a-real-key';
+    forgetClaudeCheck();
+  });
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    if (hadKey === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = hadKey;
+    forgetClaudeCheck();
+  });
+
+  it('says nothing about a key it has not got, and does not call out to find out', async () => {
+    delete process.env.ANTHROPIC_API_KEY;
+    let called = false;
+    globalThis.fetch = (async () => { called = true; return new Response('', { status: 200 }); }) as typeof fetch;
+    expect((await checkClaudeReading()).state).toBe('no_key');
+    expect(called, 'no key means no reason to spend a call finding out').toBe(false);
+  });
+
+  it('says ok only when a real call came back', async () => {
+    answering(200, '{"content":[]}');
+    expect((await checkClaudeReading()).state).toBe('ok');
+  });
+
+  it('calls a 401 what it is', async () => {
+    answering(401, '{"type":"error"}');
+    expect((await checkClaudeReading()).state).toBe('refused');
+  });
+
+  it('tells an empty account apart from a dead key', async () => {
+    answering(400, '{"type":"error","error":{"message":"Your credit balance is too low to access the Claude API"}}');
+    expect((await checkClaudeReading()).state).toBe('no_credit');
+  });
+
+  it('names the model when the model is the problem', async () => {
+    answering(404, '{"type":"error","error":{"type":"not_found_error"}}');
+    const r = await checkClaudeReading();
+    expect(r.state).toBe('no_model');
+    expect(r.detail, 'so somebody can see what to correct it to').toContain(CLAUDE_MODEL);
+  });
+
+  /*
+    Being asked to slow down means the key is good and the service is busy. Reporting that as a
+    fault sends somebody to replace a key that was never the problem.
+  */
+  it('does not treat a rate limit as a fault', async () => {
+    answering(429);
+    expect((await checkClaudeReading()).state).toBe('busy');
+  });
+
+  /*
+    The cry-wolf case, and the expensive one. A proxy, a gateway or a sandbox answers 403 to a
+    request it will not forward, which looks exactly like Anthropic refusing a key. It has to carry
+    Anthropic's own error shape before anybody is told their key is dead.
+  */
+  it('will not call a key dead on a 403 that did not come from Anthropic', async () => {
+    answering(403, 'Forbidden');
+    expect((await checkClaudeReading()).state).toBe('unreachable');
+
+    forgetClaudeCheck();
+    answering(403, '{"type":"error","error":{"type":"authentication_error"}}');
+    expect((await checkClaudeReading()).state).toBe('refused');
+  });
+
+  it('says nobody can tell rather than guessing, when the call throws', async () => {
+    globalThis.fetch = (async () => { throw new Error('socket hang up'); }) as typeof fetch;
+    expect((await checkClaudeReading()).state).toBe('unreachable');
+  });
+
+  /*
+    /status is public and has no sign-in, by design. An unremembered probe would be a paid call for
+    every visitor — the exact open-to-the-internet-and-spending-money shape the front door is so
+    careful about.
+  */
+  it('does not spend a call per visitor', async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => { calls += 1; return new Response('{}', { status: 200 }); }) as typeof fetch;
+
+    const start = Date.UTC(2026, 8, 16, 9, 0, 0);
+    for (let i = 0; i < 50; i++) await checkClaudeReading(start + i * 1000);
+    expect(calls, 'fifty people opening /status in a minute is one call').toBe(1);
+
+    // But it does not go stale forever: a key fixed at lunchtime shows as fixed.
+    await checkClaudeReading(start + 20 * 60_000);
+    expect(calls).toBe(2);
+  });
+
+  it('asks the model everything else asks', async () => {
+    let sent: Record<string, unknown> = {};
+    globalThis.fetch = (async (_u: unknown, init: { body?: string }) => {
+      sent = JSON.parse(init.body ?? '{}');
+      return new Response('{}', { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await checkClaudeReading();
+    expect(sent.model, 'a probe against a different model proves nothing about the real calls')
+      .toBe(CLAUDE_MODEL);
+    expect(sent.max_tokens, 'one token: a real call, and not one worth costing').toBe(1);
   });
 });

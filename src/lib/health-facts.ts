@@ -1,5 +1,6 @@
 import { checkSchema, driftLine } from './schema-check';
 import { checkEmailSending } from './email';
+import { checkClaudeReading } from './claude';
 import type { HealthFacts } from './site-health';
 
 /**
@@ -105,12 +106,12 @@ function plainly(err: unknown): string {
 /**
  * Ask everything, once.
  *
- * The database and the email service are asked at the same time rather than one after the other:
- * each has its own timeout, and run in sequence a slow one makes the other look slow, on a page
- * somebody opens when they are already worried.
+ * The database, the email service and Anthropic are asked at the same time rather than one after
+ * the other: each has its own timeout, and run in sequence a slow one makes the other look slow, on
+ * a page somebody opens when they are already worried.
  */
 export async function healthFacts(): Promise<HealthFacts> {
-  const [db, email] = await Promise.all([database(), checkEmailSending()]);
+  const [db, email, claude] = await Promise.all([database(), checkEmailSending(), checkClaudeReading()]);
   const shape = db.status === 'ok' ? await checkSchema() : { status: 'not_checked' as const };
 
   return {
@@ -121,5 +122,6 @@ export async function healthFacts(): Promise<HealthFacts> {
       ? { status: 'behind', says: driftLine(shape) }
       : { status: shape.status },
     email,
+    claude,
   };
 }
