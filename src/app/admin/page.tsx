@@ -5,8 +5,9 @@ import { Footer } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
 import { SETTABLE_PLANS, PLAN_MEANING, type SettablePlan } from '@/lib/plan';
+import { PACKAGES, PACKAGE_KEYS, packageOf, packagePrice } from '@/lib/pricing';
 import { SubmitButton } from '@/components/submit-button';
-import { setPlan } from './actions';
+import { setPlan, setPackage } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -104,6 +105,34 @@ export default async function Admin() {
                       </form>
                       <div className="mt-1 max-w-[28ch] text-xs text-ink-light">
                         {PLAN_MEANING[r.tenant.plan] ?? ''}
+                      </div>
+
+                      {/*
+                        Which of the four they are buying — set here and never by the customer.
+
+                        Two of these are a seat price and could safely be self-serve. The other two
+                        are a share of one person's week, and a business that clicks its way into
+                        one has bought time that may not exist. There are only so many Tuesdays.
+                      */}
+                      <form action={setPackage} className="mt-3 flex flex-wrap items-center gap-2">
+                        <input type="hidden" name="tenantId" value={r.tenant.id} />
+                        <select
+                          name="package"
+                          defaultValue={packageOf(r.tenant.package)}
+                          aria-label={`Package for ${r.tenant.name}`}
+                          className="rounded-lg border border-ink/20 bg-surface px-2 py-1 text-sm"
+                        >
+                          {PACKAGE_KEYS.map(k => (
+                            <option key={k} value={k}>{PACKAGES[k].label}</option>
+                          ))}
+                        </select>
+                        <SubmitButton className="rounded-full border border-ink/20 px-3 py-1 text-xs text-ink hover:border-rust hover:text-rust">
+                          Set
+                        </SubmitButton>
+                      </form>
+                      <div className="mt-1 max-w-[34ch] text-xs text-ink-light">
+                        {PACKAGES[packageOf(r.tenant.package)].what}{' '}
+                        <b>{packagePrice(packageOf(r.tenant.package))}</b>
                       </div>
                     </td>
                   </tr>

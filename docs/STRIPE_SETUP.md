@@ -40,31 +40,60 @@ Settings → Tax → enable **Stripe Tax**, and set your GST registration status
 Worth doing before the first real payment rather than after. Retro-fixing GST on invoices already
 issued is an accountant's afternoon.
 
-## 3. One product, six prices
+## 3. Four products
 
-Products → **Add product** → name it `SPEC seat`.
+SPEC sells four things, and the administrator decides which one a business is on — see
+`PACKAGES` in `src/lib/pricing.ts`.
 
-Then add **six monthly recurring prices to that one product** — not six products. The code finds the
-right price by looking up other prices *on the same product*, so a second product is invisible to it.
+| | What it is | Price | Billed | Sold where |
+|---|---|---|---|---|
+| **Seat** | One person in SPEC | **A$26** | per person, monthly | anywhere |
+| **Seat plus training** | The same, plus the training built into SPEC, done online | **A$44** | per person, monthly | anywhere |
+| **SPEC sessions** | Four one-hour sessions a month, delivered by you, built around their roles and how they actually use SPEC | **A$1,007** | flat, monthly | anywhere — delivered from Australia |
+| **Full SPEC control** | One full day a week on site, and the monthly board meeting chaired | **A$20,888** | flat, monthly | **Australia only** |
 
-| Currency | Amount | Interval |
+Every one of those reduces to 8 by digit sum. 1008 was the first number for the sessions tier and
+reduces to 9 — `tests/packages.test.ts` records that, so nobody re-introduces it by rounding.
+
+### The two seat products
+
+Products → **Add product** → `SPEC seat`, then `SPEC seat plus training`.
+
+Each one gets **six monthly recurring prices on that same product** — not six products. The code
+finds the right currency by looking up other prices *on the same product*, so a second product is
+invisible to it.
+
+| Currency | Seat | Seat plus training |
 |---|---|---|
-| AUD | 26 | Monthly |
-| NZD | 35 | Monthly |
-| GBP | 17 | Monthly |
-| EUR | 26 | Monthly |
-| USD | 26 | Monthly |
-| CAD | 35 | Monthly |
+| AUD | 26 | 44 |
+| NZD | 35 | 53 |
+| GBP | 17 | 26 |
+| EUR | 26 | 44 |
+| USD | 26 | 44 |
+| CAD | 35 | 53 |
 
-These are the published prices and they are not converted from each other — every one reduces to 8
-by digit sum, which is deliberate, and a price never moves because an exchange rate did.
+Copy the **AUD seat** price ID into `STRIPE_PRICE_SEAT_MONTHLY`. The rest are found through it.
 
 **The amounts have to match exactly.** `src/app/api/stripe/checkout/route.ts` matches on currency
 *and* the exact amount, so a price that has drifted from this table is never charged — it falls back
-to the AUD one and logs `no published seat price in Stripe for …`. That is the safe failure, and it
-is also a silent one, so get them right.
+to AUD and logs `no published seat price in Stripe for …`. Safe, and silent.
 
-Copy the **AUD** price ID into `STRIPE_PRICE_SEAT_MONTHLY`. The other five are found through it.
+### The two that are your week, not a seat
+
+Products → **Add product** → `SPEC sessions` (A$1,007/month) and `SPEC full control`
+(A$20,888/month). **One AUD price each. No other currencies.**
+
+Not an oversight. Both are a share of one person's week, quoted in Australian dollars wherever the
+customer is, because that is the only number anybody has decided — and a converted price is one that
+moves every time an exchange rate does.
+
+**Neither is ever multiplied by a headcount.** A full day a week for a business of forty is still one
+day. `monthlyCostOf` enforces that and a test holds it at twenty thousand seats.
+
+**Full control is Australia only.** It means somebody on site every week and in the board meeting
+every month, and there is no version of that for a business in another country. Sessions travel
+fine — four hours a month goes down a video call — which is why the two are treated differently in
+`availableTo()` rather than lumped together as "the expensive ones".
 
 ## 4. The customer portal
 

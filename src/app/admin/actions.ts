@@ -7,6 +7,7 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
 import { SETTABLE_PLANS, type SettablePlan } from '@/lib/plan';
+import { PACKAGE_KEYS, type Package } from '@/lib/pricing';
 
 /**
  * Put a business on a free beta, or take it off one.
@@ -39,6 +40,40 @@ export async function setPlan(form: FormData) {
 
   revalidatePath('/admin');
   // The account page shows what it costs, so it must not serve a stale figure.
+  revalidatePath('/settings');
+  redirect('/admin?changed=1');
+}
+
+/**
+ * Put a business on one of the four packages.
+ *
+ * ── Why the administrator and never the customer ─────────────────────────────────────────────────
+ *
+ * Kris, 16 September: *"these are controlled by the administrator"*.
+ *
+ * Two of the four are a seat price and could safely be self-serve. The other two are a share of one
+ * person's week — four hours a month, or a full day every week plus chairing the board meeting — and
+ * a business that clicks its way into one of those has bought time that may not exist. There are
+ * only so many Tuesdays, and a checkout button cannot know how many are left.
+ *
+ * So the last two are always a conversation first and this screen second. The gate is the same
+ * allowlist as the cockpit, checked on the server.
+ */
+export async function setPackage(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user || !isAdminEmail(user.email)) redirect('/signin');
+
+  const tenantId = String(form.get('tenantId') ?? '');
+  const pkg = String(form.get('package') ?? '');
+
+  // Only the four the product knows. An unrecognised value reaching this column would be a business
+  // in a state nothing can price, which is the same fault `plan` is guarded against above.
+  if (!tenantId || !PACKAGE_KEYS.includes(pkg as Package)) redirect('/admin');
+
+  await db.update(schema.tenants).set({ package: pkg }).where(eq(schema.tenants.id, tenantId));
+
+  revalidatePath('/admin');
+  // The account page prints what it costs, so it must not serve a stale figure.
   revalidatePath('/settings');
   redirect('/admin?changed=1');
 }

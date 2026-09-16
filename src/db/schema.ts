@@ -52,6 +52,19 @@ export const tenants = pgTable('tenants', {
    * one: nothing should switch itself on for a business that has not asked for it.
    */
   tier: text('tier').notNull().default('basic'),
+  /**
+   * Which of the four things this business is buying — see PACKAGES in lib/pricing.
+   *
+   *   seat            one person in SPEC
+   *   seat_training   the same, plus the training built into SPEC
+   *   sessions        four one-hour sessions a month, delivered by SPEC
+   *   full_control    a full day a week, and the board meeting chaired
+   *
+   * Set by the administrator, never by the customer: the last two are a share of one person's week
+   * and cannot be bought by clicking. Defaults to `seat`, which is the only one that needs nothing
+   * from anybody to deliver.
+   */
+  package: text('package').notNull().default('seat'),
 }).enableRLS();
 
 /**
