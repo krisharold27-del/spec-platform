@@ -114,6 +114,29 @@ export default async function MyPage({
     unmarked,
     canManage: data.canManage,
   });
+  /*
+    The first visit, before a single number has been marked.
+
+    Kris, 16 September, on the page a brand-new business meets: *"when someone starts they want to
+    enjoy the journey in — remember they are here because problems are overwhelming them — if we make
+    it too much info then that's another problem they don't understand which will make them quit — we
+    need a beautifully simple start"*.
+
+    He was looking at five thousand pixels of page. Twenty blocks, four identical grey cards reading
+    "Not measured yet", a week with nothing in it, a training path with nothing on it, a mail block
+    for mail nobody has connected. Every one of them correct and every one of them empty, offered to
+    somebody who came here because they already have more than they can hold.
+
+    The design never drew this. `rag()` in SPEC My Page.dc.html is
+    `v >= 80 ? GREEN : v > 50 ? AMBER : RED` — there is no branch for "no score", and its prototype
+    shows 92, 85, 89 and 100. A business on day one was territory the drawings simply do not cover,
+    so the product filled it by rendering everything at once.
+
+    So: until there is one mark, the page is the greeting, the one next step, the problem you came
+    with, the list of what to do, and the doors. Everything else arrives when it has something in it,
+    which is also when it starts being worth reading.
+  */
+  const nothingMarkedYet = PILLARS.every(p => myScore.pillars[p] === null);
   const advanced = tier === 'advanced';
   // A supervisor's reports are on the tools, not running scorecards of their own. Calling that
   // "my team" is the language of an office; "my crew" is what they actually say.
@@ -176,8 +199,37 @@ export default async function MyPage({
       */}
       <AskBar available={advanced} href={`/boards?ask=1`} />
 
-      {/* The four lights lead the page: the first thing anybody wants is where they stand. */}
-      {scored && (
+      {/*
+        The four lights, once there is light in them.
+
+        On the first visit they are four large cards saying nothing four times, in the best position
+        on the page. They become the design's own compact four-slot marker instead: the letters, in
+        order, in the neutral grey, and one line saying what turns them on. The full cards come back
+        the moment a month is marked, which is the moment they are worth the room.
+      */}
+      {scored && nothingMarkedYet && (
+        <section aria-label="My four pillars" className="rounded-lg border border-ink/10 bg-surface p-5">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex gap-1.5" aria-hidden>
+              {PILLARS.map(p => (
+                <span
+                  key={p}
+                  className="grid h-9 w-9 place-content-center rounded-lg font-serif text-base text-cream"
+                  style={{ background: LIGHT_COLOUR.pending }}
+                >
+                  {PILLAR_META[p].letter}
+                </span>
+              ))}
+            </div>
+            <p className="min-w-0 flex-1 text-sm text-ink-light">
+              Safety, People, Earnings, Compliance. They light up the first time you mark a month —
+              nothing is counted against you until then.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {scored && !nothingMarkedYet && (
       <section aria-label="My four pillars" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {PILLARS.map(p => {
           const v = myScore.pillars[p];
@@ -242,6 +294,23 @@ export default async function MyPage({
         under you, where the Ace run stands, your team, the numbers arriving. Everything you reach
         for rather than read on the right.
       */}
+      {/*
+        On the first visit, this is the ONLY thing under the register: what to do today.
+
+        Everything else in these two columns — the week, the meeting, the training path, the mail
+        block, the Ace run, the team, where the numbers come from — is a true and empty box on day
+        one. Held back until it has something in it. See nothingMarkedYet above.
+      */}
+      {nothingMarkedYet && (
+        <div className="mt-8">
+          <section className="card">
+            <h2 className="font-serif text-xl text-ink">What needs me today</h2>
+            <TodoList items={todos} />
+          </section>
+        </div>
+      )}
+
+      {!nothingMarkedYet && (
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
         <div className="grid gap-6">
           <section className="card">
@@ -490,6 +559,7 @@ export default async function MyPage({
           </section>
         </div>
       </div>
+      )}
 
       <p className="mt-10 max-w-xl text-base text-ink-light">That is the whole day. Nothing else to open.</p>
 

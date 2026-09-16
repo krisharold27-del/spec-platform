@@ -98,6 +98,28 @@ try {
   check('a visitor can read Today', at(page) === '/my-page', at(page));
 
   /*
+    The other half of the beautifully simple start.
+
+    A brand-new business holds back the week, the training path, the mail block and what changed —
+    all true, all empty, and all of it landing on somebody who came here because they already have
+    more than they can hold (Kris, 16 September). scripts/register-journey checks they are ABSENT on
+    day one. This checks they come BACK, because a section held back on an empty page and a section
+    quietly deleted look identical from the empty page.
+
+    The look-around business is the one with real history in it, which is exactly what makes it the
+    right place to ask.
+  */
+  const lived = await page.evaluate(() => document.body.innerText);
+  for (const [label, words] of [
+    ['the week', 'My week'],
+    ['the training path', 'My training'],
+    ['what changed under them', 'Changes you should know about'],
+  ]) {
+    check(`a business with history still shows ${label}`, lived.includes(words));
+  }
+  check('and My week still says it is not a diary', /not your diary/i.test(lived));
+
+  /*
     ── A visitor can never write, and finding that out is not frightening ──────────────────────────
 
     READINESS has claimed for a fortnight that "a visitor can never write — the look-around journey

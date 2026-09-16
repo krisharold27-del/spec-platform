@@ -115,27 +115,55 @@ check('RAISED AGAIN counts up rather than adding a second row', /Raised 2×/.tes
 const rows = await page.locator('section:has-text("Improvement register") li').count();
 check('and it is still one entry', rows === 1, `${rows} rows in the register`);
 
-// ── The six sections the design asks for ─────────────────────────────────────────────────────────
+// ── A BEAUTIFULLY SIMPLE START ───────────────────────────────────────────────────────────────────
+//
+// Kris, 16 September, looking at the page a brand-new business meets: "they are here because
+// problems are overwhelming them — if we make it too much info then that's another problem they
+// don't understand which will make them quit — we need a beautifully simple start".
+//
+// It was five thousand pixels. Twenty blocks, four identical grey cards reading "Not measured yet",
+// a week with nothing in it, a training path with nothing on it, a mail block for mail nobody has
+// connected. Every one correct, every one empty.
+//
+// So the first visit holds those back, and this checks BOTH halves of that — absent while empty,
+// and back the moment there is something in them. Only asserting the second half would let the page
+// creep back to twenty blocks; only asserting the first would let a section vanish for good.
 await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
 body = await text();
+
 for (const [label, pattern] of [
-  ['My KPIs lead the page', /Safety[\s\S]*People[\s\S]*Earnings[\s\S]*Compliance/],
-  ['Improvement opportunity', /Improvement opportunity/],
-  ['Where you sit', /Where you sit/],
-  ['what changed for you', /Changes you should know about/],
-  ['mail and the tasks it created', /Mail and the tasks it created/],
-  ['My week', /My week/],
-  ['learning, in small pieces', /My training/],
+  ['the four pillars are still named', /Safety[\s\S]*People[\s\S]*Earnings[\s\S]*Compliance/],
+  ['the problem box they came for', /Improvement opportunity/],
+  ['where they sit', /Where you sit/],
+  ['what to do today', /What needs me today/],
   ['it closes the day', /That is the whole day\. Nothing else to open\./],
+  ['and every door is still reachable', /Everywhere else in SPEC/],
 ]) {
-  check(`section — ${label}`, pattern.test(body));
+  check(`first visit keeps — ${label}`, pattern.test(body));
 }
+
+for (const [label, pattern] of [
+  ['a week with nothing in it', /My week/],
+  ['a training path with nothing on it', /My training/],
+  ['a mail block for mail nobody connected', /Mail and the tasks it created/],
+  ['changes nobody has made yet', /Changes you should know about/],
+]) {
+  check(`first visit holds back — ${label}`, !pattern.test(body));
+}
+
+check(
+  'and it is a page somebody can actually take in',
+  (await page.evaluate(() => document.body.scrollHeight)) < 4200,
+  `${await page.evaluate(() => document.body.scrollHeight)}px`,
+);
+
+// The other half — that these sections come BACK once there is something in them — is checked in
+// scripts/journey.mjs, on the look-around business, which has real history in it. A mark needs an
+// open period and a row per criterion, and faking that here would be testing the fixture rather
+// than the product.
 
 // The visibility rule, said plainly rather than left to be discovered.
 check('it states who can see your card', /cannot see theirs|top of the chart/i.test(body));
-
-// My week must never become a diary, so it says what it is not.
-check('My week says it is not a calendar', /not your diary/i.test(body));
 
 check('no page errors anywhere in the journey', errors.length === 0, errors.slice(0, 3).join(' | '));
 
