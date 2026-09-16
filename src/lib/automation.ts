@@ -245,12 +245,23 @@ export interface RoleReview {
   lines: (Measure & Assessment)[];
   counts: Record<Verdict, number>;
   /**
-   * True only when NOTHING in the role needs a person and nothing is unknown.
+   * True only when every measure in the role could move and nothing is unknown.
    *
-   * Deliberately strict. This is the sentence that ends up being read as "we do not need to
-   * replace them", and a single `unknown` means SPEC has not actually looked at part of the job.
+   * ── Named carefully, and renamed once ────────────────────────────────────────────────────────
+   *
+   * This was `roleCouldBeAProcess`, which was the wrong name for the right idea. The engine brief
+   * is explicit: *"Never insult the owner or the people. The output is 'here's the drudge we can
+   * take off your team,' not 'here's who's redundant'"*, and *"No suggestion is ever phrased as a
+   * headcount reduction."*
+   *
+   * What is actually true is narrower and more useful: every measure CURRENTLY ON THE CARD is
+   * drudge a process could take on. A scorecard is not a job. The judgement, the relationships and
+   * the hundred things nobody wrote down are not on it — so this says the measures could move, and
+   * says nothing whatsoever about the person.
+   *
+   * Deliberately strict either way: one `unknown` means part of the role was never read.
    */
-  roleCouldBeAProcess: boolean;
+  everyMeasureCouldMove: boolean;
   /** One sentence for the leader, which is what most of them will read. */
   headline: string;
 }
@@ -260,9 +271,9 @@ export function reviewRole(title: string, measures: (Measure & { actual?: string
   const counts: Record<Verdict, number> = { person: 0, assisted: 0, automated: 0, unknown: 0 };
   for (const l of lines) counts[l.verdict] += 1;
 
-  const roleCouldBeAProcess = lines.length > 0 && counts.person === 0 && counts.unknown === 0;
+  const everyMeasureCouldMove = lines.length > 0 && counts.person === 0 && counts.unknown === 0;
 
-  return { lines, counts, roleCouldBeAProcess, headline: headline(title, counts, roleCouldBeAProcess, lines.length) };
+  return { lines, counts, everyMeasureCouldMove, headline: headline(title, counts, everyMeasureCouldMove, lines.length) };
 }
 
 /*
@@ -275,7 +286,17 @@ export function reviewRole(title: string, measures: (Measure & { actual?: string
 function headline(title: string, c: Record<Verdict, number>, whole: boolean, total: number): string {
   if (!total) return `${title} has nothing measured yet, so there is nothing to assess.`;
   if (whole) {
-    return `Every part of ${title} is work a process can do. Worth deciding whether this is a role or a system.`;
+    /*
+      Positive only, and the negation was removed on purpose.
+
+      This first read "...that is time back, NOT a headcount question", which is the forbidden idea
+      smuggled in as a denial. Telling a leader not to think about headcount is how you get them
+      thinking about headcount — the word does its work whichever way round it is used. So the
+      sentence simply does not go there, and the test bans the word outright rather than trusting
+      the next person to phrase the disclaimer well.
+    */
+    return `Everything ${title} is measured on today is drudge a process could take on. `
+      + 'That is time back for whoever holds it — worth asking them what it should buy.';
   }
   if (c.person === total) return `${title} is a person's job from end to end. Nothing here should be automated.`;
 

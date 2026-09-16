@@ -817,3 +817,92 @@ export const roleAutomation = pgTable('role_automation', {
   decidedBy: text('decided_by').notNull(),
   decidedAt: text('decided_at').notNull(),
 }, t => [uniqueIndex('role_automation_criterion').on(t.criterionId), index('role_automation_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * The discrete jobs inside a role — the unit the automation engine actually works on.
+ *
+ * ── Why tasks and not KPIs ───────────────────────────────────────────────────────────────────────
+ *
+ * A KPI is an OUTCOME — "quote turnaround within 1 day" — and an outcome is not a thing anybody can
+ * build. What gets built is the work behind it: read the enquiry, find the roof, size it, price it,
+ * send it. Those are tasks, they are what a build brief describes, and one KPI usually rests on
+ * several of them. The KPI still decides the ORDER, because a failing one is what makes a task worth
+ * doing first — but it is the reason, not the unit.
+ *
+ * ── Where the rows come from ─────────────────────────────────────────────────────────────────────
+ *
+ *   `template` — seeded with the role, so no business faces a blank page
+ *   `person`   — the role-holder answered the three questions (what do you do each week, what takes
+ *                longest, what do you hate)
+ *   `intake`   — somebody wrote it into the intake box
+ *
+ * Kept separate because they deserve different amounts of trust. A template task is SPEC's guess at
+ * what this kind of role usually does; a task the person who does it wrote down is evidence.
+ */
+export const roleTasks = pgTable('role_tasks', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** Null for work that belongs to the business rather than to one role. */
+  roleId: text('role_id').references(() => roles.id),
+  name: text('name').notNull(),
+  /** sequential | judgement | mixed — SPEC's tag, overridable by the person who does it. */
+  kind: text('kind').notNull(),
+  /** Hours a week across everyone who does it. Null means nobody has said, and nothing is estimated. */
+  hoursPerWeek: real('hours_per_week'),
+  /** Connected-system categories it touches, comma separated. */
+  systems: text('systems').notNull().default(''),
+  /** The KPI it feeds, when it feeds one. */
+  criterionId: text('criterion_id').references(() => criteria.id),
+  /**
+   * Safety- or compliance-critical, and therefore never fully automated.
+   *
+   * The engine brief allows exactly one outcome for these: streamline, with a named person signing
+   * off. It overrides every other signal, including a perfectly sequential description with every
+   * system connected.
+   */
+  critical: boolean('critical').notNull().default(false),
+  /** How much it hurts, raised by the intake box. Higher is worse. */
+  pain: integer('pain').notNull().default(0),
+  source: text('source').notNull().default('template'), // template | person | intake
+  /**
+   * proposed | approved | parked | rejected.
+   *
+   * `approved` IS the build queue — there is no second table, because a queue that can disagree with
+   * the list it came from is a queue that will. `rejected` rows are kept so the engine does not
+   * resurface something somebody has already said no to, which is how software teaches people to
+   * stop reading it.
+   */
+  state: text('state').notNull().default('proposed'),
+  /** Why it was rejected. One line, required, so a no can be revisited rather than re-argued. */
+  rejectedReason: text('rejected_reason'),
+  decidedBy: text('decided_by'),
+  decidedAt: text('decided_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('role_tasks_tenant').on(t.tenantId), index('role_tasks_role').on(t.roleId)]).enableRLS();
+
+/**
+ * The intake box — anybody writes in a want or a gap.
+ *
+ * "I spend Friday afternoons chasing timesheets." "Quotes take four days." "I want the board pack to
+ * build itself."
+ *
+ * This is how wants and problems go in one end and a build comes out the other, and it is the only
+ * part of the engine that is open to everybody rather than to the top of the chart. That asymmetry
+ * is deliberate: the person doing the drudge knows where it is, and the person who could authorise
+ * removing it usually does not.
+ *
+ * An entry either raises the pain on a task that already exists, or becomes a new one. Either way
+ * the words are kept exactly as written — they are evidence, and rewriting somebody's complaint into
+ * tidier language is how the reason it mattered gets lost.
+ */
+export const intakeEntries = pgTable('intake_entries', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** Who said it. Kept so somebody can be thanked, or asked what they meant. */
+  byName: text('by_name').notNull(),
+  /** Their words, unedited. */
+  text: text('text').notNull(),
+  /** The task it was matched to, or the task it created. Null while nothing has been matched. */
+  taskId: text('task_id').references(() => roleTasks.id),
+  createdAt: text('created_at').notNull(),
+}, t => [index('intake_tenant').on(t.tenantId)]).enableRLS();

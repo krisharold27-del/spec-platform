@@ -7,6 +7,8 @@ import { getTenantById } from '@/lib/queries';
 import { automationReview } from '@/lib/automation-data';
 import { mayReadAutomationReview, WHY_RESTRICTED, type ReviewLevel } from '@/lib/automation';
 import { AutomationReview } from '@/components/automation-review';
+import { ReviewEngine } from '@/components/review-engine';
+import { runReview } from '@/lib/review-engine';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'SPEC — what a process could do' };
@@ -64,14 +66,39 @@ export default async function Automation({ searchParams }: { searchParams: Promi
   }
 
   const tenant = (await getTenantById(user.tenantId))!;
-  const review = await automationReview(user.tenantId, hourlyRate(tenant.ceilings));
+  const [engine, byMeasure] = await Promise.all([
+    runReview(user.tenantId),
+    automationReview(user.tenantId, hourlyRate(tenant.ceilings)),
+  ]);
 
   return (
     <Shell
       title="What a process could do"
-      subtitle={`${tenant.name} — every role, every measure, and what stays with a person.`}
+      subtitle={`${tenant.name} — every job in the business, what to build, and what to protect.`}
     >
-      <AutomationReview review={review} saved={String(sp.saved ?? '') === '1'} />
+      {String(sp.needsreason ?? '') === '1' && (
+        <p className="mb-4 rounded-lg bg-cream p-3 text-sm text-ink">
+          A rejection needs one line saying why, so it can be revisited later rather than re-argued
+          from scratch. Nothing was changed.
+        </p>
+      )}
+
+      {/*
+        Two grains of the same question, in the order a leader needs them.
+
+        The ENGINE is first: tasks, which are what somebody actually builds. Below it, the same
+        business read at the level of the scorecard — which is the grain a leader already thinks in,
+        and the one that answers "so what does this mean for that person's card".
+      */}
+      <ReviewEngine review={engine} />
+
+      <h2 className="mt-8 font-serif text-xl text-ink">And how each scorecard reads</h2>
+      <p className="mt-1 max-w-2xl text-sm text-ink-light">
+        The same business at the other grain: not the work, but the measures each role is judged on.
+      </p>
+      <div className="mt-3">
+        <AutomationReview review={byMeasure} saved={String(sp.saved ?? '') === '1'} />
+      </div>
     </Shell>
   );
 }

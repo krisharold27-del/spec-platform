@@ -78,7 +78,7 @@ export interface AutomationReview {
   roles: RoleLine[];
   /** Business-wide, counted the same careful way: only hours somebody actually stated. */
   total: Saving;
-  /** Roles where nothing at all needs a person. The sentence that deserves a conversation. */
+  /** Roles where every measure could move. A conversation to have WITH them, not about them. */
   wholeRoles: RoleLine[];
   /** Categories of system that are live, so the screen can say why something reads as it does. */
   liveSystems: string[];
@@ -178,7 +178,7 @@ export async function automationReview(tenantId: string, hourlyRate: number | nu
       ...reviewRole(title, settled),
       lines: settled,
       counts,
-      roleCouldBeAProcess: settled.length > 0 && counts.person === 0 && counts.unknown === 0,
+      everyMeasureCouldMove: settled.length > 0 && counts.person === 0 && counts.unknown === 0,
     };
 
     out.push({
@@ -198,7 +198,7 @@ export async function automationReview(tenantId: string, hourlyRate: number | nu
   return {
     roles: out,
     total: saving(everyLine, hourlyRate),
-    wholeRoles: out.filter(r => r.review.roleCouldBeAProcess),
+    wholeRoles: out.filter(r => r.review.everyMeasureCouldMove),
     liveSystems,
     nothingConnected: liveSystems.length === 0,
   };

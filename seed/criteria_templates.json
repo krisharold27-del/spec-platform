@@ -92,7 +92,34 @@
           }
         ]
       },
-      "pnl_view": "controllable_net_profit"
+      "pnl_view": "controllable_net_profit",
+      "tasks": [
+        {
+          "name": "Compile the monthly board pack",
+          "systems": "job_management,financials",
+          "critical": false
+        },
+        {
+          "name": "Chase the managers for their monthly numbers",
+          "systems": "",
+          "critical": false
+        },
+        {
+          "name": "Weekly leadership meeting",
+          "systems": "",
+          "critical": false
+        },
+        {
+          "name": "Decide where the month's problems get fixed first",
+          "systems": "",
+          "critical": false
+        },
+        {
+          "name": "Review the profit and loss against budget",
+          "systems": "financials",
+          "critical": false
+        }
+      ]
     },
     {
       "template_id": "commercial_manager",
@@ -141,7 +168,34 @@
           }
         ]
       },
-      "pnl_view": "full_statutory"
+      "pnl_view": "full_statutory",
+      "tasks": [
+        {
+          "name": "Reconcile supplier invoices against purchase orders",
+          "systems": "financials,job_management",
+          "critical": false
+        },
+        {
+          "name": "Chase overdue debtors",
+          "systems": "financials",
+          "critical": false
+        },
+        {
+          "name": "Compile the monthly margin report by job",
+          "systems": "financials,job_management",
+          "critical": false
+        },
+        {
+          "name": "Negotiate supplier terms",
+          "systems": "",
+          "critical": false
+        },
+        {
+          "name": "Check every job has been invoiced before month end",
+          "systems": "financials,job_management",
+          "critical": false
+        }
+      ]
     },
     {
       "template_id": "operations_manager",
@@ -192,7 +246,39 @@
           }
         ]
       },
-      "pnl_view": "operational_ebitda"
+      "pnl_view": "operational_ebitda",
+      "tasks": [
+        {
+          "name": "Allocate crews to jobs for the week",
+          "systems": "job_management",
+          "critical": false
+        },
+        {
+          "name": "Chase timesheets that have not been submitted",
+          "systems": "job_management,payroll",
+          "critical": false
+        },
+        {
+          "name": "Review the week and compile the operations report",
+          "systems": "job_management",
+          "critical": false
+        },
+        {
+          "name": "Walk sites and check the work",
+          "systems": "",
+          "critical": false
+        },
+        {
+          "name": "Check licences and tickets for expiry",
+          "systems": "safety",
+          "critical": true
+        },
+        {
+          "name": "Close out corrective actions from incidents",
+          "systems": "safety",
+          "critical": true
+        }
+      ]
     },
     {
       "template_id": "growth_manager",
@@ -245,7 +331,40 @@
       "power_meter": {
         "target": 0.9,
         "weight_share": 0.8
-      }
+      },
+      "tasks": [
+        {
+          "name": "Compile the power meter from the client and job systems",
+          "systems": "crm,job_management",
+          "critical": false
+        },
+        {
+          "name": "Update the client list from everyone ever invoiced",
+          "systems": "crm,financials",
+          "critical": false
+        },
+        {
+          "name": "Chase quotes that have had no answer",
+          "systems": "crm",
+          "critical": false,
+          "kpi": "Quote-to-win conversion ratio at target (segmented by sector once data allows)"
+        },
+        {
+          "name": "Client visits",
+          "systems": "",
+          "critical": false
+        },
+        {
+          "name": "Check the Google ranking position for each town and term",
+          "systems": "",
+          "critical": false
+        },
+        {
+          "name": "Assemble the weekly growth meeting pack",
+          "systems": "crm,job_management",
+          "critical": false
+        }
+      ]
     },
     {
       "template_id": "sales_supervisor",
@@ -302,7 +421,57 @@
             "kpi": true
           }
         ]
-      }
+      },
+      "tasks": [
+        {
+          "name": "Read the enquiry and enter the customer into the client system",
+          "systems": "crm",
+          "critical": false,
+          "kpi": "Every enquiry logged in the client system and the job system"
+        },
+        {
+          "name": "Work out the roof size and orientation from the address",
+          "systems": "",
+          "critical": false,
+          "kpi": "{focus} quote turnaround within target"
+        },
+        {
+          "name": "Size and price the {focus} system",
+          "systems": "job_management",
+          "critical": false,
+          "kpi": "{focus} quote turnaround within target"
+        },
+        {
+          "name": "Send the customer their quote",
+          "systems": "crm",
+          "critical": false,
+          "kpi": "{focus} quote turnaround within target"
+        },
+        {
+          "name": "Chase the customer for a missing address",
+          "systems": "crm",
+          "critical": false,
+          "kpi": "{focus} quote turnaround within target"
+        },
+        {
+          "name": "Send a review request on every completed job",
+          "systems": "crm,job_management",
+          "critical": false,
+          "kpi": "Every completed {focus} job asked for a review"
+        },
+        {
+          "name": "Book the site visit",
+          "systems": "crm",
+          "critical": false,
+          "kpi": "Quote-to-win conversion at target"
+        },
+        {
+          "name": "Attend the site visit and confirm the final price",
+          "systems": "",
+          "critical": false,
+          "kpi": "Quote-to-win conversion at target"
+        }
+      ]
     },
     {
       "template_id": "supervisor",
@@ -368,7 +537,39 @@
             "kpi": true
           }
         ]
-      }
+      },
+      "tasks": [
+        {
+          "name": "Daily prestart with the crew",
+          "systems": "",
+          "critical": true
+        },
+        {
+          "name": "Complete the daily risk assessment",
+          "systems": "safety",
+          "critical": true
+        },
+        {
+          "name": "Walk the site and compile the weekly report",
+          "systems": "job_management",
+          "critical": false
+        },
+        {
+          "name": "Chase the crew's job notes",
+          "systems": "job_management",
+          "critical": false
+        },
+        {
+          "name": "Check the team's tickets are current",
+          "systems": "safety",
+          "critical": true
+        },
+        {
+          "name": "Coach the apprentices",
+          "systems": "",
+          "critical": false
+        }
+      ]
     },
     {
       "template_id": "staff",
@@ -417,7 +618,27 @@
             "weight": 0.5
           }
         ]
-      }
+      },
+      "tasks": [
+        {
+          "name": "Submit the timesheet",
+          "systems": "job_management",
+          "critical": false,
+          "kpi": "Timesheet submitted daily"
+        },
+        {
+          "name": "Complete job notes before leaving site",
+          "systems": "job_management",
+          "critical": false,
+          "kpi": "Job notes completed before leaving site"
+        },
+        {
+          "name": "Complete the daily risk assessment",
+          "systems": "safety",
+          "critical": true,
+          "kpi": "Daily risk assessment completed"
+        }
+      ]
     }
   ]
 }

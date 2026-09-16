@@ -142,7 +142,7 @@ describe('the whole role', () => {
       m('Something nobody has described properly'),
     ]);
     expect(r.counts.unknown).toBe(1);
-    expect(r.roleCouldBeAProcess).toBe(false);
+    expect(r.everyMeasureCouldMove).toBe(false);
     expect(r.headline).toContain('need somebody to look');
   });
 
@@ -151,18 +151,50 @@ describe('the whole role', () => {
       m('Quotes issued within target', { fedBySystem: true }),
       m('Team trained, confident and capable', { pillar: 'people' }),
     ]);
-    expect(r.roleCouldBeAProcess).toBe(false);
+    expect(r.everyMeasureCouldMove).toBe(false);
     expect(r.headline).toMatch(/could come off a person's plate/);
     expect(r.headline, 'and it says plainly what must not move').toMatch(/should not/);
   });
 
-  it('says so plainly when every part of it is work a process can do', () => {
+  /*
+    And when everything measured could move, it says THAT — not the thing it is tempting to say.
+
+    The engine brief is explicit: "Never insult the owner or the people. The output is 'here's the
+    drudge we can take off your team,' not 'here's who's redundant'" and "No suggestion is ever
+    phrased as a headcount reduction." The first version of this headline read "worth deciding
+    whether this is a role or a system", which is the forbidden sentence wearing a suit.
+
+    What is actually true is narrower: every measure ON THE CARD could move. A scorecard is not a
+    job — the judgement, the relationships and the hundred things nobody wrote down are not on it.
+  */
+  it('says everything measured could move, and never says the role could go', () => {
     const r = reviewRole('Quote Preparation', [
       m('Quotes issued within target', { fedBySystem: true }),
       m('Every enquiry logged in both systems', { fedBySystem: true }),
     ]);
-    expect(r.roleCouldBeAProcess).toBe(true);
-    expect(r.headline).toContain('whether this is a role or a system');
+    expect(r.everyMeasureCouldMove).toBe(true);
+    expect(r.headline).toContain('drudge a process could take on');
+    expect(r.headline).toContain('time back');
+    for (const forbidden of ['redundant', 'headcount', 'role or a system', 'replace', 'not need']) {
+      expect(r.headline.toLowerCase(), forbidden).not.toContain(forbidden);
+    }
+  });
+
+  /* No headline anywhere may reach for that language, whatever the mix of verdicts. */
+  it('never phrases anything as a headcount reduction', () => {
+    const mixes = [
+      [m('Quotes issued within target', { fedBySystem: true })],
+      [m('One-to-ones held', { pillar: 'people' })],
+      [m('Quotes issued', { fedBySystem: true }), m('One-to-ones held', { pillar: 'people' })],
+      [m('Something vague')],
+      [m('Quotes issued', { fedBySystem: true }), m('Something vague')],
+    ];
+    for (const measures of mixes) {
+      const h = reviewRole('Some Role', measures).headline.toLowerCase();
+      for (const forbidden of ['redundant', 'headcount', 'replace', 'cut', 'surplus', 'no longer need']) {
+        expect(h, `${forbidden} in "${h}"`).not.toContain(forbidden);
+      }
+    }
   });
 
   /*
@@ -182,7 +214,7 @@ describe('the whole role', () => {
 
   it('has nothing to say about a role with nothing measured', () => {
     expect(reviewRole('New role', []).headline).toContain('nothing to assess');
-    expect(reviewRole('New role', []).roleCouldBeAProcess).toBe(false);
+    expect(reviewRole('New role', []).everyMeasureCouldMove).toBe(false);
   });
 });
 

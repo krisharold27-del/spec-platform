@@ -164,6 +164,67 @@ if (afterVerdict === 'automated') {
   check('and no money is invented from an hourly rate nobody set', !money.includes('$'), money);
 }
 
+// ── The engine, not just the scorecard read ──────────────────────────────────────────────────────
+// The brief's acceptance test, in a browser: a business that has just signed up should already have
+// candidates with a HOW against them, because the task lists come with the roles.
+await page.goto(`${BASE}/org/automation`, { waitUntil: 'networkidle' });
+body = await text();
+check('the engine has run without anybody entering anything', body.includes('Across the business'));
+check('it names what to build', body.includes('Automate'));
+check('it names what to half-build', body.includes('Streamline'));
+check('IT NAMES WHAT IS THE JOB, AS A SECTION OF ITS OWN', body.includes('This is the job'));
+check('and says what that section is for', body.includes('what the business is actually paying for'));
+
+const candidates = await page.evaluate(() =>
+  document.querySelectorAll('form select[name="decision"]').length);
+check('there are real candidates to decide on', candidates >= 10, `${candidates} found`);
+
+// A suggestion without a build path is noise — the brief's own rule.
+const hows = await page.evaluate(() =>
+  [...document.querySelectorAll('details summary')].filter(s => (s.textContent ?? '').includes('How it would work')).length);
+check('EVERY CANDIDATE CARRIES A HOW', hows >= candidates && hows > 0, `${hows} briefs for ${candidates} candidates`);
+
+const firstBrief = await page.evaluate(() => {
+  const d = document.querySelector('details');
+  if (!d) return '';
+  d.open = true;
+  return (d.textContent ?? '').trim();
+});
+for (const part of ['Starts when', 'Steps', 'Touches', 'Guardrails']) {
+  check(`the brief says ${part.toLowerCase()}`, firstBrief.includes(part), firstBrief.slice(0, 120));
+}
+
+// ── A rejection needs a reason, and the server is what enforces it ───────────────────────────────
+// A no with no reason cannot be revisited later, only re-argued from scratch. The form asks for it;
+// this proves the server refuses without it rather than trusting the form.
+await page.evaluate(() => {
+  const form = [...document.querySelectorAll('form')].find(f => f.querySelector('select[name="decision"]'));
+  form.querySelector('select[name="decision"]').value = 'rejected';
+  form.querySelector('input[name="reason"]').value = '';
+  form.querySelector('button').click();
+});
+await page.waitForTimeout(2500);
+body = await text();
+check('A REJECTION WITH NO REASON IS REFUSED BY THE SERVER', body.includes('needs one line saying why'), page.url());
+check('and nothing was changed', body.includes('Nothing was changed'));
+
+// ── The intake box: open to everybody, and it changes the order ──────────────────────────────────
+await page.goto(`${BASE}/intake`, { waitUntil: 'networkidle' });
+body = await text();
+check('anybody signed in can say what they would change', body.includes('What would you change?'));
+check('and is told it cannot be used against them', body.includes('changes anybody'));
+
+await page.fill('textarea[name="text"]', 'I spend Friday afternoons chasing timesheets');
+await press('button[type="submit"]');
+await page.waitForTimeout(2000);
+body = await text();
+check(
+  'WHAT SOMEBODY WRITES IN REACHES WORK SPEC ALREADY KNOWS ABOUT',
+  body.includes('already on the list'),
+  body.slice(0, 160),
+);
+check('and their own words are kept, not tidied', body.includes('Friday afternoons chasing timesheets'));
+
 // ── And nobody below the top of the chart can reach it ────────────────────────────────────────────
 // The check this whole script exists for. A signed-in person from a DIFFERENT business is the
 // cheapest honest stand-in for "somebody who is not the GM of this one": if the page ever rendered

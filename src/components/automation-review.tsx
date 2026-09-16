@@ -129,12 +129,21 @@ function Summary({ review }: { review: Review }) {
       {review.wholeRoles.length > 0 && (
         <div className="mt-4 rounded-lg p-3" style={pillTone('amber')}>
           <div className="label-caps">Worth a conversation</div>
+          {/*
+            A conversation WITH them, not about them.
+
+            Everything these roles are measured on could move. That is a statement about a scorecard
+            and not about a person — the judgement, the relationships and the hundred things nobody
+            wrote down are not on the card. The wording says the time comes back and asks what it
+            should buy, and never reaches for the other sentence.
+          */}
           <p className="mt-1 text-sm text-ink">
-            {review.wholeRoles.map(r => r.title).join(', ')}
-            {review.wholeRoles.length === 1 ? ' has ' : ' have '}
-            nothing in {review.wholeRoles.length === 1 ? 'it' : 'them'} that needs a person.
-            That is a finding to talk about, not a decision SPEC has made — and the people in
-            {review.wholeRoles.length === 1 ? ' that role' : ' those roles'} have not been told anything.
+            Everything {review.wholeRoles.map(r => r.title).join(', ')}
+            {review.wholeRoles.length === 1 ? ' is' : ' are'} measured on today could move to a
+            process. A scorecard is not a job — so this is time coming back to
+            {review.wholeRoles.length === 1 ? ' somebody' : ' people'} who already
+            {review.wholeRoles.length === 1 ? ' does' : ' do'} more than it lists. Ask them what it
+            should buy. Nobody has been told anything, and nothing here has been decided.
           </p>
         </div>
       )}

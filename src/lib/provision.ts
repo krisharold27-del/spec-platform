@@ -11,12 +11,15 @@ import rulebook from '../../seed/rulebook.json';
 import trainingCatalogue from '../../seed/training_modules.json';
 import { validateWeights, type Criterion as ScoringCriterion, type Pillar } from './scoring';
 import { resolveTarget } from './targets';
+import { tagTask } from './tasks';
 
 type TemplateCriterion = { text: string; weight: number; kpi?: boolean; target?: string };
+type TemplateTask = { name: string; systems: string; critical: boolean; kpi?: string };
 type TemplateRole = {
   template_id: string; title: string; stream: string; level: string;
   pnl_view?: string;
   criteria: Record<string, TemplateCriterion[] | 'organisational_standard'>;
+  tasks?: TemplateTask[];
 };
 
 const now = () => new Date().toISOString();
@@ -130,16 +133,52 @@ export async function provisionTenant(opts: ProvisionOptions) {
     const problems = validateWeights(check);
     if (problems.length) throw new Error(`Template ${t.template_id}: weights do not sum to 100% in ${problems.map(p => p.pillar).join(', ')}`);
 
+    /*
+      The role's task list, so the automation review has something to read on day one.
+
+      Seeded as `template`, which is SPEC's guess at what this kind of role usually does — not
+      evidence. The engine treats it as exactly that, and the moment the person who holds the role
+      answers the three questions, their answers outrank it. A business that faces a blank task list
+      never fills one in; a business handed a wrong one corrects it in a minute.
+    */
+    /*
+      The KPI a task feeds, matched on the criterion's own words.
+
+      This link is what makes the engine's ranking mean anything: a failing KPI is the reason a task
+      is worth building FIRST, and without it every candidate ties and the list falls back to
+      alphabetical order — technically a list, practically useless.
+
+      Matched by text rather than by id because the template has no ids to give, and matched against
+      the criteria THIS role just had created, so two roles with a similarly worded KPI cannot cross
+      the wires.
+    */
     // One write per role, not one per KPI — sign-up has to feel instant.
+    const criterionIdByText = new Map<string, string>();
     if (resolved.length) {
-      await db.insert(schema.criteria).values(resolved.map((r, j) => {
+      const rows = resolved.map((r, j) => {
         const { target, proposed } = resolveTarget(r.c.target);
+        const cid = id();
+        criterionIdByText.set(r.c.text, cid);
         return {
-          id: id(), roleId: rid, pillar: r.pillar, text: r.c.text, weight: r.c.weight,
+          id: cid, roleId: rid, pillar: r.pillar, text: r.c.text, weight: r.c.weight,
           kpi: !!r.c.kpi, target, proposedTarget: proposed, sortOrder: j,
         };
-      }));
+      });
+      await db.insert(schema.criteria).values(rows);
     }
+
+    // Tasks after the criteria, because a task carries the id of the KPI it feeds.
+    const taskRows = (t.tasks ?? []).map(task => ({
+      id: id(), tenantId, roleId: rid,
+      name: task.name,
+      kind: tagTask(task.name).kind,
+      systems: task.systems,
+      critical: task.critical,
+      criterionId: task.kpi ? criterionIdByText.get(task.kpi) ?? null : null,
+      source: 'template',
+      createdAt: now(),
+    }));
+    if (taskRows.length) await db.insert(schema.roleTasks).values(taskRows);
   }
 
   // Rule book is global, loaded once, in one write.
