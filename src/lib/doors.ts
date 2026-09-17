@@ -73,7 +73,18 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
         { href: '/me', label: 'My scorecard', note: 'Your own four pillars, with the working shown.' },
         { href: '/summary', label: 'Executive summary', note: 'The whole business this month, on one screen.' },
         { href: '/curve', label: 'Your J curve', note: 'What SPEC has cost and returned, measured.' },
-        { href: '/boards', label: 'Boards', note: 'What your team pins, builds on and argues about.' },
+        /*
+          Boards, lower case, and the Board are two different things in SPEC.
+
+          Kris, 17 September: *"there is the Board as the governing group and boards as the artifacts
+          people review and run projects through"*.
+
+          They sit in the same door list, so the note has to do the telling apart. The Board is the
+          governing group — its charter, its pack, its meeting. A board is a thing a team makes: a
+          rate they are arguing about, a plan with an owner against each step. Nobody should have to
+          work that out by opening both.
+        */
+        { href: '/boards', label: 'Boards', note: 'Artifacts your team pins and runs projects through — not the Board itself.' },
         { href: '/boards/conversations', label: 'Conversation boards', note: 'The decisions being worked through.' },
       ],
     },
@@ -82,7 +93,7 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
       doors: [
         { href: '/connections', label: 'Connections', note: 'The systems that feed your numbers.' },
         { href: '/setup', label: 'Setting up', note: 'Roles, KPIs and the things still to do.' },
-        { href: '/charter', label: 'Board charter', note: 'The four commitments, identical in every business.' },
+        { href: '/charter', label: 'Board charter', note: 'What the Board commits to — the four, identical in every business.' },
         { href: '/settings', label: 'Administration', note: 'Seats, billing, permissions and the board.' },
       ],
     },

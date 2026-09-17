@@ -209,7 +209,12 @@ export default async function Landing() {
                 a crew, not for everybody. The pack is still being written — the price is set for when
                 it is ready, and nobody is charged for it before then.
               </p>
-              <Link href="/pricing" className="btn-primary mt-6 inline-block">See what is in it</Link>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Link href="/pricing" className="btn-primary inline-block">See what is in it</Link>
+                {/* The design's second action here, and it should never have gone: a price with a
+                    condition on it needs a way to reach a person, not only a way to read more. */}
+                <a href="mailto:manager@specbizhq.com" className="text-sm text-rust-700 hover:underline">Talk to us</a>
+              </div>
             </div>
           </div>
           {/*

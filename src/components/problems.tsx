@@ -18,13 +18,17 @@ import { PROBLEMS, type ProblemKey } from '@/lib/problems';
  * The wording comes from lib/problems, which is the designs' wording, held there by a test. One
  * source, so the sentence on the screen and the sentence in a sales conversation cannot drift.
  */
-export function Problems({ screen }: { screen: ProblemKey }) {
+export function Problems({ screen, heading }: { screen: ProblemKey; heading?: string }) {
   const set = PROBLEMS[screen];
   if (!set) return null;
 
   return (
     <section className="mt-14 border-t border-ink/10 pt-10" aria-labelledby="what-this-fixes">
-      <h2 id="what-this-fixes" className="font-heading text-xl text-ink">What this fixes</h2>
+      <h2 id="what-this-fixes" className="font-heading text-xl text-ink">
+        {/* The design's words for this block, screen by screen. On My Page it is "What this
+            page changes"; the same component serves other screens, which name their own. */}
+        {heading ?? 'What this fixes'}
+      </h2>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/70">
         Three things most businesses live with. What they look like without SPEC, and what SPEC
         actually does about each one — the mechanism, not a promise.

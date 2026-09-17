@@ -291,7 +291,20 @@ export default async function Boards({ searchParams }: {
         is SPEC's reading OF the business — a mirror built to raise one question and reach no
         verdict. Merging them would have quietly lost the difference.
       */}
-      <p className="mt-8 text-sm text-ink-light">
+      {/*
+        Two things called some version of "board", said out loud rather than left to be worked out.
+        Kris, 17 September: the Board is the governing group; boards are the artifacts.
+      */}
+      <p className="mt-8 max-w-[62ch] text-sm text-ink-light">
+        These are <b className="text-ink">boards</b> — the artifacts your team pins and runs projects
+        through. <b className="text-ink">The Board</b> is the governing group: its{' '}
+        <Link href="/charter" className="text-rust-700 underline">charter</Link>, its pack and its
+        meeting are elsewhere, and nothing here is reported to it unless somebody puts it there.
+        {/* The pack is not linked: it lives per closed month at /board/[periodId], so there is no
+            one address for it, and a link that guesses a period is a 404 waiting for month end. */}
+      </p>
+
+      <p className="mt-3 text-sm text-ink-light">
         Looking for <Link href="/boards/conversations" className="text-rust-700 underline">Conversation boards</Link>?
         {' '}Those are SPEC&rsquo;s reading of the business — a mirror, not something you build.
       </p>

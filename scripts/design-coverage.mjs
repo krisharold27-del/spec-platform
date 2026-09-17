@@ -184,6 +184,31 @@ const notBuiltFile = (() => {
 })();
 const NOT_BUILT = [...notBuiltFile.matchAll(/^### Screen: (.+)$/gm)].map(m => m[1].trim());
 
+/**
+ * Screens held to the design WORD FOR WORD — designs/pinned.md.
+ *
+ * Kris, 16 September: *"make sure the landing page and my page are always perfect"*.
+ *
+ * Everywhere else a reworded match counts, and that is right: the product is not a transcription of
+ * a prototype, and a check that forbade every improvement would be edited out within a week. It is
+ * the wrong standard for the first thing a stranger sees and the thing a customer opens every
+ * morning, where "close enough" is how a page drifts a word at a time until it is nobody's design.
+ *
+ * A phrase that only matches loosely on a pinned screen fails the build, by name. The exceptions are
+ * listed in the same file with a reason each, because an allowance nobody can read is an allowance
+ * that grows.
+ */
+const pinnedFile = (() => {
+  try { return readFileSync(join(DESIGNS, 'pinned.md'), 'utf8'); }
+  catch { return ''; }
+})();
+const PINNED = [...pinnedFile.matchAll(/^### Screen: (.+)$/gm)].map(m => m[1].trim());
+const MAY_DIFFER = new Set(
+  [...pinnedFile.matchAll(/^### `([^`]+)`\s*—\s*(.+)$/gm)].map(m => `${m[1].trim()}::${m[2].trim()}`),
+);
+/** Phrases on pinned screens that matched only loosely and are not allowed to. */
+const drifted = [];
+
 const isSampleData = text =>
   isAPerson(text) || isGeneratedDate(text)
   || SAMPLE_IDENTITIES.some(n => text.includes(n))
@@ -250,6 +275,19 @@ console.log(`Design coverage — ${screens.length} screens against src/${deep ? 
 // Navigation between prototype files is scaffolding, not product copy.
 const SCAFFOLD = /^spec /i;
 
+/*
+  "All pages" is the prototype's index — a link from every .dc.html to the list of the others.
+
+  It is navigation between DESIGN FILES, not a thing a customer ever sees, and holding the product
+  to it would mean shipping a page listing our own screens. It appeared as "reworded" on eight
+  screens, which flattered the number on all eight.
+
+  Kept as a named string rather than folded into SCAFFOLD, because SCAFFOLD is "anything starting
+  with SPEC" and this is one specific link with one specific reason.
+*/
+const PROTOTYPE_INDEX = ['All pages'];
+const isScaffold = t => SCAFFOLD.test(t) || PROTOTYPE_INDEX.includes(t.trim());
+
 for (const file of screens) {
   const name = basename(file, '.dc.html');
   // A reference page — a logo study, a palette — is design thinking, not a screen anybody signs in
@@ -259,20 +297,30 @@ for (const file of screens) {
   if (NOT_BUILT.includes(name)) continue;
   const html = readFileSync(join(DESIGNS, file), 'utf8');
   const phrases = [
-    ...headings(html).filter(t => !isSampleData(t)).map(text => ({ text, kind: 'says' })),
-    ...actions(html).filter(t => !SCAFFOLD.test(t) && !isSampleData(t)).map(text => ({ text, kind: 'does' })),
+    ...headings(html).filter(t => !isScaffold(t) && !isSampleData(t)).map(text => ({ text, kind: 'says' })),
+    ...actions(html).filter(t => !isScaffold(t) && !isSampleData(t)).map(text => ({ text, kind: 'does' })),
     ...(deep
-      ? labels(html).filter(t => !SCAFFOLD.test(t) && !isSampleData(t)).map(text => ({ text, kind: 'labels' }))
+      ? labels(html).filter(t => !isScaffold(t) && !isSampleData(t)).map(text => ({ text, kind: 'labels' }))
       : []),
   ];
   const misses = [];
   let exact = 0;
   let reworded = 0;
+  const rewordedHere = [];
 
   for (const phrase of phrases) {
     const verdict = present(phrase.text, files);
     if (verdict === 'exact') exact++;
-    else if (verdict === 'reworded') reworded++;
+    else if (verdict === 'reworded') {
+      reworded++;
+      // `--show-reworded` names them. Worth having permanently: "17 reworded" is a number, and the
+      // question anybody actually has is WHICH — especially for a screen held to exact wording.
+      if (process.argv.includes('--show-reworded')) rewordedHere.push(phrase.text);
+      // On a pinned screen, close enough is not enough — unless it is written down why.
+      if (PINNED.includes(name) && !MAY_DIFFER.has(`${name}::${phrase.text}`)) {
+        drifted.push(`${name} — ${phrase.text}`);
+      }
+    }
     else misses.push(phrase);
   }
 
@@ -283,6 +331,7 @@ for (const file of screens) {
   if (onlyMisses && !misses.length) continue;
   const bar = misses.length === 0 ? 'all present' : `${misses.length} not found`;
   console.log(`${name.padEnd(24)} ${String(phrases.length).padStart(3)} phrases  ${String(exact).padStart(3)} exact  ${String(reworded).padStart(3)} reworded  ${bar}`);
+  for (const t of rewordedHere) console.log(`    reworded: ${t}`);
   for (const miss of misses) console.log(`    no ${miss.kind === 'does' ? 'action' : 'wording'} in code: ${miss.text}`);
 }
 
@@ -340,6 +389,28 @@ if (gaps.length) {
 */
 const FLOOR = { headline: 100, deep: 100 };
 const floor = deep ? FLOOR.deep : FLOOR.headline;
+
+/*
+  The pinned screens, reported before the verdict and enforced alongside the floor.
+
+  Named individually, because "2 phrases drifted" sends somebody hunting and "SPEC Landing — Talk to
+  us" sends them to the line.
+*/
+if (drifted.length) {
+  console.log(`\nDRIFTED FROM THE DESIGN — ${drifted.length} phrase(s) on a pinned screen match only loosely:`);
+  for (const d of [...new Set(drifted)]) console.log(`  ${d}`);
+  console.log('These screens are held word for word. designs/pinned.md says which two, and why.');
+}
+
+if (process.argv.includes('--enforce') && drifted.length) {
+  console.error(
+    '\nA PINNED SCREEN HAS DRIFTED.\n'
+    + 'The landing page and My Page are held to the design word for word — the first thing a stranger\n'
+    + 'sees and the thing a customer opens every morning. Put the wording back, or, if the product is\n'
+    + 'right and the design is not, write the reason into designs/pinned.md so it is a line in a diff.',
+  );
+  process.exit(1);
+}
 
 if (process.argv.includes('--enforce') && pct < floor) {
   console.log(

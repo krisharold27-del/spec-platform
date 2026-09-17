@@ -499,8 +499,8 @@ export default async function MyPage({
               linked — the month is read here, in SPEC, by whoever is entitled to see it.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <a href="https://outlook.office.com/mail/" className="btn-ghost" target="_blank" rel="noreferrer noopener">Open Outlook</a>
-              <a href="https://mail.google.com/" className="btn-ghost" target="_blank" rel="noreferrer noopener">Open Gmail</a>
+              <a href="https://outlook.office.com/mail/" className="btn-ghost" target="_blank" rel="noreferrer noopener">Open in Outlook</a>
+              <a href="https://mail.google.com/" className="btn-ghost" target="_blank" rel="noreferrer noopener">Open in Gmail</a>
             </div>
           </section>
 
@@ -524,6 +524,11 @@ export default async function MyPage({
               <span className="text-sm text-ink-light">{trainingLine(training.progress)}</span>
             </div>
             <TrainingPath path={training.path} progress={training.progress} signoff={training.signoff} limit={3} />
+            {/* The design's way out of this block, and the product had none: the path showed three
+                modules and then stopped, with no way through to the rest of it. */}
+            <Link href="/training" className="mt-3 inline-block text-sm text-rust-700 hover:underline">
+              Continue training →
+            </Link>
           </section>
 
           <section className="card">
@@ -569,7 +574,7 @@ export default async function MyPage({
         My Page is what a leader opens at seven in the morning; the argument is for the moment they
         stop to think about whether any of this is worth doing, and for explaining it to a board.
       */}
-      <Problems screen="myPage" />
+      <Problems screen="myPage" heading="What this page changes" />
 
       {/*
         Everywhere else, and every door to it.
