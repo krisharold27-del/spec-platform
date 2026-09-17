@@ -34,15 +34,15 @@ export const GM_HEADLINES: Record<GmHeadline, string> = {
 /**
  * The one on the page.
  *
- * Kris, 17 September: *"use the never sick day one - this gm doesn't take a sick day"*. The export
- * defaults to `cost`; this is the choice, and it is one line because it should be.
+ * Kris tried `never_sick` and came back to this one, which is also the export's default. It is the
+ * shortest of the four and the only one that is an instruction rather than an argument: it does not
+ * try to win the comparison on the page, it just says what to do first. The comparison is still
+ * there for anybody who wants it — /pricing puts SPEC beside a A$300,000 GM directly.
  *
- * It is the longest of the four and the only one that does the whole job in a breath: it names the
- * number the reader already has (three hundred grand), says SPEC is a fraction of it, and then says
- * the thing no salary can answer. A GM who never takes a sick day is not a saving, it is a
- * different kind of thing — which is the claim the whole section is making.
+ * Changing it is this line. The other three stay in GM_HEADLINES because the choice is Kris's and
+ * has already moved twice; deleting the road back would be the wrong kind of tidy.
  */
-export const GM_HEADLINE: GmHeadline = 'never_sick';
+export const GM_HEADLINE: GmHeadline = 'cost';
 
 export const VIRTUAL_GM = {
   /** The eyebrow above the headline, on both pages. */

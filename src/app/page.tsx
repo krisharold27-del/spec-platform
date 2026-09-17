@@ -118,12 +118,9 @@ export default async function Landing() {
           className="flex flex-col items-center justify-center gap-3 px-5 pb-[clamp(64px,9vh,112px)]"
         >
           <span className="label-caps text-rust-700">{VIRTUAL_GM.kicker}</span>
-          {/* 30ch, where the design says 20. That measure was drawn around the short headline; the
-              one Kris chose is two sentences, and at 20ch it becomes a five-line column that breaks
-              "three hundred grand a / year". The intent is one big centred statement, which is what
-              the wider measure keeps. On a phone the viewport is narrower than either, so nothing
-              changes there. */}
-          <p className="m-0 max-w-[30ch] text-center font-serif text-[clamp(28px,4vw,48px)] leading-tight text-ink">
+          {/* 20ch, as the design draws it. It was briefly 30 while a two-sentence headline was on
+              the page; the short one is back, and this measure was drawn around it. */}
+          <p className="m-0 max-w-[20ch] text-center font-serif text-[clamp(28px,4vw,48px)] leading-tight text-ink">
             {VIRTUAL_GM.headline}
           </p>
         </section>
