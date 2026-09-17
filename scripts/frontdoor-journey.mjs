@@ -10,6 +10,10 @@
 //   node scripts/frontdoor-journey.mjs
 
 import { chromium } from 'playwright';
+import { tidyUp } from './test-cleanup.mjs';
+
+// When this run began — everything it created is newer than this.
+const RUN_STARTED = new Date().toISOString();
 
 const BASE = process.env.APP_URL ?? 'http://localhost:3000';
 const CHROME = process.env.CHROME_PATH;
@@ -109,4 +113,8 @@ check('no page errors anywhere in the journey', errors.length === 0, errors.slic
 
 await b.close();
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed');
+// Clear up after ourselves. Kris, 17 September: "Make your tests delete the example
+// business they create when they finish."
+await tidyUp(BUSINESS, { lookSince: RUN_STARTED });
+
 process.exit(failed ? 1 : 0);

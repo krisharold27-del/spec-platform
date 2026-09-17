@@ -12,6 +12,10 @@
 //   node scripts/boards-journey.mjs
 
 import { chromium } from 'playwright';
+import { tidyUp } from './test-cleanup.mjs';
+
+// When this run began — everything it created is newer than this.
+const RUN_STARTED = new Date().toISOString();
 
 const BASE = process.env.APP_URL ?? 'http://localhost:3000';
 const CHROME = process.env.CHROME_PATH;
@@ -38,6 +42,8 @@ await page.waitForLoadState('networkidle');
 if (page.url().includes('busy=1')) {
   console.log('  --   the look-around is being throttled — SPEC protecting itself, not a fault.');
   await b.close();
+  // Even on an early exit, the business this run made does not stay behind.
+  await tidyUp(null, { lookSince: RUN_STARTED });
   process.exit(0);
 }
 
@@ -120,4 +126,8 @@ check('no console errors', errors.length === 0, errors.join(' | '));
 
 await b.close();
 console.log(failed ? `\n${failed} check(s) failed.` : '\nAll checks passed.');
+// Clear up after ourselves. Kris, 17 September: "Make your tests delete the example
+// business they create when they finish."
+await tidyUp(null, { lookSince: RUN_STARTED });
+
 process.exit(failed ? 1 : 0);

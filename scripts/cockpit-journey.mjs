@@ -12,6 +12,7 @@
 //   node scripts/cockpit-journey.mjs
 
 import { chromium } from 'playwright';
+import { tidyUp } from './test-cleanup.mjs';
 import postgres from 'postgres';
 
 const BASE = process.env.APP_URL ?? 'http://localhost:3000';
@@ -50,41 +51,23 @@ if (!process.env.DATABASE_URL) {
 }
 
 const sql = postgres(process.env.DATABASE_URL, { max: 1 });
+
+/*
+  Clear the fixture from any previous run, through the shared cleanup.
+
+  This used to be a hand-written list of tables in dependency order, right here. It was correct the
+  day it was written and had already gone stale — it knew nothing about boards, board_comments or
+  board_viewers, so those three would have accumulated quietly. `tidyUp` asks the database which
+  tables carry a tenant, which is the whole reason it exists.
+*/
 {
-  /*
-    Removed in dependency order, innermost first. Written out rather than forced with a cascade:
-    a cascade added to the schema to make a test convenient is a cascade that also fires in
-    production the day somebody deletes the wrong row.
-  */
-  const tenants = (await sql`select distinct tenant_id from users where email = ${ADMIN}`)
+  const previous = (await sql`select distinct tenant_id from users where email = ${ADMIN}`)
     .map(r => r.tenant_id);
-
-  for (const id of tenants) {
-    const roleIds = (await sql`select id from roles where tenant_id = ${id}`).map(r => r.id);
-    const periodIds = (await sql`select id from assessment_periods where tenant_id = ${id}`).map(r => r.id);
-
-    if (roleIds.length) {
-      await sql`delete from role_assignments where role_id in ${sql(roleIds)}`;
-      await sql`delete from role_curriculum where role_id in ${sql(roleIds)}`;
-      await sql`delete from criteria where role_id in ${sql(roleIds)}`;
-    }
-    if (periodIds.length) {
-      await sql`delete from assessments where period_id in ${sql(periodIds)}`;
-      await sql`delete from gates where period_id in ${sql(periodIds)}`;
-      await sql`delete from board_outputs where period_id in ${sql(periodIds)}`;
-    }
-
-    // Everything else that simply hangs off the business.
-    for (const t of ['obligations', 'leave_entries', 'training_records', 'training_modules',
-                     'scorecard_comments', 'register_entries', 'approvals', 'candidates',
-                     'directors', 'diagnostics', 'meetings', 'journey_steps',
-                     'system_connections', 'staff', 'assessment_periods', 'roles']) {
-      await sql.unsafe(`delete from ${t} where tenant_id = $1`, [id]);
-    }
+  for (const id of previous) {
+    const [t] = await sql`select name from tenants where id = ${id}`;
+    if (t) await tidyUp(t.name);
   }
-
   await sql`delete from users where email = ${ADMIN}`;
-  for (const id of tenants) await sql`delete from tenants where id = ${id}`;
 }
 
 const stamp = Date.now();
@@ -208,4 +191,9 @@ check('A SIGNED-OUT STRANGER CANNOT REACH IT', !strangerPage.url().includes('/co
 await b.close();
 await sql.end();
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed');
+// Clear up after ourselves. Kris, 17 September: "Make your tests delete the example business
+// they create when they finish."
+await tidyUp(`Customer Co ${stamp}`);
+await tidyUp(`SPEC Business Solutions ${stamp}`);
+
 process.exit(failed ? 1 : 0);

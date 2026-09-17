@@ -11,6 +11,10 @@
  * Exits non-zero and says which step broke.
  */
 import { chromium } from 'playwright';
+import { tidyUp } from './test-cleanup.mjs';
+
+// When this run began — everything it created is newer than this.
+const RUN_STARTED = new Date().toISOString();
 
 // Argument first, then APP_URL, matching the other four journeys. One of them reading only an
 // argument while the rest read only an environment variable is how a run quietly drives at the
@@ -88,6 +92,8 @@ try {
   if (page.url().includes('busy=1')) {
     console.log('  --   the look-around is being throttled (error=busy) — SPEC protecting itself, not a fault. Wait an hour, or run the other journeys.');
     await browser.close();
+    // Even on an early exit, the business this run made does not stay behind.
+    await tidyUp(BUSINESS, { lookSince: RUN_STARTED });
     process.exit(0);
   }
 
@@ -214,6 +220,8 @@ try {
   if (page.url().includes('error=busy')) {
     console.log('  --   sign-up is being throttled (error=busy) — SPEC protecting itself, not a fault. Wait a few minutes.');
     await browser.close();
+    // Even on an early exit, the business this run made does not stay behind.
+    await tidyUp(BUSINESS, { lookSince: RUN_STARTED });
     process.exit(0);
   }
 
@@ -292,4 +300,8 @@ try {
 }
 
 console.log(failures.length ? `\n${failures.length} step(s) failed: ${failures.join(', ')}` : '\nEvery step passed.');
+// Clear up after ourselves. Kris, 17 September: "Make your tests delete the example
+// business they create when they finish."
+await tidyUp(BUSINESS, { lookSince: RUN_STARTED });
+
 process.exit(failures.length ? 1 : 0);

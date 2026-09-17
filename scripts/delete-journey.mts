@@ -59,6 +59,20 @@ async function buildOne(name) {
     insert into training_modules (id, tenant_id, title, summary, pillar, minutes, core, sort_order, active)
     values (${mod}, ${t}, 'A module', 'about something', 'safety', 20, false, 0, true)`;
   await sql`insert into role_curriculum (id, role_id, module_id, sort_order) values (${randomUUID()}, ${gm}, ${mod}, 0)`;
+  /*
+    The two rows that pull the delete order in OPPOSITE directions, and the reason the fixture has
+    to carry both.
+
+      role_curriculum (no tenant_id) → training_modules (tenant_id)   : child names no business
+      role_tasks      (tenant_id)    → criteria         (no tenant_id): child DOES name its business
+
+    This fixture had the first and not the second, so it passed happily while the order was wrong,
+    and the journeys' own clean-up was what found it. A fixture with a hole in it is a check whose
+    failure mode is silence.
+  */
+  await sql`
+    insert into role_tasks (id, tenant_id, role_id, name, kind, criterion_id, created_at)
+    values (${randomUUID()}, ${t}, ${gm}, 'Run the toolbox talk', 'judgement', ${c}, now())`;
   return t;
 }
 

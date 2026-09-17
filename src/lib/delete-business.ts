@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import { tableShapes } from './schema-sql';
+import { FK_EDGES_SQL, sortByDependency } from './delete-order';
 
 /**
  * Deleting a business, permanently — the most dangerous thing in SPEC.
@@ -183,19 +184,32 @@ export async function deleteBusiness(
   let blocked: string | null = null;
 
   await db.transaction(async tx => {
-    for (const { clear } of INDIRECT) await tx.execute(clear(tenantId));
     /*
-      Then everything that says whose it is. `roles` and `users` go last of these: several of the
-      others point at them, and Postgres checks foreign keys per statement, so the order within this
-      loop is the order the list is sorted into — which is why they are pulled out and appended.
+      One statement per table, run in the order the foreign keys dictate.
+
+      The order used to be written down here, and it was wrong twice. `role_tasks` names its
+      business AND points at `criteria`, which does not — so "tenant tables first" is wrong.
+      `role_curriculum` does NOT name its business AND points at `training_modules`, which does —
+      so "children first" is wrong too. No fixed order satisfies both.
+
+      When it was wrong, Postgres refused and the orphan guard below turned that into "stopped and
+      put everything back": safe, and the wrong answer, because a business that can never be deleted
+      looks exactly like a business that is protected. So the order is asked of `pg_constraint`
+      instead — see `delete-order.ts`.
     */
-    const scoped = tenantTables().filter(t => t !== 'roles' && t !== 'users' && t !== 'assessment_periods');
-    for (const table of [...scoped, 'assessment_periods', 'users', 'roles']) {
+    const byTable = new Map<string, ReturnType<typeof sql>>();
+    for (const table of tenantTables()) {
       // The table name is an identifier from OUR schema; the id is bound. Never string-built with
       // a value from a form in it — this is the one function in SPEC that deletes a business.
-      await tx.execute(sql`delete from ${sql.identifier(table)} where tenant_id = ${tenantId}`);
+      byTable.set(table, sql`delete from ${sql.identifier(table)} where tenant_id = ${tenantId}`);
     }
-    await tx.execute(sql`delete from tenants where id = ${tenantId}`);
+    for (const { table, clear } of INDIRECT) byTable.set(table, clear(tenantId));
+    byTable.set('tenants', sql`delete from tenants where id = ${tenantId}`);
+
+    const rows = await tx.execute(sql.raw(FK_EDGES_SQL));
+    const edges = (rows as unknown as { child: string; parent: string }[]);
+    const order = sortByDependency([...byTable.keys()], [...edges].map(e => [e.child, e.parent]));
+    for (const table of order) await tx.execute(byTable.get(table)!);
 
     // The proof. Anything still pointing at something that has gone means a table was missed, and
     // a half-deleted business is worse than one that is still there.
@@ -212,14 +226,24 @@ export async function deleteBusiness(
       A foreign key stopped it — which is the database doing this file's job better than this file
       can, and is exactly what happens if somebody adds a table and does not add it here.
 
-      Proven by taking `criteria` out of the list: Postgres refuses to delete the role it still
+      Proven by forcing a wrong delete order: Postgres refuses to delete the row something still
       points at, the whole transaction rolls back, and NOTHING is deleted. That was already the safe
       outcome; what it was not was a sentence. It arrived as a stack trace, which on the admin screen
       is the generic "something went wrong" page — the same fault this product spent a day fixing
       everywhere else.
+
+      ── And the sentence had quietly stopped arriving ──────────────────────────────────────────
+
+      Putting the fault back is how that was found. Drizzle WRAPS the Postgres error in a
+      DrizzleQueryError, so `err.code` is undefined and the real one is on `err.cause` — this read
+      the outer error, matched nothing, rethrew, and the admin screen was back to "something went
+      wrong". A check that had been proven once had stopped being true, and nothing said so.
     */
-    const code = (err as { code?: string })?.code;
-    const table = (err as { table_name?: string })?.table_name;
+    const pg = (err as { code?: string; cause?: unknown })?.code
+      ? (err as { code?: string; table_name?: string })
+      : ((err as { cause?: { code?: string; table_name?: string } })?.cause ?? {});
+    const code = pg.code;
+    const table = pg.table_name;
     if (code === '23503') {
       blocked = table ? `rows in ${table} still point at it` : 'rows elsewhere still point at it';
       return;
