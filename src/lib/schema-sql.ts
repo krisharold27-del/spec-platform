@@ -62,6 +62,44 @@ function defaultLiteral(value: unknown): string | null {
   return null;
 }
 
+/**
+ * Which table points at which, read from the SCHEMA rather than from the database.
+ *
+ * ── Why not from the database ────────────────────────────────────────────────────────────────────
+ *
+ * Because there is nothing there to read. `additivePlan` below deliberately emits no foreign keys,
+ * for reasons that are good and are written out where it does it — so every database this product
+ * migrates, CI's and production's alike, has not one FK constraint in it.
+ *
+ * The delete order was being sorted out of `pg_constraint`. Against a database with constraints
+ * that is exactly right; against one without, it is a silent no-op. It found zero edges, sorted
+ * nothing, and deleted `roles` before the assessments hanging off them — leaving orphans, with no
+ * constraint there to refuse it.
+ *
+ * Four failed CI runs, reading "65 assessments without a role", identical every time, while the
+ * same code was provably correct on a developer machine whose database HAD been built by drizzle
+ * push and so did have the keys. Asking the database was asking the one copy that could not answer.
+ *
+ * The schema always knows. It is the thing those foreign keys would have been generated FROM.
+ */
+export function referenceEdges(): [child: string, parent: string][] {
+  const edges: [string, string][] = [];
+  for (const value of Object.values(schema)) {
+    if (!value || typeof value !== 'object') continue;
+    let config;
+    try {
+      config = getTableConfig(value as PgTable);
+    } catch {
+      continue;
+    }
+    for (const fk of config.foreignKeys) {
+      const parent = getTableConfig(fk.reference().foreignTable as PgTable).name;
+      if (parent !== config.name) edges.push([config.name, parent]);
+    }
+  }
+  return edges;
+}
+
 /** Every table this build defines, in the shape needed to write SQL for it. */
 export function tableShapes(): TableShape[] {
   const out: TableShape[] = [];

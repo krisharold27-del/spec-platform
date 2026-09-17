@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { tableShapes } from '../src/lib/schema-sql';
 import { sortByDependency } from '../src/lib/delete-order';
+import { referenceEdges } from '../src/lib/schema-sql';
 
 /**
  * Journeys clear up after themselves.
@@ -45,13 +46,65 @@ describe('the cleanup covers the whole schema', () => {
     }
   });
 
-  it('asks the foreign keys what order to delete in, rather than writing one down', () => {
-    /*
-      This was a written-down order twice, and wrong twice. Both files now sort it out of
-      pg_constraint, so a table added later orders itself. See delete-order.ts.
-    */
+  it('works out the order rather than writing one down', () => {
+    // This was a written-down order twice, and wrong twice. See delete-order.ts.
     expect(cleanup).toContain('sortByDependency');
     expect(read('src/lib/delete-business.ts')).toContain('sortByDependency');
+  });
+
+  it('TAKES THE ORDER FROM THE SCHEMA, because no database we ship has foreign keys', () => {
+    /*
+      The check that would have saved four red CI runs.
+
+      The order was sorted out of `pg_constraint`, which is the obvious place — and this product's
+      migration deliberately emits no foreign keys, so CI's database and production's have none. It
+      found zero edges, sorted nothing, deleted parents before their children, and there was no
+      constraint left to refuse it either. Silent, and identical every run.
+
+      It passed locally the whole time, on a database built by drizzle push, which DOES have the
+      keys. Asking the database was asking the one copy that could not answer.
+    */
+    /*
+      Comments stripped first. These files EXPLAIN the pg_constraint mistake at length, and that
+      explanation is the most useful thing in them — a check that forbade the words would force the
+      story out of the code, which is the opposite of what it is for. Twice in one day I have
+      written a check that matched English rather than what runs.
+    */
+    const code = (f: string) => read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    for (const f of ['scripts/test-cleanup.mjs', 'src/lib/delete-business.ts', 'src/lib/delete-order.ts']) {
+      expect(code(f), `${f} is back to asking the database for the order`).not.toContain('pg_constraint');
+    }
+    expect(cleanup).toContain('referenceEdges');
+    expect(read('src/lib/delete-business.ts')).toContain('referenceEdges');
+  });
+
+  it('and the schema really does carry them', () => {
+    // If `referenceEdges` ever comes back empty, the sort silently becomes "any order at all" —
+    // exactly the failure above, wearing a different hat.
+    const edges = referenceEdges();
+    expect(edges.length).toBeGreaterThan(20);
+    const points = (child: string, parent: string) => edges.some(([c, p]) => c === child && p === parent);
+    // The two pairs that pull in opposite directions. If either is missing the order is guesswork.
+    expect(points('role_tasks', 'criteria'), 'role_tasks → criteria').toBe(true);
+    expect(points('role_curriculum', 'training_modules'), 'role_curriculum → training_modules').toBe(true);
+    expect(points('assessments', 'roles'), 'assessments → roles').toBe(true);
+  });
+
+  it('puts children before parents on the REAL schema, not just a toy one', () => {
+    /*
+      The sorter's unit tests hand it three tables and two edges. This runs it over all of SPEC —
+      which is the thing that actually has to come out right, and the thing that changes whenever
+      somebody adds a table.
+    */
+    const tables = tableShapes().map(t => t.name);
+    const order = sortByDependency(tables, referenceEdges());
+    expect(order.slice().sort()).toEqual(tables.slice().sort());
+
+    const at = (t: string) => order.indexOf(t);
+    const wrong = referenceEdges()
+      .filter(([c, p]) => tables.includes(c) && tables.includes(p) && at(c) > at(p))
+      .map(([c, p]) => `${c} after ${p}`);
+    expect(wrong, `deleted after something that points at it: ${wrong.join(', ')}`).toEqual([]);
   });
 });
 

@@ -25,7 +25,8 @@
  */
 
 import postgres from 'postgres';
-import { FK_EDGES_SQL, sortByDependency } from '../src/lib/delete-order.ts';
+import { sortByDependency } from '../src/lib/delete-order.ts';
+import { referenceEdges } from '../src/lib/schema-sql.ts';
 
 /**
  * Children that hang off roles, periods or boards rather than naming the business themselves.
@@ -50,14 +51,16 @@ async function tenantTables(sql) {
 }
 
 /**
- * The order to delete in, asked of the database's own foreign keys.
+ * The order to delete in, taken from the schema's own references.
+ *
+ * NOT from the database: this product's migration deliberately emits no foreign keys, so CI's
+ * database and production's have none to read. See `referenceEdges`.
  *
  * The sorting itself lives in `src/lib/delete-order.ts`, shared with the product's own delete, so
  * the two cannot drift apart — and so the awkward cases can be tested without a database.
  */
-export async function deleteOrder(sql, tables) {
-  const edges = await sql.unsafe(FK_EDGES_SQL);
-  return sortByDependency(tables, edges.map(e => [e.child, e.parent]));
+export function deleteOrder(tables) {
+  return sortByDependency(tables, referenceEdges());
 }
 
 /**
@@ -119,7 +122,7 @@ export async function clearBusinessIds(sql, ids, what = 'a test business') {
       byTable.set(statement.slice('delete from '.length).split(' ')[0], statement);
     }
     byTable.set('tenants', 'delete from tenants where id = $1');
-    const order = await deleteOrder(sql, [...byTable.keys()]);
+    const order = deleteOrder([...byTable.keys()]);
 
     // Which table it got to, so a failure names the statement rather than just the business.
     let reached = null;

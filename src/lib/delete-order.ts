@@ -13,21 +13,23 @@
  * The two rules contradict each other. There is no fixed order that satisfies both, because the
  * dependencies interleave — and every time a table is added the answer can change again.
  *
- * Postgres already holds the answer and will not forget it: every foreign key is an edge saying
- * "this one goes before that one". So the order is sorted out of `pg_constraint` at run time. A
- * table added tomorrow, pointing anywhere, sorts itself.
+ * The SCHEMA holds the answer: every `.references(...)` is an edge saying "this one goes before
+ * that one". So the order is sorted out of it, and a table added tomorrow, pointing anywhere, sorts
+ * itself. See `referenceEdges` in schema-sql.ts.
+ *
+ * ── And not out of the database ──────────────────────────────────────────────────────────────────
+ *
+ * The first version asked `pg_constraint`, which is the obvious place and the wrong one: this
+ * product's migration deliberately emits no foreign keys, so CI's database and production's have
+ * none to find. It returned zero edges, sorted nothing, and deleted parents before their children —
+ * silently, because there was no constraint left to refuse it either.
+ *
+ * It was correct on a developer machine, whose database had been built by drizzle push and did have
+ * the keys. That is the shape of the bug worth remembering: asking the database was asking the one
+ * copy that could not answer.
  *
  * Both the product's own delete and the journeys' clean-up use this, so they cannot drift apart.
  */
-
-/** Every foreign key in the public schema: which table points at which. Self-references excluded. */
-export const FK_EDGES_SQL = `
-  select rc.relname as child, pr.relname as parent
-  from pg_constraint c
-  join pg_class rc on rc.oid = c.conrelid
-  join pg_class pr on pr.oid = c.confrelid
-  join pg_namespace n on n.oid = rc.relnamespace
-  where c.contype = 'f' and n.nspname = 'public' and rc.relname <> pr.relname`;
 
 export type Edge = [child: string, parent: string];
 

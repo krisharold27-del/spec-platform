@@ -174,6 +174,28 @@ The same applies to `STRIPE_SECRET_KEY`, `ANTHROPIC_API_KEY`, the webhook secret
 `/status` names every one of them and says whether it WORKS, not merely whether it is present —
 which it was rebuilt to do after being caught reporting presence alone.
 
+## Your database is not the one that ships
+
+**Local development has 62 foreign keys. CI and production have none.**
+
+That is not an accident — `additivePlan` in `src/lib/schema-sql.ts` deliberately emits no foreign
+keys, and says why. But a developer database built with `drizzle push` gets all of them, so the two
+are shaped differently in a way nothing announces.
+
+It cost four red CI runs on 17 September. Code that worked out its delete order from
+`pg_constraint` was correct locally and a silent no-op in CI: no constraints to read, so no edges,
+so no order — parents deleted before their children, and no constraint left to refuse it either.
+The failure was identical on every run and impossible to reproduce on the machine that wrote it.
+
+So:
+
+> **Never ask the database about its own shape.** Ask the schema — `tableShapes()`,
+> `referenceEdges()`. The schema is the same everywhere; the database is not.
+
+And when something fails only in CI, ask what CI's database has that yours does not before assuming
+a flake. To reproduce it: make an empty database, run `scripts/deploy-migrate.ts` at it, and point
+the journey there.
+
 ## Seed data
 
 `seed/diagnostic.json` · `seed/criteria_templates.json` · `seed/rulebook.json`.

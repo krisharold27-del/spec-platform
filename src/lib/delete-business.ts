@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
-import { tableShapes } from './schema-sql';
-import { FK_EDGES_SQL, sortByDependency } from './delete-order';
+import { tableShapes, referenceEdges } from './schema-sql';
+import { sortByDependency } from './delete-order';
 
 /**
  * Deleting a business, permanently — the most dangerous thing in SPEC.
@@ -185,17 +185,16 @@ export async function deleteBusiness(
 
   await db.transaction(async tx => {
     /*
-      One statement per table, run in the order the foreign keys dictate.
+      One statement per table, run in the order the SCHEMA's references dictate.
 
       The order used to be written down here, and it was wrong twice. `role_tasks` names its
       business AND points at `criteria`, which does not — so "tenant tables first" is wrong.
       `role_curriculum` does NOT name its business AND points at `training_modules`, which does —
       so "children first" is wrong too. No fixed order satisfies both.
 
-      When it was wrong, Postgres refused and the orphan guard below turned that into "stopped and
-      put everything back": safe, and the wrong answer, because a business that can never be deleted
-      looks exactly like a business that is protected. So the order is asked of `pg_constraint`
-      instead — see `delete-order.ts`.
+      Then it was worked out at run time from the DATABASE's foreign keys, which is the obvious
+      place and the wrong one: this product's migration deliberately emits none, so CI's database
+      and production's have none to find. See `delete-order.ts` and `referenceEdges`.
     */
     const byTable = new Map<string, ReturnType<typeof sql>>();
     for (const table of tenantTables()) {
@@ -206,9 +205,7 @@ export async function deleteBusiness(
     for (const { table, clear } of INDIRECT) byTable.set(table, clear(tenantId));
     byTable.set('tenants', sql`delete from tenants where id = ${tenantId}`);
 
-    const rows = await tx.execute(sql.raw(FK_EDGES_SQL));
-    const edges = (rows as unknown as { child: string; parent: string }[]);
-    const order = sortByDependency([...byTable.keys()], [...edges].map(e => [e.child, e.parent]));
+    const order = sortByDependency([...byTable.keys()], referenceEdges());
     for (const table of order) await tx.execute(byTable.get(table)!);
 
     // The proof. Anything still pointing at something that has gone means a table was missed, and
