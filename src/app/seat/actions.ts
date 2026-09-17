@@ -1,5 +1,6 @@
 'use server';
 import { redirect } from 'next/navigation';
+import { consentNow } from '@/lib/legal';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { createSignIn, signInWithPassword } from '@/lib/auth';
@@ -21,6 +22,8 @@ export async function takeSeat(formData: FormData) {
   const back = (why: string): never => redirect(`/seat?t=${encodeURIComponent(token)}&error=${why}`);
 
   if (password.length < 8) back('short');
+  // Checked on the server, as at sign-up: the browser's `required` is for the person, not a control.
+  if (String(formData.get('consent') ?? '') !== 'yes') back('consent');
 
   const [row] = token
     ? await db.select().from(schema.users).where(eq(schema.users.seatToken, token))
@@ -62,6 +65,9 @@ export async function takeSeat(formData: FormData) {
   const spent = await db.update(schema.users)
     .set({
       acceptedAt: new Date().toISOString(),
+      // Stamped in the same write as the seat being taken, so there is no state where somebody
+      // holds a seat and no record of what they agreed to.
+      ...consentNow(),
       ...(authUserId ? { authUserId } : {}),
     })
     .where(and(eq(schema.users.id, row.id), eq(schema.users.seatToken, token), isNull(schema.users.acceptedAt)))

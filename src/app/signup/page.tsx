@@ -4,6 +4,7 @@ import { SubmitButton } from '@/components/submit-button';
 import { PasswordField } from '@/components/password-field';
 import { formSecret, issueFormToken, turnstileSiteKey } from '@/lib/bot-check';
 import { signUp } from './actions';
+import { CONSENT_LABEL, CONSENT_REQUIRED } from '@/lib/legal';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ const ERRORS: Record<string, string> = {
   failed: "That didn't work. Press Create again — nothing you typed is lost.",
   expired: 'This form had been open a while. Press Create again — everything you typed is still here.',
   check: 'Press Create again — everything you typed is still here.',
+  consent: CONSENT_REQUIRED,
   busy: 'A lot of businesses are being set up from your network right now. Wait a minute and press Create again — nothing you typed is lost.',
   down: 'Setting up is temporarily unavailable — that is our end, not yours. Nothing you typed is wrong. Try again in a few minutes.',
 };
@@ -73,6 +75,33 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<R
         {problem && <input type="hidden" name="problem" value={problem} />}
         <input name="email" type="email" required maxLength={320} defaultValue={yourEmail} autoComplete="email" inputMode="email" placeholder="Your email" aria-label="Your email" className="w-full rounded border px-3 py-2.5" />
         <PasswordField name="password" autoComplete="new-password" placeholder="Choose a password (8+ characters)" minLength={8} />
+        {/*
+          The one thing on this form that is not about getting in.
+
+          Unticked by default and required — a pre-ticked box is not agreement, and in Australia it
+          is not worth the pixels it is drawn with. The links open in a new tab on purpose: somebody
+          who wants to read the terms should not lose the four boxes they have just filled in.
+
+          Enforced on the SERVER as well as here. `required` is a convenience for the person, not a
+          control: it is one line of devtools away from gone, and the record this creates is the
+          thing that has to be true.
+        */}
+        <label className="flex items-start gap-2.5 pt-1 text-sm text-ink-light">
+          <input
+            type="checkbox"
+            name="consent"
+            value="yes"
+            required
+            aria-label={CONSENT_LABEL}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-rust"
+          />
+          <span>
+            I agree to the{' '}
+            <a href="/terms" target="_blank" rel="noopener" className="underline hover:text-rust">Terms of Service</a>
+            {' '}and{' '}
+            <a href="/privacy" target="_blank" rel="noopener" className="underline hover:text-rust">Privacy Policy</a>
+          </span>
+        </label>
         {siteKey && <div className="cf-turnstile" data-sitekey={siteKey} data-appearance="interaction-only" />}
         <SubmitButton pending="Setting up your business…">Create my business</SubmitButton>
       </form>

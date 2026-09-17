@@ -10,6 +10,7 @@ import { currentLook, claimLook } from '@/lib/look';
 import { logProblem } from '@/lib/register-data';
 import { diagnose } from '@/lib/diagnose';
 import { createThrottle } from '@/lib/throttle';
+import { consentNow } from '@/lib/legal';
 
 /*
   A script signs up in bulk; a business does not. But the limit here was three per address per
@@ -84,6 +85,15 @@ export async function signUp(formData: FormData) {
   const held = waitOutMs(token, formSecret());
   if (held > 0) await new Promise(resolve => setTimeout(resolve, held));
   if (checkFormToken(token, formSecret()) !== 'ok') back('expired');
+
+  /*
+    Agreement, checked on the SERVER.
+
+    The box is `required` in the browser too, which is the right thing for the person — but that is
+    a convenience, not a control: it is one line of devtools away from gone. What gets recorded
+    against the account has to be true, so the only check that counts is this one.
+  */
+  if (String(formData.get('consent') ?? '') !== 'yes') back('consent');
 
   const h = await headers();
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || h.get('x-real-ip') || 'unknown';
@@ -174,7 +184,8 @@ export async function signUp(formData: FormData) {
     gmRoleId = fresh.roleIds.gm;
   }
 
-  await assignPerson(tenantId, gmRoleId, { name, email });
+  // The version they ticked, stamped on the account at the moment they ticked it. See lib/legal.
+  await assignPerson(tenantId, gmRoleId, { name, email }, consentNow());
   await linkNewSeat(authUserId, tenantId, email);
 
   /*

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { TERMS_VERSION, TERMS_UPDATED } from '@/lib/legal';
 
 export const metadata = { title: 'Terms of Service — SPEC' };
 
@@ -7,13 +8,20 @@ export default function Terms() {
     <main className="mx-auto max-w-2xl px-6 py-16">
       <div className="label-caps">SPEC Business Solutions</div>
       <h1 className="mt-1 font-serif text-3xl text-ink">Terms of Service</h1>
-      <p className="mt-2 text-sm text-ink-light">Last updated 6 September 2026.</p>
+      <p className="mt-2 text-sm text-ink-light">
+        {/* Both from lib/legal, so the version an account stores and the version the page shows
+            can never disagree. Change the words, change the version — see the note there. */}
+        Last updated {TERMS_UPDATED} · Version {TERMS_VERSION}
+      </p>
 
       <div className="prose-sm mt-8 space-y-5 text-sm leading-6 text-ink-light">
         <p>These terms cover your use of SPEC (the app at specbizhq.com and app.specbizhq.com), operated by SPEC Business Solutions ("we", "us"), a business based in Victoria, Australia. By creating a business on SPEC you agree to these terms. If you don't agree, don't use the service.</p>
 
         <h2 className="text-base font-semibold text-ink">What SPEC is</h2>
         <p>SPEC is a self-serve operating system for running a business against four pillars — Safety, People, Earnings, Compliance — with role-based scorecards, KPIs, and a monthly board output generated from your own data. It's a tool your business uses to track and report on itself; it doesn't manage your business for you, and nothing it produces is professional advice (financial, legal, safety, or otherwise).</p>
+
+        <h2 className="text-base font-semibold text-ink">Your account</h2>
+        <p>Give us accurate details when you create an account, and keep your sign-in secure. What happens under your account is your responsibility, so tell us straight away if you think somebody else has got into it. Access in SPEC follows the role somebody holds on the chart — moving them moves what they can see, in both directions.</p>
 
         <h2 className="text-base font-semibold text-ink">Plans and billing</h2>
         <p>Building your business in SPEC is free and stays free: your org chart, roles and KPIs cost nothing, however long you take, and roles with nobody in them are never billed. A seat is charged only once you invite a real person into the business — a name and an email attached to a role — at <b>A$26 per person per month</b> in Australia — NZ$35 in New Zealand, £17 in the United Kingdom, €26 in Europe, US$26 in the United States and elsewhere, CA$35 in Canada, set by where your business is and never converted (GST treatment as shown at checkout), billed monthly via Stripe and renewing automatically until cancelled. You can cancel any time from the Billing link in the app — you keep access until the end of the period you've already paid for, and we never delete your data just because a subscription lapses. A <b>SPEC Program</b> engagement (on-site rollout and training) is a separate consulting arrangement, invoiced outside the app.</p>
@@ -22,8 +30,11 @@ export default function Terms() {
         <h2 className="text-base font-semibold text-ink">Your data, your business</h2>
         <p>Everything you enter — org charts, KPIs, scorecards, notes — belongs to your business, not to us. We don't share it with other businesses on the platform, we don't sell it, and we don't use it to train any AI model (ours or anyone else's). See our <Link href="/privacy" className="underline">Privacy Policy</Link> for exactly what we collect and who we share it with to run the service (hosting, payments, email).</p>
 
+        <h2 className="text-base font-semibold text-ink">What we own, and what you own</h2>
+        <p>The software, the four-pillar method, the scoring rules, the training material and everything else we bring stay ours. While your business has an account you have a licence to use all of it to run your own business — not to resell it, licence it on, or rebuild it elsewhere. Your data stays yours, as above; you give us permission to process it for the single purpose of running SPEC for you, and nothing else.</p>
+
         <h2 className="text-base font-semibold text-ink">Acceptable use</h2>
-        <p>Use SPEC for your own business's genuine operating data. Don't try to break, scrape, or resell the platform; don't use it to store or process anyone else's confidential information without their consent; don't impersonate another business or person.</p>
+        <p>Use SPEC for your own business's genuine operating data. Don't try to break, scrape, or resell the platform, and don't reverse-engineer it or set out to extract the method underneath it and run it as your own. Don't use it to store or process anyone else's confidential information without their consent, and don't impersonate another business or person.</p>
 
         <h2 className="text-base font-semibold text-ink">No warranty, limited liability</h2>
         <p>SPEC is provided "as is". We work to keep it available and accurate, but we don't guarantee it will be uninterrupted or error-free, and we're not liable for business decisions made on the basis of its output — that judgment stays with you. To the extent the law allows, our liability for any claim is limited to the fees you've paid us in the 12 months before the claim. Nothing here excludes a guarantee that can't be excluded under the Australian Consumer Law.</p>

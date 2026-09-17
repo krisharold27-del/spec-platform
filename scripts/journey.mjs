@@ -197,6 +197,8 @@ try {
   await page.fill('input[name="business"]', BUSINESS);
   await page.fill('input[name="email"]', EMAIL);
   await page.fill('input[name="password"]', PASSWORD);
+  // Agreement is required at sign-up — unticked by default, and refused on the server too.
+  await page.check('input[name="consent"]').catch(() => {});
   await page.waitForTimeout(3500);             // the form deliberately refuses a too-fast submission
   await page.click('button[type="submit"]');
   await page.waitForLoadState('networkidle');

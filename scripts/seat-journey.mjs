@@ -46,6 +46,8 @@ await page.fill('input[name="name"]', 'Dane Whitmore');
 await page.fill('input[name="business"]', BUSINESS);
 await page.fill('input[name="email"]', OWNER);
 await page.fill('input[name="password"]', PASSWORD);
+// Agreement is required at sign-up — unticked by default, and refused on the server too.
+await page.check('input[name="consent"]').catch(() => {});
 await page.waitForTimeout(3500);
 await page.click('button[type="submit"]');
 await page.waitForTimeout(3000);
@@ -92,6 +94,10 @@ check('the seat names the person and the business', body.includes('Tom Alderson'
 check('the address is shown, not asked for', body.includes(MATE) && (await fresh.locator('input[name="email"]').count()) === 0);
 
 await fresh.fill('input[name="password"]', PASSWORD);
+// Taking a seat creates an account, so agreement is asked here too — unticked by default.
+check('the seat form asks them to agree', (await fresh.locator('input[name="consent"]').count()) === 1);
+check('and it is not pre-ticked', !(await fresh.locator('input[name="consent"]').isChecked()));
+await fresh.check('input[name="consent"]');
 await fresh.click('button[type="submit"]');
 await fresh.waitForTimeout(3500);
 check('TAKING THE SEAT LANDS THEM INSIDE', !fresh.url().includes('/seat'), fresh.url());

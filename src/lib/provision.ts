@@ -10,6 +10,7 @@ import templates from '../../seed/criteria_templates.json';
 import rulebook from '../../seed/rulebook.json';
 import trainingCatalogue from '../../seed/training_modules.json';
 import { validateWeights, type Criterion as ScoringCriterion, type Pillar } from './scoring';
+import type { Consent } from './legal';
 import { resolveTarget } from './targets';
 import { tagTask } from './tasks';
 
@@ -201,7 +202,19 @@ export async function provisionTenant(opts: ProvisionOptions) {
 }
 
 /** Assign a person to a role. Creates the user if needed. Access is inherited from the role. */
-export async function assignPerson(tenantId: string, roleId: string, person: { name: string; email: string }) {
+export async function assignPerson(
+  tenantId: string,
+  roleId: string,
+  person: { name: string; email: string },
+  /*
+    What they agreed to — passed only when the person being assigned IS the person who agreed.
+
+    Not assumed, because `assignPerson` is also how a manager puts somebody else's name on the
+    chart, and that person has agreed to nothing yet. Recording consent for somebody who was not in
+    the room would be worse than recording none: it would look like evidence.
+  */
+  consent?: Consent,
+) {
   const roleRows = await db.select().from(schema.roles).where(eq(schema.roles.id, roleId));
   const role = roleRows[0];
   if (!role || role.tenantId !== tenantId) throw new Error('Role not found in tenant');
@@ -209,7 +222,11 @@ export async function assignPerson(tenantId: string, roleId: string, person: { n
   const foundRows = await db.select().from(schema.users)
     .where(and(eq(schema.users.tenantId, tenantId), eq(schema.users.email, person.email)));
   const found = foundRows[0];
-  const user = found ?? { id: id(), tenantId, email: person.email, name: person.name, access: role.defaultAccess, authUserId: null, invitedAt: null, acceptedAt: null };
+  const user = found ?? {
+    id: id(), tenantId, email: person.email, name: person.name, access: role.defaultAccess,
+    authUserId: null, invitedAt: null, acceptedAt: null,
+    termsVersion: consent?.termsVersion ?? null, termsAcceptedAt: consent?.termsAcceptedAt ?? null,
+  };
   if (!found) await db.insert(schema.users).values(user);
   // Close any current assignment on this role, then open the new one. History is kept.
   await db.update(schema.roleAssignments).set({ toDate: now() })

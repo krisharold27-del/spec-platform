@@ -119,6 +119,8 @@ check('and shows them the problem it is keeping', body.includes(PROBLEM));
 await page.fill('input[name="name"]', 'Kris Harold');
 await page.fill('input[name="email"]', EMAIL);
 await page.fill('input[name="password"]', PASSWORD);
+// Agreement is required at sign-up — unticked by default, and refused on the server too.
+await page.check('input[name="consent"]').catch(() => {});
 await page.waitForTimeout(3500);           // a real person takes a moment over four boxes
 await page.click('button[type="submit"]');
 await page.waitForTimeout(4000);
@@ -148,7 +150,17 @@ await page.goto(`${BASE}/pricing`, { waitUntil: 'networkidle' });
 const priced = await text();
 check('THE LADDER IS PUBLISHED, not only promised', /Give us a go\. Add some training if you need it\./.test(priced));
 check('and it says what you stop buying', /No ongoing GM/.test(priced));
-check('the program is named with a real price on it', /20,888/.test(priced), priced.split('\n').find(l => /20,/.test(l)) ?? '');
+/*
+  Reversed on 18 September, and worth the note.
+
+  This asserted that the consulting price WAS on the page — I put it there the day before, in good
+  faith, because nobody had written the rule down. Kris then set it: the seat and training prices
+  are published, the consulting one is not, because a five-figure monthly number read before
+  anybody has explained what a full day a week buys ends the conversation instead of starting it.
+*/
+check('THE CONSULTING PRICE IS NOT PUBLISHED', !/20,?888/.test(priced), priced.split('\n').find(l => /20,?888/.test(l)) ?? '');
+check('the page invites a conversation instead', /Let.s talk/.test(priced) && /Start the conversation/.test(priced));
+check('and the training price IS published, at the new figure', /1,502/.test(priced), priced.split('\n').find(l => /1,5/.test(l)) ?? '');
 check('against what a GM actually costs', /A\$300,000 a year/.test(priced));
 // The rule of 8 outranks the mock-up: the design draws A$20,000 and A$1,000, neither of which reduces to 8.
 check('AND NEVER THE MOCK-UP PRICES, which break the rule of 8', !/A\$20,000|A\$1,000\b/.test(priced));

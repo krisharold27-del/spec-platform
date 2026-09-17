@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PRIVACY_VERSION, PRIVACY_UPDATED } from '@/lib/legal';
 
 export const metadata = { title: 'Privacy Policy — SPEC' };
 
@@ -7,7 +8,11 @@ export default function Privacy() {
     <main className="mx-auto max-w-2xl px-6 py-16">
       <div className="label-caps">SPEC Business Solutions</div>
       <h1 className="mt-1 font-serif text-3xl text-ink">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-ink-light">Last updated 6 September 2026.</p>
+      <p className="mt-2 text-sm text-ink-light">
+        {/* Both from lib/legal, so the version an account stores and the version the page shows
+            can never disagree. Change the words, change the version — see the note there. */}
+        Last updated {PRIVACY_UPDATED} · Version {PRIVACY_VERSION}
+      </p>
 
       <div className="prose-sm mt-8 space-y-5 text-sm leading-6 text-ink-light">
         <p>SPEC Business Solutions ("we", "us") handles personal information in line with the Australian Privacy Act 1988 and the Australian Privacy Principles. This policy covers the SPEC app (specbizhq.com and app.specbizhq.com).</p>

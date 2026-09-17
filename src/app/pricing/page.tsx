@@ -49,6 +49,10 @@ export default function Pricing() {
           <p className="mt-3 max-w-[58ch] text-base leading-relaxed text-ink-light">
             {VIRTUAL_GM.ladder}
           </p>
+          {/* The comparison moved up here when the consulting price came off the card below. It is
+              the argument for the whole ladder, not for one box, and it reads better before a price
+              than beside one. */}
+          <p className="mt-3 max-w-[58ch] text-sm leading-relaxed text-ink-light/80">{GM_COMPARISON}</p>
         </section>
 
         <h1 className="font-serif text-3xl tracking-tight text-ink sm:text-4xl">
@@ -152,14 +156,36 @@ export default function Pricing() {
               return (
                 <div key={key} className="card border-t-4 border-t-rust">
                   <p className="label-caps">{pkg.label}</p>
-                  <p className="mt-3 font-serif text-3xl text-ink">A${pkg.aud.toLocaleString('en-AU')}</p>
-                  <p className="mt-1.5 text-sm text-ink-light">
-                    a month · {key === 'sessions' ? 'sign up now' : 'someone will be in contact'}
-                  </p>
-                  {key === 'full_control' && (
-                    <p className="mt-3 text-xs leading-relaxed text-ink-light/80">{GM_COMPARISON}</p>
+                  {/*
+                    The price is shown only where the product says it may be — see `publishPrice`.
+                    Consulting is the one that is quoted in a conversation instead: a five-figure
+                    monthly number read before anybody has explained what a full day a week buys
+                    ends the conversation rather than starting it.
+                  */}
+                  {pkg.publishPrice ? (
+                    <>
+                      <p className="mt-3 font-serif text-3xl text-ink">A${pkg.aud.toLocaleString('en-AU')}</p>
+                      <p className="mt-1.5 text-sm text-ink-light">a month · sign up now</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mt-3 font-serif text-3xl text-ink">Let&apos;s talk</p>
+                      <p className="mt-1.5 text-sm text-ink-light">
+                        Priced once we both know what it needs to do.
+                      </p>
+                    </>
                   )}
                   <p className="mt-4 text-sm leading-relaxed text-ink">{pkg.what}</p>
+                  {!pkg.publishPrice && (
+                    <p className="mt-4">
+                      <a
+                        href="mailto:manager@specbizhq.com?subject=SPEC%20-%20let%27s%20talk"
+                        className="btn-secondary inline-flex text-sm"
+                      >
+                        Start the conversation
+                      </a>
+                    </p>
+                  )}
                 </div>
               );
             })}

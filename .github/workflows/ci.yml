@@ -33,8 +33,8 @@ jobs:
     # commits and nothing anywhere said so, on a project whose whole discipline is that a check
     # whose failure mode is silence is worse than no check.
     #
-    # Nothing was wrong: the step does a full production build and then walks thirteen journeys in
-    # a real browser, and there are thirteen because each one was added the day something got out
+    # Nothing was wrong: the step does a full production build and then walks fourteen journeys in
+    # a real browser, and there are fourteen because each one was added the day something got out
     # that every unit test had missed. It needs the time.
     #
     # The step below carries its own budget, and that is the part that matters. A step that runs out
@@ -465,3 +465,9 @@ jobs:
           # one-afternoon audit, and a page gets slower or narrower one change at a time because no
           # single change ever made it bad.
           journey usability-journey.mjs
+
+          # Agreeing to the terms: the box unticked, the refusal in words, and the record written.
+          # The check worth having strips `required` off the input the way anybody with devtools
+          # could — a box enforced only in the browser produces a record saying somebody agreed
+          # when the server never asked.
+          journey consent-journey.mjs

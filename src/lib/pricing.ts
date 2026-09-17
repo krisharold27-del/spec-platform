@@ -184,6 +184,21 @@ export interface PackageSpec {
    * than take an order it cannot fill.
    */
   availableIn: 'anywhere' | 'australia';
+  /**
+   * Whether the price may be PUBLISHED, as opposed to quoted in a conversation.
+   *
+   * Kris, 18 September: *"do NOT show the price... At this level people buy trust, not a price tag
+   * — the number cold triggers sticker shock before you've framed the value."*
+   *
+   * This is not secrecy and it is not negotiability — the price is fixed, and /admin shows it to
+   * whoever is setting a business up. It is about ORDER: a five-figure monthly number read before
+   * anybody has explained what a full day a week buys is a number that ends the conversation
+   * instead of starting it.
+   *
+   * The seat price is the opposite case and stays published: low friction, and transparency is the
+   * whole argument for it.
+   */
+  publishPrice: boolean;
 }
 
 export const PACKAGES: Record<Package, PackageSpec> = {
@@ -194,6 +209,7 @@ export const PACKAGES: Record<Package, PackageSpec> = {
     aud: 26,
     everyCurrency: true,
     availableIn: 'anywhere',
+    publishPrice: true,
   },
   seat_training: {
     label: 'Seat plus training',
@@ -203,16 +219,27 @@ export const PACKAGES: Record<Package, PackageSpec> = {
     aud: 44,
     everyCurrency: true,
     availableIn: 'anywhere',
+    publishPrice: true,
   },
+  /*
+    A$1,007 → A$1,502 on 18 September. Kris: *"One-to-one is the premium format, and the old number
+    priced it like a freelancer hour ($250/hr) — too cheap for training delivered at your level."*
+
+    The old figure divided into four sessions at about A$250 each, which is what an hour of
+    somebody's time costs. This is not an hour of somebody's time; it is Kris teaching one person to
+    run a business the way he runs one. 1+5+0+2 = 8, so the rule holds.
+  */
   sessions: {
     label: 'SPEC sessions',
-    what: 'Training delivered by SPEC rather than by the software. Four one-hour sessions a month, '
-      + 'built around the roles the business actually has and how it is actually using SPEC. '
-      + 'Delivered from Australia to anywhere in the world.',
+    what: 'Training delivered by SPEC rather than by the software. Four one-to-one sessions a month '
+      + 'with whoever you choose to set this up and run it — built around the roles the business '
+      + 'actually has and how it is actually using SPEC. Delivered from Australia to anywhere in '
+      + 'the world.',
     per: 'business',
-    aud: 1007,
+    aud: 1502,
     everyCurrency: false,
     availableIn: 'anywhere',
+    publishPrice: true,
   },
   full_control: {
     label: 'Full SPEC control',
@@ -222,6 +249,8 @@ export const PACKAGES: Record<Package, PackageSpec> = {
     aud: 20888,
     everyCurrency: false,
     availableIn: 'australia',
+    // The one price SPEC does not publish — see `publishPrice`. It is quoted in a conversation.
+    publishPrice: false,
   },
 };
 

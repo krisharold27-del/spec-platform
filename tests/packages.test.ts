@@ -31,7 +31,13 @@ describe('the four packages', () => {
   it('charges what he said', () => {
     expect(PACKAGES.seat.aud).toBe(26);
     expect(PACKAGES.seat_training.aud).toBe(44);
-    expect(PACKAGES.sessions.aud).toBe(1007);
+    /*
+      A$1,007 → A$1,502 on 18 September. Kris: *"One-to-one is the premium format, and the old
+      number priced it like a freelancer hour ($250/hr) — too cheap for training delivered at your
+      level."* Four sessions at 1007 divided out to about A$250 each, which is what an hour of
+      somebody's time costs rather than what this is. 1+5+0+2 = 8, so the rule still holds.
+    */
+    expect(PACKAGES.sessions.aud).toBe(1502);
     expect(PACKAGES.full_control.aud).toBe(20888);
   });
 
@@ -66,7 +72,7 @@ describe('seats scale; somebody\'s week does not', () => {
 
   it('NEVER multiplies a per-business package by a headcount', () => {
     for (const seats of [1, 12, 40, 20000]) {
-      expect(monthlyCostOf('sessions', 'aud', seats), `${seats} people`).toBe(1007);
+      expect(monthlyCostOf('sessions', 'aud', seats), `${seats} people`).toBe(1502);
       expect(monthlyCostOf('full_control', 'aud', seats), `${seats} people`).toBe(20888);
     }
   });
@@ -110,7 +116,7 @@ describe('where each one can actually be delivered', () => {
   /*
     Availability is NOT the same question as currency, and the first version of this conflated them.
 
-    Four one-hour sessions a month go down a video call, so a business in Leeds can buy them — they
+    Four one-to-one sessions a month go down a video call, so a business in Leeds can buy them — they
     just pay in Australian dollars. A full day a week on site plus chairing the board meeting cannot
     be delivered to Leeds by somebody who is in Wangaratta on Tuesday. That is a fact about the
     calendar, not about money, and taking an order nobody can fill is worse than declining it.
@@ -184,7 +190,8 @@ describe('who sets it', () => {
   /* Each package says what it includes in the words it was sold in, so nobody is surprised later. */
   it('describes what is actually delivered', () => {
     expect(PACKAGES.seat_training.what).toContain('online');
-    expect(PACKAGES.sessions.what).toContain('Four one-hour sessions a month');
+    // One-to-one, and described by the sessions rather than by an hour — see tests/published-prices.
+    expect(PACKAGES.sessions.what).toContain('Four one-to-one sessions a month');
     expect(PACKAGES.full_control.what).toContain('board meeting');
     expect(PACKAGES.full_control.what).toContain('full day a week');
   });

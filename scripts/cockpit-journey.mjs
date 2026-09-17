@@ -106,6 +106,8 @@ async function signUp(email, business) {
   await page.fill('input[name="business"]', business);
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', PASSWORD);
+  // Agreement is required at sign-up — unticked by default, and refused on the server too.
+  await page.check('input[name="consent"]').catch(() => {});
   await page.waitForTimeout(3500);   // the sign-up form holds briefly against bots
   await page.click('button[type="submit"]');
   try {

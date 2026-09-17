@@ -246,6 +246,18 @@ export const users = pgTable('users', {
   seatTokenExpires: text('seat_token_expires'),
   acceptedAt: text('accepted_at'),
   /**
+   * What they agreed to, and when — the record, not the tick.
+   *
+   * A tick is not evidence of anything a week later. The question that gets asked is "what did they
+   * agree to", and only the VERSION answers it: the page gets edited, and somebody who signed up in
+   * March agreed to the March words. Stored at the moment of agreement, alongside the timestamp.
+   *
+   * Null for a person who has not agreed yet — every account made before this existed, and anybody
+   * part-way through taking a seat. Null means unknown, never "agreed to version 1".
+   */
+  termsVersion: text('terms_version'),
+  termsAcceptedAt: text('terms_accepted_at'),
+  /**
    * quiet | normal | everything — how much SPEC interrupts this person. See lib/notify.
    *
    * Null means never chosen, which reads as `normal`. Stored against the person rather than the
