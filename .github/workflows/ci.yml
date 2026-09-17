@@ -235,8 +235,18 @@ jobs:
           # pass the signal on. Killing $SERVED_PID therefore left the real server running and the
           # step below refused to start — which is the guard working, and was still the wrong
           # outcome. So the port itself is taken back, by whoever is holding it.
+          # By process name, not by port. `lsof` is not on a GitHub runner, so the loop that asked
+          # it for the listener found nothing, killed nothing, and the step below — correctly —
+          # refused to run against the server that was still there. A tool that is absent returns
+          # no output, which reads exactly like a port that is already free.
           kill "$SERVED_PID" 2>/dev/null || true
-          for pid in $(lsof -ti tcp:3000 2>/dev/null); do kill -9 "$pid" 2>/dev/null || true; done
+          pkill -f 'next-server' 2>/dev/null || true
+          pkill -f 'next start' 2>/dev/null || true
+          # And if either IS available, use it too — belt and braces cost nothing here.
+          command -v fuser >/dev/null 2>&1 && fuser -k 3000/tcp 2>/dev/null || true
+          for pid in $(command -v lsof >/dev/null 2>&1 && lsof -ti tcp:3000 2>/dev/null); do
+            kill -9 "$pid" 2>/dev/null || true
+          done
 
           freed=
           for _ in $(seq 1 15); do
