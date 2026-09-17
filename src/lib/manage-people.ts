@@ -76,3 +76,60 @@ export const READING: Reading[] = [
   { when: 'Next', title: 'MindFit', author: 'Kris Harold' },
   { when: 'Then', title: 'MindFitter', author: 'Kris Harold' },
 ];
+
+export interface Idea {
+  title: string;
+  says: string;
+}
+
+/**
+ * Three ideas from the wider SPEC training material — design export 8.
+ *
+ * ── Why these three, and why here ────────────────────────────────────────────────────────────────
+ *
+ * They are the arguments underneath the training rather than modules in it. Each one exists because
+ * a business will otherwise reach the opposite conclusion on its own:
+ *
+ *   Mental fitness gets treated as a trait people either have or do not, and therefore as nothing
+ *   management can act on — which is how a business manages physical safety diligently and half the
+ *   risk not at all.
+ *
+ *   Incentives get argued about as motivation, when the thing that makes one work is the honesty of
+ *   the target underneath it. SPEC can only put an incentive on top of a fair board, and this says
+ *   why that ordering is not an inconvenience.
+ *
+ *   "Busy" is the answer that ends every conversation about why something did not happen, and it is
+ *   usually true, which is what makes it so effective. The register is SPEC's answer to it.
+ *
+ * The third is the one that reaches furthest: it is the argument FOR the improvement register, put
+ * where somebody learning to lead will meet it, rather than on the register itself where it would
+ * read as a rebuke.
+ */
+export const CURRICULUM_IDEAS: Idea[] = [
+  {
+    title: 'Mental fitness is managed, not assumed',
+    says:
+      'A mind needs training to carry pressure, setbacks and difficult conversations, the same way a body '
+      + 'needs training to carry physical load. A business that manages physical safety but leaves mental '
+      + 'fitness to chance is only managing half the risk. It’s a capacity built on purpose, checked in '
+      + 'on regularly — not a trait some people have and others don’t. Kristopher Harold was writing '
+      + 'about mental fitness in business as early as 2018.',
+  },
+  {
+    title: 'Why incentives actually work',
+    says:
+      'An incentive is proof the target was real and reachable — it turns a vague expectation into a '
+      + 'specific, measurable win someone can point to. That’s why SPEC’s incentives sit on top of '
+      + 'a KPI board that’s already fair: the reward only motivates if the target underneath it was set '
+      + 'honestly.',
+  },
+  {
+    title: '“Busy” as a smokescreen',
+    says:
+      '“I’ve been flat out” is rarely a lie — it’s a smokescreen. Being busy and being '
+      + 'effective are different things, and busy feels like an alibi because it’s comfortable. '
+      + 'SPEC’s register makes the distinction visible: every improvement opportunity has an owner and '
+      + 'a deadline, so “busy” stops being an answer and becomes a status the system can see — '
+      + 'open, overdue, or done.',
+  },
+];

@@ -18,7 +18,7 @@ import { Material } from '@/components/material';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { signOffTraining } from '@/app/my-page/actions';
 import { Problems } from '@/components/problems';
-import { MANAGEMENT_STANCE, NON_NEGOTIABLES, READING } from '@/lib/manage-people';
+import { MANAGEMENT_STANCE, NON_NEGOTIABLES, READING, CURRICULUM_IDEAS } from '@/lib/manage-people';
 
 export const dynamic = 'force-dynamic';
 
@@ -300,6 +300,30 @@ export default async function Training() {
             ))}
           </ol>
         </div>
+      </section>
+
+      {/*
+        The arguments underneath the training — design export 8.
+
+        Not modules; the reasons the modules are worth doing. Each one is here because a business
+        reaches the opposite conclusion on its own if nobody says it out loud.
+      */}
+      <section className="mt-12 border-t border-ink/10 pt-8">
+        <h2 className="label-caps">From the SPEC training curriculum</h2>
+        <p className="mt-2 max-w-[34ch] font-serif text-2xl text-ink">
+          Mental fitness, incentives and the busy excuse
+        </p>
+        <p className="mt-3 max-w-[68ch] text-sm leading-relaxed text-ink-light">
+          Three ideas underneath the P-stack, drawn from the wider SPEC training material.
+        </p>
+        <ul className="mt-7 grid gap-4 lg:grid-cols-3">
+          {CURRICULUM_IDEAS.map(idea => (
+            <li key={idea.title} className="card">
+              <h3 className="font-serif text-base leading-snug text-ink">{idea.title}</h3>
+              <p className="mt-2.5 text-sm leading-relaxed text-ink-light">{idea.says}</p>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <Problems screen="training" />
