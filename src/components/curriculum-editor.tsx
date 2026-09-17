@@ -66,7 +66,8 @@ export function CurriculumEditor({ catalogue, roles }: {
                   <span className="min-w-0">
                     <span className="flex flex-wrap items-baseline gap-2">
                       <span className="font-serif text-base text-ink">{m.title}</span>
-                      <span className="label-caps">
+                      {/* Same training ring as the module list — see `.ring-training`. */}
+                      <span className="ring-training label-caps">
                         {m.pillar === 'all' ? 'Every pillar' : PILLAR_META[m.pillar].name}
                       </span>
                       {m.core && <span className="pill pill-neutral">Core</span>}

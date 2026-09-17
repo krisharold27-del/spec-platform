@@ -129,5 +129,37 @@ Then it comes back as a design export and gets built like everything else.
 
 ---
 
-*Not started in code. No colour has been chosen and nothing has been painted, deliberately —
-picking a purple in a stylesheet is how the pillar collision would have shipped.*
+---
+
+## ANSWERED — design export 8, 17 September
+
+Design took **option 3: keep the idea, drop the hue.**
+
+> "All 4 pillar colors and the red/amber/green status colors are already spoken for — a 5th
+> colour risks looking like one of those. So instead of a new color, I used a shape: a dashed
+> outline ring around the label — same colour as the text, just a different line style. It reads
+> as 'training' no matter what colour sits inside it."
+
+```css
+outline: 1.5px dashed color-mix(in srgb, var(--color-text) 45%, transparent);
+outline-offset: 2px;
+```
+
+Two things about it worth keeping, because neither is obvious:
+
+**It borrows the text's own colour**, so it works inside a chip of any colour — including one
+already tinted green, amber or grey by the module's status. It can never read as a signal,
+because it has no colour of its own to read.
+
+**`outline`, not `border`.** An outline takes no space in layout, so adding one to a label moves
+nothing around it. A border would have reflowed every module row by 3px and broken the alignment
+of the rows beside it.
+
+**Built** as `.ring-training` in `globals.css`, one definition, on both places a module's pillar
+label appears: the SPEC library list on `/training` and the curriculum editor.
+
+**A correction on my part.** I reported that export 8 did not answer this brief. It did — I
+searched the export for a new colour and for `border-left` declarations, found neither, and
+concluded there was no answer. The answer was an `outline` property with no colour in it, so my
+search could not have found it. I looked for the solution I had imagined rather than for a
+solution.

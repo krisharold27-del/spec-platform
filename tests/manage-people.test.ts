@@ -104,3 +104,42 @@ describe('colour still says how it is going, never what it is', () => {
     expect(noted).toContain('non-negotiables');
   });
 });
+
+describe('the training marker', () => {
+  /*
+    Design export 8's answer to "give training its own edge": a dashed ring rather than a fifth
+    colour, because all four pillar colours and all four signal colours are already spoken for —
+    Compliance is mulberry, which is exactly where a purple edge would have collided.
+  */
+  const css = readFileSync(new URL('../src/app/globals.css', import.meta.url), 'utf8');
+
+  it('IS A SHAPE, NOT A COLOUR — it has no colour of its own', () => {
+    const rule = css.slice(css.indexOf('.ring-training'), css.indexOf('}', css.indexOf('.ring-training')));
+    expect(rule).toContain('dashed');
+    // Derived from the ink, never a hex of its own. A hex here is a fifth colour by the back door.
+    expect(rule).toContain('colors.ink');
+    expect(rule, 'the training ring has grown a colour').not.toMatch(/#[0-9a-fA-F]{3,8}/);
+  });
+
+  it('uses outline rather than border, so adding it moves nothing', () => {
+    // A border would reflow every module row by 3px and break the alignment of the rows beside it.
+    const rule = css.slice(css.indexOf('.ring-training'), css.indexOf('}', css.indexOf('.ring-training')));
+    expect(rule).toContain('outline:');
+    expect(rule).not.toMatch(/(^|[^-])border\s*:/);
+  });
+
+  it('is on every place a module names its pillar, not just one of them', () => {
+    // A marker used in one place out of two teaches people it means something it does not.
+    for (const f of ['src/app/training/page.tsx', 'src/components/curriculum-editor.tsx']) {
+      expect(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'), f).toContain('ring-training');
+    }
+  });
+
+  it('and is never put on a signal or a score', () => {
+    // It says "this is training". It must never end up on something that says how a thing is going.
+    const page = readFileSync(new URL('../src/app/training/page.tsx', import.meta.url), 'utf8');
+    for (const line of page.split('\n').filter(l => l.includes('ring-training'))) {
+      expect(line, line).not.toMatch(/score|answer|status|pill-(confirmed|fail|pending)/i);
+    }
+  });
+});

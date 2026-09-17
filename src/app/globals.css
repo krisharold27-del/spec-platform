@@ -88,6 +88,26 @@ body { @apply bg-cream font-sans text-ink antialiased; }
   */
   .link-go { @apply inline-flex min-h-[28px] items-center text-sm text-rust-700 transition-colors hover:underline; }
 
+  /*
+    The training marker — a dashed ring, and deliberately not a colour.
+
+    Design's answer to "give training its own edge", and the reasoning is worth keeping: all four
+    pillar colours and all four signal colours are already spoken for, so a FIFTH colour would be
+    read as one of them. Compliance is already mulberry, which is where a purple edge would have
+    collided head on.
+
+    So the marker is a SHAPE. The ring takes the text's own colour at 45%, which means it works
+    inside a chip of any colour and can never be mistaken for a signal — the thing it says is "this
+    is training", not "this is going well".
+
+    `outline` rather than `border`, on purpose: an outline takes no space, so adding it to a label
+    moves nothing around it. A border would have reflowed every module row by 3px.
+  */
+  .ring-training {
+    outline: 1.5px dashed color-mix(in srgb, theme('colors.ink.DEFAULT') 45%, transparent);
+    outline-offset: 2px;
+  }
+
   /* A small pressable suggestion — an example to try, not a decision. Quieter than any button. */
   .chip { @apply inline-flex min-h-[28px] items-center rounded-full bg-ink/5 px-3 py-1.5 text-xs text-ink-light transition-colors hover:bg-ink/10 hover:text-ink; }
 

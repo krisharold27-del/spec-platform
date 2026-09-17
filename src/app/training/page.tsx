@@ -120,7 +120,10 @@ export default async function Training() {
               <li key={m.id} className="rounded-lg border border-ink/10">
                 <details className="group">
                   <summary className="flex cursor-pointer flex-wrap items-center gap-3 p-4 text-sm">
-                    <span className="rounded bg-cream px-2 py-0.5 text-xs font-medium text-ink-light">
+                    {/* The dashed ring says "training" whatever colour sits inside it — see
+                        `.ring-training`, and designs/brief-training-edge.md for why it is a shape
+                        and not a fifth colour. */}
+                    <span className="ring-training rounded bg-cream px-2 py-0.5 text-xs font-medium text-ink-light">
                       {PILLAR_META[m.pillar as keyof typeof PILLAR_META]?.name ?? 'All four'}
                     </span>
                     <span className="font-medium text-ink">{m.title}</span>
