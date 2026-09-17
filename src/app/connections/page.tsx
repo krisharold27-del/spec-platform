@@ -247,7 +247,7 @@ export default async function Connections({
           is reported as a gap rather than scored. Neither is a failure — the second is a fact about the
           business, and hiding it would be the dishonest option.
         </p>
-        <Link href="/scoring" className="mt-3 inline-block text-sm text-rust-700 hover:underline">
+        <Link href="/scoring" className="mt-3 link-go">
           See which numbers those are →
         </Link>
       </section>

@@ -427,7 +427,7 @@ export default async function MyPage({
                   name of whoever confirmed it. That is a complete way to run SPEC — no feature anywhere
                   needs a connector — and it is the only honest option while a number has no system behind it.
                 </p>
-                <Link href="/pricing" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+                <Link href="/pricing" className="mt-4 link-go">
                   What SPEC Advanced adds →
                 </Link>
               </>
@@ -458,7 +458,7 @@ export default async function MyPage({
               </p>
             )}
             {advanced && (
-              <Link href="/setup/systems" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+              <Link href="/setup/systems" className="mt-4 link-go">
                 Manage what SPEC reads →
               </Link>
             )}
@@ -477,7 +477,7 @@ export default async function MyPage({
                   Asking comes with SPEC Advanced. On Basic the page still tells you everything it knows —
                   every light above carries the reason underneath it — there is just nothing here to ask.
                 </p>
-                <Link href="/pricing" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+                <Link href="/pricing" className="mt-4 link-go">
                   See what Advanced adds →
                 </Link>
               </>
@@ -526,7 +526,7 @@ export default async function MyPage({
             <TrainingPath path={training.path} progress={training.progress} signoff={training.signoff} limit={3} />
             {/* The design's way out of this block, and the product had none: the path showed three
                 modules and then stopped, with no way through to the rest of it. */}
-            <Link href="/training" className="mt-3 inline-block text-sm text-rust-700 hover:underline">
+            <Link href="/training" className="mt-3 link-go">
               Continue training →
             </Link>
           </section>
@@ -618,7 +618,7 @@ export default async function MyPage({
         */}
         {canWrite && (
           <form action={doSignOut} className="mt-10 border-t border-ink/10 pt-6">
-            <button type="submit" className="text-sm text-ink-light/70 underline hover:text-rust">
+            <button type="submit" className="inline-flex min-h-[28px] items-center text-sm text-ink-light/70 underline hover:text-rust">
               Sign out
             </button>
           </form>

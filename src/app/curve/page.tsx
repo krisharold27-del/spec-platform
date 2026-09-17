@@ -245,7 +245,7 @@ export default async function Curve() {
           </p>
           <Link
             href={input.tier === 'basic' ? '/pricing' : '/connections'}
-            className="mt-4 inline-block text-sm text-rust-700 hover:underline"
+            className="mt-4 link-go"
           >
             {input.tier === 'basic' ? 'What Advanced changes →' : 'What SPEC reads →'}
           </Link>

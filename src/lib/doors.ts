@@ -95,6 +95,12 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
         { href: '/setup', label: 'Setting up', note: 'Roles, KPIs and the things still to do.' },
         { href: '/charter', label: 'Board charter', note: 'What the Board commits to — the four, identical in every business.' },
         { href: '/settings', label: 'Administration', note: 'Seats, billing, permissions and the board.' },
+        /*
+          Help is a door, not only a footer link, because the footer sits at the bottom of a page
+          somebody has already given up on. It is also the one door that works signed out — which is
+          the whole point of it, since the person who most needs help is the one who cannot get in.
+        */
+        { href: '/help', label: 'Help', note: 'The questions people ask, answered — and how to reach a person.' },
       ],
     },
   ];

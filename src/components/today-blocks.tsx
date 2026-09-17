@@ -53,7 +53,9 @@ export function TodoList({ items }: { items: TodoItem[] }) {
                 <div className="min-w-0">
                   <Link
                     href={item.href}
-                    className={`block text-sm font-semibold hover:text-rust ${off ? 'text-ink-light line-through' : 'text-ink'}`}
+                    /* The thing somebody actually presses on My Page — it was 20px tall, under
+                       the 24px floor for anything pressable. */
+                    className={`flex min-h-[24px] items-center text-sm font-semibold hover:text-rust ${off ? 'text-ink-light line-through' : 'text-ink'}`}
                   >
                     {item.label}
                   </Link>

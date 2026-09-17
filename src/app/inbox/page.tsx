@@ -176,7 +176,7 @@ export default async function Inbox() {
                     </form>
                   </div>
                 ) : (
-                  <Link href={i.href} className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+                  <Link href={i.href} className="mt-4 link-go">
                     {i.approvalId ? 'Waiting on somebody else →' : 'Deal with it where it lives →'}
                   </Link>
                 )}

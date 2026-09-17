@@ -58,7 +58,13 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           {/* Inside the product the mark is a wayfinder, not a brand statement, so it carries no
               supporting line. */}
-          <Link href="/my-page" aria-label="SPEC home — My page">
+          {/*
+            The mark is the ONLY navigation SPEC has — "the mark goes home and nothing else
+            navigates" — which makes it the most-pressed thing in the product, and it measured 35px
+            on a phone. The one control everybody needs was the one too small to hit with a thumb.
+            `inline-flex` plus a floor gives it a 44px target without changing how it looks.
+          */}
+          <Link href="/my-page" aria-label="SPEC home — My page" className="inline-flex min-h-[44px] items-center">
             <SpecLockup />
           </Link>
           {/*
@@ -109,13 +115,23 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
   );
 }
 
-/** Terms / Privacy / Get help — the same three links everywhere, signed in or not. */
+/**
+ * Terms / Privacy / Get help — the same three links everywhere, signed in or not.
+ *
+ * "Get help" used to open an email, which made Kris the help desk: bearable at one business, a
+ * full-time job at two hundred, and silence at seven in the evening. It now opens a page that
+ * answers the questions people actually ask, with the email offered at the bottom of it for the
+ * ones it does not.
+ */
 export function Footer() {
   return (
+    // `inline-flex` with a floor: the text stays as quiet as it was, and the thing you press stops
+    // being 16px tall. On a phone these three were the smallest targets in the whole product — and
+    // one of them is the way to get help.
     <footer className="mt-16 flex flex-wrap gap-4 border-t border-ink/10 pt-4 text-xs text-ink-light/70">
-      <Link href="/terms" className="hover:text-rust">Terms</Link>
-      <Link href="/privacy" className="hover:text-rust">Privacy</Link>
-      <a href="mailto:manager@specbizhq.com?subject=SPEC%20help" className="hover:text-rust">Get help</a>
+      <Link href="/terms" className="inline-flex min-h-[28px] items-center hover:text-rust">Terms</Link>
+      <Link href="/privacy" className="inline-flex min-h-[28px] items-center hover:text-rust">Privacy</Link>
+      <Link href="/help" className="inline-flex min-h-[28px] items-center hover:text-rust">Get help</Link>
     </footer>
   );
 }

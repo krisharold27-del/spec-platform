@@ -55,7 +55,12 @@ export default async function ExecutiveSummary() {
       </section>
 
       <h2 className="mt-10 font-serif text-lg text-ink">Roles this period</h2>
-      <table className="mt-3 w-full overflow-hidden rounded-lg border bg-surface text-sm">
+      {/* Seven columns — role, holder, four pillars, overall — will never fit 390px of phone.
+          `overflow-hidden` on the table does not stop it forcing the page wider: a table lays out
+          to its content first, so the scroll has to sit on a wrapper. Without this the whole page
+          slid sideways and a third of it was off the edge on a phone. */}
+      <div className="mt-3 overflow-x-auto">
+      <table className="w-full overflow-hidden rounded-lg border bg-surface text-sm">
         <thead className="bg-cream text-left text-xs uppercase text-ink-light">
           <tr><th className="p-3">Role</th><th className="p-3">Holder</th>{PILLARS.map(p => <th key={p} className="p-3">{PILLAR_META[p].name}</th>)}<th className="p-3">Overall</th></tr>
         </thead>
@@ -73,6 +78,7 @@ export default async function ExecutiveSummary() {
           })}
         </tbody>
       </table>
+      </div>
       <p className="mt-4 text-xs text-ink-light">The business is SPEC when all four pillars hold at 90%+ for two consecutive months.</p>
 
       {canManage(user.access) && period.status === 'open' && (

@@ -35,7 +35,14 @@ body { @apply bg-cream font-sans text-ink antialiased; }
    * than the fill plus a real shadow — without them a page of cards reads as one undifferentiated
    * wash, which is the difference between a product and a mock-up.
    */
-  .card { @apply rounded-lg border border-ink/10 bg-surface p-5 shadow-sm; }
+  /*
+    `min-w-0` is not cosmetic and is easy to lose. A card is nearly always a grid or flex item, and
+    those default to `min-width: auto` — meaning they refuse to shrink below whatever is inside
+    them. So a card holding a wide table pushed the WHOLE PAGE sideways on a phone, and the table's
+    own `overflow-x-auto` never got the chance to scroll, because its parent had already given it
+    all the room it asked for. Conversation boards was 316px wider than the screen because of this.
+  */
+  .card { @apply min-w-0 rounded-lg border border-ink/10 bg-surface p-5 shadow-sm; }
 
   /* A row or tile nested inside a card — drops back to the page ground so it reads as recessed. */
   .card-inset { @apply rounded-lg bg-cream p-4; }
@@ -55,15 +62,34 @@ body { @apply bg-cream font-sans text-ink antialiased; }
     @apply absolute inset-y-0 left-0 w-1 bg-rust;
   }
 
+  /*
+    Buttons are 40px tall, not 36.
+
+    `py-2` around 14px text gives 36px, which measured fine on a laptop and was a miss on a phone —
+    a supervisor standing on a site, one-handed, hitting "Add KPI" with a thumb. 40px is the floor
+    the usability journey holds every pressable thing to, so the shared classes have to clear it or
+    every screen fails one at a time.
+  */
   /* Primary action button — a solid accent fill, pill-shaped. */
-  .btn-primary { @apply rounded-full bg-rust px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-rust-600 active:bg-rust-700; }
+  .btn-primary { @apply min-h-[40px] rounded-full bg-rust px-4 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-rust-600 active:bg-rust-700; }
   /* Secondary / outline button */
-  .btn-secondary { @apply rounded-full border border-ink/20 px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-ink/5 active:bg-ink/10; }
+  .btn-secondary { @apply min-h-[40px] rounded-full border border-ink/20 px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-ink/5 active:bg-ink/10; }
   /* Ghost button — accent text, no fill until hovered. */
-  .btn-ghost { @apply rounded-full px-3 py-2 text-sm font-medium text-rust-700 transition-colors hover:bg-rust/10 active:bg-rust/20; }
+  .btn-ghost { @apply min-h-[40px] rounded-full px-3 py-2.5 text-sm font-medium text-rust-700 transition-colors hover:bg-rust/10 active:bg-rust/20; }
+
+  /*
+    A standalone link that goes somewhere — "See the whole chart →".
+
+    Not a button: no fill, no border, it stays as quiet as it reads. But it IS aimed at rather than
+    read past, so unlike a link inside a sentence it gets a target you can hit. Every one of these
+    was written out by hand as `inline-block text-sm text-rust-700 hover:underline` in ten places
+    and measured 20px on a phone — under the floor for anything pressable, in ten places at once.
+    One definition means the next one is right without anybody remembering why.
+  */
+  .link-go { @apply inline-flex min-h-[28px] items-center text-sm text-rust-700 transition-colors hover:underline; }
 
   /* A small pressable suggestion — an example to try, not a decision. Quieter than any button. */
-  .chip { @apply rounded-full bg-ink/5 px-3 py-1.5 text-xs text-ink-light transition-colors hover:bg-ink/10 hover:text-ink; }
+  .chip { @apply inline-flex min-h-[28px] items-center rounded-full bg-ink/5 px-3 py-1.5 text-xs text-ink-light transition-colors hover:bg-ink/10 hover:text-ink; }
 
   /* Status pill, e.g. Confirmed / Pending / Pass / Fail */
   .pill { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold; }

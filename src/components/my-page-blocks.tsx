@@ -44,7 +44,9 @@ export function WhereYouSit({
           </p>
         </div>
       </div>
-      <Link href="/org" className="mt-3 inline-block text-sm text-rust-700 hover:underline">
+      {/* A standalone link is aimed at, not read past — so it gets a target, not just a line of
+          text. 20px was under the 24px floor the usability journey holds pressable things to. */}
+      <Link href="/org" className="mt-3 link-go">
         See the whole chart →
       </Link>
     </section>
@@ -120,7 +122,7 @@ export function AskBar({ available, href }: { available: boolean; href: string }
           On Advanced you can ask this page a question in plain words and get the answer here, rather
           than on another screen.
         </p>
-        <Link href="/pricing" className="text-sm text-rust-700 hover:underline">What Advanced adds →</Link>
+        <Link href="/pricing" className="link-go">What Advanced adds →</Link>
       </div>
     );
   }

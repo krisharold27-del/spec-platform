@@ -183,7 +183,7 @@ export default async function Charter() {
             Both make the dip deeper and longer than the discovery time alone ever would. What that looks
             like in this business is measured on the J curve.
           </p>
-          <Link href="/curve" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+          <Link href="/curve" className="mt-4 link-go">
             What is holding your dip open →
           </Link>
         </div>

@@ -27,6 +27,32 @@ export function issueFormToken(secret: string, now = Date.now()): string {
 
 export type FormTokenCheck = 'ok' | 'too_fast' | 'expired' | 'invalid';
 
+/**
+ * How much of the three seconds is still to run.
+ *
+ * ── Why this is a wait and not a refusal ─────────────────────────────────────────────────────────
+ *
+ * Kris, 17 September: *"consider all possible ways people will not use this properly"*. The first
+ * one found was the product's own doing, on the first screen a customer ever sees.
+ *
+ * Anybody with a password manager, or anybody who simply types quickly, fills in four boxes and
+ * presses Create inside three seconds. That was bounced to an empty form reading "Press Create
+ * again." — no reason, and everything they had typed gone. The very first thing SPEC did for them
+ * was lose their work and explain nothing.
+ *
+ * The three seconds were never the point; slowing a script down was. So a form filled in too
+ * quickly is now HELD for the remainder rather than refused: a person waits a moment they do not
+ * notice, and is signed up. A script posting in a loop is slowed to three seconds a go, and still
+ * meets the ten-per-fifteen-minutes limit sitting behind it.
+ *
+ * Only `too_fast` is waited out. A replayed or forged token is still refused outright — that is
+ * somebody using an old form, not somebody typing fast.
+ */
+export function waitOutMs(token: string, secret: string, now = Date.now()): number {
+  if (checkFormToken(token, secret, now) !== 'too_fast') return 0;
+  return Math.max(0, MIN_FILL_MS - (now - Number(token.split('.')[0])));
+}
+
 export function checkFormToken(token: string, secret: string, now = Date.now()): FormTokenCheck {
   const [ts, mac] = token.split('.');
   if (!ts || !mac || !/^\d+$/.test(ts)) return 'invalid';

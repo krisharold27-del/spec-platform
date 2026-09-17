@@ -74,7 +74,10 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg bg-cream p-4">
+      {/* Marked so the usability journey can say out loud that the chart is exempt from the 40px
+          thumb rule rather than quietly failing on it every run. This is a drag-and-drop surface
+          sized by the chart, not by a hand; the phone has its own field view. */}
+      <div data-org-canvas className="overflow-x-auto rounded-lg bg-cream p-4">
         <div className="relative mx-auto" style={{ width, height }}>
           {lines.map((l, i) => (
             <div

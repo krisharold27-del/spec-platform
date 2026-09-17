@@ -153,7 +153,7 @@ export default async function Sectors({ searchParams }: { searchParams: Promise<
               </div>
             ))}
           </div>
-          <Link href="/how" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+          <Link href="/how" className="mt-4 link-go">
             Why three of them are absolute and one is earned →
           </Link>
         </section>

@@ -143,7 +143,7 @@ export default function Pricing() {
             named person — and it is not a shallow J curve. Saying otherwise would make every other
             number on this page worth less.
           </p>
-          <Link href="/how" className="mt-4 inline-block text-sm text-rust-700 hover:underline">
+          <Link href="/how" className="mt-4 link-go">
             How the curve is measured, and what else holds one open →
           </Link>
         </section>

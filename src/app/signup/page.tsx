@@ -7,13 +7,20 @@ import { signUp } from './actions';
 
 export const dynamic = 'force-dynamic';
 
+/*
+  Every one of these now carries what was typed back into the boxes, so each message can say so.
+  That sentence is not decoration: the thing somebody actually fears when a form bounces is having
+  to do it all again, and answering that fear is most of the work of a good error message.
+
+  `too_fast` is gone. Filling the form in quickly used to be refused here, which caught everybody
+  with a password manager; it is now waited out server-side instead. See `waitOutMs`.
+*/
 const ERRORS: Record<string, string> = {
-  missing: 'Fill in every box.',
-  short: 'Choose a password of at least 8 characters.',
-  failed: "That didn't work. Try again.",
-  too_fast: 'Press Create again.',
-  expired: 'Press Create again.',
-  check: 'Press Create again.',
+  missing: 'Fill in every box — what you had is still here.',
+  short: 'Choose a password of at least 8 characters. Everything else you typed is still here.',
+  failed: "That didn't work. Press Create again — nothing you typed is lost.",
+  expired: 'This form had been open a while. Press Create again — everything you typed is still here.',
+  check: 'Press Create again — everything you typed is still here.',
   busy: 'A lot of businesses are being set up from your network right now. Wait a minute and press Create again — nothing you typed is lost.',
   down: 'Setting up is temporarily unavailable — that is our end, not yours. Nothing you typed is wrong. Try again in a few minutes.',
 };
@@ -29,6 +36,13 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<R
   // asked for twice.
   const business = (sp.business ?? '').slice(0, 200);
   const problem = (sp.problem ?? '').slice(0, 2000);
+  /*
+    Carried back by a bounce, so that getting one box wrong does not cost somebody all four. The
+    password is deliberately not among them — it would sit in the address bar, in the history and in
+    every log that records a URL. See the note on `back` in actions.ts.
+  */
+  const yourName = (sp.name ?? '').slice(0, 200);
+  const yourEmail = (sp.email ?? '').slice(0, 320);
   const siteKey = turnstileSiteKey();
   return (
     <main className="mx-auto max-w-sm px-6 py-20">
@@ -54,10 +68,10 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<R
         <div aria-hidden="true" className="absolute -left-[9999px] top-0 h-px w-px overflow-hidden">
           <label>Website<input name="website" tabIndex={-1} autoComplete="off" defaultValue="" /></label>
         </div>
-        <input name="name" required autoFocus maxLength={200} autoComplete="name" placeholder="Your name" aria-label="Your name" className="w-full rounded border px-3 py-2.5" />
+        <input name="name" required autoFocus maxLength={200} defaultValue={yourName} autoComplete="name" placeholder="Your name" aria-label="Your name" className="w-full rounded border px-3 py-2.5" />
         <input name="business" required maxLength={200} defaultValue={business} autoComplete="organization" placeholder="Business name" aria-label="Business name" className="w-full rounded border px-3 py-2.5" />
         {problem && <input type="hidden" name="problem" value={problem} />}
-        <input name="email" type="email" required maxLength={320} autoComplete="email" inputMode="email" placeholder="Your email" aria-label="Your email" className="w-full rounded border px-3 py-2.5" />
+        <input name="email" type="email" required maxLength={320} defaultValue={yourEmail} autoComplete="email" inputMode="email" placeholder="Your email" aria-label="Your email" className="w-full rounded border px-3 py-2.5" />
         <PasswordField name="password" autoComplete="new-password" placeholder="Choose a password (8+ characters)" minLength={8} />
         {siteKey && <div className="cf-turnstile" data-sitekey={siteKey} data-appearance="interaction-only" />}
         <SubmitButton pending="Setting up your business…">Create my business</SubmitButton>

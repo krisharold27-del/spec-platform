@@ -87,7 +87,9 @@ export default async function Setup() {
             <Link
               key={s.key}
               href={s.href}
-              className="pill"
+              /* `.pill` is a status badge everywhere else and is not pressed; here each one is a
+                 link to a step, so it needs a target rather than just a shape. */
+              className="pill inline-flex min-h-[28px] items-center"
               style={{
                 background: `color-mix(in srgb, ${s.done ? LIGHT_COLOUR.green : s.key === now.key ? LIGHT_COLOUR.amber : LIGHT_COLOUR.pending} 14%, transparent)`,
                 color: s.done ? LIGHT_COLOUR.green : s.key === now.key ? LIGHT_COLOUR.amber : LIGHT_COLOUR.pending,
@@ -149,7 +151,7 @@ export default async function Setup() {
                 </form>
               )}
 
-              <Link href={s.href} className="mt-3 inline-block text-sm text-rust-700 hover:underline">
+              <Link href={s.href} className="mt-3 link-go">
                 {s.done ? 'Look at it again →' : 'Do this step →'}
               </Link>
             </section>

@@ -5,7 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { provisionTenant, assignPerson } from '@/lib/provision';
 import { findUserByEmail, createSignIn, linkNewSeat, signInWithPassword, currentAuthUserId } from '@/lib/auth';
-import { checkFormToken, formSecret, honeypotTripped, verifyTurnstile } from '@/lib/bot-check';
+import { checkFormToken, formSecret, honeypotTripped, verifyTurnstile, waitOutMs } from '@/lib/bot-check';
 import { currentLook, claimLook } from '@/lib/look';
 import { logProblem } from '@/lib/register-data';
 import { diagnose } from '@/lib/diagnose';
@@ -30,23 +30,53 @@ const signupsByAddress = createThrottle(15 * 60_000, 10_000, 10);
  * is drawn inside SPEC, where they can see it. Email is confirmed later, the first time they add a seat.
  */
 export async function signUp(formData: FormData) {
-  // Annotated on the variable, not the arrow: that is what lets TypeScript know the branches
-  // calling it do not continue.
-  const back: (error: string) => never = error => redirect(`/signup?error=${error}`);
+  const name = String(formData.get('name') ?? '').trim().slice(0, 200);
+  const business = String(formData.get('business') ?? '').trim().slice(0, 200);
+  const email = String(formData.get('email') ?? '').trim().toLowerCase().slice(0, 320);
+  const password = String(formData.get('password') ?? '');
+
+  /*
+    GOING BACK WITH WHAT THEY TYPED STILL IN THE BOXES.
+
+    Every bounce here used to return an empty form. Choose a seven-character password and SPEC threw
+    away your name, your business AND your email, then asked for all four again — on the first
+    screen, before anybody has a reason to put up with it.
+
+    The password is the one thing that never travels. It would end up in the address bar, in the
+    browser history and in every log that records a URL, which is a far worse problem than typing
+    it a second time.
+
+    Annotated on the variable, not the arrow: that is what lets TypeScript know the branches
+    calling it do not continue.
+  */
+  const back: (error: string) => never = error => {
+    const keep = new URLSearchParams({ error });
+    if (name) keep.set('name', name);
+    if (business) keep.set('business', business);
+    if (email) keep.set('email', email);
+    const carried = String(formData.get('problem') ?? '').slice(0, 2000);
+    if (carried) keep.set('problem', carried);
+    redirect(`/signup?${keep}`);
+  };
 
   // A bot fills in the field people never see. Tell it nothing it could learn from.
   if (honeypotTripped(formData.get('website'))) redirect('/signin');
-  const timing = checkFormToken(String(formData.get('form_token') ?? ''), formSecret());
-  if (timing !== 'ok') back(timing === 'too_fast' ? 'too_fast' : 'expired');
+
+  /*
+    Filling the form in quickly is not a reason to refuse anybody — see `waitOutMs`. Somebody with a
+    password manager is held for the remainder of the three seconds and never notices; a script is
+    slowed to three seconds a go, and still meets the ten-per-fifteen-minutes limit behind it. Only
+    a replayed or forged form is turned away.
+  */
+  const token = String(formData.get('form_token') ?? '');
+  const held = waitOutMs(token, formSecret());
+  if (held > 0) await new Promise(resolve => setTimeout(resolve, held));
+  if (checkFormToken(token, formSecret()) !== 'ok') back('expired');
 
   const h = await headers();
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || h.get('x-real-ip') || 'unknown';
   if (!(await verifyTurnstile(String(formData.get('cf-turnstile-response') ?? ''), ip))) back('check');
 
-  const name = String(formData.get('name') ?? '').trim().slice(0, 200);
-  const business = String(formData.get('business') ?? '').trim().slice(0, 200);
-  const email = String(formData.get('email') ?? '').trim().toLowerCase().slice(0, 320);
-  const password = String(formData.get('password') ?? '');
   if (!name || !business || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) back('missing');
   if (password.length < 8) back('short');
 

@@ -22,7 +22,9 @@ export function PublicNav({ current }: { current?: string }) {
   return (
     <header className="border-b border-ink/10 bg-surface">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-3">
-        <Link href="/" aria-label="SPEC home">
+        {/* Same floor as the app header's mark: it is the way home from every marketing page,
+            and it measured 35px on a phone. */}
+        <Link href="/" aria-label="SPEC home" className="inline-flex min-h-[44px] items-center">
           <SpecLockup line="Nimble and powerful." />
         </Link>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 label-caps">
@@ -30,13 +32,13 @@ export function PublicNav({ current }: { current?: string }) {
             <Link
               key={l.href}
               href={l.href}
-              className={l.href === current ? 'text-rust' : 'hover:text-rust'}
+              className={`inline-flex min-h-[28px] items-center ${l.href === current ? 'text-rust' : 'hover:text-rust'}`}
               aria-current={l.href === current ? 'page' : undefined}
             >
               {l.label}
             </Link>
           ))}
-          <Link href="/signin" className="hover:text-rust">Sign in</Link>
+          <Link href="/signin" className="inline-flex min-h-[28px] items-center hover:text-rust">Sign in</Link>
         </nav>
       </div>
     </header>
