@@ -11,6 +11,7 @@
 
 import { chromium } from 'playwright';
 import { tidyUp } from './test-cleanup.mjs';
+import { VIRTUAL_GM } from '../src/lib/virtual-gm.ts';
 
 // When this run began — everything it created is newer than this.
 const RUN_STARTED = new Date().toISOString();
@@ -48,10 +49,15 @@ let body = await text();
   only thing that can tell the difference.
 */
 check('THE VIRTUAL GM IS ON THE PAGE, not just in the source', /the virtual gm/i.test(body), body.slice(0, 120));
-check('and it names the thing you were about to hire for', /Before you pay for an expensive GM, start with SPEC\./.test(body));
+/*
+  Asked of the product's own choice, not of a sentence written down here. There are four candidate
+  headlines and exactly one ships; hard-coding today's would fail the day Kris picks another, which
+  teaches everybody that a red check means "somebody changed the copy" rather than "something broke".
+*/
+check('and it names the thing you were about to hire for', body.includes(VIRTUAL_GM.headline), VIRTUAL_GM.headline);
 // After the word and before the ask: the page claims a category, then earns everything else.
 {
-  const gmAt = body.search(/Before you pay for an expensive GM/);
+  const gmAt = body.indexOf(VIRTUAL_GM.headline);
   const askAt = body.search(/Got problems/);
   check('it comes before the page asks for anything', gmAt > -1 && gmAt < askAt, `gm ${gmAt}, ask ${askAt}`);
 }

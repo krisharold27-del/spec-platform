@@ -31,8 +31,18 @@ export const GM_HEADLINES: Record<GmHeadline, string> = {
   stop_paying: 'Stop paying three hundred grand for management. Start using SPEC.',
 };
 
-/** The one on the page. Design export 9 ships `cost`; changing it is this line and nothing else. */
-export const GM_HEADLINE: GmHeadline = 'cost';
+/**
+ * The one on the page.
+ *
+ * Kris, 17 September: *"use the never sick day one - this gm doesn't take a sick day"*. The export
+ * defaults to `cost`; this is the choice, and it is one line because it should be.
+ *
+ * It is the longest of the four and the only one that does the whole job in a breath: it names the
+ * number the reader already has (three hundred grand), says SPEC is a fraction of it, and then says
+ * the thing no salary can answer. A GM who never takes a sick day is not a saving, it is a
+ * different kind of thing — which is the claim the whole section is making.
+ */
+export const GM_HEADLINE: GmHeadline = 'never_sick';
 
 export const VIRTUAL_GM = {
   /** The eyebrow above the headline, on both pages. */
