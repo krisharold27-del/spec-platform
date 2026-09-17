@@ -77,12 +77,27 @@ has never been set in any environment I have run. **No payment has ever been
 attempted, succeeded, failed, or been refunded.** A checkout that 500s on the
 first real customer would be discovered by that customer.
 
-### No email has ever been sent
+### Email is live — and this file is not where you find that out
 
-`RESEND_API_KEY` is unset, so every send is logged and skipped. The invitation a
-new seat depends on — "take your seat" — has never left the building. If the
-sender domain is unverified, invitations land in spam and the customer's team
-never arrives.
+Kris, 17 September: *"The live site shows the email line as Working, and the key
+was last used a couple of minutes before I checked."* `specbizhq.com` is
+verified, `RESEND_API_KEY` is in Vercel, and `/status` reads **Working**.
+
+This section used to say the opposite, and I repeated it at him from here after
+it had stopped being true — which is the whole lesson. **Nothing in this document
+can tell you the state of the live system.** A settings value lives in Vercel and
+changes without any commit; a file in the repository cannot know, and a file that
+claims to know is worse than silence, because it sounds authoritative.
+
+**So: `app.specbizhq.com/status` is the only answer to "is X switched on".** It
+asks the running system rather than reciting a note — which is exactly why it was
+built, after /status itself was caught reporting key PRESENCE rather than whether
+the key WORKED.
+
+That page cannot be reached from a sandboxed agent session: the egress policy
+blocks `specbizhq.com`. Which means the honest answer to a configuration question
+from in here is "I cannot see it — what does /status say?", and never a
+recollection.
 
 ### The automation review has never been opened by a manager
 
@@ -95,11 +110,11 @@ review, and a signed-out stranger is sent to sign in.
 
 What has **not** been done in a browser is the case in the middle: a manager,
 inside the same business, signed in as themselves, opening that URL. That needs a
-second seat, which needs an invitation, which needs `RESEND_API_KEY` — step 1 of
-the list below. It is the same code path as the two that are proven, and I still
-would not call it proven until somebody has actually tried it.
+second real person with a seat. It is the same code path as the two that are
+proven, and I still would not call it proven until somebody has actually tried it.
 
-Do it the day the first invitation goes out.
+Email is live, so nothing is standing in the way of it now. Do it the first time
+somebody at JBI takes a seat.
 
 ### Sign-in has never run against real Supabase
 
@@ -203,9 +218,12 @@ be the first to do it.
   would have stayed unexercised until a stranger walked them. There is no flag, no
   exception and no branch — they sign up at the front door like anybody else.
   **Which means Stripe (step 6) now comes BEFORE they start, not after.**
-- **Invite by link, not by email.** No invitation has ever been sent, so use the
-  copyable seat link on Setup → Your business. One link each, single use, bound to
-  that address. Proven by `scripts/seat-journey.mjs`.
+- **Invite the first one and watch it land.** Email is live — `/status` reads
+  Working — so the first invitation is a real send, not a workaround. Send one to
+  yourself before sending forty: a verified domain still has a first email, and
+  the thing to check is that it arrives in an inbox rather than in spam. The
+  copyable seat link on Setup → Your business is the fallback if it does not.
+  Single use, bound to that address, proven by `scripts/seat-journey.mjs`.
 - **Prove sign-in with ONE person first.** Nobody has ever signed in against real
   Supabase who had not signed in before. Do it with one JBI person before handing
   links to forty.
@@ -214,9 +232,10 @@ be the first to do it.
 
 ### First — the things a customer would find out for you
 
-1. **Send a real invitation.** Verify the sender domain, invite yourself from a
-   second address, and confirm it does not land in spam. Without this a
-   customer's team never arrives.
+1. ~~Send a real invitation.~~ **Done — email is live.** `specbizhq.com` is
+   verified and `/status` reads Working. What is still worth doing on the day is
+   sending one to yourself and confirming it reaches an inbox rather than spam: a
+   verified domain still has a first email.
 2. **Sign in against real Supabase**, on the live site, as a person who has never
    signed in before.
 3. **Restore a backup** into a scratch database. A backup nobody has restored is

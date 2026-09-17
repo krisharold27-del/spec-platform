@@ -149,6 +149,31 @@ a push.
 - No re-asking for anything the business has already told SPEC.
 - Pending is never red.
 
+## Live configuration: never state it, always ask
+
+**Resend is already set up.** `specbizhq.com` is verified, `RESEND_API_KEY` is in Vercel, and
+`app.specbizhq.com/status` shows email as **Working**. Do not tell Kris to configure it.
+
+The general rule, which is what actually matters here:
+
+> **Nothing in this repository knows the state of the live system.** Settings live in Vercel and
+> change without a commit. `/status` asks the running system; a file recites a note.
+
+So: **check `/status` before asking anybody to configure anything** — and if you are in a sandboxed
+session where `specbizhq.com` is blocked by the egress policy (it usually is), the honest answer to a
+configuration question is *"I cannot see it from here — what does /status say?"*, never a
+recollection.
+
+This is written down because it went wrong on 17 September: `docs/READINESS.md` said
+`RESEND_API_KEY` was unset, which had been true days earlier, and Kris was told to spend an afternoon
+setting up something that was already working and had sent an email minutes before. A stale fact in a
+confident sentence is worse than no fact, and a document that records live state will always go
+stale.
+
+The same applies to `STRIPE_SECRET_KEY`, `ANTHROPIC_API_KEY`, the webhook secret and the price IDs.
+`/status` names every one of them and says whether it WORKS, not merely whether it is present —
+which it was rebuilt to do after being caught reporting presence alone.
+
 ## Seed data
 
 `seed/diagnostic.json` · `seed/criteria_templates.json` · `seed/rulebook.json`.
