@@ -26,7 +26,7 @@
 
 import postgres from 'postgres';
 import { sortByDependency } from '../src/lib/delete-order.ts';
-import { referenceEdges } from '../src/lib/schema-sql.ts';
+import { referenceEdges } from '../src/lib/schema-refs.mts';
 
 /**
  * Children that hang off roles, periods or boards rather than naming the business themselves.

@@ -10,6 +10,10 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    /* Lets a .ts/.mts import carry its extension. Needed because `src/lib/schema-refs.mts` is
+       imported BOTH by the application and by plain .mjs journeys run under node, and node's type
+       stripping cannot resolve an extensionless relative import. Safe with noEmit. */
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",

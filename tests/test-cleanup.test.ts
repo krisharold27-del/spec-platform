@@ -108,6 +108,41 @@ describe('the cleanup covers the whole schema', () => {
   });
 });
 
+describe('a journey can actually load it', () => {
+  /*
+    THE CHECK THAT KEEPS COSTING CI RUNS WHEN IT IS NOT THERE.
+
+    Twice in one day the cleanup was broken not by anything it does but by module resolution: an
+    import that `tsc`, `vitest` and a `.mts` journey run through tsx all resolved happily, and that
+    plain node — which is how a journey ACTUALLY runs — could not follow. It died in one second, in
+    CI, with no failing check to name because nothing had started.
+
+    Everything above this reads the file as text. This one runs it, the way the thing that uses it
+    runs it.
+  */
+  it('IMPORTS UNDER PLAIN NODE, which is how every journey runs it', async () => {
+    const { execFileSync } = await import('node:child_process');
+    const root = new URL('../', import.meta.url).pathname;
+    const out = execFileSync(
+      process.execPath,
+      ['-e', "import('./scripts/test-cleanup.mjs').then(m => console.log(typeof m.tidyUp)).catch(e => { console.log('FAILED: ' + e.message); process.exitCode = 1; })"],
+      { cwd: root, encoding: 'utf8', env: { ...process.env, DATABASE_URL: '' }, stdio: ['ignore', 'pipe', 'ignore'] },
+    );
+    expect(out.trim(), out).toBe('function');
+  }, 30_000);
+
+  it('and so can the schema references it depends on', async () => {
+    const { execFileSync } = await import('node:child_process');
+    const root = new URL('../', import.meta.url).pathname;
+    const out = execFileSync(
+      process.execPath,
+      ['-e', "import('./src/lib/schema-refs.mts').then(m => console.log(m.referenceEdges().length)).catch(e => { console.log('FAILED: ' + e.message); process.exitCode = 1; })"],
+      { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+    );
+    expect(Number(out.trim()), out).toBeGreaterThan(20);
+  }, 30_000);
+});
+
 describe('the order comes out children-first', () => {
   /*
     The two shapes that broke a written-down order, and the one that would hang a naive sort.
