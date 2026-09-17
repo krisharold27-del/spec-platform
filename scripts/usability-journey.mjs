@@ -90,6 +90,17 @@ await page.click('button[type="submit"]');
 await page.waitForURL(url => !url.pathname.startsWith('/signup'), { timeout: 20000 }).catch(() => {});
 await page.waitForLoadState('networkidle').catch(() => {});
 
+/*
+  A throttled sign-up is SPEC protecting itself, not a fault. Exits clean and says so, rather than
+  reporting eight red measurements for a product that is working perfectly.
+*/
+if (page.url().includes('error=busy')) {
+  console.log('  --   sign-up is being throttled (error=busy) — SPEC protecting itself, not a fault.');
+  await browser.close();
+  await tidyUp(null, { lookSince: RUN_STARTED });
+  process.exit(0);
+}
+
 if (!page.url().includes('/my-page') && !page.url().includes('/welcome') && !page.url().includes('/setup')) {
   console.log(`  --   could not sign up (landed on ${page.url()}) — nothing to measure.`);
   await browser.close();

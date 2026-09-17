@@ -22,8 +22,20 @@ import { createThrottle } from '@/lib/throttle';
 
   Ten in fifteen minutes: still nowhere near worth automating against, and no honest office can
   reach it.
+
+  ── Twenty, because our own test suite reached it ────────────────────────────────────────────────
+
+  CI walks thirteen journeys against one address inside a few minutes, and on 17 September the later
+  ones started coming back `error=busy`. Three journeys reported product failures for a product that
+  was working perfectly.
+
+  That is evidence, not an inconvenience. A limit our own suite trips is a limit a shared office
+  connection will trip — and the last time this number moved it was for exactly that reason, because
+  losing a real customer to slow down a script that would simply use a different address is the
+  wrong trade. The guards that actually stop bulk creation are the trap field, the signed timestamp
+  and Turnstile; this is a speed bump, and a speed bump aimed at customers is worse than none.
 */
-const signupsByAddress = createThrottle(15 * 60_000, 10_000, 10);
+const signupsByAddress = createThrottle(15 * 60_000, 10_000, 20);
 
 /**
  * Sign up: four boxes, then straight in — no email step. The signer becomes the top role; the rest

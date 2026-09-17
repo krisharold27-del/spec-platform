@@ -158,6 +158,40 @@ await sql`update tenants set stripe_customer_id = null where id = ${paying}`;
 const cleanup = await deleteBusiness(paying, `Paid Test ${stamp}`, 'other-tenant');
 check('and once the money is off it, it can be cleared too', cleanup.ok === true, JSON.stringify(cleanup));
 
+// ── The journeys' own housekeeping only takes what it selected ───────────────────────────────────
+//
+// Not the product's delete — the blunt one the journeys use on their own fixtures. It selects
+// look-arounds carefully (unclaimed, created since this run began) and then USED TO HAND THE NAME
+// BACK to a deleter that removed every business with that name. Every look-around SPEC has ever
+// made is called "An example business", so the careful selecting was decoration: one run tidied up
+// after every other run, including rows it had deliberately excluded and one somebody could have
+// been sitting inside.
+//
+// Locally it only ever swept up stale rows and looked like it worked. It showed up in CI as THIS
+// JOURNEY failing — the orphan check above asks the whole database, so the product's own delete was
+// being blamed for a mess the housekeeping had left in the room next door.
+//
+// Proven by putting it back: with the name lookup, both of these go.
+const { clearUnclaimedLook } = await import('./test-cleanup.mjs');
+const SHARED = 'An example business';
+const older = randomUUID();
+const mine = randomUUID();
+const iso = (ms: number) => new Date(ms).toISOString();
+for (const [id, when] of [[older, Date.now() - 3 * 86400000], [mine, Date.now()]] as [string, number][]) {
+  await sql`
+    insert into tenants (id, name, plan, start_date, look_id)
+    values (${id}, ${SHARED}, 'trial', ${iso(when)}, ${randomUUID()})`;
+}
+await clearUnclaimedLook(sql, iso(Date.now() - 60_000));
+const survivors = (await sql`select id from tenants where id in (${older}, ${mine})`).map(r => r.id);
+check(
+  'THE HOUSEKEEPING NEVER TAKES A LOOK-AROUND IT DID NOT SELECT',
+  survivors.includes(older),
+  'an older look-around sharing the name was deleted too',
+);
+check('and does clear the one this run made', !survivors.includes(mine));
+await sql`delete from tenants where id in (${older}, ${mine})`;
+
 await sql.end();
 console.log(failed ? `\n${failed} check(s) failed.` : '\nAll checks passed.');
 process.exit(failed ? 1 : 0);

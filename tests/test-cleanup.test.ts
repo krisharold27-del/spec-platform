@@ -132,13 +132,44 @@ describe('what the cleanup must never become', () => {
       cannot match anything it was not handed. No LIKE, no prefix, no wildcard.
     */
     expect(cleanup).toContain('where name = ${name}');
-    expect(cleanup).not.toMatch(/like\s/i);
-    expect(cleanup).not.toContain('%');
+    /*
+      Matched against the SQL, not against the prose. The first version was `/like\s/i` over the
+      whole file, which passed only for as long as no comment in it used the word "like" — a check
+      that fails the day somebody writes an ordinary English sentence is a check that gets deleted
+      rather than understood.
+    */
+    const statements = cleanup.match(/delete from [^`'"]*/gi) ?? [];
+    expect(statements.length).toBeGreaterThan(5);
+    for (const s of statements) expect(s.toLowerCase(), `a wildcard match in: ${s}`).not.toMatch(/\blike\b|%/);
   });
 
   it('never takes a look-around somebody might be inside', () => {
     // Scoped to look-arounds created since this run started, so a long-running visitor is safe.
     expect(cleanup).toContain('start_date >= ${sinceIso}');
+  });
+
+  it('DELETES WHAT IT SELECTED, and never looks it up again by name', () => {
+    /*
+      The scoping above was decoration for a day. It selected look-arounds carefully — unclaimed,
+      created since this run began — and then handed the NAME to a deleter that removed every
+      business with that name. Every look-around SPEC has ever made is called "An example business",
+      so a run tidied up after every other run, including the rows it had deliberately excluded.
+
+      Locally it swept up stale rows and looked fine. CI found it, as the delete journey failing on
+      a mess it had not made.
+    */
+    expect(cleanup).toContain('clearBusinessIds(sql, rows.map(r => r.id)');
+    // Only the look-around function itself — `tidyUp` below it legitimately clears by name, which
+    // is what a journey knows about the business it made up.
+    const from = cleanup.indexOf('export async function clearUnclaimedLook');
+    const look = cleanup.slice(from, cleanup.indexOf('\n}', from));
+    expect(look, 'the look-around cleanup is back to deleting by name').not.toContain('clearBusiness(sql,');
+  });
+
+  it('is all-or-nothing, so a failure cannot half-delete a business', () => {
+    // Thirty-odd statements with no transaction: any failure left everything before it committed,
+    // which is rows pointing at records that no longer exist.
+    expect(cleanup).toContain('sql.begin(');
   });
 
   it('never turns a tidying-up problem into a failing check', () => {

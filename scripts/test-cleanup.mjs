@@ -66,11 +66,45 @@ export async function deleteOrder(sql, tables) {
  * Returns how many went. Never throws: a journey that has already reported its result must not then
  * fail on the tidying up — the tidying is housekeeping, and turning it into a red check would be
  * reporting a clean-up problem as a product problem.
+ *
+ * ── All of it, or none of it ─────────────────────────────────────────────────────────────────────
+ *
+ * The transaction is the whole reason this is safe to swallow errors in, and the first version did
+ * not have one. Thirty-odd statements ran one after another and any failure left everything before
+ * it already committed — a half-deleted business, which is to say rows pointing at records that no
+ * longer exist.
+ *
+ * Nothing showed it locally, where no statement failed. CI found it in the worst possible way: the
+ * DELETE JOURNEY failed, because its orphan check asks the whole database, and it ran last, after
+ * twelve journeys had each tidied up. The product's own delete was fine — it was being blamed for
+ * a mess the housekeeping had left in the room next door.
  */
 export async function clearBusiness(sql, name) {
+  const found = await sql`select id from tenants where name = ${name}`.catch(() => []);
+  return clearBusinessIds(sql, found.map(r => r.id), `"${name}"`);
+}
+
+/**
+ * Clear exactly these businesses, by id.
+ *
+ * ── Why handing a NAME back to the deleter was wrong ─────────────────────────────────────────────
+ *
+ * `clearUnclaimedLook` selects carefully — look-arounds, unclaimed, created since this run started —
+ * and then handed the NAME to a function that deleted every business with that name. Every
+ * look-around SPEC has ever made is called "An example business", so all that careful selecting was
+ * decoration: one run's tidying up removed look-arounds belonging to every other run, including the
+ * ones it had deliberately excluded, and including one somebody could have been sitting inside.
+ *
+ * Locally it only ever swept up stale rows, and looked like it was working. CI — twelve journeys
+ * back to back against one database — is where it showed, and it showed as the DELETE JOURNEY
+ * failing, because that journey's orphan check asks the whole database. The product's own delete
+ * was being blamed for a mess the housekeeping had left in the room next door.
+ *
+ * The rule now: whatever was selected is what gets deleted, and nothing is looked up twice.
+ */
+export async function clearBusinessIds(sql, ids, what = 'a test business') {
   try {
-    const found = await sql`select id from tenants where name = ${name}`;
-    if (!found.length) return 0;
+    if (!ids.length) return 0;
 
     /*
       One statement per table — by tenant_id where the row says whose it is, through its parent
@@ -87,12 +121,31 @@ export async function clearBusiness(sql, name) {
     byTable.set('tenants', 'delete from tenants where id = $1');
     const order = await deleteOrder(sql, [...byTable.keys()]);
 
-    for (const { id } of found) {
-      for (const table of order) await sql.unsafe(byTable.get(table), [id]);
+    // Which table it got to, so a failure names the statement rather than just the business.
+    let reached = null;
+    try {
+      await sql.begin(async tx => {
+        for (const id of ids) {
+          for (const table of order) {
+            reached = table;
+            await tx.unsafe(byTable.get(table), [id]);
+          }
+        }
+      });
+    } catch (err) {
+      throw new Error(`on "delete from ${reached}": ${String(err).slice(0, 140)}`);
     }
-    return found.length;
+    return ids.length;
   } catch (err) {
-    console.log(`  --   could not clear "${name}": ${String(err).slice(0, 120)}`);
+    /*
+      Swallowed, but never quietly. A journey has already reported its result by the time this runs,
+      and failing it here would report a housekeeping problem as a product problem — but the line is
+      printed with the table on it, because a cleanup that silently does nothing is how thirty test
+      businesses end up on the live admin page, which is where this whole piece of work started.
+
+      Nothing is half-done: the transaction above rolls back.
+    */
+    console.log(`  --   could not clear ${what} — NOTHING WAS DELETED: ${String(err.message ?? err).slice(0, 180)}`);
     return 0;
   }
 }
@@ -101,18 +154,19 @@ export async function clearBusiness(sql, name) {
  * The look-around business this run created, if it never got claimed.
  *
  * A look-around provisions a real tenant the moment somebody presses "Have a look inside", and a
- * journey that only looks — boards, for one — leaves it behind unclaimed. Scoped to the newest
- * unclaimed one so a run can never remove a look-around somebody is in the middle of.
+ * journey that only looks — boards, for one — leaves it behind unclaimed. Scoped to ones created
+ * since this run began, so it can never remove a look-around somebody is in the middle of.
+ *
+ * Cleared BY ID. Every look-around shares one name, so going back to the name would throw the
+ * scoping away — see `clearBusinessIds`.
  */
 export async function clearUnclaimedLook(sql, sinceIso) {
   try {
     const rows = await sql`
-      select id, name from tenants
+      select id from tenants
       where look_id is not null and start_date >= ${sinceIso}
       order by start_date desc`;
-    let gone = 0;
-    for (const t of rows) gone += await clearBusiness(sql, t.name);
-    return gone;
+    return await clearBusinessIds(sql, rows.map(r => r.id), 'this run’s look-around');
   } catch {
     return 0;
   }

@@ -56,7 +56,7 @@ await page.fill('input[name="name"]', 'Dane Whitmore');
 await page.fill('input[name="business"]', BUSINESS);
 await page.fill('input[name="email"]', EMAIL);
 await page.fill('input[name="password"]', PASSWORD);
-await page.waitForTimeout(3500);           // the form refuses a submission that is too fast
+await page.waitForTimeout(3500);           // a real person takes a moment over four boxes
 await press('button[type="submit"]');
 await page.waitForTimeout(2500);
 check('signed up and landed inside', !page.url().includes('/signup'), page.url());
