@@ -33,9 +33,9 @@ jobs:
     # commits and nothing anywhere said so, on a project whose whole discipline is that a check
     # whose failure mode is silence is worse than no check.
     #
-    # Nothing was wrong: the step does a full production build and then walks ten journeys in a
-    # real browser, and there are ten because each one was added the day something got out that
-    # every unit test had missed. It needs the time.
+    # Nothing was wrong: the step does a full production build and then walks thirteen journeys in
+    # a real browser, and there are thirteen because each one was added the day something got out
+    # that every unit test had missed. It needs the time.
     #
     # The step below carries its own budget, and that is the part that matters. A step that runs out
     # of time FAILS, and a failed job is a red run and an email. A job that runs out of time is
@@ -451,3 +451,17 @@ jobs:
           # and a table somebody forgot rolls the whole thing back rather than half-deleting a
           # business. Proven by taking a table out of the list and watching it refuse.
           journey delete-journey.mts
+
+          # Help, walked by somebody who is NOT signed in — which is the whole point of it, since
+          # the person who most needs help is the one who cannot get in. The unit tests hold every
+          # answer to a real route and a real button; this proves the page opens for a stranger,
+          # that searching in their own words finds the answer, and that following one genuinely
+          # lands in front of the button it named.
+          journey help-journey.mjs
+
+          # How simple, intuitive and responsive it actually is — measured on every change rather
+          # than agreed with once. Every door timed, every page opened again at 390px of phone,
+          # everything pressable measured against WCAG's floors. Without this in CI it is a
+          # one-afternoon audit, and a page gets slower or narrower one change at a time because no
+          # single change ever made it bad.
+          journey usability-journey.mjs
