@@ -153,10 +153,49 @@ check(
   JSON.stringify(stillPaying),
 );
 
-// Tidy up after ourselves: clear the Stripe mark, then delete it the proper way.
-await sql`update tenants set stripe_customer_id = null where id = ${paying}`;
-const cleanup = await deleteBusiness(paying, `Paid Test ${stamp}`, 'other-tenant');
-check('and once the money is off it, it can be cleared too', cleanup.ok === true, JSON.stringify(cleanup));
+// ── Taking a business off Stripe, which is what makes a refused one deletable ────────────────────
+//
+// Kris, 17 September: "yes build the admin control to clear hall contracting" — a business that went
+// through Stripe in TEST mode, refused on sight by the delete and stuck on the live admin list.
+//
+// This opens a door in the strongest guard SPEC has, so the guards ON THE DOOR are what is walked
+// here. The decision itself — what Stripe's answer means — is held by tests/detach-stripe.test.ts,
+// because the combinations that matter are ones nobody has a Stripe account shaped like.
+const { detachFromStripe, DETACH_SAID } = await import('../src/lib/detach-stripe.ts');
+
+// Put the marks back on the one we refused earlier, so there is something to take off.
+// It already carries one from the fixture; named here so the check below is readable.
+await sql`update tenants set stripe_customer_id = 'cus_test_leftover' where id = ${paying}`;
+
+const wrongName = await detachFromStripe(paying, 'Not The Name', 'other-tenant');
+check('A WRONG NAME TAKES NOTHING OFF STRIPE', !wrongName.ok && wrongName.refusal === 'name_mismatch', JSON.stringify(wrongName));
+
+const ownOne = await detachFromStripe(paying, `Paid Test ${stamp}`, paying);
+check('AND NEVER THE BUSINESS YOU ARE SIGNED INTO', !ownOne.ok && ownOne.refusal === 'own_business', JSON.stringify(ownOne));
+
+/*
+  No Stripe key on this run — which is exactly the state CI is in, and the answer must be "I cannot
+  tell", never "probably fine". Not knowing whether somebody is a paying customer is the one
+  situation where carrying on is indefensible.
+*/
+const blind = await detachFromStripe(paying, `Paid Test ${stamp}`, 'other-tenant');
+check(
+  'AND IT REFUSES WHEN IT CANNOT ASK STRIPE, rather than assuming',
+  !blind.ok && (blind.refusal === 'not_configured' || blind.refusal === 'unreachable' || blind.refusal === 'cannot_see_live'),
+  JSON.stringify(blind),
+);
+check('saying which, in words', !blind.ok && DETACH_SAID[blind.refusal].includes('Nothing was changed'), blind.ok ? '' : DETACH_SAID[blind.refusal]);
+
+// And the marks are still on, so the delete is still refused — the refusal cost nothing.
+const stillMarked = await sql`select stripe_customer_id from tenants where id = ${paying}`;
+check('THE MARKS ARE STILL ON after a refusal', stillMarked[0]?.stripe_customer_id === 'cus_test_leftover', JSON.stringify(stillMarked[0]));
+const stillRefused = await deleteBusiness(paying, `Paid Test ${stamp}`, 'other-tenant');
+check('and the delete is still refused', !stillRefused.ok && stillRefused.refusal === 'has_paid', JSON.stringify(stillRefused));
+
+// Clear it the way the product would once Stripe had answered, and confirm the delete opens up.
+await sql`update tenants set stripe_customer_id = null, stripe_subscription_id = null where id = ${paying}`;
+const nowDeletable = await deleteBusiness(paying, `Paid Test ${stamp}`, 'other-tenant');
+check('ONCE THE MARKS ARE OFF, THE ORDINARY DELETE WORKS — with all its own guards', nowDeletable.ok === true, JSON.stringify(nowDeletable));
 
 // ── The journeys' own housekeeping only takes what it selected ───────────────────────────────────
 //

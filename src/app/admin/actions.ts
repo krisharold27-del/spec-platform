@@ -108,3 +108,40 @@ export async function removeBusiness(form: FormData) {
   revalidatePath('/admin');
   redirect(outcome.ok ? '/admin?deleted=1' : `/admin?refused=${outcome.refusal}`);
 }
+
+/**
+ * Take the Stripe marks off a business, so the ordinary delete can then be run on it.
+ *
+ * Kris, 17 September: *"yes build the admin control to clear hall contracting"* — a business that
+ * went through Stripe in TEST mode, which `deleteBusiness` refuses on sight and correctly so. It sat
+ * on the live admin list with no way off it.
+ *
+ * This is deliberately NOT part of the delete. It is a smaller, separate act with its own typed
+ * confirmation, after which every one of the delete's guards still applies. Two decisions, not one
+ * button that quietly does both.
+ *
+ * The judgement about whether this is real money is Stripe's, not the administrator's — see
+ * lib/detach-stripe. Same allowlist as everything else here, checked on the server, and the name is
+ * compared against the database rather than against a hidden field.
+ */
+export async function detachStripe(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user || !isAdminEmail(user.email)) redirect('/signin');
+
+  const tenantId = String(form.get('tenantId') ?? '');
+  const typedName = String(form.get('confirmName') ?? '');
+  if (!tenantId) redirect('/admin');
+
+  const { detachFromStripe } = await import('@/lib/detach-stripe');
+  const outcome = await detachFromStripe(tenantId, typedName, user.tenantId);
+
+  // Said out loud either way. This is the act that makes a refusal-proof business deletable.
+  console.warn('[admin] detach from Stripe', tenantId, 'by', user.email, '→',
+    outcome.ok
+      ? `DETACHED ${outcome.name} (mode=${outcome.facts.mode}, found=${outcome.facts.found})`
+      : `refused: ${outcome.refusal}`);
+
+  revalidatePath('/admin');
+  revalidatePath('/settings');
+  redirect(outcome.ok ? '/admin?detached=1' : `/admin?nodetach=${outcome.refusal}`);
+}

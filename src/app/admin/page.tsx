@@ -5,10 +5,11 @@ import { Footer } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
 import { REFUSAL_SAID } from '@/lib/delete-business';
+import { DETACH_SAID } from '@/lib/detach-stripe';
 import { SETTABLE_PLANS, PLAN_MEANING, type SettablePlan } from '@/lib/plan';
 import { PACKAGES, PACKAGE_KEYS, packageOf, packagePrice } from '@/lib/pricing';
 import { SubmitButton } from '@/components/submit-button';
-import { setPlan, setPackage, removeBusiness } from './actions';
+import { setPlan, setPackage, removeBusiness, detachStripe } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -161,6 +162,12 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
             however carefully you type, because money means it is somebody&apos;s real business
             whatever it is called.
           </p>
+          <p className="mt-2 max-w-3xl text-sm text-ink-light">
+            If one of those was only ever a test, <b>Take it off Stripe</b> asks Stripe directly —
+            not you — whether it is a paying customer. Stripe deciding is the point: a running
+            subscription, a settled invoice, or any doubt at all, and it refuses. Only once the marks
+            are off does Delete appear, and the name has to be typed again for it.
+          </p>
 
           {sp.deleted && (
             <p className="mt-3 rounded-lg bg-surface p-3 text-sm text-ink">
@@ -172,6 +179,17 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
               {REFUSAL_SAID[sp.refused as keyof typeof REFUSAL_SAID] ?? 'Nothing was deleted.'}
             </p>
           )}
+          {sp.detached && (
+            <p className="mt-3 rounded-lg bg-surface p-3 text-sm text-ink">
+              Stripe was asked, and said this is not a paying customer. The marks are off — it can be
+              deleted now, and that is still a separate press with the name typed again.
+            </p>
+          )}
+          {typeof sp.nodetach === 'string' && (
+            <p className="mt-3 rounded-lg border-l-4 border-rust-400 bg-surface p-3 text-sm text-ink">
+              {DETACH_SAID[sp.nodetach as keyof typeof DETACH_SAID] ?? 'Nothing was changed.'}
+            </p>
+          )}
 
           <ul className="mt-4 space-y-2">
             {rows.filter(r => r.tenant.id !== user.tenantId).map(({ tenant }) => {
@@ -181,9 +199,31 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
                   <span className="font-medium text-ink">{tenant.name}</span>
                   <span className="text-xs text-ink-light">{tenant.plan} · started {tenant.startDate}</span>
                   {paid ? (
-                    <span className="ml-auto rounded bg-sage-200 px-2 py-0.5 text-xs font-medium text-sage-900">
-                      Has been through Stripe — cannot be deleted here
-                    </span>
+                    /*
+                      Not a dead end any more.
+
+                      This said only "cannot be deleted here", which was true and left Hall
+                      Contracting — a test-mode business from months ago — on the list with no way
+                      off it. Taking the Stripe marks off is a SEPARATE act, with its own typed
+                      confirmation, and SPEC asks Stripe whether this is real money rather than
+                      trusting whoever pressed the button. If Stripe says customer, this refuses
+                      too, and the delete below stays refused until the marks are genuinely gone.
+                    */
+                    <form action={detachStripe} className="ml-auto flex flex-wrap items-center gap-2">
+                      <span className="rounded bg-sage-200 px-2 py-0.5 text-xs font-medium text-sage-900">
+                        Has been through Stripe
+                      </span>
+                      <input type="hidden" name="tenantId" value={tenant.id} />
+                      <input
+                        name="confirmName"
+                        placeholder="type the name to confirm"
+                        autoComplete="off"
+                        className="rounded-lg border border-ink/20 px-3 py-1.5 text-xs"
+                      />
+                      <SubmitButton className="btn-secondary text-xs" pending="Asking Stripe…">
+                        Take it off Stripe
+                      </SubmitButton>
+                    </form>
                   ) : (
                     <form action={removeBusiness} className="ml-auto flex flex-wrap items-center gap-2">
                       <input type="hidden" name="tenantId" value={tenant.id} />
