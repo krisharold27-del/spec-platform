@@ -6,6 +6,7 @@ import { DEFAULT_AFTER_SIGN_IN } from '@/lib/auth-redirect';
 import { SpecMark } from '@/components/spec-mark';
 import { ProblemBox } from '@/components/problem-box';
 import { SEAT_PRICES, HOME_CURRENCY, moneyLabel } from '@/lib/pricing';
+import { VIRTUAL_GM } from '@/lib/virtual-gm';
 import { TRACK_RECORD } from '@/lib/calculator';
 
 export const dynamic = 'force-dynamic';
@@ -100,6 +101,25 @@ export default async function Landing() {
         >
           <p className="m-0 font-serif text-[clamp(56px,10vw,120px)] leading-none text-ink">
             Simple.
+          </p>
+        </section>
+
+        {/*
+          What SPEC is, in the one unit a business already has a number for — design export 9.
+
+          It sits here, after the word and before the box that asks for a real problem, and it is
+          deliberately NOT a claim about results. This page's rule is that nothing is claimed before
+          it is demonstrated; this claims a CATEGORY instead. Not "SPEC will fix your business" but
+          "this is the job you were about to hire for", which the reader can check against their own
+          payroll without taking our word for anything. Everything below it is the evidence.
+        */}
+        <section
+          aria-label="Virtual GM"
+          className="flex flex-col items-center justify-center gap-3 px-5 pb-[clamp(64px,9vh,112px)]"
+        >
+          <span className="label-caps text-rust-700">{VIRTUAL_GM.kicker}</span>
+          <p className="m-0 max-w-[20ch] text-center font-serif text-[clamp(28px,4vw,48px)] leading-tight text-ink">
+            {VIRTUAL_GM.headline}
           </p>
         </section>
 

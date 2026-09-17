@@ -41,6 +41,21 @@ const text = () => page.textContent('body').then(t => t ?? '');
 // ── The door ─────────────────────────────────────────────────────────────────────────────────────
 await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 let body = await text();
+/*
+  The virtual GM — design export 9, and the reason it is checked HERE rather than by the coverage
+  script: that script asks whether a phrase exists in the source, not whether anybody can see it.
+  This copy was written into a lib, reported at 100%, and was on no screen at all. A browser is the
+  only thing that can tell the difference.
+*/
+check('THE VIRTUAL GM IS ON THE PAGE, not just in the source', /the virtual gm/i.test(body), body.slice(0, 120));
+check('and it names the thing you were about to hire for', /Before you pay for an expensive GM, start with SPEC\./.test(body));
+// After the word and before the ask: the page claims a category, then earns everything else.
+{
+  const gmAt = body.search(/Before you pay for an expensive GM/);
+  const askAt = body.search(/Got problems/);
+  check('it comes before the page asks for anything', gmAt > -1 && gmAt < askAt, `gm ${gmAt}, ask ${askAt}`);
+}
+
 check('the front door asks before it tells', /Got problems\? We.ll fix them\./.test(body));
 check('it asks for an ongoing one, not a one-off', /as long as it.s ongoing/i.test(body));
 check('the look-around is still offered', (await page.locator('a[href="/look"]').count()) > 0);
@@ -109,6 +124,7 @@ if (page.url().includes('error=busy')) {
   console.log('  --   sign-up is being throttled (error=busy) — SPEC protecting itself, not a fault.');
   await b.close();
   // Nothing was created, but a look-around may have been. It does not stay behind either.
+
   await tidyUp(null, { lookSince: RUN_STARTED });
   process.exit(0);
 }
@@ -120,6 +136,16 @@ await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
 body = await text();
 check('THE PROBLEM IS WAITING IN THEIR PAGE', body.includes(PROBLEM));
 check('and it is in the register, ranked', /Improvement register/.test(body));
+
+// ── The rest of the ladder, on /pricing ──────────────────────────────────────────────────────────
+await page.goto(`${BASE}/pricing`, { waitUntil: 'networkidle' });
+const priced = await text();
+check('THE LADDER IS PUBLISHED, not only promised', /Give us a go\. Add some training if you need it\./.test(priced));
+check('and it says what you stop buying', /No ongoing GM/.test(priced));
+check('the program is named with a real price on it', /20,888/.test(priced), priced.split('\n').find(l => /20,/.test(l)) ?? '');
+check('against what a GM actually costs', /A\$300,000 a year/.test(priced));
+// The rule of 8 outranks the mock-up: the design draws A$20,000 and A$1,000, neither of which reduces to 8.
+check('AND NEVER THE MOCK-UP PRICES, which break the rule of 8', !/A\$20,000|A\$1,000\b/.test(priced));
 
 check('no page errors anywhere in the journey', errors.length === 0, errors.slice(0, 3).join(' | '));
 

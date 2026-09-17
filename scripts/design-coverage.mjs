@@ -56,6 +56,20 @@ const bareWords = s =>
     .replace(/&[a-z]+;/g, ' ')
     .replace(/[^a-z0-9]+/g, ' ');
 
+/**
+ * Every source file, as bare words.
+ *
+ * ── The limit of this check, stated rather than discovered ───────────────────────────────────────
+ *
+ * This asks whether a phrase EXISTS in the source, not whether anybody can see it. A sentence
+ * sitting in a constant that no page renders counts as covered, and on 17 September one did: the
+ * virtual-GM copy was written into a lib, reported at 100%, and was on no screen at all.
+ *
+ * That is not a bug to fix here — a source scan cannot know what renders — it is the reason this
+ * check is not the last word. What a person actually sees is proven by the browser journeys, which
+ * is where the pinned screens are held. Read a 100% here as "the words are written", never as "the
+ * words are on the page".
+ */
 function productFiles() {
   return walk(SRC)
     .filter(p => ['.ts', '.tsx', '.css'].includes(extname(p)))

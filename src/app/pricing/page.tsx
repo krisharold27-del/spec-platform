@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { Footer } from '@/components/ui';
+import { VIRTUAL_GM, GM_COMPARISON } from '@/lib/virtual-gm';
 import { PublicNav } from '@/components/public-nav';
 import { LabourCalculator } from '@/components/labour-calculator';
-import { SEAT_PRICES, HOME_CURRENCY, type Currency } from '@/lib/pricing';
+import { SEAT_PRICES, HOME_CURRENCY, type Currency, PACKAGES } from '@/lib/pricing';
 import { TIER } from '@/lib/plan';
 import { LIGHT_COLOUR } from '@/lib/today';
 
@@ -30,6 +31,26 @@ export default function Pricing() {
       <PublicNav current="/pricing" />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
+        {/*
+          The ladder, stated before the price — design export 9.
+
+          It is the only place the whole offer is said in one breath: try it, add training, and if
+          neither gets you there, the program does. "No ongoing GM" is the line that matters; every
+          other sentence on this page is about what you buy and that one is about what you stop
+          buying.
+        */}
+        {/* A section, not a <header> — tests/public-site holds that every public page wears the
+            one shared PublicNav and never grows a header of its own. */}
+        <section className="mb-8">
+          <span className="label-caps text-rust-700">{VIRTUAL_GM.kicker}</span>
+          <p className="mt-3 max-w-[26ch] font-serif text-2xl leading-tight text-ink sm:text-3xl">
+            {VIRTUAL_GM.headline}
+          </p>
+          <p className="mt-3 max-w-[58ch] text-base leading-relaxed text-ink-light">
+            {VIRTUAL_GM.ladder}
+          </p>
+        </section>
+
         <h1 className="font-serif text-3xl tracking-tight text-ink sm:text-4xl">
           {home.symbol}{home.seat} per seat per month. The first one is free.
         </h1>
@@ -108,6 +129,40 @@ export default function Pricing() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </section>
+
+        {/*
+          The rest of the ladder, with real prices on it.
+
+          The paragraph at the top promises a program; a page that promises one and then never names
+          it is asking somebody to enquire before they know whether they can afford it. So both are
+          published — with "someone will be in contact" rather than a checkout, because these are a
+          share of one person's week and there are only so many Tuesdays.
+
+          The prices are SPEC's, not the mock-up's: the design draws A$1,000 and A$20,000, and every
+          published price in this product reduces to 8 by digit sum. A$1,007 does and A$1,000 does
+          not. See lib/pricing.
+        */}
+        <section className="mt-12">
+          <h2 className="font-serif text-2xl text-ink">Beyond software — how much support you want running it</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {(['sessions', 'full_control'] as const).map(key => {
+              const pkg = PACKAGES[key];
+              return (
+                <div key={key} className="card border-t-4 border-t-rust">
+                  <p className="label-caps">{pkg.label}</p>
+                  <p className="mt-3 font-serif text-3xl text-ink">A${pkg.aud.toLocaleString('en-AU')}</p>
+                  <p className="mt-1.5 text-sm text-ink-light">
+                    a month · {key === 'sessions' ? 'sign up now' : 'someone will be in contact'}
+                  </p>
+                  {key === 'full_control' && (
+                    <p className="mt-3 text-xs leading-relaxed text-ink-light/80">{GM_COMPARISON}</p>
+                  )}
+                  <p className="mt-4 text-sm leading-relaxed text-ink">{pkg.what}</p>
+                </div>
+              );
+            })}
           </div>
         </section>
 

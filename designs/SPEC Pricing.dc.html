@@ -58,7 +58,13 @@
 
   <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
 
-    <header style="padding: clamp(28px,4vw,44px) 0 26px;">
+    <header style="padding: clamp(28px,4vw,44px) 0 8px;">
+      <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">The virtual GM</span>
+      <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,3vw,34px); line-height: 1.25; margin: 0; max-width: 26ch;">{{ gmHeadline }}</p>
+      <p style="font-size: 15.5px; line-height: 25px; margin: 12px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Give us a go. Add some training if you need it. And if that doesn't get you there, our 6&ndash;12 month program will. No ongoing GM. Amazing results.</p>
+    </header>
+
+    <header style="padding: clamp(20px,3vw,28px) 0 26px;">
       <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Pricing</span>
       <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">Per seat, per month, in your own currency</h1>
       <p style="font-size: 17px; line-height: 28px; max-width: 58ch; margin: 18px 0 0;">A price is set for your region and does not move because an exchange rate did. Building the business and setting the KPIs is free — you pay when you start scoring.</p>
@@ -153,6 +159,7 @@
           <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Consulting</p>
           <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 36px; line-height: 1.1; margin: 12px 0 0;">A$20,000</p>
           <p style="font-size: 14px; line-height: 22px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">a month · someone will be in contact</p>
+          <p style="font-size: 12.5px; line-height: 18px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">A fully-loaded GM runs about A$300,000 a year once you load super, car, bonus and recruitment. This sits comfortably under that.</p>
           <p style="font-size: 14.5px; line-height: 24px; margin: 16px 0 0;">A SPEC specialist attends your monthly board meeting and your quarterly meeting, plus one full day a week on site. Minimum term six months; the project is expected complete within twelve.</p>
         </div>
       </div>
@@ -189,7 +196,7 @@
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200},&quot;gmHeadline&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;cost&quot;,&quot;options&quot;:[&quot;cost&quot;,&quot;never_sick&quot;,&quot;reframe&quot;,&quot;stop_paying&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Virtual GM hook&quot;}}">
 const GREEN = '#4f7a3f', AMBER = '#c67139', GREY = '#8c8681';
 const chip = tone => 'display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
 const dotOf = tone => 'width:10px;height:10px;border-radius:50%;display:block;flex:none;margin-top:6px;background:' + tone + ';';
@@ -246,6 +253,13 @@ class Component extends DCLogic {
   state = { seats: 40, labour: 3600000, improve: 20, currency: 'AUD' };
 
   renderVals() {
+    const GM_HEADLINES = {
+      cost: "Don't pay three hundred grand for a GM. Just use SPEC.",
+      never_sick: 'A great GM costs you three hundred grand a year. SPEC costs a fraction — and never takes a sick day.',
+      reframe: 'Why hire a three-hundred-grand GM? Just use SPEC — your virtual GM.',
+      stop_paying: 'Stop paying three hundred grand for management. Start using SPEC.',
+    };
+    const gmHeadline = GM_HEADLINES[this.props.gmHeadline] || GM_HEADLINES.cost;
     const p = PRICES[this.state.currency];
     const seats = this.state.seats;
     const basicYear = seats * p.seat * 12;
@@ -254,6 +268,7 @@ class Component extends DCLogic {
     const multiple = Math.max(1, Math.round(gain / Math.max(advancedYear, 1)));
 
     return {
+      gmHeadline,
       seatsLabel: seats + ' seats',
       seatsValue: seats,
       seatsPlain: String(seats),

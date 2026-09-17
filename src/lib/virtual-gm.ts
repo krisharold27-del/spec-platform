@@ -1,0 +1,66 @@
+/**
+ * The virtual GM — what SPEC is, said in the only terms a business already has a number for.
+ *
+ * Design export 9, which put this on both the landing page and the pricing page.
+ *
+ * ── Why it is one line and why it is where it is ─────────────────────────────────────────────────
+ *
+ * On the landing page it sits immediately after "Simple." and before the box that asks for a real
+ * problem. That is the whole of the argument before any demonstration: one sentence that names what
+ * this is, against a cost the reader already knows. Everything after it is evidence.
+ *
+ * The page's own rule is that nothing is claimed before it is demonstrated — so this is deliberately
+ * not a claim about results. It is a claim about CATEGORY: not "SPEC will fix your business" but
+ * "this is the job you were about to hire for". The reader can check that against their own payroll
+ * without taking SPEC's word for anything.
+ *
+ * ── Four headlines, and only one of them ships ───────────────────────────────────────────────────
+ *
+ * The export carries four and marks `cost` as the default, which is the one built. The other three
+ * are kept here rather than thrown away, because the choice is Kris's and swapping it is one line —
+ * but only one can be on the page, and a page that says the same thing four ways says nothing.
+ */
+
+export type GmHeadline = 'cost' | 'never_sick' | 'reframe' | 'stop_paying';
+
+export const GM_HEADLINES: Record<GmHeadline, string> = {
+  cost: 'Before you pay for an expensive GM, start with SPEC.',
+  never_sick:
+    'A great GM costs you three hundred grand a year. SPEC costs a fraction — and never takes a sick day.',
+  reframe: 'Why hire a three-hundred-grand GM? Just use SPEC — your virtual GM.',
+  stop_paying: 'Stop paying three hundred grand for management. Start using SPEC.',
+};
+
+/** The one on the page. Design export 9 ships `cost`; changing it is this line and nothing else. */
+export const GM_HEADLINE: GmHeadline = 'cost';
+
+export const VIRTUAL_GM = {
+  /** The eyebrow above the headline, on both pages. */
+  kicker: 'The virtual GM',
+  headline: GM_HEADLINES[GM_HEADLINE],
+  /**
+   * Pricing only. The whole ladder in four sentences — try it, add training, and if neither gets
+   * you there, the program does. "No ongoing GM" is the point of the paragraph: every other line
+   * is about what you buy, and that one is about what you stop buying.
+   */
+  ladder:
+    'Give us a go. Add some training if you need it. And if that doesn’t get you there, our '
+    + '6–12 month program will. No ongoing GM. Amazing results.',
+};
+
+/**
+ * What a general manager actually costs, put beside the consulting price.
+ *
+ * ── Why the number is not the one in the export ──────────────────────────────────────────────────
+ *
+ * The design draws the consulting package at A$20,000. SPEC's published price is **A$20,888**, and
+ * that is not a rounding difference: every published price in this product reduces to 8 by digit
+ * sum, and 20,888 does (2+0+8+8+8 = 26 → 8) where 20,000 does not (2). The rule outranks the
+ * mock-up, so the price stays and only the comparison is new.
+ *
+ * It still holds comfortably, which is the claim being made: twelve months at A$20,888 is
+ * A$250,656, against a loaded GM at about A$300,000.
+ */
+export const GM_COMPARISON =
+  'A fully-loaded GM runs about A$300,000 a year once you load super, car, bonus and recruitment. '
+  + 'This sits comfortably under that.';

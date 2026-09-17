@@ -23,6 +23,18 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
  */
 const words = (p: string) => read(p).replace(/\s+/g, ' ');
 
+/**
+ * The file with its comments taken out.
+ *
+ * For checks about what the CODE does. On 17 September this check failed because a comment on the
+ * pricing page explained why that page does not use a `<header>` — and the check, reading the raw
+ * file, found the word in the explanation. Five separate times that day a source check matched the
+ * English describing a thing rather than the thing. A check that punishes somebody for writing down
+ * why is a check that gets the explanation deleted instead of understood.
+ */
+const code = (p: string) =>
+  read(p).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
 const PUBLIC_PAGES = [
   'src/app/how/page.tsx',
   'src/app/pricing/page.tsx',
@@ -142,9 +154,9 @@ describe('the public navigation', () => {
   // which page you landed on reads as unfinished before anybody has seen the product.
   it('is one component, used by every public page with a header', () => {
     for (const p of ['src/app/how/page.tsx', 'src/app/pricing/page.tsx', 'src/app/sectors/page.tsx']) {
-      const src = read(p);
-      expect(src).toContain('<PublicNav');
-      expect(src).not.toContain('<header');
+      const src = code(p);
+      expect(src, p).toContain('<PublicNav');
+      expect(src, `${p} has grown a header of its own`).not.toContain('<header');
     }
   });
 

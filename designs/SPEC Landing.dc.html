@@ -61,6 +61,11 @@
     <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(56px,10vw,120px); line-height: 1; margin: 0; color: var(--color-text);">Simple.</p>
   </section>
 
+  <section aria-label="Virtual GM" style="background: var(--color-bg); padding: 0 clamp(20px,5vw,72px) clamp(64px,9vh,112px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+    <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700);">The virtual GM</span>
+    <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(28px,4vw,48px); line-height: 1.2; margin: 0; max-width: 20ch; text-align: center; color: var(--color-text);">{{ gmHeadline }}</p>
+  </section>
+
   <section aria-label="Problem" style="background: #3a3a38; padding: clamp(48px,8vw,96px) clamp(20px,5vw,72px) clamp(64px,9vw,112px);">
     <div style="max-width: 760px; margin: 0 auto; text-align: center;">
       <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,44px); line-height: 1.2; margin: 0; color: #f0eee8;">Got problems? We'll fix them.</p>
@@ -223,7 +228,7 @@
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;currency&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;AUD&quot;,&quot;NZD&quot;,&quot;GBP&quot;,&quot;EUR&quot;,&quot;USD&quot;,&quot;CAD&quot;],&quot;default&quot;:&quot;AUD&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Pricing&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200},&quot;currency&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;AUD&quot;,&quot;options&quot;:[&quot;AUD&quot;,&quot;NZD&quot;,&quot;GBP&quot;,&quot;EUR&quot;,&quot;USD&quot;,&quot;CAD&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;gmHeadline&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;cost&quot;,&quot;options&quot;:[&quot;cost&quot;,&quot;never_sick&quot;,&quot;reframe&quot;,&quot;stop_paying&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Virtual GM hook&quot;}}">
 const PRICES = {
   AUD: { seat: 26, withTraining: 44, symbol: 'A$' },
   NZD: { seat: 35, withTraining: 53, symbol: 'NZ$' },
@@ -289,7 +294,14 @@ class Component extends DCLogic {
     const r = this.state.result;
     const p = PRICES[this.props.currency] || PRICES.AUD;
 
+    const GM_HEADLINES = {
+      cost: 'Before you pay for an expensive GM, start with SPEC.',
+      never_sick: 'A great GM costs you three hundred grand a year. SPEC costs a fraction — and never takes a sick day.',
+      reframe: 'Why hire a three-hundred-grand GM? Just use SPEC — your virtual GM.',
+      stop_paying: 'Stop paying three hundred grand for management. Start using SPEC.',
+    };
     return {
+      gmHeadline: GM_HEADLINES[this.props.gmHeadline] || GM_HEADLINES.cost,
       seatPrice: p.symbol + p.seat,
       trainingPrice: p.symbol + p.withTraining,
 
