@@ -60,3 +60,26 @@ where it belongs, but the page declaring it is a design document, not a screen
 anybody signs in to see.
 
 **Decided:** 13 September 2026.
+
+### Block: `SPEC Training` — the four non-negotiables, tinted by pillar
+
+Design export 7 added *How SPEC manages people* to the training screen, and the
+block is built: the stance, the four non-negotiables and the reading list are all
+on `/training`, word for word.
+
+One thing is deliberately not carried across. The design gives each of the four its
+own colour — green Safety, **red People**, blue Earnings, rust Compliance — as an
+identity. SPEC has an older rule, written into `src/lib/pillars.ts` and enforced by
+the `Badge` component: **colour says how something is GOING, never what it IS.**
+Pillar colours are kept out of `PILLAR_META` on purpose, because the wrong thing
+should be hard to reach.
+
+Painting People red as an identity would make that pillar read as failing — on the
+one page whose entire argument is that failure is management's doing and fixable.
+So the letter badges carry the identity and the cards stay neutral.
+
+If the rule ever changes, it changes in `lib/pillars.ts` for the whole product and
+not on one screen. `tests/manage-people.test.ts` fails if the block starts
+hard-coding those four hex values.
+
+**Decided:** 17 September 2026.

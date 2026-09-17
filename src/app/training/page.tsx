@@ -13,11 +13,12 @@ import { getScorecard } from '@/lib/queries';
 import { getToday } from '@/lib/today-data';
 import { pathFor, pathProgress, signoffFor, aceSteps, type TrainingModule } from '@/lib/training';
 import { hasTrainingSeat } from '@/lib/training-seat';
-import { PILLAR_META } from '@/components/ui';
+import { PILLAR_META, Badge } from '@/components/ui';
 import { Material } from '@/components/material';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { signOffTraining } from '@/app/my-page/actions';
 import { Problems } from '@/components/problems';
+import { MANAGEMENT_STANCE, NON_NEGOTIABLES, READING } from '@/lib/manage-people';
 
 export const dynamic = 'force-dynamic';
 
@@ -255,6 +256,52 @@ export default async function Training() {
           begin to count.
         </p>
       )}
+      {/*
+        Why any of this is worth doing, from design export 7.
+
+        Last on the page and not first: somebody who came here to finish a module should reach the
+        module, not an argument. But it is ON the page rather than in a document, because a
+        supervisor handed twelve modules and no reason will do the modules and change nothing.
+      */}
+      <section className="mt-12 border-t border-ink/10 pt-8">
+        <h2 className="label-caps">How SPEC manages people</h2>
+        <p className="mt-2 max-w-[34ch] font-serif text-2xl text-ink">{MANAGEMENT_STANCE.heading}</p>
+        <p className="mt-3 max-w-[68ch] text-sm leading-relaxed text-ink-light">{MANAGEMENT_STANCE.says}</p>
+
+        <h3 className="mt-7 font-serif text-lg text-ink">The four non-negotiables</h3>
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {NON_NEGOTIABLES.map(n => (
+            <li key={n.pillar} className="card flex gap-3">
+              {/*
+                The letter says which pillar it is. Colour does not — the design tints each card by
+                pillar, and SPEC has an older rule: colour says how something is GOING, never what
+                it IS. Painting People red as an identity would make the pillar read as failing, on
+                the one page whose whole argument is that failure is management's doing and fixable.
+              */}
+              <Badge pillar={n.pillar} />
+              <div>
+                <p className="label-caps">{PILLAR_META[n.pillar].name}</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink">{n.says}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        {/* The order is the content: a list somebody picks from is a list nobody starts. */}
+        <div className="card mt-7 bg-cream">
+          <h3 className="font-serif text-lg text-ink">Recommended reading, in order</h3>
+          <ol className="mt-4 grid gap-4 sm:grid-cols-3">
+            {READING.map(r => (
+              <li key={r.title}>
+                <p className="label-caps normal-case tracking-normal text-ink-light/70">{r.when}</p>
+                <p className="mt-1 font-serif text-base text-ink">{r.title}</p>
+                <p className="mt-0.5 text-sm text-ink-light">{r.author}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
       <Problems screen="training" />
 
     </Shell>
