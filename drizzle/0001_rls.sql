@@ -141,6 +141,13 @@ begin
     'intake_entries', 'obligations', 'predicted_roles', 'register_entries', 'role_automation',
     'role_tasks', 'scorecard_comments', 'staff', 'system_connections', 'training_modules',
     'training_records',
+    -- The sealed credential behind a connection. It carries its own tenant_id precisely so it can be
+    -- isolated here rather than through a join: this is the one table in SPEC whose rows are sixty
+    -- days of read access to somebody's accounts, and a policy that depends on a join is a policy
+    -- with one more way to be wrong. Added with the table on 18 September; CI caught that it had
+    -- RLS enabled and no policy, which is a table that is either closed to everybody or open to
+    -- everybody depending on who is asking, and neither is a thing to find out later.
+    'connection_credentials',
     -- Boards, and the two tables that hang off them. All three carry their own tenant_id — a
     -- comment and a viewer are scoped by the business, not only by the board, so that a board id
     -- guessed from a shared link still reaches nothing.
