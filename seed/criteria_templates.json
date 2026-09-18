@@ -54,12 +54,13 @@
         "safety": "organisational_standard",
         "people": [
           {
-            "text": "All manager roles filled and scored monthly",
+            "text": "Everyone is trained for the role they are in, checked against the org chart",
             "weight": 0.5,
-            "kpi": true
+            "kpi": true,
+            "target": "100% of filled roles"
           },
           {
-            "text": "Zero negative turnover across the business",
+            "text": "A culture nobody wants to leave — zero regretted departures",
             "weight": 0.5,
             "kpi": true,
             "target": "0"
@@ -67,26 +68,25 @@
         ],
         "earnings": [
           {
-            "text": "Controllable cash net profit at or above target",
+            "text": "The business is profitable",
             "weight": 0.5,
             "kpi": true,
             "target": "{net_profit_target}"
           },
           {
-            "text": "Monthly revenue at or above target",
+            "text": "Every financial system is fit for purpose and supporting the business",
             "weight": 0.5,
-            "kpi": true,
-            "target": "{revenue_target}"
+            "kpi": true
           }
         ],
         "compliance": [
           {
-            "text": "Business is SPEC: all four pillars ≥ 90% for two consecutive months",
+            "text": "Every client contract understood, and complied with",
             "weight": 0.5,
             "kpi": true
           },
           {
-            "text": "Monthly board output delivered on time",
+            "text": "People do what they said they would — a culture of doing as you say",
             "weight": 0.5,
             "kpi": true
           }

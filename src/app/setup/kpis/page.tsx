@@ -28,7 +28,19 @@ export default async function KpiSetup({ searchParams }: { searchParams: Promise
         <input type="hidden" name="roleId" value={role.id} />
         {PILLARS.map(p => {
           const rows = crit.filter(c => c.pillar === p);
-          const slots = [...rows, ...Array(Math.max(0, 2 - rows.length)).fill(null)];
+          /*
+            Two is the FOUNDATION, not the cap.
+
+            Kris, 18 September: *"Users can ADD as many KPIs per quadrant as they like — the
+            2-per-pillar are a foundation, not a cap. Never a blank scorecard."* This screen filled
+            up to two blank rows and stopped, so once a pillar had its two there was nowhere to type
+            a third — a business could not measure something it had decided mattered.
+
+            So: pad to two, and always leave one spare row beyond whatever is there. The weights
+            still have to sum to 100% in the pillar, which is what makes adding a third a decision
+            about what matters rather than a free extra.
+          */
+          const slots = [...rows, ...Array(Math.max(1, 2 - rows.length)).fill(null)];
           return (
             <div key={p} className="mt-4 overflow-hidden rounded-lg border border-ink/10 bg-surface">
               <div className="flex items-center gap-2 border-b border-ink/10 bg-cream/50 px-4 py-2.5">
