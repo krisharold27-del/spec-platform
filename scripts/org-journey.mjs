@@ -318,6 +318,93 @@ check('THE MENU OPENS THAT ROLE\u2019S KPIs, not whichever is listed first',
 */
 check('  and never "Reset structure", which would wipe a real chart', !canvasItems.includes('Reset structure'));
 
+// ── Nothing on a card is cut off ─────────────────────────────────────────────────────────────────
+/*
+  Kris photographed JBI on 18 September with "Cobram Supervisor" and "Wangaratta Supervisor" sliced
+  off along the bottom edge of their cards.
+
+  The cause is structural rather than cosmetic and could recur any time the card gains anything: a
+  card is drawn at ONE fixed height for every role at its depth, because a constant row gap is what
+  makes the tree read as a hierarchy. A narrow card at depth two wraps a two-word title onto two
+  lines, and two lines plus a name pill plus the four tiles did not fit in the box. The title clamp
+  stopped the title growing without limit; it never made the box big enough for the two lines it
+  allows.
+
+  No phrase check can see this — every word was present and correct, in a box too small to show it.
+  So this measures: for every card on the chart, is the content taller than the card it is in.
+
+  Built with the longest role titles a real business has, because the fault only appears when a
+  title wraps. A check that draws "GM" would pass for ever.
+*/
+await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+for (const title of ['Wangaratta Site Supervisor', 'Cobram Depot Supervisor']) {
+  await page.locator('[data-org-canvas]').first().click({ button: 'right', position: { x: 6, y: 120 } }).catch(() => {});
+  await menu.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+  await menu.getByRole('menuitem', { name: 'Add a new role' }).click().catch(() => {});
+  await page.waitForTimeout(700);
+  const card = page.locator('[data-org-canvas] [data-role-card]').last();
+  await card.click();
+  await page.locator('#org-title').fill(title).catch(() => {});
+  await page.getByRole('button', { name: 'Save the role name' }).click().catch(() => {});
+  await page.waitForTimeout(800);
+}
+
+const spilling = await page.evaluate(() => {
+  const out = [];
+  for (const card of document.querySelectorAll('[data-org-canvas] [data-role-card]')) {
+    const box = card.getBoundingClientRect();
+    for (const child of card.children) {
+      /*
+        Measured child by child against the card's own box, NOT with scrollHeight.
+
+        scrollHeight was the obvious way and is wrong here: the card centres its contents, so
+        content that does not fit spills equally out of the TOP and the bottom — and scrollHeight
+        only ever sees the bottom half of that. It reported everything fitting on the very build
+        whose screenshot started this. The badges are excluded by name because they are DRAWN
+        hanging off the corners on purpose.
+      */
+      if (child.hasAttribute('data-team') || child.getAttribute('aria-label')?.startsWith('What can be done')) continue;
+      const c = child.getBoundingClientRect();
+      if (c.height === 0) continue;
+      if (c.top < box.top - 1 || c.bottom > box.bottom + 1) {
+        out.push(`${(child.textContent || '').trim().slice(0, 24) || child.tagName} spills out of ${card.querySelector('span[title]')?.textContent?.trim().slice(0, 24)}`);
+      }
+    }
+  }
+  return out;
+});
+check('NOTHING ON A CARD IS CUT OFF, however long the role title', spilling.length === 0, spilling.join(' | '));
+
+/*
+  And the title's own box is tall enough for the letters in it.
+
+  This is what Kris actually photographed, and the card measured fine throughout: a two-line clamp
+  draws a box exactly two line-heights tall and hides everything outside it, so a tight line-height
+  slices the tails off p, g and y. Every word present, every box the right size, the names cut
+  through the middle.
+
+  Asserted as a RATIO rather than a pixel value, so it survives the type being resized — and it is
+  the only form of the check that means what it says: the box has to be tall enough for the font
+  that is in it, whatever that font turns out to be.
+*/
+const tightTitles = await page.evaluate(() => {
+  const out = [];
+  for (const card of document.querySelectorAll('[data-org-canvas] [data-role-card]')) {
+    const title = card.querySelector('span[title]');
+    if (!title) continue;
+    const st = getComputedStyle(title);
+    if (st.webkitLineClamp === 'none') continue;   // not clamped, nothing to cut
+    const ratio = parseFloat(st.lineHeight) / parseFloat(st.fontSize);
+    if (ratio < 1.3) out.push(`${title.textContent.trim().slice(0, 24)} at ${ratio.toFixed(2)}`);
+  }
+  return out;
+});
+check(
+  '  and a clamped title has room for its descenders',
+  tightTitles.length === 0,
+  tightTitles.join(' | '),
+);
+
 check('no page threw', faults.length === 0, faults.join(' | '));
 
 await browser.close();

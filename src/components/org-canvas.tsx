@@ -460,7 +460,22 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                   push the card taller than the row spacing allows.
                 */}
                 <span
-                  className={`block w-full font-serif text-sm leading-tight text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
+                  /*
+                    ── leading-[1.35], not leading-tight ────────────────────────────────────────
+
+                    THIS is what Kris photographed on JBI: "Cobram Supervisor" and "Wangaratta
+                    Supervisor" with the bottoms of the letters shaved off. Not the card — the
+                    card had room to spare. A two-line clamp draws a box exactly two line-heights
+                    tall and hides everything outside it, so at `leading-tight` (1.25) the box is
+                    shorter than the serif's descenders and the tails of p, g and y are cut off by
+                    the clamp itself. Every word present, every box the right size, and the text
+                    sliced through the middle of the letters.
+
+                    1.35 clears the descenders. `scripts/org-journey.mjs` now asserts the ratio, so
+                    a future tightening of the type cannot quietly start cutting names in half
+                    again.
+                  */
+                  className={`block w-full font-serif text-sm leading-[1.35] text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
                   title={r.title}
                 >
                   {r.title}
@@ -581,25 +596,30 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     {shut_ ? `+${team}` : team}
                   </button>
                 )}
-                <span className="mt-1 flex w-full items-center gap-2 text-[10px] text-ink-light">
-                  {canEdit && (
-                    /*
-                      The same menu as the right-click, on a key anybody can find. Kept to one glyph
-                      because the card is a card: the two permanent text buttons that used to sit
-                      here said "Unlink" and "Vacate" on every role in the business, whether or not
-                      either made any sense for it.
-                    */
-                    <button
-                      type="button"
-                      aria-label={`What can be done with ${r.title}`}
-                      onPointerDown={e => e.stopPropagation()}
-                      onClick={e => openMenu(e, r.id)}
-                      className="ml-auto rounded px-1 leading-none hover:text-rust"
-                    >
-                      ⋯
-                    </button>
-                  )}
-                </span>
+                {canEdit && (
+                  /*
+                    The same menu as the right-click, on a key anybody can find. Kept to one glyph
+                    because the card is a card: the two permanent text buttons that used to sit here
+                    said "Unlink" and "Vacate" on every role in the business, whether or not either
+                    made any sense for it.
+
+                    Pinned to the corner rather than taking a row of its own. In the flow it cost
+                    every card eighteen pixels of height that a two-line role title needs — which is
+                    how "Wangaratta Supervisor" came to be cut off along the bottom edge on JBI.
+                  */
+                  <button
+                    type="button"
+                    aria-label={`What can be done with ${r.title}`}
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={e => openMenu(e, r.id)}
+                    /* Out from under the Ace star, which hangs off the same corner. */
+                    className={`absolute top-1 rounded px-1 text-[13px] leading-none text-ink-light hover:text-rust ${
+                      r.ace?.holdingAce ? 'right-8' : 'right-1.5'
+                    }`}
+                  >
+                    ⋯
+                  </button>
+                )}
               </div>
             );
           })}

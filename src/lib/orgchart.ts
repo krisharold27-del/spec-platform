@@ -105,7 +105,7 @@ export const cardWidth = (depth: number) => (depth === 0 ? 226 : depth === 1 ? 1
  * beside them, and the edit row — the clamp in org-canvas is what guarantees the title cannot take
  * more than its two lines and push the rest out.
  */
-export const cardHeight = (_depth: number) => 116;
+export const cardHeight = (_depth: number) => 120;
 
 export interface PlacedCard {
   role: ChartRole;

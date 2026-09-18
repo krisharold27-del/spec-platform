@@ -64,7 +64,23 @@ await page.waitForTimeout(2500);
 check('signed up and landed inside', !page.url().includes('/signup'), page.url());
 
 await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
-check('My page loads', /your page|Good morning/i.test(await text()));
+/*
+  Asked for what the page IS, not for a phrase it used to carry.
+
+  This read `/your page|Good morning/`, which was the old subtitle. My Page took the design's own
+  header on 18 September — the person's name, their role, and "YOUR SPEC SHEET FOR THE DAY" — and
+  this check went red on CI for two commits while the page was working perfectly. Exactly the fault
+  the org chart's "Team of" check had: a browser check that asserts yesterday's wording reports a
+  product fault every time the product is improved, and reports nothing at all when it breaks.
+
+  Both branches are named: a business with a period open gets the design's header, one without gets
+  the greeting. Either is a page that loaded.
+*/
+check(
+  'My page loads',
+  /your spec sheet for the day|your page|Good morning/i.test(await text()),
+);
+check('  and it says whose page it is', (await text()).includes('Dane Whitmore'));
 check('the improvement box is on it', (await text()).includes('Improvement opportunity'));
 check('the register starts empty and says so', /Nothing logged yet/i.test(await text()));
 
