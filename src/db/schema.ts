@@ -302,6 +302,46 @@ export const systemConnections = pgTable('system_connections', {
   createdAt: text('created_at').notNull(),
 }, t => [index('system_connections_tenant').on(t.tenantId)]).enableRLS();
 
+/**
+ * The credential behind a connection, sealed.
+ *
+ * Its own table rather than columns on `system_connections`, for two reasons that are both about
+ * blast radius. A connection row is read on My Page, on Connections, by the J curve and by the
+ * automation review; a credential is read by exactly one thing, at the moment of a fetch. Keeping
+ * them apart means the common query cannot accidentally carry a token into a page render or a log
+ * line. And a dump of `system_connections` — which is ordinary business structure — stops being a
+ * dump of everybody's accounts.
+ *
+ * `refreshTokenSealed` is AES-256-GCM (see lib/secret-box) and is NEVER written in the clear. The
+ * access token is deliberately not stored at all: it lasts thirty minutes, so keeping it buys one
+ * fetch and adds a second secret at rest.
+ *
+ * `xeroOrgId` is what Xero's own API calls `tenantId`. Renamed here so the word "tenant" in this
+ * codebase only ever means a SPEC customer — see the note at the top of lib/xero.
+ */
+export const connectionCredentials = pgTable('connection_credentials', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  connectionId: text('connection_id').notNull().references(() => systemConnections.id),
+  /** Which vendor this is for. One row per connection; `xero` is the first. */
+  provider: text('provider').notNull(),
+  /** Xero's organisation id, sent as the Xero-tenant-id header. Not a SPEC tenant. */
+  xeroOrgId: text('xero_org_id'),
+  /** The organisation's name as Xero gave it, so a person can tell which books these are. */
+  orgName: text('org_name'),
+  /** Sealed. See lib/secret-box. A plaintext token here would be sixty days of somebody's accounts. */
+  refreshTokenSealed: text('refresh_token_sealed').notNull(),
+  /** What the consent actually covers, as Xero granted it — never what we asked for. */
+  scope: text('scope'),
+  /** When the refresh token itself dies. Xero gives sixty days and rotates on every use. */
+  expiresAt: text('expires_at'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at'),
+}, t => [
+  index('connection_credentials_tenant').on(t.tenantId),
+  uniqueIndex('connection_credentials_connection').on(t.connectionId),
+]).enableRLS();
+
 // The deployment journey, one row per step per tenant. See docs/SPEC_Deployment_Journey.md.
 export const journeySteps = pgTable('journey_steps', {
   id: text('id').primaryKey(),
