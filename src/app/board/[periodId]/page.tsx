@@ -106,6 +106,8 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
   return (
     <Shell
       title={`Board pack — ${period.period}`}
+      kicker="Board pack · generated from the data"
+      headline={period.period}
       subtitle={`${tenant.name} · ${CADENCE[cadence].label} board · ${bo ? (bo.approvedBy ? `approved by ${bo.approvedBy}` : 'awaiting approval') : 'not yet generated'}`}
     >
       {/* ---------- Layer one: the two-minute read ---------- */}

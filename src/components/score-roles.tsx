@@ -107,7 +107,21 @@ export function ScoreRoles({ roles, periodId, locked, liveSources }: {
             {role.rows.map(r => (
               <div key={r.criterionId} className="card-inset" style={{ borderLeft: `4px solid ${TONE[r.tone]}` }}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-sm text-ink">{r.text}</span>
+                  <span className="min-w-0">
+                    <span className="block text-sm text-ink">{r.text}</span>
+                    {/*
+                      The target reads as part of the MEASURE, not as a third box to fill in.
+
+                      It was a labelled read-only field the same size and shape as the two live
+                      ones, which made every row three controls wide when only two of them can be
+                      typed into — and the design puts the target as a quiet line under the name.
+                      Eight of these per role, times every role in the business, is the difference
+                      between a page you work down and a form you dread.
+                    */}
+                    <span className="mt-0.5 block font-mono text-xs text-ink-light">
+                      Target {targetLabel(r.target, r.proposed)}
+                    </span>
+                  </span>
                   <span className="flex items-center gap-2">
                     <span className="label-caps">{PILLAR_META[r.pillar].name}</span>
                     <span
@@ -119,12 +133,7 @@ export function ScoreRoles({ roles, periodId, locked, liveSources }: {
                   </span>
                 </div>
 
-                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_1.2fr]">
-                  <label className="text-xs text-ink-light">
-                    Target
-                    <div className="input mt-1 font-mono text-[13.5px]">{targetLabel(r.target, r.proposed)}</div>
-                  </label>
-
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   <label className="text-xs text-ink-light">
                     Result
                     {r.readOnly ? (

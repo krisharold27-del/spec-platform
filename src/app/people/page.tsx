@@ -185,7 +185,9 @@ export default async function People({ searchParams }: { searchParams: Promise<{
   return (
     <Shell
       title="People"
-      subtitle={hiring ? 'The roles you need filled, and who is in front of you.' : 'Who is where, and who is clear to work.'}
+      kicker="People · one stop shop"
+      headline={hiring ? 'Recruit against the scorecard they will hold' : 'The HR system for people businesses'}
+      subtitle={hiring ? 'The roles you need filled, and who is in front of you.' : 'Who is where, who is clear to work, and what each of them is measured on.'}
     >
       {/*
         The two lines the design carries above this page and the product did not.

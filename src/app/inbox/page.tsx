@@ -132,7 +132,9 @@ export default async function Inbox() {
   return (
     <Shell
       title="Approvals"
-      subtitle={items.length ? `${items.length} waiting on you` : 'Nothing is waiting on you'}
+      kicker="Approvals · everything waiting on a person"
+      headline={items.length === 1 ? 'One thing is waiting on you' : items.length ? `${items.length} things are waiting on you` : 'Nothing is waiting on you'}
+      subtitle="Everything in SPEC that needs a person to decide, in one place, oldest first."
     >
       {items.length ? (
         <ul className="grid gap-4">

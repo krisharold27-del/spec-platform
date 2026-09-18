@@ -627,7 +627,8 @@ export default async function MyPage({
         Grouped the way somebody asks for them, and ordered by how often they are needed. See
         lib/doors, which is also what a test walks to prove nothing has become unreachable.
       */}
-      <section className="mt-12 border-t border-ink/10 pt-8">
+      {/* `id` because "All pages" in the header opens My Page here — see lib/doors. */}
+      <section id="everywhere" className="mt-12 scroll-mt-20 border-t border-ink/10 pt-8">
         <h2 className="font-serif text-xl text-ink">Everywhere else in SPEC</h2>
         <p className="mt-1 max-w-2xl text-sm text-ink-light">
           There is no menu. Everything opens from here, and the mark at the top of any screen brings

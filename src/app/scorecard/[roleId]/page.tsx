@@ -117,7 +117,9 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
   return (
     <Shell
       title={`${role.title} — scorecard`}
-      subtitle={`${period.period} · ${period.status === 'locked' ? 'locked' : 'open'} · ${cadence.label.toLowerCase()} board`}
+      kicker={`${period.period} · ${period.status === 'locked' ? 'locked' : 'open'} · ${cadence.label.toLowerCase()} board`}
+      headline={`${role.title} SPEC scorecard`}
+      subtitle={`${role.holder?.name ?? role.pencilled ?? 'Vacant'} · what this role is measured on, and where it stands this month.`}
     >
       {/*
         The way back into the numbers, offered ALWAYS rather than only when there are none.

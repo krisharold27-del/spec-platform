@@ -149,7 +149,7 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
  * Built from `doors()` rather than written out again, so a route that is renamed cannot leave the
  * bar pointing at nothing while the directory quietly stays right.
  */
-export const NAV_HREFS = ['/my-page', '/org', '/scoring', '/board', '/boards', '/connections'] as const;
+export const NAV_HREFS = ['/my-page', '/org', '/scoring', '/board', '/boards', '/connections', '/my-page#everywhere'] as const;
 
 export function navDoors(f: DoorsFor): Door[] {
   const all = allDoors(f);
@@ -165,6 +165,14 @@ export function navDoors(f: DoorsFor): Door[] {
     { href: '/board', label: 'Board pack', note: 'What went to the Board for the last closed month.' },
     find('/boards') ?? { href: '/boards', label: 'Boards', note: 'Artifacts your team pins and runs projects through.' },
     find('/connections') ?? { href: '/connections', label: 'Connections', note: 'The systems that feed your numbers.' },
+    /*
+      The last item on the design's bar, and the reason the bar can stay at six.
+
+      SPEC has far more than six screens and always will. The complete grouped directory is at the
+      foot of My Page — this is the door to it, so the bar never has to grow and nothing is ever
+      only reachable by knowing it is there. Kris drew it on the header he sent on 18 September.
+    */
+    { href: '/my-page#everywhere', label: 'All pages', note: 'Every screen in SPEC, grouped.' },
   ];
 }
 

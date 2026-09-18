@@ -69,6 +69,8 @@ export default async function Connections({
   return (
     <Shell
       title="Connections"
+      kicker="Connection centre"
+      headline="You talk to Claude. The systems talk to each other."
       subtitle={`${live.length} of ${connections.length} feeding numbers · ${tenant.name}`}
     >
       {/* Kris's own description of running JBI, and the sharpest promise the product makes. */}

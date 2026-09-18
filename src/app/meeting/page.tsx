@@ -44,7 +44,12 @@ export default async function WeeklyMeeting() {
   }
 
   return (
-    <Shell title={`Weekly meeting · ${when}`} subtitle="Twenty minutes, three items, written down.">
+    <Shell
+      title="Weekly meeting"
+      kicker={`Weekly meeting · ${when}`}
+      headline="Twenty minutes, three items, written down."
+      subtitle="The agenda is written from your numbers, so nobody arrives wondering what it is about — and what was decided is still here next week."
+    >
       <div className="grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="grid gap-6">
           <section className="card">

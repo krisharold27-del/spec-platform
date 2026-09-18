@@ -106,9 +106,16 @@ describe('the navigation bar', () => {
   */
   const f = { businesses: 1, runsSpec: false };
 
-  it('IS SIX ITEMS, not nineteen', () => {
-    // The argument was never that navigation is wrong. It was that nineteen of them is.
-    expect(navDoors(f)).toHaveLength(6);
+  it('IS SEVEN ITEMS, not nineteen', () => {
+    /*
+      The argument was never that navigation is wrong. It was that nineteen of them is.
+
+      Seven since 18 September, when Kris sent the header he wants: the six screens plus **All
+      pages**, which is the door to the full grouped directory at the foot of My Page. That last
+      item is what lets the bar stay this short — SPEC has far more than seven screens and always
+      will, and nothing may be reachable only by knowing it is there.
+    */
+    expect(navDoors(f)).toHaveLength(7);
     expect(navDoors(f).length).toBeLessThan(allDoors(f).length);
   });
 
@@ -119,7 +126,8 @@ describe('the navigation bar', () => {
       failure that made the old dropdown worth deleting.
     */
     for (const d of navDoors(f)) {
-      const path = d.href.replace(/^\//, '');
+      // An anchor is a place ON a page, so the page is what has to exist.
+      const path = d.href.replace(/^\//, '').replace(/#.*$/, '');
       const dir = join(process.cwd(), 'src/app', path);
       expect(existsSync(join(dir, 'page.tsx')), `${d.href} has no page`).toBe(true);
     }
@@ -131,7 +139,7 @@ describe('the navigation bar', () => {
 
   it('and every item carries the words the design uses', () => {
     const labels = navDoors(f).map(d => d.label);
-    expect(labels).toEqual(['My page', 'Org chart', 'Scoring', 'Board pack', 'Boards', 'Connections']);
+    expect(labels).toEqual(['My page', 'Org chart', 'Scoring', 'Board pack', 'Boards', 'Connections', 'All pages']);
   });
 
   it('THE BAR AND THE DIRECTORY CANNOT DISAGREE', () => {
@@ -143,7 +151,8 @@ describe('the navigation bar', () => {
       */
     const directory = new Set(allDoors(f).map(d => d.href));
     for (const d of navDoors(f)) {
-      if (d.href === '/my-page' || d.href === '/board') continue;
+      // All pages points AT the directory, so it cannot be in it.
+      if (d.href === '/my-page' || d.href === '/board' || d.href === '/my-page#everywhere') continue;
       expect(directory.has(d.href), `${d.href} is in the bar but not the directory`).toBe(true);
     }
   });

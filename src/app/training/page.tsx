@@ -100,6 +100,8 @@ export default async function Training() {
   return (
     <Shell
       title="Training"
+      kicker="SPEC training"
+      headline="Assign the path to the role"
       subtitle="Trained on the role, not on the software. Every module is tied to a number somebody owns."
     >
       {specModules.length > 0 && (

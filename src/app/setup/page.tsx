@@ -76,7 +76,9 @@ export default async function Setup() {
 
   return (
     <Shell
-      title={`Setting up ${tenant.name}`}
+      title="Setting up"
+      kicker={`Week one · setting ${tenant.name} up`}
+      headline="Roles first. People second."
       subtitle={`${all.length} steps, in the only order they work in. Drawing the whole business is free.`}
     >
       <section className="card">

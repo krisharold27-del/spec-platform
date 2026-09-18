@@ -120,7 +120,12 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   }
 
   return (
-    <Shell title="Administration" subtitle="Administration, not management — your scope still decides what you manage.">
+    <Shell
+      title="Administration"
+      kicker="Admin · who can do what"
+      headline="Permissions follow the role, not the person"
+      subtitle="Administration, not management — your scope still decides what you manage."
+    >
       {/*
         The sentence that stops the most common misunderstanding: people ask for "access for Jo",
         and what they mean is a seat on a role. Move Jo and what she can see moves with her.

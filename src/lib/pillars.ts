@@ -141,4 +141,14 @@ export const BRAND_COLOUR: Record<Pillar, string> = {
 };
 
 /** No score renders as a dash, never as 0%. */
-export const pct = (n: number | null) => (n === null ? '—' : `${Math.round(n * 100)}%`);
+/**
+ * A score as a percentage. Nothing marked reads **0%**, not a dash.
+ *
+ * Kris, 18 September: *"i dont like the dashes they should 0's percent"*. A dash asks the reader
+ * what happened; nought is the honest answer, because nothing has been scored. Every place this is
+ * used carries a line beside it saying the month has not been marked — "Not marked yet", "Nothing is
+ * scored yet this month" — so nought is never mistaken for a month that was marked and failed. That
+ * distinction is load-bearing: an unscored role is left OUT of every average rather than counted as
+ * zero, which is asserted in tests/scoring.test.ts.
+ */
+export const pct = (n: number | null) => (n === null ? '0%' : `${Math.round(n * 100)}%`);

@@ -105,23 +105,11 @@ export default async function MonthlyScoring() {
 
   return (
     <Shell
-      title={`Monthly scoring · ${period.period}`}
-      subtitle="Close the month. Then nobody argues about it."
+      title="Monthly scoring"
+      kicker={`Monthly scoring · ${period.period}`}
+      headline="Close the month. Then nobody argues about it."
+      subtitle="Every number confirmed against what it was supposed to be, with the reason written down beside anything that missed. Then it locks, and nobody re-litigates it in March."
     >
-      {/*
-        What closing the month changes, said BEFORE they do it. Locking is irreversible and files a
-        performance record against every person in the business — a leader should meet that fact
-        here rather than discover it afterwards.
-      */}
-      <section className="callout mb-6 max-w-3xl">
-        <div className="font-serif text-lg text-ink">What closing the month changes</div>
-        <ul className="mt-2 grid gap-1 text-sm text-ink-light">
-          <li>Every card becomes a dated performance record — what was expected, what happened, and who marked it.</li>
-          <li>Nothing can be quietly rewritten afterwards. A correction is an amendment, shown beside the original.</li>
-          <li>The board pack is generated from it, and the next month opens with the same roles, KPIs and targets.</li>
-          <li>Lock what you know. A number still waiting on the P&amp;L stays pending and arrives later as an amendment.</li>
-        </ul>
-      </section>
       <section className="card">
         <div className="flex flex-wrap items-center gap-3">
           {(['open', 'submitted', 'locked'] as PeriodStatus[]).map(s => {
@@ -242,7 +230,18 @@ export default async function MonthlyScoring() {
         </form>
       )}
 
-      <h2 className="mt-10 font-serif text-xl text-ink">Score a role</h2>
+      {/*
+        ── Two columns, because the right one is what you score AGAINST ──────────────────────────
+
+        The design puts the work on the left and the context on the right: where the month lands,
+        who is on an Ace run, what is still to sign. The product stacked all of it underneath, so
+        the figure a leader is trying to move was two screens below the boxes they were typing in
+        and nobody looked at it until they had finished.
+      */}
+      <div className="mt-10 grid items-start gap-6 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid gap-6">
+      <div>
+      <h2 className="font-serif text-xl text-ink">Score a role</h2>
       <p className="text-sm text-ink-light">
         A fed number is read-only — it came from a system, and hand-editing it would break the trace back.
       </p>
@@ -277,8 +276,8 @@ export default async function MonthlyScoring() {
           }))}
         />
       </div>
+      </div>
 
-      <div className="mt-10 grid items-start gap-6 lg:grid-cols-2">
         <section className="card">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="font-serif text-xl text-ink">Flagged before sign-off</h2>
@@ -320,19 +319,36 @@ export default async function MonthlyScoring() {
             </p>
           )}
         </section>
+        </div>
 
         <div className="grid gap-6">
           <section className="card">
             <h2 className="font-serif text-xl text-ink">Where the month lands</h2>
             <p className="mt-1 text-xs text-ink-light">Live as you score. This is the figure the board sees.</p>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {/*
+              Four labelled bars, which is how the design draws it — not four small boxes with a
+              coloured rule on top. A bar says how far along the pillar is at a glance and they can
+              be compared down the column; four boxes have to be read one at a time.
+            */}
+            <div className="mt-4 grid gap-3.5">
               {PILLARS.map(p => {
                 const value = rollup.scoredCount ? rollup.team.pillars[p] : null;
                 const tone = value === null ? LIGHT_COLOUR.pending : value >= 0.9 ? LIGHT_COLOUR.green : value >= 0.75 ? LIGHT_COLOUR.amber : LIGHT_COLOUR.red;
                 return (
-                  <div key={p} className="card-inset" style={{ borderTop: `4px solid ${tone}` }}>
-                    <div className="label-caps">{PILLAR_META[p].name}</div>
-                    <div className="mt-1 font-serif text-2xl text-ink">{pct(value)}</div>
+                  <div key={p}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-2.5 text-sm text-ink">
+                        <span aria-hidden className="block h-3 w-3 shrink-0 rounded-full" style={{ background: tone }} />
+                        {PILLAR_META[p].name}
+                      </span>
+                      <span className="font-serif text-lg leading-none text-ink">{pct(value)}</span>
+                    </div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-cream">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${Math.round((value ?? 0) * 100)}%`, background: tone }}
+                      />
+                    </div>
                   </div>
                 );
               })}
@@ -365,19 +381,45 @@ export default async function MonthlyScoring() {
               ))}
             </ol>
           </section>
+
+          {/*
+            Every role's run, beside the month it is being scored in.
+
+            The Ace was only ever visible on the one scorecard whose roleId was in the URL, which
+            meant the person on their third month could see it and the director APPROVING the
+            doubled payment could not see it anywhere at all. It belongs here, in the column you
+            score against.
+          */}
+          <AceWatch rows={aces} period={period.period} />
         </div>
       </div>
 
-      {/*
-        Every role's run, on the page where the month is signed off.
-
-        The Ace was only ever visible on the one scorecard whose roleId was in the URL, which meant
-        the person on their third month could see it and the director APPROVING the doubled payment
-        could not see it anywhere at all. It belongs here.
-      */}
       <GoalsPanel goals={goals} />
 
-      <AceWatch rows={aces} period={period.period} />
+      {/*
+        What closing the month changes — at the FOOT of the page, not the head of it.
+
+        It opened the screen as a full-width wall of four bullet points, so the first thing a leader
+        met on the page they use every month was a paragraph about the page. The facts matter and
+        are kept word for word; they belong where the design puts its explaining, which is under the
+        work rather than in front of it.
+      */}
+      <section className="mt-14 border-t border-ink/10 pt-10">
+        <h2 className="font-serif text-xl text-ink">What closing the month changes</h2>
+        <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[
+            ['A dated record', 'Every card becomes a performance record — what was expected, what happened, and who marked it.'],
+            ['Nothing rewritten quietly', 'A correction afterwards is an amendment, shown beside the original rather than replacing it.'],
+            ['The board pack follows', 'It is generated from this, and the next month opens with the same roles, KPIs and targets.'],
+            ['Lock what you know', 'A number still waiting on the P&L stays pending and arrives later as an amendment.'],
+          ].map(([head, body]) => (
+            <article key={head} className="rounded-2xl bg-surface p-6">
+              <h3 className="font-serif text-[17px] leading-6 text-ink">{head}</h3>
+              <p className="mt-3 text-sm leading-[22px] text-ink/70">{body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <Problems screen="scoring" />
 

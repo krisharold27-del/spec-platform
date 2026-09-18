@@ -215,7 +215,7 @@ export default async function Boards({ searchParams }: {
   const shown = visible(all, filter);
 
   return (
-    <Shell title="Boards" subtitle={BOARDS_INTRO}>
+    <Shell title="Boards" headline="Boards" subtitle={BOARDS_INTRO}>
       <div className="flex flex-wrap items-center gap-2">
         <Link
           href="/boards"

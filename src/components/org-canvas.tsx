@@ -707,7 +707,9 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
               <button
                 type="button"
                 onClick={() => setSelectedId(null)}
-                className="text-sm text-ink-light underline hover:text-rust"
+                /* A floor, not a size — the usability journey holds every pressable thing to 24px,
+                   and this was 20. */
+                className="inline-flex min-h-[24px] items-center text-sm text-ink-light underline hover:text-rust"
               >
                 Done
               </button>

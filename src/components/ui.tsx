@@ -10,6 +10,10 @@ import { LookBar } from './look-bar';
 import { navDoors } from '@/lib/doors';
 import { ReadOnlyNotice } from './read-only-notice';
 import { PILLAR_META, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk, pct } from '@/lib/pillars';
+import { NavBar } from './nav-bar';
+import { and, eq } from 'drizzle-orm';
+import { db, schema } from '@/db';
+import { currentPeriod } from '@/lib/period';
 
 // Re-exported so existing pages keep importing them from here; they live in lib/pillars because a
 // client component must be able to reach them without pulling the server's request context in too.
@@ -65,6 +69,29 @@ export async function Shell({ title, kicker, headline, subtitle, children }: {
   // nothing while the grouped list quietly stays right.
   const nav = me ? navDoors({ businesses: businesses.length, runsSpec }) : [];
 
+  /*
+    Whether the bell has a dot on it.
+
+    Two cheap reads, and only two: an approval filed against this business that nobody has decided,
+    and a month handed up for sign-off. Everything else the Inbox shows is DERIVED — it walks this
+    person's scope for vacancies, finished training paths and changed targets — and doing that on
+    every page load would put the slowest query in the product in the header of every screen.
+
+    So the dot under-reports, on purpose and never the other way round: it is never on when nothing
+    is waiting, and it carries no number. See the comment on the bell itself.
+  */
+  let waiting = false;
+  if (me && !looking) {
+    const [pending, period] = await Promise.all([
+      db.select({ id: schema.approvals.id }).from(schema.approvals)
+        .where(and(eq(schema.approvals.tenantId, me.tenantId), eq(schema.approvals.state, 'waiting')))
+        .limit(1)
+        .catch(() => []),
+      currentPeriod(me.tenantId).catch(() => null),
+    ]);
+    waiting = pending.length > 0 || period?.status === 'submitted';
+  }
+
   return (
     <div className="min-h-screen">
       {looking && <LookBar />}
@@ -96,31 +123,55 @@ export async function Shell({ title, kicker, headline, subtitle, children }: {
             see, and handing them a bar into Scoring and Connections offers writes that will be
             refused — see the guard in lib/guard.
           */}
-          {!looking && nav.length > 0 && (
-            <nav aria-label="SPEC" className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              {nav.map(d => (
-                <Link
-                  key={d.href}
-                  href={d.href}
-                  title={d.note}
-                  /* A floor, not a size: these stay quiet text and stop being 16px tall on a phone. */
-                  className="inline-flex min-h-[28px] items-center text-ink-light hover:text-rust"
-                >
-                  {d.label}
-                </Link>
-              ))}
-            </nav>
-          )}
-          {/*
-            The switcher, only for somebody who really has more than one business.
+          {!looking && nav.length > 0 && <NavBar doors={nav} />}
 
-            `myBusinesses()` was already being fetched on every page in the product and the result
-            thrown away — a query per page load for nothing. It has a use now.
-          */}
-          {!looking && businesses.length > 1 && (
-            <Link href="/businesses" className="inline-flex min-h-[28px] items-center text-sm text-ink-light hover:text-rust">
-              {businesses.find(b => b.tenantId === me?.tenantId)?.name ?? 'Switch business'} ▾
-            </Link>
+          {!looking && me && (
+            <div className="ml-auto flex items-center gap-4">
+              {/*
+                The bell, which Kris drew on the header with a dot on it.
+
+                What the dot means is exactly this: **something is waiting that SPEC already knows
+                about without doing any work** — an approval filed against this business, or a month
+                handed up and not yet signed. Two queries, both of which the header can afford.
+
+                It deliberately does NOT try to be the Inbox's count. The Inbox works out vacancies,
+                finished training paths and changed targets by walking this person's whole scope,
+                which is far too much to do on every page load — so the dot can be absent while the
+                Inbox has items in it. The bell is a way IN, not a tally, which is why it carries no
+                number: a number that is quietly wrong is worse than no number. The Inbox is the
+                truth and is one press away.
+              */}
+              <Link
+                href="/inbox"
+                aria-label={waiting ? 'Approvals — something is waiting on you' : 'Approvals'}
+                title={waiting ? 'Something is waiting on you' : 'Approvals'}
+                className="relative inline-flex min-h-[28px] items-center text-lg leading-none hover:opacity-80"
+              >
+                <span aria-hidden>🔔</span>
+                {waiting && (
+                  <span
+                    aria-hidden
+                    className="absolute -right-0.5 -top-0.5 block h-2.5 w-2.5 rounded-full border border-surface"
+                    style={{ background: '#a63b26' }}
+                  />
+                )}
+              </Link>
+
+              {/*
+                The business name, top right, on every screen — the design's own placement and the
+                thing that answers "which company am I looking at" before anybody reads a number.
+
+                It used to appear only for somebody with more than one business, which meant the one
+                place the name belongs was empty for every single customer SPEC has.
+              */}
+              <Link
+                href="/businesses"
+                className="inline-flex min-h-[28px] items-center text-sm text-ink hover:text-rust"
+              >
+                {businesses.find(b => b.tenantId === me.tenantId)?.name ?? 'Your business'}
+                <span aria-hidden className="ml-1 text-ink-light">▾</span>
+              </Link>
+            </div>
           )}
           {looking && (
             /* A visitor never signed in, so offering to sign them out is nonsense. They get the way

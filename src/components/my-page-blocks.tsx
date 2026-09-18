@@ -170,7 +170,9 @@ export function WhoAndWhen({ name, role, businessName, date }: {
         <p className="label-caps mt-1 text-rust-700">
           {date} &middot; your SPEC sheet for the day
         </p>
-        <p className="mt-1 text-sm text-ink-light">{businessName}</p>
+        {/* The business name lives in the header now, top right on every screen, where Kris drew
+            it. Printing it again three lines below is the habit this whole pass is about. */}
+        <span className="sr-only">{businessName}</span>
       </div>
     </div>
   );
