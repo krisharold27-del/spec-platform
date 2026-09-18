@@ -135,3 +135,96 @@ export function AskBar({ available, href }: { available: boolean; href: string }
     </Link>
   );
 }
+
+
+/**
+ * Who this is, and what day it is — the design's header, which the product did not have.
+ *
+ * Kris, 18 September, with a close-up of his own prototype: *"should look like this"*. The product
+ * opened with "Good morning, Kris." and a grey line of context. The design opens with an initials
+ * disc, the person's name beside the role they hold, and the date in rust caps calling the page what
+ * it is: YOUR SPEC SHEET FOR THE DAY.
+ *
+ * It is not decoration. This page is opened by everybody in the business, and the first question it
+ * has to answer is *which of my roles am I looking at* — the name beside the role answers it in one
+ * line, where the old subtitle buried it in a sentence.
+ */
+export function WhoAndWhen({ name, role, businessName, date }: {
+  name: string; role: string; businessName: string; date: string;
+}) {
+  // Two letters from the name as given. A single-word name gives one, which is correct rather than
+  // padded — an avatar reading "K" is honest and an avatar reading "KK" is invented.
+  const initials = name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('');
+  return (
+    <div className="mb-6 flex items-center gap-4">
+      <span
+        aria-hidden
+        className="grid h-14 w-14 shrink-0 place-content-center rounded-full bg-rust font-serif text-lg text-cream"
+      >
+        {initials}
+      </span>
+      <div className="min-w-0">
+        <h1 className="font-serif text-2xl leading-tight tracking-tight text-ink sm:text-3xl">
+          {name} <span className="text-ink-light">&middot;</span> {role}
+        </h1>
+        <p className="label-caps mt-1 text-rust-700">
+          {date} &middot; your SPEC sheet for the day
+        </p>
+        <p className="mt-1 text-sm text-ink-light">{businessName}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The Snap Score, as a band across the page rather than a chip inside another card.
+ *
+ * It was a pill in the corner of the improvement register reading "Snap Score — too early to read".
+ * The design gives it the width of the page, a ring, the sentence that says what it is NOT, and the
+ * one button on the screen that starts something.
+ *
+ * The size is the argument. This is the read of whether the business actually closes things out —
+ * "not a count of problems, a read of the engine" — and it was smaller than the word beside it.
+ */
+export function SnapBand({ pct, early, children }: {
+  pct: number | null; early: boolean; children?: React.ReactNode;
+}) {
+  const tone = early ? LIGHT_COLOUR.pending : pct! >= 75 ? LIGHT_COLOUR.green : pct! >= 45 ? LIGHT_COLOUR.amber : LIGHT_COLOUR.red;
+  return (
+    <section
+      aria-label="Snap Score"
+      className="mb-8 flex flex-wrap items-center gap-5 rounded-lg border-l-4 bg-surface p-5"
+      style={{ borderLeftColor: tone }}
+    >
+      {/*
+        The ring, drawn with a conic gradient rather than an SVG: one element, no library, and it
+        reads as a dial at a glance. Hollow while the register is too young to say anything, because
+        a full ring with no number behind it would be a picture of a score that does not exist.
+      */}
+      <span
+        aria-hidden
+        className="grid h-20 w-20 shrink-0 place-content-center rounded-full"
+        style={{
+          background: early
+            ? `conic-gradient(${LIGHT_COLOUR.pending}22 0turn, ${LIGHT_COLOUR.pending}22 1turn)`
+            : `conic-gradient(${tone} ${pct! / 100}turn, ${tone}1f ${pct! / 100}turn)`,
+        }}
+      >
+        <span className="grid h-[58px] w-[58px] place-content-center rounded-full bg-surface font-serif text-base text-ink">
+          {early ? '—' : `${pct}`}
+        </span>
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 className="font-serif text-xl text-ink">
+          Snap Score {early ? '— too early to read' : `— ${pct}%`}
+        </h2>
+        <p className="label-caps mt-0.5 text-rust-700">Snap it in line</p>
+        <p className="mt-1 max-w-xl text-sm text-ink-light">
+          Not a count of problems &mdash; a read of the engine. A business with twenty logged and
+          nineteen closed is working; one with three logged and three reopened is not.
+        </p>
+      </div>
+      {children}
+    </section>
+  );
+}

@@ -6,7 +6,8 @@ import { Shell, PILLAR_META, pct } from '@/components/ui';
 import { TodoList, AskPanel, ChangeList, MeetingLog, TrainingPath } from '@/components/today-blocks';
 import { ImprovementBox, ImprovementRegister } from '@/components/improvement-register';
 import { MailBlock } from '@/components/mail-block';
-import { WhereYouSit, NobodyBelow, MyWeek, AskBar } from '@/components/my-page-blocks';
+import { snapScore } from '@/lib/register';
+import { WhereYouSit, NobodyBelow, MyWeek, AskBar, WhoAndWhen, SnapBand } from '@/components/my-page-blocks';
 import { rhythm, rhythmLine } from '@/lib/rhythm';
 import { myMail } from '@/lib/mail';
 import { registerFor } from '@/lib/register-data';
@@ -79,6 +80,8 @@ export default async function MyPage({
   const canWrite = !(await currentLook().catch(() => null));
   const teamNames = team.map(m => m.holder).filter((n): n is string => !!n);
   const register = await registerFor(user.tenantId, user.name, teamNames);
+  // The same read the register below prints as a pill; the band wants it at the top of the page.
+  const snap = snapScore(register);
   const mail = await myMail(user.tenantId, user.id);
 
   // Every door out of this page. The group view only appears for somebody actually in a group, and
@@ -143,15 +146,30 @@ export default async function MyPage({
   const live = feeds.filter(f => f.status === 'live');
 
   return (
-    <Shell
-      title={`Good morning, ${firstName}.`}
-      subtitle={`${today} · your page · ${data.myRole.title} at ${tenant.name}`}
-    >
-      <p className="-mt-4 mb-8 max-w-2xl text-sm text-ink-light">
+    <Shell title="" subtitle="">
+      {/*
+        The design's header: who this is, which role, and what day — with the page named out loud.
+        It replaced "Good morning, Kris." over a grey line of context. This page is opened by
+        everybody in the business, and the first question it has to answer is which of my roles am I
+        looking at.
+      */}
+      <WhoAndWhen name={user.name} role={data.myRole.title} businessName={tenant.name} date={today} />
+
+      <p className="mb-8 max-w-2xl text-sm text-ink-light">
         {scored
           ? standing(todos.length, myScore)
           : 'Checklist view · this role is not individually scored. You keep people safe, log your hours and finish your training; the numbers are carried by the role above you.'}
       </p>
+
+      {/*
+        The Snap Score across the page, with the one button that starts something — the design's
+        band. It was a pill in the corner of the register below, smaller than the word beside it.
+      */}
+      {scored && (
+        <SnapBand pct={snap.pct} early={snap.early}>
+          <a href="#improvement" className="btn-primary shrink-0">Improvement opportunity</a>
+        </SnapBand>
+      )}
 
       {/*
         The first thirty seconds of being a customer.
@@ -205,29 +223,19 @@ export default async function MyPage({
         order, in the neutral grey, and one line saying what turns them on. The full cards come back
         the moment a month is marked, which is the moment they are worth the room.
       */}
-      {scored && nothingMarkedYet && (
-        <section aria-label="My four pillars" className="rounded-lg border border-ink/10 bg-surface p-5">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex gap-1.5" aria-hidden>
-              {PILLARS.map(p => (
-                <span
-                  key={p}
-                  className="grid h-9 w-9 place-content-center rounded-lg font-serif text-base text-cream"
-                  style={{ background: LIGHT_COLOUR.pending }}
-                >
-                  {PILLAR_META[p].letter}
-                </span>
-              ))}
-            </div>
-            <p className="min-w-0 flex-1 text-sm text-ink-light">
-              Safety, People, Earnings, Compliance. They light up the first time you mark a month —
-              nothing is counted against you until then.
-            </p>
-          </div>
-        </section>
-      )}
+      {/*
+        ── The four cards, on day one as well ───────────────────────────────────────────────────
 
-      {scored && !nothingMarkedYet && (
+        These used to collapse to a compact grey strip until a month was marked, on the reasoning
+        that four large cards saying nothing four times is worse than one line. That reasoning was
+        wrong, and Kris found it by opening the product beside his own design: the four pillar cards
+        ARE SPEC. Day one is the only day a new customer ever sees, and it was the one day the most
+        recognisable thing on the page was missing.
+
+        An unmarked card is not empty. It carries the pillar, what it will measure, and the way in to
+        set it — which is more use on day one than at any other time.
+      */}
+      {scored && (
       <section aria-label="My four pillars" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {PILLARS.map(p => {
           const v = myScore.pillars[p];
@@ -243,9 +251,10 @@ export default async function MyPage({
                 <span className="label-caps">{PILLAR_META[p].name}</span>
                 <Dot light={l} size={14} />
               </div>
-              <div className="mt-3 font-serif text-4xl text-ink">{pct(v)}</div>
-              <div className="mt-1 text-sm" style={{ color: l === 'pending' ? undefined : LIGHT_COLOUR[l] }}>
-                {LIGHT_LABEL[l]}
+              {/* The design's number is the anchor of the card, not a line in it. */}
+              <div className="mt-3 font-serif text-5xl leading-none text-ink">{v === null ? '—' : pct(v)}</div>
+              <div className="mt-2 text-sm" style={{ color: l === 'pending' ? undefined : LIGHT_COLOUR[l] }}>
+                {v === null ? 'Not marked yet' : LIGHT_LABEL[l]}
               </div>
               <p className="mt-2 text-xs text-ink-light">{pillarNote(myRows, p)}</p>
               <span className="mt-3 block text-xs text-rust-700">Open my KPIs →</span>
@@ -263,7 +272,7 @@ export default async function MyPage({
         still be here next year if nobody names it. It is also the same box the front door offers a
         stranger — so a problem raised before anybody had an account lands in exactly this list.
       */}
-      <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
+      <div id="improvement" className="mt-8 grid items-start gap-6 lg:grid-cols-2">
         <ImprovementBox canWrite={canWrite} read />
         <ImprovementRegister
           entries={register}

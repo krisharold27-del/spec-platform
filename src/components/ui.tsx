@@ -124,7 +124,16 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">
-        <h1 className="font-serif text-2xl tracking-tight text-ink">{title}</h1>
+        {/*
+          No title, no heading — rather than an EMPTY one.
+
+          My Page now carries the design's own header inside its children (name, role, the date), so
+          it passes no title. The Shell went on rendering `<h1></h1>` anyway, which put a blank
+          heading above the real one: `scripts/usability-journey.mjs` checks that every page says
+          where you are by reading the first h1 or h2, and it found the empty one. A screen reader
+          would have hit the same thing and announced nothing.
+        */}
+        {title && <h1 className="font-serif text-2xl tracking-tight text-ink">{title}</h1>}
         {subtitle && <p className="mt-1 text-sm text-ink-light">{subtitle}</p>}
         <div className="mt-6">
           {lapsed && (
