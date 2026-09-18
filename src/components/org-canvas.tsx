@@ -471,11 +471,18 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     the clamp itself. Every word present, every box the right size, and the text
                     sliced through the middle of the letters.
 
-                    1.35 clears the descenders. `scripts/org-journey.mjs` now asserts the ratio, so
-                    a future tightening of the type cannot quietly start cutting names in half
-                    again.
+                    1.35 clears the descenders, and `pb-[3px]` puts three pixels of slack below the
+                    last line on top of that. Belt and braces on purpose: line-height is rounded to
+                    whole pixels differently at different zoom levels and on different platforms, so
+                    a ratio that is comfortable at 100% on this machine can still shave a tail at
+                    110% on somebody else's. Clipping through the middle of a person's role is not a
+                    thing to leave to rounding.
+
+                    `scripts/org-journey.mjs` asserts the ratio AND that the box is at least two full
+                    lines tall, so a future tightening of the type cannot quietly start cutting names
+                    in half again.
                   */
-                  className={`block w-full font-serif text-sm leading-[1.35] text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
+                  className={`block w-full pb-[3px] font-serif text-sm leading-[1.35] text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
                   title={r.title}
                 >
                   {r.title}

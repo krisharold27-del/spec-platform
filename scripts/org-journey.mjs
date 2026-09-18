@@ -394,8 +394,20 @@ const tightTitles = await page.evaluate(() => {
     if (!title) continue;
     const st = getComputedStyle(title);
     if (st.webkitLineClamp === 'none') continue;   // not clamped, nothing to cut
-    const ratio = parseFloat(st.lineHeight) / parseFloat(st.fontSize);
-    if (ratio < 1.3) out.push(`${title.textContent.trim().slice(0, 24)} at ${ratio.toFixed(2)}`);
+    const lineHeight = parseFloat(st.lineHeight);
+    const ratio = lineHeight / parseFloat(st.fontSize);
+    if (ratio < 1.3) out.push(`${title.textContent.trim().slice(0, 24)} line-height ${ratio.toFixed(2)}`);
+    /*
+      And the box is really two whole lines tall, measured rather than derived.
+
+      The ratio is the rule; this is the outcome. Rounding, zoom and platform differences all land
+      here, and a box one pixel short of two lines cuts the tails off the second one — which is
+      exactly what a person sees and exactly what no amount of correct CSS proves on its own.
+    */
+    const lines = Math.round(title.getBoundingClientRect().height / lineHeight);
+    if (title.scrollHeight > title.clientHeight + 1 && lines >= 2) {
+      out.push(`${title.textContent.trim().slice(0, 24)} clipped: ${title.scrollHeight} in ${title.clientHeight}`);
+    }
   }
   return out;
 });

@@ -187,6 +187,25 @@ if (!/\/(my-page|welcome|setup)/.test(page.url())) await stop(1, `could not sign
 
 await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
 
+/*
+  Open the import panel the way a person does.
+
+  It folds shut once a business has a chart — the design draws one quiet strip with an "Import your
+  structure" link, because importing is something a business does on the first morning and never
+  again, and the product used to end every visit to the chart in a wall of setup.
+
+  Pressed rather than forced open with JavaScript, because the thing worth checking is that the link
+  a person can see really opens the box. Kris's first complaint about this feature was that the
+  upload button did not work; a check that reaches past the control would never notice that again.
+*/
+const importPanel = page.locator('details', { hasText: 'Start from what you already have' }).first();
+if (!(await importPanel.evaluate(d => d.open).catch(() => true))) {
+  await importPanel.locator('summary').click();
+  await page.waitForTimeout(200);
+}
+check('"IMPORT YOUR STRUCTURE" REALLY OPENS THE BOX',
+  await importPanel.evaluate(d => d.open).catch(() => false));
+
 const picker = page.locator('input[type="file"]');
 const box = page.locator('#chart-paste');
 const said = () => page.locator('input[type="file"]').locator('xpath=../p').innerText();

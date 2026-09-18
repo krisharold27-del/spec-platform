@@ -155,10 +155,31 @@ if (!hasNumber) {
 const found = await page.evaluate(m => {
   const box = [...document.querySelectorAll('input[name$=":text"]')].find(i => i.value === m);
   if (!box) return null;
-  const tr = box.closest('tr');
+  /*
+    Paired by NAME, not by walking up to a table row.
+
+    This read `box.closest('tr')` and then looked inside it. The KPI screen stopped being a table on
+    18 September — Kris: *"i need it way easier to add kpi's"* — so `closest('tr')` returned null,
+    `agreed` came back null, and this check reported that SPEC had set a target on a page where the
+    box was empty and correct. It failed CI for two commits saying the opposite of what was true.
+
+    Every input on that screen is named `c:<criterion id>:<field>`, so the pair can be found by id
+    whatever the markup around them turns out to be. That is the only version of this check that
+    survives the page being redesigned, which it will be again.
+  */
+  const id = box.name.replace(/:text$/, '');
+  const target = document.querySelector(`input[name="${id}:target"]`);
   return {
-    agreed: tr?.querySelector('input[name$=":target"]')?.value ?? null,
-    proposed: tr?.lastElementChild?.textContent?.trim() ?? '',
+    agreed: target ? target.value : null,
+    /*
+      The proposal is the target box's PLACEHOLDER — "≥ 10% — proposed".
+
+      It used to be a column of its own. Putting it in the box is a better version of the same
+      promise: the suggested figure sits exactly where the agreed one goes, greyed, so it is
+      impossible to miss and impossible to mistake for something somebody signed up to. Reading the
+      placeholder is reading the thing the customer actually sees.
+    */
+    proposed: target ? target.placeholder : '',
   };
 }, metric);
 
@@ -172,7 +193,11 @@ if (found) {
   check('AND THE AGREED TARGET IS STILL EMPTY, waiting for the conversation',
     found.agreed === '', `"${found.agreed}"`);
   if (hasNumber) {
-    check('while the suggested figure is on record as a proposal', found.proposed !== '—', found.proposed);
+    check(
+      'while the suggested figure is on record as a proposal',
+      /proposed/i.test(found.proposed),
+      `"${found.proposed}"`,
+    );
   }
 }
 
