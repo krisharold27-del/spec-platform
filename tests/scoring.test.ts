@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   pillarScore, roleScore, teamScore, isSpec, band, gates, validateWeights,
-  type Criterion, type Assessment, type RoleScore, type Answer,
+  type Criterion, type Assessment, type RoleScore, type Answer, evenWeights,
 } from '../src/lib/scoring';
 import { answerFor } from '../src/lib/status';
 
@@ -269,5 +269,49 @@ describe('weight validation', () => {
     // The engine normalises by decided weight so scores still match the sheet, but the product must enforce 100%.
     expect(validateWeights(robCriteria)).toEqual([{ pillar: 'compliance', total: 0.85 }]);
     expect(validateWeights(janiceCriteria)).toEqual([{ pillar: 'earnings', total: 0.91 }]);
+  });
+});
+
+describe('evenWeights', () => {
+  /*
+    The KPI screen used to show a weight box on every row, defaulting to 50 — including the spare
+    row at the bottom. Typing a third criterion made the pillar 150%, the save was refused, and
+    everything typed across all four pillars had to be retyped. Adding a KPI broke saving.
+  */
+  it('TWO SPLIT EVENLY', () => {
+    expect(evenWeights(2)).toEqual([0.5, 0.5]);
+  });
+
+  it('THREE ADD TO EXACTLY 100, not 99', () => {
+    // 33/33/33 leaves a pillar quietly totalling 99 and a percentage that is not one.
+    expect(evenWeights(3)).toEqual([0.34, 0.33, 0.33]);
+    expect(evenWeights(3).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 10);
+  });
+
+  it('and so does any other number anybody would really use', () => {
+    for (let n = 1; n <= 12; n++) {
+      expect(evenWeights(n).reduce((a, b) => a + b, 0), `${n} criteria`).toBeCloseTo(1, 10);
+      expect(evenWeights(n)).toHaveLength(n);
+    }
+  });
+
+  it('gives the odd point to the first, deterministically', () => {
+    // The same list always produces the same split, so nothing shifts under somebody between saves.
+    expect(evenWeights(3)).toEqual(evenWeights(3));
+    expect(evenWeights(7)[0]).toBeGreaterThanOrEqual(evenWeights(7)[6]);
+  });
+
+  it('WHAT IT PRODUCES ALWAYS PASSES THE RULE IT HAS TO PASS', () => {
+    // The point of the whole thing: a leader can never again be refused for arithmetic.
+    for (let n = 1; n <= 8; n++) {
+      const criteria = evenWeights(n).map((weight, i) => ({
+        id: `c${i}`, pillar: 'safety' as const, text: 't', weight, kpi: true, target: null,
+      }));
+      expect(validateWeights(criteria), `${n} criteria`).toEqual([]);
+    }
+  });
+
+  it('nothing at all is nothing, not a divide by zero', () => {
+    expect(evenWeights(0)).toEqual([]);
   });
 });

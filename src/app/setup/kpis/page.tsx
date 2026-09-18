@@ -18,7 +18,7 @@ export default async function KpiSetup({ searchParams }: { searchParams: Promise
   const crit = await db.select().from(schema.criteria).where(and(eq(schema.criteria.roleId, role.id), eq(schema.criteria.active, true))).orderBy(schema.criteria.sortOrder);
 
   return (
-    <Shell title="KPIs per role" subtitle="Two per pillar. Weights sum to 100%. Targets are negotiated — the proposed figure stays on record.">
+    <Shell title="KPIs per role" subtitle="Two per pillar to start, and add as many as you like. Targets are negotiated, so leave one blank until it is agreed.">
       <nav className="flex flex-wrap gap-2 text-sm">
         {roles.map(r => <a key={r.id} href={`/setup/kpis?role=${r.id}`} className={`rounded-full border px-3 py-1 ${r.id === role.id ? 'bg-rust text-cream' : 'bg-surface'}`}>{r.title}</a>)}
       </nav>
@@ -65,29 +65,62 @@ export default async function KpiSetup({ searchParams }: { searchParams: Promise
                 <Badge pillar={p} />
                 <div className="font-serif text-base text-ink">{PILLAR_META[p].name}</div>
                 <span className="text-xs text-ink-light">— {PILLAR_META[p].question}</span>
+                <span className="ml-auto text-xs text-ink-light">
+                  {crit.filter(c => c.pillar === p).length} KPIs &middot; type in the empty row to add one
+                </span>
               </div>
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-ink-light"><tr><th className="p-2 pl-4">Criterion</th><th className="p-2 w-20">Weight %</th><th className="p-2 w-14">KPI</th><th className="p-2 w-40">Agreed target</th><th className="p-2 w-32">Proposed</th></tr></thead>
-                <tbody>
-                  {slots.map((c, i) => {
-                    const id = c?.id ?? `new-${p}-${i}`;
-                    return (
-                      <tr key={id} className="border-t">
-                        <td className="p-2 pl-4"><input type="hidden" name={`c:${id}:pillar`} value={p as Pillar} /><input name={`c:${id}:text`} defaultValue={c?.text ?? ''} placeholder={c ? '' : 'Add a criterion'} className="w-full rounded border px-2 py-1" /></td>
-                        <td className="p-2"><input name={`c:${id}:weight`} type="number" min={0} max={100} step={1} defaultValue={c ? Math.round(c.weight * 100) : 50} className="w-full rounded border px-2 py-1" /></td>
-                        <td className="p-2 text-center"><input type="checkbox" name={`c:${id}:kpi`} defaultChecked={c ? c.kpi : true} /></td>
-                        <td className="p-2"><input name={`c:${id}:target`} defaultValue={c?.target ?? ''} className="w-full rounded border px-2 py-1" /></td>
-                        <td className="p-2 text-xs text-ink-light">{c?.proposedTarget ?? '—'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              {/*
+                Two columns: what you are measuring, and what good looks like.
+
+                It was five — Criterion, Weight %, KPI, Agreed target, Proposed — which is a
+                spreadsheet, and one of those columns actively stopped you saving. Weights are
+                worked out in `saveCriteria`, every criterion on a scorecard is a thing being
+                measured so the tick box was always ticked, and the proposed figure is a hint on
+                the target box rather than a column of dashes.
+              */}
+              <ul className="divide-y divide-ink/10">
+                {slots.map((c, i) => {
+                  const id = c?.id ?? `new-${p}-${i}`;
+                  return (
+                    <li key={id} className="grid gap-2 p-3 sm:grid-cols-[1fr_16rem]">
+                      <input type="hidden" name={`c:${id}:pillar`} value={p as Pillar} />
+                      <input
+                        name={`c:${id}:text`}
+                        defaultValue={c?.text ?? ''}
+                        /*
+                          "Add a KPI", in the words Kris uses.
+
+                          The empty row said "Add a criterion", and he went looking for it and could
+                          not find it: *"it doesn't say add kpi's"*. The whole screen is headed KPIs
+                          and then asks for a criterion — which is the internal word for the same
+                          thing. A person hunting for the button they were told about does not
+                          translate; they conclude it is not there.
+                        */
+                        placeholder={c ? '' : `Add a KPI — what else does ${role.title} have to get right?`}
+                        aria-label={`${PILLAR_META[p].name} KPI`}
+                        className="w-full rounded border border-ink/15 px-3 py-2"
+                      />
+                      <input
+                        name={`c:${id}:target`}
+                        defaultValue={c?.target ?? ''}
+                        aria-label={`${PILLAR_META[p].name} target`}
+                        /* The proposed figure as the hint, so a number nobody agreed never sits in
+                           the box looking agreed. */
+                        placeholder={c?.proposedTarget ? `${c.proposedTarget} — proposed` : 'Target, if you have agreed one'}
+                        className="w-full rounded border border-ink/15 px-3 py-2 text-sm"
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           );
         })}
-        <button className="mt-4 rounded-full bg-rust px-5 py-2 text-cream hover:bg-rust-600">Save {role.title} KPIs</button>
-        <span className="ml-4 text-sm text-ink-light">Leave a row blank to drop it. Clearing a criterion's text removes it.</span>
+        <button className="btn-primary mt-4">Save {role.title} KPIs</button>
+        <span className="ml-4 text-sm text-ink-light">
+          Type in the empty row to add one. Clear a row to drop it. SPEC shares each pillar evenly between
+          whatever is in it, so there is no arithmetic to do.
+        </span>
       </form>
       <p className="mt-6 text-sm"><a href="/journey" className="underline">Back to the journey</a></p>
     </Shell>

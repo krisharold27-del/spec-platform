@@ -203,6 +203,33 @@ export function gates(input: GateInputs): GateResult {
 }
 
 /** Weights within each pillar must sum to 100% (±0.5% to absorb rounding in source sheets). */
+/**
+ * An even split across however many criteria a pillar has, adding to exactly 100%.
+ *
+ * ── Why the weight column is gone from the screen ────────────────────────────────────────────────
+ *
+ * Kris, 18 September: *"i need it way easier to add kpi's"*. The KPI screen was a spreadsheet, and
+ * the worst of it was a trap: every row showed 50, including the spare one at the bottom. So typing
+ * a third criterion into a pillar made it 150%, `validateWeights` refused the save — correctly — and
+ * everything typed across ALL FOUR pillars came back needing to be retyped. **Adding a KPI broke
+ * saving**, on the screen his brief calls half the product.
+ *
+ * The rule itself is right and stays: a pillar's weights have to add to 100 or a percentage means
+ * nothing. What was wrong is that a leader had to do the arithmetic to write down a thing they
+ * wanted to measure. So the weights are computed and the column is gone.
+ *
+ * Largest remainder, so three criteria come out 34/33/33 rather than 33/33/33 and a pillar that
+ * quietly totals 99. The odd point goes to the FIRST criterion, which is deterministic — the same
+ * list always produces the same split, so nothing shifts under somebody between two saves.
+ */
+export function evenWeights(count: number): number[] {
+  if (count <= 0) return [];
+  const base = Math.floor(100 / count);
+  const out = Array.from({ length: count }, () => base);
+  for (let i = 0; i < 100 - base * count; i++) out[i] += 1;
+  return out.map(w => w / 100);
+}
+
 export function validateWeights(criteria: Criterion[]): { pillar: Pillar; total: number }[] {
   const problems: { pillar: Pillar; total: number }[] = [];
   for (const p of PILLARS) {

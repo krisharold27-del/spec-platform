@@ -7,7 +7,7 @@ import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
-import { validateWeights, type Pillar } from '@/lib/scoring';
+import { validateWeights, evenWeights, PILLARS, type Pillar } from '@/lib/scoring';
 import { virtualGmCriteria } from '@/lib/provision';
 import { resolveTarget } from '@/lib/targets';
 
@@ -22,18 +22,45 @@ export async function saveCriteria(formData: FormData) {
   // KPIs belong to the leader of the section: your own role and those beneath it, never a peer's or your leader's.
   if (!(await getScope(user)).canEdit(roleId)) throw new Error('You can only set KPIs for your own role and the roles beneath it.');
 
-  const rows: { id: string; pillar: Pillar; text: string; weight: number; kpi: boolean; target: string | null }[] = [];
+  /*
+    ── SPEC does the arithmetic, not the person ─────────────────────────────────────────────────
+
+    Kris, 18 September: *"i need it way easier to add kpi's"*.
+
+    This screen used to carry a Weight % box on every row, defaulting to 50 — including the blank
+    spare row at the bottom. So typing a third criterion made that pillar 150%, `validateWeights`
+    refused the save, and everything typed across ALL FOUR pillars came back empty. **Adding a KPI
+    broke saving**, on the screen that is half the product.
+
+    The rule is still right and still enforced below: a pillar's weights must add to 100 or a
+    percentage means nothing. What was wrong is that a leader had to do the sum in order to write
+    down something they wanted to measure. So the weights are worked out here and the column is
+    gone from the screen.
+
+    The form is still READ for a weight, so an even split is a default rather than a ceiling — if a
+    screen ever offers uneven weights again, this keeps them. What it will not do is demand one.
+  */
+  const gathered: { id: string; pillar: Pillar; text: string; weight: number | null; kpi: boolean; target: string | null }[] = [];
   const ids = new Set<string>();
   for (const [k] of formData.entries()) { const m = k.match(/^c:([^:]+):text$/); if (m) ids.add(m[1]); }
   for (const id of ids) {
     const text = String(formData.get(`c:${id}:text`) ?? '').trim();
     if (!text) continue;
-    rows.push({
+    const given = formData.get(`c:${id}:weight`);
+    gathered.push({
       id, pillar: String(formData.get(`c:${id}:pillar`)) as Pillar, text,
-      weight: Number(formData.get(`c:${id}:weight`)) / 100,
-      kpi: formData.get(`c:${id}:kpi`) === 'on',
+      weight: given === null || given === '' ? null : Number(given) / 100,
+      // Not on the screen any more. Every criterion on a scorecard is a thing being measured.
+      kpi: formData.get(`c:${id}:kpi`) === null ? true : formData.get(`c:${id}:kpi`) === 'on',
       target: String(formData.get(`c:${id}:target`) ?? '').trim() || null,
     });
+  }
+
+  const rows: { id: string; pillar: Pillar; text: string; weight: number; kpi: boolean; target: string | null }[] = [];
+  for (const pillar of PILLARS) {
+    const inPillar = gathered.filter(g => g.pillar === pillar);
+    const shares = evenWeights(inPillar.length);
+    inPillar.forEach((g, i) => rows.push({ ...g, weight: g.weight ?? shares[i] }));
   }
   const problems = validateWeights(rows);
   if (problems.length) redirect(`/setup/kpis?role=${roleId}&err=${encodeURIComponent(problems.map(p => `${p.pillar} = ${Math.round(p.total * 100)}%`).join(', '))}`);
