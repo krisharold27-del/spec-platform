@@ -137,8 +137,10 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
     if (!canEdit) return;
     e.preventDefault();
     e.stopPropagation();
-    const MENU_W = 210;
-    const MENU_H = 8 + 5 * 38;
+    const MENU_W = 230;
+    // Six items now that KPIs sit at the top. Under-counting here puts the last item — which is the
+    // one that removes a role — off the bottom of a laptop screen.
+    const MENU_H = 8 + 6 * 38;
     setMenu({
       x: Math.max(8, Math.min(e.clientX, window.innerWidth - MENU_W)),
       y: Math.max(8, Math.min(e.clientY, window.innerHeight - MENU_H)),
@@ -183,6 +185,21 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
     const role = roles.find(r => r.id === roleId);
     if (!role) return [];
     const out: Item[] = [
+      /*
+        FIRST, and deliberately above everything else.
+
+        Kris, 18 September: *"org chart and entering kpi's is everything to this system - why is it
+        so hard"*. He was right that it was hard. Every route into the KPI screen in the product was
+        an EMPTY STATE — a "Set the KPIs" link that appeared while a role had none and vanished the
+        moment it had them — and the org chart, which is where the work actually happens, had no
+        route at all. So the first time was findable and every time after that meant typing the
+        address.
+
+        This is the path his brief describes: you are looking at the chart, you open the role, you
+        set its numbers. It carries the role id, which the scorecard's version did not — pressing
+        that one opened whichever role the screen happened to list first.
+      */
+      { label: 'Set this role\u2019s KPIs', run: () => { shut(); window.location.href = `/setup/kpis?role=${roleId}`; } },
       { label: 'Add a direct report', run: () => { post(addRole, { title: 'New role', parentId: roleId }); shut(); } },
       { label: 'Rename role & person', run: () => editRole(roleId) },
     ];

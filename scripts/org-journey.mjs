@@ -147,6 +147,12 @@ const offered = (await menu.locator('[role="menuitem"]').allInnerTexts()).map(t 
   checked as a SUBSET of what any one card may show, and the two conditional ones are proven on a
   card that qualifies rather than demanded on every card.
 */
+/*
+  "Set this role's KPIs" is first on purpose. Kris: "org chart and entering kpi's is everything to
+  this system - why is it so hard" — every route into the KPI screen was an empty state that
+  vanished once a role had KPIs, and the chart had no route at all.
+*/
+check('  KPIs ARE THE FIRST THING THE MENU OFFERS', offered[0] === 'Set this role\u2019s KPIs', offered.join(', '));
 for (const item of ['Add a direct report', 'Rename role & person', 'Remove role']) {
   check(`  and it offers "${item}"`, offered.includes(item), `offered: ${offered.join(', ')}`);
 }
@@ -271,6 +277,24 @@ await page.mouse.click(outer.x + 4, inner.y + inner.height / 2, { button: 'right
 await menu.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
 const canvasItems = (await menu.locator('[role="menuitem"]').allInnerTexts()).map(t => t.trim());
 check('RIGHT-CLICKING THE CANVAS OFFERS "Add a new role"', canvasItems.includes('Add a new role'), canvasItems.join(', '));
+
+// ── And it goes to the RIGHT role, which the scorecard's version did not ─────────────────────────
+await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+/*
+  A CARD, not a person pill. The pill is `draggable` too — that is how a person is moved — so
+  `cards().nth(1)` picked "R. Nakamura" and this check compared a role's KPI screen against a
+  person's name. Only a card carries a link to a scorecard.
+*/
+const wanted = page.locator('[data-org-canvas] [draggable="true"]:has(a[href^="/scorecard/"])').nth(1);
+const wantedTitle = (await wanted.locator('a[href^="/scorecard/"]').first().innerText()).trim();
+await aimAt(wanted);
+await menu.getByRole('menuitem', { name: /Set this role/ }).click();
+await page.waitForLoadState('networkidle').catch(() => {});
+const onKpis = await page.evaluate(() => document.body.innerText);
+check('THE MENU OPENS THAT ROLE\u2019S KPIs, not whichever is listed first',
+  page.url().includes('/setup/kpis?role=') && onKpis.includes(wantedTitle),
+  `${page.url().replace(BASE, '')} — wanted ${wantedTitle}`);
 /*
   The prototype also offers "Reset structure", which restores its seed data. Deliberately not built:
   here it would delete a real business's org chart with one press and no way back. Checked, so the

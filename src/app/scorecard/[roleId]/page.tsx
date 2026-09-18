@@ -63,7 +63,15 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
             Every role needs two numbers per pillar — Safety, People, Earnings, Compliance. Setting them
             is free.
           </p>
-          <Link href="/setup/kpis" className="btn-primary mt-4 inline-block">Set the KPIs</Link>
+          {/*
+            Carries the role. This said `/setup/kpis` with nothing on it, so pressing it from a
+            specific role's empty scorecard opened a DIFFERENT role's KPIs — whichever the screen
+            happened to list first. Kris, 18 September: *"its too complicated where i go to enter
+            kpi's"*. It was not only hard to find; it went somewhere else when you found it.
+          */}
+          <Link href={`/setup/kpis?role=${role.id}`} className="btn-primary mt-4 inline-block">
+            Set the KPIs for {role.title}
+          </Link>
         </div>
       </Shell>
     );
@@ -111,6 +119,20 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
       title={`${role.title} — scorecard`}
       subtitle={`${period.period} · ${period.status === 'locked' ? 'locked' : 'open'} · ${cadence.label.toLowerCase()} board`}
     >
+      {/*
+        The way back into the numbers, offered ALWAYS rather than only when there are none.
+
+        Every "Set the KPIs" link in the product was an empty state: it appeared while a role had no
+        KPIs and vanished the moment it did. So the first time was findable and every time after
+        that meant typing the address or hunting through Setting up — on the screen that, with the
+        org chart, is the whole system.
+      */}
+      <p className="mb-4 text-sm">
+        <Link href={`/setup/kpis?role=${role.id}`} className="link-go">
+          Edit the KPIs for {role.title} &rarr;
+        </Link>
+      </p>
+
       <section className="card">
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
