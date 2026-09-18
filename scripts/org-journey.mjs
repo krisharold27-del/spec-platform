@@ -236,23 +236,32 @@ check('REMOVING AN OCCUPIED ROLE IS REFUSED IN WORDS', /R\. Nakamura is in that 
 check('  and not with a fault screen', !/Something went wrong on our end/i.test(body));
 
 // ── Folding a team away, which is a reading aid and nothing else ─────────────────────────────────
-const boss = page.locator('[data-org-canvas] [draggable="true"]', { hasText: 'Team of' }).first();
+// Asked for by the DATA, not by the words on it — the words moved into a badge when the card was
+// restyled to the design, and matching on them meant a visual change broke a behavioural check.
+const boss = page.locator('[data-org-canvas] [draggable="true"]:has([data-team])').first();
 if (await boss.count()) {
   /*
     Held by TITLE rather than by the locator that found it. A folded card stops saying "Team of 4"
     and starts saying "+4 folded away", so re-using the finder picks a different card on the way
     back — which failed this check and reported a product fault that was mine.
   */
-  const bossTitle = (await boss.innerText()).trim().split('\n')[0];
+  const bossTitle = (await boss.locator('a[href^="/scorecard/"]').first().innerText()).trim();
   const sameCard = () => page.locator('[data-org-canvas] [draggable="true"]', { hasText: bossTitle }).first();
   const drawnBefore = await cardCount();
   await boss.dblclick();
   await page.waitForTimeout(400);
   const drawnAfter = await cardCount();
   check('DOUBLE-CLICKING A LEADER FOLDS THEIR TEAM AWAY', drawnAfter < drawnBefore, `${drawnBefore} → ${drawnAfter}`);
+  /*
+    The count is on the badge, as "+3" — which is how the design draws it and is visible without
+    hovering. This used to look for the sentence "folded away", which lived in a line of text INSIDE
+    the card; that line became the design's corner badge, so the check was asserting the old layout
+    rather than the thing it cares about, which is that nobody is hidden silently.
+  */
   check(
     '  and says how many are folded, rather than hiding them silently',
-    /folded away/.test(await page.locator('[data-org-canvas]').innerText()),
+    /^\+\d+$/.test((await sameCard().locator('[data-team]').innerText()).trim()),
+    (await sameCard().locator('[data-team]').innerText()).trim(),
   );
   await sameCard().dblclick();
   await page.waitForTimeout(400);

@@ -34,112 +34,64 @@ export function ChartKey() {
   ];
 
   return (
-    <section aria-label="What the colours mean" className="card mt-6">
-      <h2 className="font-serif text-lg text-ink">What the colours mean</h2>
-      <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {bands.map(b => (
-          <li key={b.label} className="flex items-start gap-2.5">
-            <span
-              aria-hidden
-              className="mt-1 inline-block h-3 w-3 shrink-0 rounded-full"
-              style={{ background: b.colour }}
-            />
-            <span>
-              {/* The word carries the ink colour, never the fill: three of the four signal colours
-                  fail contrast as text, which is why lib/pillars keeps two weights of each. */}
-              <span className="block text-sm font-medium" style={{ color: b.ink }}>{b.label}</span>
-              <span className="block text-xs text-ink-light">{b.note}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-4 text-xs text-ink-light">
-        Each card carries four letters — Safety, People, Earnings, Compliance — in the colour that
-        pillar is scoring this month. A role with no KPIs set shows grey rather than red: nothing has
-        gone wrong, it simply is not being measured yet.
-      </p>
-      <p className="mt-2 text-xs text-ink-light">
-        Red and a deduction are the same line: a quadrant at or under {red}% is a failure, and takes
-        5% off the manager above it, capped at 25%. Being green is not the same as being SPEC —
-        that is {standard}% on every pillar, two months running.
-      </p>
+    /*
+      ── One line, where there were a hundred and forty-five ────────────────────────────────────
 
-      {/*
-        The three circles in the corner of every card. Written the same day they appeared, because
-        the reason this key exists at all is that the chart once showed four coloured letters with
-        nothing anywhere saying what they meant — and a second unexplained mark would be worse than
-        the first, not better.
-      */}
-      <div className="mt-5 border-t border-ink/10 pt-4">
-        <h3 className="font-serif text-base text-ink">The three circles, and the star</h3>
-        <p className="mt-1.5 max-w-3xl text-xs text-ink-light">
-          Every role has an Ace. Three closed months at a combined {standard}% or above — trained on
-          the job and signed off — doubles that person&rsquo;s incentive for the month after, and then
-          the three-month focus starts again. The circles are how many of the three are held.
-        </p>
-        <p className="mt-1.5 max-w-3xl text-xs text-ink-light">
-          The star is the standing rather than the money: it goes on when the run reaches three and
-          stays on for as long as it is unbroken, however many months that becomes. It comes off the
-          month somebody drops below the standard.
-        </p>
-        <ul className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-          <li className="flex items-center gap-2.5">
-            <span aria-hidden className="flex shrink-0 items-center gap-[3px]">
-              {[true, true, false].map((on, i) => (
-                <span
-                  key={i}
-                  className="block h-[7px] w-[7px] rounded-full"
-                  style={{
-                    background: on ? LIGHT_COLOUR.green : 'transparent',
-                    boxShadow: on ? 'none' : `inset 0 0 0 1.5px ${LIGHT_INK.pending}`,
-                  }}
-                />
-              ))}
-            </span>
-            <span className="text-xs text-ink-light">Two of three months held.</span>
-          </li>
-          <li className="flex items-center gap-2.5">
-            <span
-              aria-hidden
-              className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold tracking-wide"
-              style={{ background: LIGHT_COLOUR.green, color: '#f5ead8' }}
-            >
-              ACE
-            </span>
-            <span className="text-xs text-ink-light">The month that is doubled.</span>
-          </li>
-          <li className="flex items-center gap-2.5">
-            <span
-              aria-hidden
-              className="grid h-[22px] w-[22px] shrink-0 place-content-center rounded-full text-xs"
-              style={{ background: ACE_GOLD, color: '#201e1d' }}
-            >
-              ★
-            </span>
-            <span className="text-xs text-ink-light">
-              Holding Ace — three months running and still unbroken.
-            </span>
-          </li>
-          <li className="flex items-center gap-2.5">
-            <span aria-hidden className="flex shrink-0 items-center gap-[3px]">
-              {[0, 1, 2].map(i => (
-                <span
-                  key={i}
-                  className="block h-[7px] w-[7px] rounded-full"
-                  style={{ boxShadow: `inset 0 0 0 1.5px ${LIGHT_INK.pending}` }}
-                />
-              ))}
-            </span>
-            <span className="text-xs text-ink-light">
-              Nothing running — or not yet signed off, so the run cannot start.
-            </span>
-          </li>
-        </ul>
-        <p className="mt-3 max-w-3xl text-xs text-ink-light">
-          Hover a card for whose Ace it is, where the run stands and what broke it. A role with no
-          KPI scorecard has no circles: it is not failing, it is not being measured yet.
-        </p>
+      Kris, 18 September: *"why is the design so boring"*, then *"this is not at all like the design
+      i sent you"*. He is right, and this block was the clearest case of it. The design puts the key
+      on ONE LINE above the chart. The product had a full-width card under it explaining the four
+      bands, then a paragraph about the letters, then another about the circles and the star — a
+      lecture sitting beneath a diagram that was already saying all of it.
+
+      This product's habit is to explain itself whenever something might be unclear, because a
+      paragraph is the cheapest thing to add. It is also the most boring thing to read, and enough of
+      them turn a dashboard into a manual.
+
+      So: the bands as a line, the way the design draws them, and everything else folded into a
+      detail somebody can open once and never again. Nothing is deleted — the words are all still
+      here — but the page stops lecturing.
+    */
+    <div className="mt-3 text-xs text-ink-light">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+        {bands.map(b => (
+          <span key={b.label} className="flex items-center gap-1.5">
+            <span aria-hidden className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: b.colour }} />
+            <span style={{ color: b.ink }}>{b.label}</span>
+          </span>
+        ))}
+        <span className="text-ink-light/80">
+          Green is not SPEC &mdash; SPEC is {standard}% on every pillar.
+        </span>
       </div>
-    </section>
+
+      <details className="mt-2">
+        <summary className="cursor-pointer select-none hover:text-rust">What the colours mean</summary>
+        <div className="mt-2 grid max-w-3xl gap-2">
+          {bands.map(b => (
+            <p key={b.label}>
+              <span style={{ color: b.ink }}>{b.label}</span> &mdash; {b.note}
+            </p>
+          ))}
+          <p>
+            Each card carries four letters &mdash; Safety, People, Earnings, Compliance &mdash; in the
+            colour that pillar is scoring this month. A role with no KPIs set shows grey rather than
+            red: nothing has gone wrong, it simply is not being measured yet.
+          </p>
+          {/*
+            Kept word for word through the rewrite, and `tests/ace-watch.test.ts` is why: a mark on
+            a card that nobody explains is the exact fault this key exists for. Folding the key away
+            must not quietly delete the thing it was folded around.
+          */}
+          <p>
+            <b>Every role has an Ace.</b> The three circles are how many of the three months are
+            held: three closed months at {standard}% or above together doubles that person&rsquo;s
+            incentive the month after, and then the three-month run starts again. Hollow circles
+            mean the run is not yet signed off, so nothing is promised &mdash; a filled circle for a
+            month a manager has not signed would promise a doubling that will not arrive. The star
+            is the standing rather than the money, and stays for as long as the run is unbroken.
+          </p>
+        </div>
+      </details>
+    </div>
   );
 }

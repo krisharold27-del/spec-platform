@@ -159,7 +159,15 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
         </div>
       ) : (
         <div className="mt-6">
-          <OrgCanvas roles={roles} rootId={rootId} canEdit={manage} />
+          {/*
+            The key ABOVE the chart, on one line, the way the design draws it — so somebody reads
+            what the colours mean before they meet them rather than scrolling past a wall of red and
+            amber to find out afterwards.
+          */}
+          <ChartKey />
+          <div className="mt-3">
+            <OrgCanvas roles={roles} rootId={rootId} canEdit={manage} />
+          </div>
         </div>
       )}
 
@@ -188,10 +196,6 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
         canEdit={manage}
         read={cascadeRead === '' ? null : Number(cascadeRead)}
       />
-
-      {/* What the colours on every card mean. The design carries this and the product did not, so a
-          new customer saw a wall of red and amber with nothing telling them what it meant. */}
-      <ChartKey />
 
       {manage && (
         <div className="mt-10 grid items-start gap-6 lg:grid-cols-2">

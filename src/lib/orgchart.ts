@@ -76,6 +76,21 @@ export interface Connector {
   y: number;
   w: number;
   h: number;
+  /**
+   * What this line is REPORTING, 0–1, or null where nothing is scored yet.
+   *
+   * The lines were one flat colour, which made them plumbing. In the design they carry the reading:
+   * *"the four lights on every card so the structure and the performance are the same picture"*.
+   * A branch that is in trouble should be visible from the shape of the chart rather than by
+   * reading eight cards.
+   *
+   * Which score, by kind, and each is a different question:
+   *   stub  — the PARENT's own average. The line leaving a role is how that role is doing.
+   *   rail  — the WORST of the children it spans. A rail is a claim about a whole team, and a team
+   *           is not doing well because three of its four are; the one in trouble is the news.
+   *   riser — that CHILD's average. The line arriving at a role is how that role is doing.
+   */
+  score: number | null;
 }
 
 export interface Layout {
@@ -83,6 +98,28 @@ export interface Layout {
   lines: Connector[];
   width: number;
   height: number;
+}
+
+/**
+ * A role's four pillars as one number, or null when nothing is marked.
+ *
+ * Averaged over the pillars that HAVE a score rather than over four, so a role part-way through its
+ * first month reads as what it has rather than being dragged towards zero by pillars nobody has got
+ * to yet. Null when there is nothing at all — which is an absence, not a red.
+ */
+export function roleAverage(role: ChartRole): number | null {
+  const marked = role.pillars
+    ? [role.pillars.safety, role.pillars.people, role.pillars.earnings, role.pillars.compliance]
+        .filter((v): v is number => v !== null)
+    : [];
+  if (!marked.length) return null;
+  return marked.reduce((a, b) => a + b, 0) / marked.length;
+}
+
+/** The worst of several, ignoring the ones with nothing to say. Null only when none of them score. */
+export function worstOf(values: (number | null)[]): number | null {
+  const real = values.filter((v): v is number => v !== null);
+  return real.length ? Math.min(...real) : null;
 }
 
 /**
@@ -124,13 +161,25 @@ export function layout(roots: ChartRole[], all: ChartRole[]): Layout {
       const railY = bottom + STUB;
       const left = Math.min(...childCentres);
       const right = Math.max(...childCentres);
-      lines.push({ kind: 'stub', x: centre - 1, y: bottom, w: 2, h: STUB });
+      /*
+        Five pixels, not two, and carrying a reading. Two flat pixels is plumbing; the design draws
+        these as rails you can see the state of the business in from across the room.
+      */
+      // `kids` is the one filtered by `seen` above. Re-deriving it here would pair a riser's colour
+      // with the wrong child on a chart that has been dragged into a cycle.
+      lines.push({ kind: 'stub', x: centre - 2.5, y: bottom, w: 5, h: STUB, score: roleAverage(node) });
       if (childCentres.length > 1) {
-        lines.push({ kind: 'rail', x: left, y: railY, w: right - left, h: 2 });
+        lines.push({
+          kind: 'rail', x: left, y: railY - 2.5, w: right - left, h: 5,
+          score: worstOf(kids.map(roleAverage)),
+        });
       }
-      for (const cx of childCentres) {
-        lines.push({ kind: 'riser', x: cx - 1, y: railY, w: 2, h: y + ROW - railY });
-      }
+      childCentres.forEach((cx, i) => {
+        lines.push({
+          kind: 'riser', x: cx - 2.5, y: railY, w: 5, h: y + ROW - railY,
+          score: kids[i] ? roleAverage(kids[i]) : null,
+        });
+      });
     }
     return centre;
   };

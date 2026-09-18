@@ -6,7 +6,7 @@ import {
   layout, rootsOf, detachedBranches, canMove, canRemove, collapsedAway, teamSize, type ChartRole,
 } from '@/lib/orgchart';
 import { PILLAR_META } from '@/lib/pillars';
-import { LIGHT_COLOUR, light } from '@/lib/today';
+import { LIGHT_COLOUR, LIGHT_INK, light } from '@/lib/today';
 import { AcePips, AceStar } from '@/components/ace-pips';
 import {
   moveRole, movePerson, breakLink, vacateRole, addRole, removeRole, renameRole, renamePerson,
@@ -281,11 +281,22 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
         onContextMenu={e => openMenu(e, null)}
       >
         <div className="relative mx-auto" style={{ width, height }}>
+          {/*
+            The lines carry the reading, and they are rails rather than hairlines.
+
+            They were 2px of one flat colour — plumbing. The design draws them 5px and rounded,
+            coloured by what they are reporting, so a branch in trouble is visible from the shape of
+            the chart instead of by reading eight cards. `LIGHT_COLOUR` because these are looked at
+            rather than read; a line with nothing scored behind it stays the quiet sand it was.
+          */}
           {lines.map((l, i) => (
             <div
               key={i}
-              className="absolute"
-              style={{ left: l.x, top: l.y, width: l.w, height: l.h, background: '#ffe1d0' }}
+              className="absolute rounded-full"
+              style={{
+                left: l.x, top: l.y, width: l.w, height: l.h,
+                background: l.score === null ? '#e7d6bb' : LIGHT_COLOUR[light(l.score)],
+              }}
             />
           ))}
 
@@ -320,8 +331,16 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
                   });
                 }}
                 title={team ? `Team of ${team} — double-click to ${shut_ ? 'open' : 'fold away'}` : undefined}
-                className={`absolute rounded-lg border bg-surface p-2.5 shadow-sm transition-colors ${
-                  isOver ? 'border-rust' : selectedId === r.id ? 'border-rust-400' : 'border-ink/10'
+                /*
+                  The design's card: rounded, a rust edge, and everything centred.
+
+                  It was a square-ish panel with a hairline grey border and left-aligned text, which
+                  is a table cell. The design draws a card — 18px radius, a warm edge that is part of
+                  the chart rather than a divider, and the title centred over the person and the
+                  four letters, so a row of them reads as a row.
+                */
+                className={`absolute flex flex-col items-center justify-center rounded-[18px] border-2 bg-surface px-3 py-2.5 text-center shadow-sm transition-colors ${
+                  isOver ? 'border-rust' : selectedId === r.id ? 'border-rust' : 'border-rust-300'
                 } ${dragging ? 'opacity-40' : ''} ${canEdit ? 'cursor-grab' : ''}`}
                 style={{ left: c.x, top: c.y, width: c.w, height: c.h }}
               >
@@ -341,7 +360,7 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
                 */}
                 <Link
                   href={`/scorecard/${r.id}`}
-                  className={`block font-serif text-sm leading-tight text-ink hover:text-rust [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'pr-7' : ''}`}
+                  className={`block w-full font-serif text-sm leading-tight text-ink hover:text-rust [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
                   title={r.title}
                 >
                   {r.title}
@@ -374,23 +393,48 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
                     of Commercial" became "Head of Commer…", which is a bad trade for three circles.
                     Here it costs no width that was being used, and the card reads as one line of
                     state: where they are this month, and where they are in their three.
+
+                    ── S P E C, as the design draws them ──────────────────────────────────────
+
+                    Four solid tiles with the letter in them.
+
+                    They were four grey dots, which say nothing and read as punctuation. The letter
+                    is the identity and the fill is how that pillar is GOING — the rule in
+                    lib/pillars, kept exactly: the letter never changes colour to mean a pillar.
+
+                    Filled with LIGHT_INK rather than LIGHT_COLOUR because these carry white text.
+                    That set exists precisely because three of the four signal colours cannot be
+                    read against — see SCORE_INK — and tests/colour.test.ts holds the ratio.
                   */
-                  <span className="mt-2 flex items-center gap-1">
-                    {PILLARS.map(p => (
-                      <span
-                        key={p}
-                        title={`${PILLAR_META[p].name} ${r.pillars?.[p] === null || !r.pillars ? 'no score' : `${Math.round(r.pillars[p]! * 100)}%`}`}
-                        className="block rounded-full"
-                        style={{
-                          width: c.depth === 0 ? 10 : 8,
-                          height: c.depth === 0 ? 10 : 8,
-                          background: LIGHT_COLOUR[light(r.pillars?.[p] ?? null)],
-                        }}
-                      />
-                    ))}
+                  <span className="mt-2 flex items-center justify-center gap-1.5">
+                    {PILLARS.map(p => {
+                      const value = r.pillars?.[p] ?? null;
+                      const size = c.depth === 0 ? 22 : 19;
+                      return (
+                        <span
+                          key={p}
+                          title={`${PILLAR_META[p].name} ${value === null ? 'no score' : `${Math.round(value * 100)}%`}`}
+                          className="grid shrink-0 place-content-center rounded-md font-serif text-cream"
+                          style={{
+                            width: size, height: size, fontSize: size * 0.6, lineHeight: 1,
+                            background: LIGHT_INK[light(value)],
+                          }}
+                        >
+                          {PILLAR_META[p].letter}
+                        </span>
+                      );
+                    })}
+                    {/*
+                      The Ace run, out of the row rather than on the end of it.
+
+                      It sat beside the four letters with `ml-auto`, which pushed them off centre —
+                      and the four letters centred under the title is the whole look of the design's
+                      card. Pinned to the bottom corner instead, where it costs no width and the
+                      letters stay where the eye expects them.
+                    */}
                     {r.ace && (
-                      <span className="ml-auto flex items-center">
-                        <AcePips ace={r.ace} big={c.depth === 0} />
+                      <span className="absolute bottom-1.5 right-2 flex items-center">
+                        <AcePips ace={r.ace} big={false} />
                       </span>
                     )}
                   </span>
@@ -398,12 +442,24 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
                   <span className="mt-2 block text-[10px] text-ink-light">Checklist role</span>
                 )}
 
-                <span className="mt-1 flex items-center gap-2 text-[10px] text-ink-light">
-                  {team > 0 && (
-                    <span title={`Team of ${team}`}>
-                      {shut_ ? `+${team} folded away` : `Team of ${team}`}
-                    </span>
-                  )}
+                {/*
+                  The team count as the design has it: a small rust disc hanging off the top-left
+                  corner, costing the card no space. It was a line of text inside the card reading
+                  "Team of 3", which is a sentence where the design has a number.
+                */}
+                {team > 0 && (
+                  <span
+                    /* A hook that survives restyling. The browser check used to find a leader by the
+                       words "Team of", which this badge replaced — so a visual change silently broke
+                       a behavioural check. The count is what it is looking for; let it ask for that. */
+                    data-team={team}
+                    title={shut_ ? `${team} folded away — double-click to open` : `Team of ${team} — double-click to fold away`}
+                    className="absolute -left-2.5 -top-2.5 z-[2] grid h-[22px] min-w-[22px] place-content-center rounded-full bg-rust-700 px-1.5 text-[11px] font-bold text-cream shadow-sm"
+                  >
+                    {shut_ ? `+${team}` : team}
+                  </span>
+                )}
+                <span className="mt-1 flex w-full items-center gap-2 text-[10px] text-ink-light">
                   {canEdit && (
                     /*
                       The same menu as the right-click, on a key anybody can find. Kept to one glyph
