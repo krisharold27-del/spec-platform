@@ -21,7 +21,7 @@ import { LIGHT_COLOUR, LIGHT_INK, ACE_GOLD } from '@/lib/today';
  * fails on, so red on a card and a deduction mean exactly the same thing. The design's own key still
  * reads "75–89%" and is behind; this renders what the product actually does.
  */
-export function ChartKey() {
+export function ChartKey({ summary }: { summary?: string }) {
   const green = Math.round(GREEN_FROM * 100);
   const red = Math.round(RED_AT_OR_BELOW * 100);
   const standard = Math.round(AT_THE_STANDARD * 100);
@@ -51,17 +51,23 @@ export function ChartKey() {
       detail somebody can open once and never again. Nothing is deleted — the words are all still
       here — but the page stops lecturing.
     */
-    <div className="mt-3 text-xs text-ink-light">
+    <div className="text-[13px] text-ink-light">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
         {bands.map(b => (
-          <span key={b.label} className="flex items-center gap-1.5">
-            <span aria-hidden className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: b.colour }} />
+          <span key={b.label} className="flex items-center gap-2">
+            <span aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-full" style={{ background: b.colour }} />
             <span style={{ color: b.ink }}>{b.label}</span>
           </span>
         ))}
-        <span className="text-ink-light/80">
+        <span className="border-l border-rust-200 pl-3 text-ink-light/80">
           Green is not SPEC &mdash; SPEC is {standard}% on every pillar.
         </span>
+        {/*
+          How big the chart is, how much of it is off, and how much is green — the design prints
+          these three on the end of the key, where they are read in the same glance as the colours
+          they are counting.
+        */}
+        {summary && <span className="text-ink-light/80">{summary}</span>}
       </div>
 
       <details className="mt-2">

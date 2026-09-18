@@ -13,11 +13,10 @@ import { isScored } from '@/lib/today-data';
 import { detachedBranches, stages, type ChartRole } from '@/lib/orgchart';
 import { aceWatch } from '@/lib/ace-watch-data';
 import type { AceWatchRow } from '@/lib/ace-watch';
-import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
+import { LIGHT_COLOUR } from '@/lib/today';
 import { addRole, importChart } from './actions';
 import { Problems } from '@/components/problems';
 import { ChartFile } from '@/components/chart-file';
-import { ChartKey } from '@/components/chart-key';
 import { PredictedRoles } from '@/components/predicted-roles';
 import { pendingPredictions } from '@/lib/predict-data';
 import { Cascade } from '@/components/cascade';
@@ -96,6 +95,14 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
       hasKpis: PILLARS.every(p => own.filter(c => c.pillar === p && c.kpi).length >= 2),
       // Null for a checklist role: no scorecard, so no run to be on.
       ace: aces.get(r.id) ?? null,
+      // What the role is measured on, named under each pillar in the Role scorecard panel. The
+      // criteria are already in hand, so this is free.
+      kpis: {
+        safety: own.filter(c => c.pillar === 'safety').map(c => c.text),
+        people: own.filter(c => c.pillar === 'people').map(c => c.text),
+        earnings: own.filter(c => c.pillar === 'earnings').map(c => c.text),
+        compliance: own.filter(c => c.pillar === 'compliance').map(c => c.text),
+      },
     });
   }
 
@@ -117,59 +124,42 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   return (
     <Shell
       title="Interactive org chart"
-      subtitle={`${tenant.name} · roles report to roles, and a role exists whether or not anybody holds it.`}
+      headline="Link it. Then it flows. Then it grows."
+      subtitle={
+        manage
+          ? 'Right-click anywhere to add a role. Drag it onto the role it reports to and the line is drawn. Have you ever been sure the business is linked, flowing and growing? Now you can be.'
+          : 'Every line here was drawn by someone in your business. Have you ever been sure the business is linked, flowing and growing? Now you can be.'
+      }
     >
-      {/* The design leads this screen with the sequence rather than the diagram, because the
-          sequence is the part people get wrong: they chase a score before the chart is drawn. */}
-      <section className="callout max-w-3xl">
-        <div className="font-serif text-xl text-ink">Link it. Then it flows. Then it grows.</div>
-        <p className="mt-2 text-sm text-ink-light">
-          {manage
-            ? 'Add a role, then drag it onto the role it reports to and the line is drawn.'
-            : 'Every line here was drawn by someone in your business.'}{' '}
-          Have you ever been sure the business is linked, flowing and growing? Now you can be.
-        </p>
-      </section>
+      {/*
+        Link → Flow → Grow, as three washes of colour rather than three labelled cards.
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-3">
-        {journey.map((s, i) => (
+        The design gives each one a tint — green when it is met, pale rust when it is not — and a
+        single dot. The product wrote the word "MET" or "STEP 3" in capitals beside the title and
+        drew a 4px rule across the top of a white card, which is a status table pretending to be a
+        picture. The tint IS the status; nothing has to be read to get it.
+      */}
+      <section className="grid gap-4 sm:grid-cols-3">
+        {journey.map(s => (
           <div
             key={s.key}
-            className="card"
-            style={{ borderTopColor: s.met ? LIGHT_COLOUR.green : LIGHT_COLOUR.pending, borderTopWidth: 4 }}
+            className="rounded-2xl p-6"
+            style={{ background: s.met ? 'rgba(79,122,63,0.12)' : '#f0e2cb' }}
           >
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="font-serif text-lg text-ink">{s.title}</span>
-              <span className="label-caps" style={{ color: s.met ? LIGHT_INK.green : undefined }}>
-                {s.met ? 'Met' : `Step ${i + 1}`}
-              </span>
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-serif text-[22px] leading-none text-ink">{s.title}</span>
+              <span
+                aria-hidden
+                className="block h-3.5 w-3.5 shrink-0 rounded-full"
+                style={{ background: s.met ? LIGHT_COLOUR.green : LIGHT_COLOUR.amber }}
+              />
             </div>
-            <p className="mt-2 text-sm text-ink-light">{s.detail}</p>
+            <p className="mt-3 text-sm leading-[22px] text-ink">{s.detail}</p>
+            {/* The status still has words, for anybody who cannot see the colour at all. */}
+            <span className="sr-only">{s.met ? 'Met' : 'Not yet met'}</span>
           </div>
         ))}
       </section>
-
-      {roles.length === 0 ? (
-        <div className="callout mt-6 max-w-2xl">
-          <div className="font-serif text-lg text-ink">Start from what you already have</div>
-          <p className="mt-1 text-sm text-ink-light">
-            Paste your structure in below — one role per line — or add them one at a time. Nobody is emailed
-            and nothing is billed: a name here is just a name until you choose to invite them.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-6">
-          {/*
-            The key ABOVE the chart, on one line, the way the design draws it — so somebody reads
-            what the colours mean before they meet them rather than scrolling past a wall of red and
-            amber to find out afterwards.
-          */}
-          <ChartKey />
-          <div className="mt-3">
-            <OrgCanvas roles={roles} rootId={rootId} canEdit={manage} />
-          </div>
-        </div>
-      )}
 
       {/*
         What the chart is missing, above the chart itself.
@@ -197,51 +187,96 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
         read={cascadeRead === '' ? null : Number(cascadeRead)}
       />
 
-      {manage && (
-        <div className="mt-10 grid items-start gap-6 lg:grid-cols-2">
-          <section className="card">
-            <h2 className="font-serif text-xl text-ink">Add a role</h2>
-            <p className="mt-1 text-sm text-ink-light">
-              It starts vacant. Roles are defined by what the business needs and a person is assigned
-              afterwards — never the other way round.
-            </p>
-            <form action={addRole} className="mt-4 grid gap-2 sm:grid-cols-[2fr_1.5fr_auto]">
-              <input className="input" name="title" required placeholder="Role title" aria-label="Role title" />
-              <select className="input" name="parentId" aria-label="Reports to" defaultValue={rootId ?? ''}>
-                <option value="">Top of the chart</option>
-                {roles.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
-              </select>
-              <SubmitButton className="btn-primary shrink-0" pending="Adding…">Add it</SubmitButton>
-            </form>
-          </section>
+      {/*
+        Bringing a structure in, ABOVE the chart and folded shut.
 
-          <section className="card">
-            <h2 className="font-serif text-xl text-ink">Start from what you already have</h2>
-            <p className="mt-1 text-sm text-ink-light">
-              Nobody types their org chart twice. One role per line: <span className="font-mono text-xs">role, person, reports to</span>. A manager
-              SPEC cannot match is still created — it lands off the chart, where you can drag it in.
-            </p>
-            <form action={importChart} className="mt-4 grid gap-2">
-              <textarea
-                id="chart-paste"
-                className="input min-h-[120px] rounded-lg font-mono text-xs"
-                name="text"
-                placeholder={'General Manager, A. Morgan\nOperations Manager, J. Barnes, General Manager\nSite Supervisor, , Operations Manager'}
-                aria-label="Paste your structure"
-              />
-              <SubmitButton className="btn-primary justify-self-start" pending="Drawing…">Build the chart</SubmitButton>
-            </form>
-            <p className="mt-3 text-xs text-ink-light">
-              A CSV exported from a payroll or HR system pastes in the same way — SPEC drops the header row
-              when it recognises one.
-            </p>
-            {/*
-              Upload a file, because a business's structure lives in a file rather than in somebody's
-              clipboard. It fills the box above rather than going anywhere, so what runs is the same
-              import that is already tested, and the person sees what arrived before anything is drawn.
-            */}
-            <ChartFile targetId="chart-paste" />
-          </section>
+        The design puts one quiet strip here — a line and an "Import your structure" link — because
+        importing is something a business does once, on the first morning, and never again. The
+        product had it at the BOTTOM of the page as two permanently-open cards with a textarea, a
+        file picker and three paragraphs, so every visit to the chart ended in a wall of setup.
+
+        Open by default while the chart is empty, because on that one morning it is the whole point
+        of the screen.
+      */}
+      {manage && (
+        <details open={roles.length === 0} className="mt-6 rounded-2xl bg-surface p-6">
+          <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-3">
+            <span>
+              <span className="font-serif text-xl text-ink">Start from what you already have</span>
+              <span className="mt-1 block text-sm text-ink-light">
+                Nobody types their org chart twice. Bring it in from a document, a spreadsheet, or the
+                system that already holds it.
+              </span>
+            </span>
+            <span className="shrink-0 text-sm text-rust-700 hover:underline">Import your structure</span>
+          </summary>
+
+          <div className="mt-6 grid items-start gap-6 lg:grid-cols-2">
+            <div>
+              <h2 className="label-caps text-rust-700">Bring in a whole structure</h2>
+              <p className="mt-2 text-sm text-ink-light">
+                One role per line: <span className="font-mono text-xs">role, person, reports to</span>. A manager
+                SPEC cannot match is still created — it lands off the chart, where you can drag it in.
+              </p>
+              <form action={importChart} className="mt-4 grid gap-2">
+                <textarea
+                  id="chart-paste"
+                  className="input min-h-[120px] rounded-lg font-mono text-xs"
+                  name="text"
+                  placeholder={'General Manager, A. Morgan\nOperations Manager, J. Barnes, General Manager\nSite Supervisor, , Operations Manager'}
+                  aria-label="Paste your structure"
+                />
+                <SubmitButton className="btn-primary justify-self-start" pending="Drawing…">Build the chart</SubmitButton>
+              </form>
+              <p className="mt-3 text-xs text-ink-light">
+                A CSV exported from a payroll or HR system pastes in the same way — SPEC drops the header row
+                when it recognises one.
+              </p>
+              {/*
+                Upload a file, because a business's structure lives in a file rather than in somebody's
+                clipboard. It fills the box above rather than going anywhere, so what runs is the same
+                import that is already tested, and the person sees what arrived before anything is drawn.
+              */}
+              <ChartFile targetId="chart-paste" />
+            </div>
+
+            <div>
+              <h2 className="label-caps text-rust-700">Or add one role</h2>
+              <p className="mt-2 text-sm text-ink-light">
+                It starts vacant. Roles are defined by what the business needs and a person is assigned
+                afterwards — never the other way round. On the chart itself, right-click does the same thing.
+              </p>
+              <form action={addRole} className="mt-4 grid gap-2 sm:grid-cols-[2fr_1.5fr_auto]">
+                <input className="input" name="title" required placeholder="Role title" aria-label="Role title" />
+                <select className="input" name="parentId" aria-label="Reports to" defaultValue={rootId ?? ''}>
+                  <option value="">Top of the chart</option>
+                  {roles.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
+                </select>
+                <SubmitButton className="btn-primary shrink-0" pending="Adding…">Add it</SubmitButton>
+              </form>
+            </div>
+          </div>
+        </details>
+      )}
+
+      {/*
+        The chart, and the two panels the design hangs off it: the selected role's scorecard, and
+        what the board sees. All three live in the canvas component because the first two follow the
+        selection, and a selection is a thing the browser holds rather than the server.
+      */}
+      {roles.length > 0 && (
+        <div className="mt-6">
+          <OrgCanvas
+            roles={roles}
+            rootId={rootId}
+            canEdit={manage}
+            averages={{
+              safety: averages.safety ?? null,
+              people: averages.people ?? null,
+              earnings: averages.earnings ?? null,
+              compliance: averages.compliance ?? null,
+            }}
+          />
         </div>
       )}
 
@@ -256,7 +291,7 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
         <Link href="/team" className="text-rust-700 hover:underline">The team roll-up</Link> averages the scored
         roles that are actually on the chart. Anything off it is excluded and counted, never quietly dropped.
       </p>
-      <Problems screen="org" />
+      <Problems screen="org" heading="What the chart changes" />
 
     </Shell>
   );

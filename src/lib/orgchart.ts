@@ -38,6 +38,54 @@ export interface ChartRole {
    * is for.
    */
   ace?: AceWatchRow | null;
+  /**
+   * What this role is measured on, by pillar — the criterion names, in order.
+   *
+   * The design's Role scorecard names the measures under every pillar heading, and that is the part
+   * which turns a percentage into something anybody can act on: 89% says nothing, "Margin against
+   * quote · Labour utilisation" says where to look. Read once for the whole chart on a page that
+   * already loads the criteria, so putting it on the panel costs no extra query.
+   */
+  kpis?: { safety: string[]; people: string[]; earnings: string[]; compliance: string[] };
+}
+
+/** The four pillars, in the order they are read on a card: S P E C. */
+export const PILLAR_KEYS = ['safety', 'people', 'earnings', 'compliance'] as const;
+
+/** The four averages the board reads. Null means nothing has been scored against that pillar. */
+export type Rollup = Record<(typeof PILLAR_KEYS)[number], number | null>;
+
+/**
+ * What the board is being told, in one line.
+ *
+ * The design has three cases — all green, amber, red. There is a fourth that only a real business
+ * has: **nothing marked yet**, on the first morning, before a month has ever been closed. The
+ * prototype cannot reach it because it ships with numbers in it, and a screen that answered "Red on
+ * the board" to a company that has not started would be both wrong and discouraging on the one day
+ * that matters most.
+ */
+export function boardVerdict(averages: Rollup): { title: string; body: string; wash: string } {
+  const values = PILLAR_KEYS.map(p => averages[p]).filter((v): v is number => v !== null);
+  if (values.length === 0) {
+    return {
+      title: 'Nothing marked yet',
+      body: 'Set a role’s KPIs and close a month, and the four pillars fill in here — this is the same figure the board pack carries.',
+      wash: 'rgba(140,134,129,0.12)',
+    };
+  }
+  const worst = Math.min(...values);
+  if (worst >= 0.8) {
+    return {
+      title: 'All four green',
+      body: 'Two months at this and the business is SPEC — 90% on every pillar, every month.',
+      wash: 'rgba(79,122,63,0.12)',
+    };
+  }
+  return {
+    title: worst > 0.5 ? 'Amber on the board' : 'Red on the board',
+    body: 'The board sees the pillar below target and the role it comes from. Nothing needs explaining.',
+    wash: worst > 0.5 ? 'rgba(198,113,57,0.12)' : 'rgba(166,59,38,0.10)',
+  };
 }
 
 export const SLOT = 200;

@@ -52,13 +52,47 @@ a dashboard into a manual.
 
 ### Org chart — DONE, 18 September
 
-Fixed and shipped. Listed here because it is the worked example of the rest.
+Two passes. The first fixed the cards; Kris looked again — *"now fix all the rest especially org
+chart"* — and the second fixed the screen around them.
+
+First pass, the cards:
 
 - ~~Four grey dots instead of four solid S P E C tiles coloured by score~~
 - ~~2px flat connectors instead of 5px rails coloured by what they report~~
 - ~~Square panel with a hairline grey border instead of the design's rounded, rust-edged card~~
 - ~~"Team of 3" as a line of text instead of a count badge on the corner~~
 - ~~145 lines of "What the colours mean" under the chart instead of one legend line above it~~
+
+Second pass, the screen:
+
+- ~~No kicker, no headline — the screen opened with a 24px title and a grey subtitle, then repeated
+  the design's headline inside a callout box~~
+- ~~Link / Flow / Grow as white cards with `MET` and `STEP 3` written in capitals, instead of the
+  design's tinted cards with one dot~~
+- ~~The chart loose on the page background, with no frame, no *Viewing:* line, no way to narrow to
+  one branch, and no `9 roles · 0 off the chart · 0 all green`~~
+- ~~**Neither of the two panels the design hangs off the chart existed.** No *Role scorecard* — so
+  pressing a role did nothing — and no *What the board sees*, even though this page already
+  calculates those four averages and threw them away~~
+- ~~"Off the chart" as a separate card two scrolls below the thing it is about~~
+- ~~The import panel permanently open at the foot of the page, so every visit to the chart ended in
+  a wall of setup~~
+- ~~Every card on a new business reading "Checklist role", because the four letters were gated on
+  having KPIs already — the whole chart was grey and captioned on the first morning~~
+- ~~A single click on a card navigated away, because the title was a link. The design's mapping is
+  click to select, double-click to open~~
+
+**Deliberately not built:** the prototype's slider that drags a pillar's score. A score in SPEC is
+what the KPI results add up to; a control that sets one directly would make every number on the
+board a matter of opinion.
+
+### The mark — DONE, 18 September
+
+- ~~Not animated at all.~~ Every design file opens with it playing: the ring runs red → amber →
+  green over four and a half seconds, the hand sweeps round and lands on twelve, a crown arrives at
+  the end. The product drew the last frame as a still, on a black disc where the design's is deep
+  sage. **No text check could ever have found this**, which is why `scripts/mark-journey.mjs` asks
+  the browser where the hand is instead.
 
 ### My Page
 
@@ -67,8 +101,11 @@ Fixed and shipped. Listed here because it is the worked example of the rest.
 - No persona chips (Operations Manager / Site Supervisor / Apprentice / BD Manager)
 - **No Snap Score band.** The design gives it a full-width band with a ring; the product has a small
   grey chip inside another card
-- **The four pillar cards are missing entirely until a month is marked.** On day one — which is the
-  only day a new customer ever sees — the design's most recognisable element is not there
+- ~~**The four pillar cards are missing entirely until a month is marked.** On day one — which is the
+  only day a new customer ever sees — the design's most recognisable element is not there~~
+- ~~An unmarked pillar read as an em dash. Kris: *"i dont like the dashes they should 0's percent"*.
+  Nought is the honest reading of a month nobody has scored, and the line under it still says "Not
+  marked yet" so nought is never mistaken for a month that was marked and failed~~
 - One column instead of the design's two
 - "Everywhere else in SPEC" is a large text directory the design does not have, because the design
   has a navigation bar (now built)

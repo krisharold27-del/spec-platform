@@ -482,6 +482,13 @@ jobs:
           # role is really there.
           journey org-journey.mjs
 
+          # The mark, watched moving. Every design file opens with it PLAYING — the ring runs red to
+          # green, the hand sweeps round and lands on twelve — and the product shipped the last frame
+          # of that as a still until Kris said so. The animation is SMIL inside the SVG, which no unit
+          # test can see: the first attempt had perfectly correct markup and drew the hand a hundred
+          # pixels above the picture. This asks the browser where the hand actually is.
+          journey mark-journey.mjs
+
           # Importing a chart from the file a business actually keeps it in. Kris, 18 September:
           # "it doesn't give the option of pdf or word doc. that how they will do it". The reading
           # is unit-tested and pure; the two parts that actually break are the two a unit test

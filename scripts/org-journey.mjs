@@ -245,13 +245,20 @@ if (await boss.count()) {
     and starts saying "+4 folded away", so re-using the finder picks a different card on the way
     back — which failed this check and reported a product fault that was mine.
   */
-  const bossTitle = (await boss.locator('a[href^="/scorecard/"]').first().innerText()).trim();
+  const bossTitle = (await boss.locator('span[title]').first().innerText()).trim();
   const sameCard = () => page.locator('[data-org-canvas] [draggable="true"]', { hasText: bossTitle }).first();
   const drawnBefore = await cardCount();
-  await boss.dblclick();
+  /*
+    The BADGE folds, not a double-click.
+
+    Double-click now opens the role's scorecard, which is what the design assigns it — and the fold
+    moved onto the count badge, which is visible rather than being a gesture only somebody who had
+    been told about it would ever try.
+  */
+  await boss.locator('[data-team]').click();
   await page.waitForTimeout(400);
   const drawnAfter = await cardCount();
-  check('DOUBLE-CLICKING A LEADER FOLDS THEIR TEAM AWAY', drawnAfter < drawnBefore, `${drawnBefore} → ${drawnAfter}`);
+  check('PRESSING THE COUNT ON A LEADER FOLDS THEIR TEAM AWAY', drawnAfter < drawnBefore, `${drawnBefore} → ${drawnAfter}`);
   /*
     The count is on the badge, as "+3" — which is how the design draws it and is visible without
     hovering. This used to look for the sentence "folded away", which lived in a line of text INSIDE
@@ -263,11 +270,11 @@ if (await boss.count()) {
     /^\+\d+$/.test((await sameCard().locator('[data-team]').innerText()).trim()),
     (await sameCard().locator('[data-team]').innerText()).trim(),
   );
-  await sameCard().dblclick();
+  await sameCard().locator('[data-team]').click();
   await page.waitForTimeout(400);
-  check('  double-clicking again brings them back', (await cardCount()) === drawnBefore, `wanted ${drawnBefore}`);
+  check('  pressing it again brings them back', (await cardCount()) === drawnBefore, `wanted ${drawnBefore}`);
 } else {
-  check('DOUBLE-CLICKING A LEADER FOLDS THEIR TEAM AWAY', false, 'no card with a team to fold');
+  check('PRESSING THE COUNT ON A LEADER FOLDS THEIR TEAM AWAY', false, 'no card with a team to fold');
 }
 
 // ── Right-clicking the canvas itself ─────────────────────────────────────────────────────────────
@@ -293,10 +300,10 @@ await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
 /*
   A CARD, not a person pill. The pill is `draggable` too — that is how a person is moved — so
   `cards().nth(1)` picked "R. Nakamura" and this check compared a role's KPI screen against a
-  person's name. Only a card carries a link to a scorecard.
+  person's name. `data-role-card` is on the card and nothing else.
 */
-const wanted = page.locator('[data-org-canvas] [draggable="true"]:has(a[href^="/scorecard/"])').nth(1);
-const wantedTitle = (await wanted.locator('a[href^="/scorecard/"]').first().innerText()).trim();
+const wanted = page.locator('[data-org-canvas] [data-role-card]').nth(1);
+const wantedTitle = (await wanted.locator('span[title]').first().innerText()).trim();
 await aimAt(wanted);
 await menu.getByRole('menuitem', { name: /Set this role/ }).click();
 await page.waitForLoadState('networkidle').catch(() => {});

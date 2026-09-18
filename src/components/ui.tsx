@@ -16,7 +16,15 @@ import { PILLAR_META, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk, pct } from
 export { PILLAR_META, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk, pct };
 
 
-export async function Shell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+export async function Shell({ title, kicker, headline, subtitle, children }: {
+  title: string;
+  /** Small rust capitals above the statement. Defaults to `title`, which is what it usually is. */
+  kicker?: string;
+  /** The design's opener: one or two lines of serif saying what the screen is FOR. */
+  headline?: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
   // Only someone with more than one business ever sees a way to switch.
   const businesses = await myBusinesses().catch(() => []);
   /*
@@ -133,8 +141,34 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
           where you are by reading the first h1 or h2, and it found the empty one. A screen reader
           would have hit the same thing and announced nothing.
         */}
-        {title && <h1 className="font-serif text-2xl tracking-tight text-ink">{title}</h1>}
-        {subtitle && <p className="mt-1 text-sm text-ink-light">{subtitle}</p>}
+        {/*
+          The opener, which is the single biggest reason Kris called the product *boring*.
+
+          Every design screen starts the same way: small rust capitals naming the screen, then a
+          two-line serif statement of what it is FOR, then one sentence of plain text. Every built
+          screen started with a 24px title and a grey subtitle — the design ANNOUNCES the screen,
+          the product LABELLED it. Doing it here rather than per page is the point: sixteen screens
+          were wrong in the same way, so there is one place to be right.
+
+          A page that passes no headline keeps the old small title, so nothing is left half-converted
+          while the rest are done.
+        */}
+        {headline ? (
+          <header className="pb-2">
+            {(kicker ?? title) && (
+              <span className="label-caps block text-rust-700">{kicker ?? title}</span>
+            )}
+            <h1 className="mt-3 max-w-[20ch] font-serif text-[clamp(30px,4.2vw,50px)] leading-[1.08] tracking-tight text-ink">
+              {headline}
+            </h1>
+            {subtitle && <p className="mt-5 max-w-[58ch] text-[17px] leading-7 text-ink">{subtitle}</p>}
+          </header>
+        ) : (
+          <>
+            {title && <h1 className="font-serif text-2xl tracking-tight text-ink">{title}</h1>}
+            {subtitle && <p className="mt-1 text-sm text-ink-light">{subtitle}</p>}
+          </>
+        )}
         <div className="mt-6">
           {lapsed && (
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rust-300 bg-rust-100 p-4 text-sm text-rust-800">
@@ -239,7 +273,9 @@ export function PillarTile({ pillar, score: raw, scored: anyScored, sub }: { pil
         >{m.letter}</span>
         <div className="label-caps">{m.name}</div>
       </div>
-      <div className="mt-2 font-serif text-3xl text-ink">{scored ? pct(score) : '—'}</div>
+      {/* Nought rather than a dash on an unmarked pillar — Kris, 18 September. The status line
+          under it still says the month has not been marked, so nought is never read as a failure. */}
+      <div className="mt-2 font-serif text-3xl text-ink">{scored ? pct(score) : '0%'}</div>
       <div className="mt-1 text-sm font-medium" style={{ color: ink }}>{status}</div>
       {sub && <div className="mt-2 text-xs text-ink-light">{sub}</div>}
     </div>

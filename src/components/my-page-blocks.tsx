@@ -211,7 +211,7 @@ export function SnapBand({ pct, early, children }: {
         }}
       >
         <span className="grid h-[58px] w-[58px] place-content-center rounded-full bg-surface font-serif text-base text-ink">
-          {early ? '—' : `${pct}`}
+          {early ? '0' : `${pct}`}
         </span>
       </span>
       <div className="min-w-0 flex-1">

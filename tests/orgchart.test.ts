@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   layout, rootsOf, branch, isDescendant, canMove, canRemove, collapsedAway, teamSize,
-  detachedBranches, stages,
+  detachedBranches, stages, boardVerdict,
   parseRoles, resolveImport, parseCsv, SLOT, ROW, cardWidth,
   type ChartRole,
 } from '../src/lib/orgchart';
@@ -362,5 +362,40 @@ describe('teamSize', () => {
 
   it('is zero for a leaf', () => {
     expect(teamSize('b', tree())).toBe(0);
+  });
+});
+
+describe('boardVerdict — what the chart tells the board', () => {
+  const at = (safety: number | null, people: number | null, earnings: number | null, compliance: number | null) =>
+    ({ safety, people, earnings, compliance });
+
+  /*
+    The case the prototype cannot reach, and the only case a brand-new customer ever sees.
+
+    A design file always ships with numbers in it, so its verdict has three branches. A business on
+    its first morning has four nulls, and the worst of nothing is not zero — answering "Red on the
+    board" to a company that has not started would be both wrong and the most discouraging thing
+    SPEC could say on day one.
+  */
+  it('SAYS NOTHING IS MARKED rather than calling an unstarted business red', () => {
+    const v = boardVerdict(at(null, null, null, null));
+    expect(v.title).toBe('Nothing marked yet');
+    expect(v.title).not.toMatch(/red/i);
+  });
+
+  it('is green only when the WORST pillar is green', () => {
+    expect(boardVerdict(at(0.95, 0.9, 0.85, 0.82)).title).toBe('All four green');
+    // One pillar behind is the news, however good the other three are.
+    expect(boardVerdict(at(1, 1, 1, 0.79)).title).toBe('Amber on the board');
+  });
+
+  it('is red at or under half, on the same line every other light in SPEC uses', () => {
+    expect(boardVerdict(at(0.9, 0.9, 0.51, 0.9)).title).toBe('Amber on the board');
+    expect(boardVerdict(at(0.9, 0.9, 0.5, 0.9)).title).toBe('Red on the board');
+  });
+
+  it('judges on the pillars that HAVE a score, not on the missing ones', () => {
+    // Three green and one not yet marked is not a business in trouble.
+    expect(boardVerdict(at(0.92, 0.9, null, 0.88)).title).toBe('All four green');
   });
 });

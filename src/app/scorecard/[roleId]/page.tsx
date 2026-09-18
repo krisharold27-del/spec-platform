@@ -151,7 +151,7 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
           </div>
           <div>
             <dt className="label-caps">Overall</dt>
-            <dd className="mt-1 font-serif text-2xl text-ink">{scored ? pct(score.overall) : '—'}</dd>
+            <dd className="mt-1 font-serif text-2xl text-ink">{scored ? pct(score.overall) : '0%'}</dd>
           </div>
         </dl>
         <p className="mt-4 text-xs text-ink-light">

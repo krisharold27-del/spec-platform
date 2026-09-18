@@ -127,6 +127,54 @@ real `.docx` and a real PDF byte by byte, including a scan containing no text at
 
 ---
 
+## 18 September — CI had been red for two commits and I had not looked
+
+**What was true.** `connection_credentials` shipped with `.enableRLS()` and no policy. CI failed on
+`2f6ede8` and again on `ba1946e`. The Production workflow is separate and went green both times, so
+the site deployed, Kris saw his changes arrive, and nothing anywhere said the other light was red.
+
+**Where the reasoning went wrong.** I treated "the deploy succeeded" as "the build is fine". They are
+two different workflows answering two different questions, and the one I was watching was the one
+that cannot fail for this class of fault.
+
+**What it would have cost.** A table whose rows are sixty days of read access to a business's
+accounts, with row-level security switched on and no policy attached — which is not half-protected,
+it is a table whose access depends entirely on which database role is asking.
+
+**Now caught by.** Nothing new; the check already existed and already worked. The fix is to read it.
+
+---
+
+## 18 September — the logo was the last frame of an animation
+
+**What Kris said.** *"the top left logo is supposed to move - you haven't done half the thing in this
+build - super disappointed"*.
+
+**What was true.** Every design file opens with the mark PLAYING: the ring runs red → amber → green
+over four and a half seconds, the hand sweeps round and lands on twelve, a crown arrives at the end.
+The product drew the finished state as a still, on a black disc where the design's is deep sage.
+
+**Where the reasoning went wrong.** The same place as the four grey dots on the org chart. Every
+check SPEC has for design fidelity reads text. An animation has no text in it at all, so the mark
+could be motionless for weeks with every check green — and was.
+
+**The second mistake, inside the fix.** My first attempt had markup matching the design exactly and
+drew the hand a hundred pixels above the picture: `animateTransform` on `transform` REPLACES an
+element's own transform rather than composing with it, so the rotation threw away the `translate`
+that put the pivot in the middle. The mark rendered as a plain green disc. **Correct attributes, wrong
+picture** — which is precisely the failure a text check cannot see.
+
+**Now caught by.** `scripts/mark-journey.mjs`, which asks the browser where the hand actually is,
+whether it is somewhere else a second later, and whether the ring finished green. Proven by putting
+the fault back and watching it fail.
+
+**And a repeat.** While proving that, I twice read a result from a server running the PREVIOUS build
+and believed it — the same stale-build mistake already recorded above, three days running. A restart
+is not a restart until the old process is gone; `pkill` returning an error is not the same as the
+port being free.
+
+---
+
 ## Earlier
 
 Kept in `docs/READINESS.md`, where each row states what was wrong, what it cost and the command that

@@ -55,7 +55,7 @@ export function ScorecardTabs({ summaries, scored }: { summaries: PillarPanel[];
             >
               <div className="label-caps">{s.name}</div>
               <div className="mt-2 font-serif text-3xl text-ink">
-                {scored && s.score !== null ? `${Math.round(s.score * 100)}%` : '—'}
+                {scored && s.score !== null ? `${Math.round(s.score * 100)}%` : '0%'}
               </div>
               <p className="mt-1 text-xs text-ink-light">{s.question}</p>
               <p className="mt-2 text-xs text-ink-light">{s.line}</p>

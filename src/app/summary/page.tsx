@@ -71,7 +71,7 @@ export default async function ExecutiveSummary() {
               <tr key={role.id} className="border-t">
                 <td className="p-3"><Link className="text-rust hover:underline" href={`/scorecard/${role.id}`}>{role.title}</Link></td>
                 <td className="p-3 text-ink-light">{role.holder?.name ?? <span className="italic text-ink-light/60">vacant</span>}</td>
-                {PILLARS.map(p => <td key={p} className="p-3">{scored ? pct(score.pillars[p]) : '—'}</td>)}
+                {PILLARS.map(p => <td key={p} className="p-3">{scored ? pct(score.pillars[p]) : '0%'}</td>)}
                 <td className="p-3 font-medium">{scored ? pct(score.overall) : 'not scored'}</td>
               </tr>
             );

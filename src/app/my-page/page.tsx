@@ -251,8 +251,16 @@ export default async function MyPage({
                 <span className="label-caps">{PILLAR_META[p].name}</span>
                 <Dot light={l} size={14} />
               </div>
-              {/* The design's number is the anchor of the card, not a line in it. */}
-              <div className="mt-3 font-serif text-5xl leading-none text-ink">{v === null ? '—' : pct(v)}</div>
+              {/*
+                The design's number is the anchor of the card, not a line in it.
+
+                A pillar with nothing marked reads **0%**, not a dash. Kris, 18 September: *"i dont
+                like the dashes they should 0's percent"*. He is right for a reason worth keeping: a
+                dash asks the reader what happened, and the honest answer on an unmarked month is
+                that nothing has been scored — which IS nought. The line underneath still says "Not
+                marked yet", so nought is never mistaken for a month that was marked and failed.
+              */}
+              <div className="mt-3 font-serif text-5xl leading-none text-ink">{v === null ? '0%' : pct(v)}</div>
               <div className="mt-2 text-sm" style={{ color: l === 'pending' ? undefined : LIGHT_COLOUR[l] }}>
                 {v === null ? 'Not marked yet' : LIGHT_LABEL[l]}
               </div>

@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import {
-  layout, rootsOf, detachedBranches, canMove, canRemove, collapsedAway, teamSize, type ChartRole,
+  layout, rootsOf, detachedBranches, canMove, canRemove, collapsedAway, teamSize, boardVerdict,
+  type ChartRole, type Rollup,
 } from '@/lib/orgchart';
 import { PILLAR_META } from '@/lib/pillars';
 import { LIGHT_COLOUR, LIGHT_INK, light } from '@/lib/today';
 import { AcePips, AceStar } from '@/components/ace-pips';
+import { ChartKey } from '@/components/chart-key';
 import {
   moveRole, movePerson, breakLink, vacateRole, addRole, removeRole, renameRole, renamePerson,
 } from '@/app/org/actions';
@@ -49,12 +51,24 @@ interface Item { label: string; run: () => void; danger?: boolean }
 
 const PILLARS = ['safety', 'people', 'earnings', 'compliance'] as const;
 
-export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; rootId: string | null; canEdit: boolean }) {
+export function OrgCanvas({ roles, rootId, canEdit, averages }: {
+  roles: ChartRole[];
+  rootId: string | null;
+  canEdit: boolean;
+  averages: Rollup;
+}) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  /*
+    The chart opens with the top role already chosen.
+
+    The Role scorecard panel beside it started empty, so the first thing a new customer saw in the
+    place the design puts a filled scorecard was a sentence telling them to press something. The top
+    of the chart is the one role that is always there.
+  */
+  const [selectedId, setSelectedId] = useState<string | null>(rootId);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   /*
     What is CURRENTLY TYPED in the rename panel, held in React rather than left in the DOM.
@@ -73,6 +87,15 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
     its four boxes back on every bounce. The same rule applies to a box on a chart.
   */
   const [draft, setDraft] = useState<{ id: string; title: string; person: string } | null>(null);
+  /*
+    Which part of the chart is being looked at.
+
+    Forty roles do not fit on a screen and never will, so the design puts a selector on the canvas:
+    pick a role and the chart shows that role and everybody under it. Null is the whole company.
+    Nothing is hidden from the business by this — the averages, the counts and the off-chart tray
+    are all still the whole company — it only changes what is DRAWN.
+  */
+  const [viewFrom, setViewFrom] = useState<string | null>(null);
   const [, start] = useTransition();
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -86,8 +109,24 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
     is told to leave them out. See `collapsedAway`.
   */
   const hidden = collapsedAway(collapsed, onChart);
-  const drawn = onChart.filter(r => !hidden.has(r.id));
+  // A role the selector points at that has since been removed falls back to the whole company
+  // rather than drawing an empty canvas.
+  const from = viewFrom && onChart.some(r => r.id === viewFrom) ? viewFrom : null;
+  const inView = from ? onChart.filter(r => under(r, onChart, from)) : onChart;
+  const drawn = inView.filter(r => !hidden.has(r.id));
   const { cards, lines, width, height } = layout(rootsOf(drawn), drawn);
+
+  /*
+    The line the design prints beside the key: how big the chart is, how much of it is off, and how
+    much of it is green. Three numbers that answer "where are we" without opening anything.
+  */
+  const allGreen = onChart.filter(
+    r => r.scored && r.pillars && PILLARS.every(p => (r.pillars![p] ?? 0) >= 0.8),
+  ).length;
+  const offCount = detached.reduce((s, d) => s + d.below + 1, 0);
+  const summary = `${onChart.length} role${onChart.length === 1 ? '' : 's'} · ${offCount} off the chart · ${allGreen} all green`;
+
+  const verdict = boardVerdict(averages);
 
   const shut = useCallback(() => setMenu(null), []);
 
@@ -275,11 +314,73 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
         space next to the chart opened the menu for whichever card happened to be under the cursor.
         The quiet margin round the outside is the part a person reads as "not a card".
       */}
-      <div
+      {/*
+        ── The chart as one panel, which is how the design draws it ──────────────────────────────
+
+        It was a bare strip of cream on the page background with the key floating above it and the
+        off-chart tray in a separate card two scrolls further down. The design puts the whole
+        instrument in a single raised surface: what you are looking at, what the colours mean, the
+        tree, what has fallen off it, and how to work it — in that order, in one place. A diagram
+        with its own frame reads as a thing; the same diagram loose on a page reads as decoration.
+      */}
+      <section
         data-org-canvas
-        className="overflow-x-auto rounded-lg bg-cream p-4"
+        className="rounded-2xl bg-surface p-5 shadow-sm sm:p-8"
         onContextMenu={e => openMenu(e, null)}
       >
+        {/*
+          What part of the business is on screen, and how to change it.
+
+          Forty roles on one canvas is a picture nobody can read. The selector narrows the drawing
+          to one branch — and the sentence beside it says so plainly, because a chart quietly
+          showing you two thirds of a company is a chart that lies by omission.
+        */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
+          <span className="text-[13.5px] text-ink-light">
+            Viewing:{' '}
+            <strong className="font-medium text-ink">
+              {from
+                ? `${roles.find(r => r.id === from)?.title ?? 'a role'} and below`
+                : 'the whole company'}
+            </strong>
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="sr-only" htmlFor="org-view-from">View from role</label>
+            <select
+              id="org-view-from"
+              value={from ?? ''}
+              onChange={e => setViewFrom(e.target.value || null)}
+              className="min-h-[36px] rounded-md border border-ink/15 bg-cream px-2.5 py-1 text-[13px] text-ink"
+            >
+              <option value="">Whole company chart</option>
+              {onChart.map(r => (
+                <option key={r.id} value={r.id}>
+                  {r.title}{r.person ? ` — ${r.person}` : ' — vacant'}
+                </option>
+              ))}
+            </select>
+            {from && (
+              <button
+                type="button"
+                onClick={() => setViewFrom(null)}
+                className="whitespace-nowrap text-sm text-rust-700 hover:underline"
+              >
+                See whole company chart
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/*
+          The key on one line, inside the frame, with the three counts on the end of it — the way
+          the design has it. Above the tree, so nobody meets a wall of amber before being told what
+          amber means.
+        */}
+        <ChartKey summary={summary} />
+
+        {/* pt-4 so the count badge, which hangs off the top-left corner of a card, is not clipped
+            by the frame the chart now sits in. */}
+        <div className="mt-4 overflow-x-auto pt-4">
         <div className="relative mx-auto" style={{ width, height }}>
           {/*
             The lines carry the reading, and they are rails rather than hairlines.
@@ -309,6 +410,10 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
             return (
               <div
                 key={r.id}
+                /* A stable hook for the browser checks. They used to find a card by the link inside
+                   it; the title stopped being a link when a single press started opening the panel,
+                   which would have left those checks matching person pills instead of cards. */
+                data-role-card={r.id}
                 draggable={canEdit}
                 onDragStart={() => canEdit && setDrag({ kind: 'role', id: r.id, title: r.title })}
                 onDragEnd={() => { setDrag(null); setOver(null); }}
@@ -318,19 +423,15 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
                 onClick={() => setSelectedId(r.id)}
                 onContextMenu={e => openMenu(e, r.id)}
                 /*
-                  A leader with a team folds away on a double-click, which is the only gesture on
-                  this card that costs nothing and changes nothing. A card with nobody under it has
-                  nothing to fold, so it does nothing rather than doing something surprising.
+                  Double-click opens the role's scorecard, which is what the design assigns it.
+
+                  It used to fold the team away, and the title was a link so that a SINGLE click left
+                  the page altogether — which meant the panel that is supposed to fill when you press
+                  a role could never fill, because pressing a role navigated. Folding moved onto the
+                  count badge, where it is both visible and one press.
                 */
-                onDoubleClick={() => {
-                  if (!team) return;
-                  setCollapsed(s => {
-                    const next = new Set(s);
-                    if (!next.delete(r.id)) next.add(r.id);
-                    return next;
-                  });
-                }}
-                title={team ? `Team of ${team} — double-click to ${shut_ ? 'open' : 'fold away'}` : undefined}
+                onDoubleClick={() => { window.location.href = `/scorecard/${r.id}`; }}
+                title={`${r.title} — click to open its scorecard here, double-click for the full one`}
                 /*
                   The design's card: rounded, a rust edge, and everything centred.
 
@@ -358,13 +459,12 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
                   The clamp is what lets the height stay a structural constant: the title can never
                   push the card taller than the row spacing allows.
                 */}
-                <Link
-                  href={`/scorecard/${r.id}`}
-                  className={`block w-full font-serif text-sm leading-tight text-ink hover:text-rust [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
+                <span
+                  className={`block w-full font-serif text-sm leading-tight text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
                   title={r.title}
                 >
                   {r.title}
-                </Link>
+                </span>
 
                 {r.person ? (
                   <span
@@ -385,8 +485,18 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
                   <span className="mt-1 inline-block text-xs text-ink-light">Vacant</span>
                 )}
 
-                {r.scored ? (
+                {r.level !== 'staff' ? (
                   /*
+                    Four letters on EVERY role that carries a scorecard, whether or not its KPIs are
+                    set yet.
+
+                    This used to be gated on `scored`, which is "not a staff role AND has at least
+                    one criterion". So on the first morning — every role created, none of them set
+                    up — the whole chart read "Checklist role", which is not true and is the one
+                    thing on the card that would make a leader think SPEC had decided their managers
+                    do not get measured. A role with no KPIs shows four grey letters, which is what
+                    the key already promises: *not set — no KPIs yet, so nothing to score*.
+
                     Two readings on one row: this month on the left, the Ace run on the right.
 
                     The run started in the top corner and pushed the titles into truncating — "Head
@@ -448,16 +558,28 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
                   "Team of 3", which is a sentence where the design has a number.
                 */}
                 {team > 0 && (
-                  <span
+                  <button
+                    type="button"
                     /* A hook that survives restyling. The browser check used to find a leader by the
                        words "Team of", which this badge replaced — so a visual change silently broke
                        a behavioural check. The count is what it is looking for; let it ask for that. */
                     data-team={team}
-                    title={shut_ ? `${team} folded away — double-click to open` : `Team of ${team} — double-click to fold away`}
+                    /* The badge is now the fold, because a gesture nobody can see is a gesture
+                       nobody uses. Press it and the branch closes; press it again and it opens. */
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={e => {
+                      e.stopPropagation();
+                      setCollapsed(s => {
+                        const next = new Set(s);
+                        if (!next.delete(r.id)) next.add(r.id);
+                        return next;
+                      });
+                    }}
+                    title={shut_ ? `${team} folded away — press to open` : `Team of ${team} — press to fold away`}
                     className="absolute -left-2.5 -top-2.5 z-[2] grid h-[22px] min-w-[22px] place-content-center rounded-full bg-rust-700 px-1.5 text-[11px] font-bold text-cream shadow-sm"
                   >
                     {shut_ ? `+${team}` : team}
-                  </span>
+                  </button>
                 )}
                 <span className="mt-1 flex w-full items-center gap-2 text-[10px] text-ink-light">
                   {canEdit && (
@@ -483,7 +605,59 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
           })}
 
         </div>
-      </div>
+        </div>
+
+        {/*
+          What has fallen off the chart, inside the frame rather than in a card of its own.
+
+          The design keeps it here, under a dashed rule, because a detached branch is a fact ABOUT
+          this chart — and because the only thing to do with one is drag it back onto the chart that
+          is directly above it. In its own card two scrolls away it was a list nobody connected to
+          the picture.
+        */}
+        {detached.length > 0 && (
+          <div className="mt-9 border-t-2 border-dashed border-rust-300 pt-6">
+            <p className="label-caps mb-3.5 text-[#a63b26]">
+              Off the chart — drag onto the role it reports to. Anything below a detached role comes back
+              with it, and none of it counts towards the board figures.
+            </p>
+            <div
+              className="flex flex-wrap gap-3"
+              onDragOver={e => { if (canEdit && drag?.kind === 'role') e.preventDefault(); }}
+            >
+              {detached.map(d => (
+                <span
+                  key={d.role.id}
+                  draggable={canEdit}
+                  onDragStart={() => canEdit && setDrag({ kind: 'role', id: d.role.id, title: d.role.title })}
+                  onDragEnd={() => setDrag(null)}
+                  onClick={() => setSelectedId(d.role.id)}
+                  onContextMenu={e => openMenu(e, d.role.id)}
+                  className={`grid gap-0.5 rounded-xl border border-rust-400 bg-cream px-3.5 py-2.5 ${canEdit ? 'cursor-grab' : ''}`}
+                >
+                  <span className="font-serif text-[15px] text-ink">{d.role.title}</span>
+                  <span className="text-[12.5px] text-ink-light">
+                    {d.role.person ?? 'Vacant'}
+                    {d.below > 0 && ` · ${d.below} below`}
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/*
+          How the chart is worked, once, at the foot of the frame — the design's own sentence. It
+          used to be a note under the canvas that only appeared for an editor and said something
+          different; this says what every gesture does, in the order somebody would try them.
+        */}
+        <p className="mt-6 text-[13px] leading-[22px] text-ink-light">
+          {canEdit
+            ? 'Press a card to open it in the scorecard beside the chart, or double-click for the full one. Drag a card to re-report it. Drag the name pill off one card onto another to move the person into that role — if it is filled, the two swap. Right-click a role, or press ⋯, to set its KPIs, break its link or make it vacant. Press the number on a leader to fold their team away. '
+            : 'Press a card to open it beside the chart, or double-click for the full scorecard. Press the number on a leader to fold their team away. '}
+          Lights read left to right: Safety, People, Earnings, Compliance.
+        </p>
+      </section>
 
       {/*
         Pinned to the window, not to the canvas.
@@ -516,105 +690,235 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
         </div>
       )}
 
-      {canEdit && (
-        <p className="mt-2 text-xs text-ink-light">
-          Drag a card to move the role and everybody under it. Drag a name to move just the person — if the
-          role you drop it on is filled, the two swap. Right-click a card, or press ⋯, for everything else.
-        </p>
-      )}
-
       {/*
-        The panel the "Rename" menu item opens into.
+        ── The two panels the chart hangs off ────────────────────────────────────────────────────
 
-        Two ordinary forms with a Save on each, rather than the prototype's save-as-you-type. A chart
-        is a shared document: a keystroke that reaches the database before anybody has finished
-        thinking is how a role gets renamed "Operations Manage" because a colleague walked past.
+        The design's shape, and the reason the built page felt like a diagram with nothing to do:
+        the role you pressed on the left, and what the whole thing adds up to on the right. The
+        product had neither — it had a rename form that only appeared from a menu item, and the
+        averages appeared nowhere on this screen at all, even though the chart is where they are
+        made.
       */}
-      {canEdit && selected && (
-        <section ref={panelRef} className="card mt-6">
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-2">
+        <section ref={panelRef} className="rounded-2xl bg-sage-100 p-6 sm:p-8">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="font-serif text-xl text-ink">{selected.title}</h2>
-            <button type="button" onClick={() => setSelectedId(null)} className="text-sm text-ink-light underline hover:text-rust">
-              Done
-            </button>
+            <span className="label-caps text-sage-700">Role scorecard</span>
+            {selected && (
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                className="text-sm text-ink-light underline hover:text-rust"
+              >
+                Done
+              </button>
+            )}
           </div>
 
-          <form action={renameRole} className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
-            <input type="hidden" name="roleId" value={selected.id} />
-            <label className="sr-only" htmlFor="org-title">Role title</label>
-            <input
-              id="org-title"
-              name="title"
-              value={draft?.id === selected.id ? draft.title : selected.title}
-              onChange={e => setDraft(d => (d ? { ...d, title: e.target.value } : d))}
-              className="w-full rounded border border-ink/15 px-3 py-2 font-serif text-base"
-              placeholder="Role title"
-            />
-            <button className="btn-secondary">Save the role name</button>
-          </form>
-
-          <form action={renamePerson} className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto]">
-            <input type="hidden" name="roleId" value={selected.id} />
-            <label className="sr-only" htmlFor="org-person">Person in the role</label>
-            <input
-              id="org-person"
-              name="person"
-              value={draft?.id === selected.id ? draft.person : selected.person ?? ''}
-              onChange={e => setDraft(d => (d ? { ...d, person: e.target.value } : d))}
-              className="w-full rounded border border-ink/15 px-3 py-2 text-sm"
-              placeholder="Vacant — type a name to pencil somebody in"
-            />
-            <button className="btn-secondary">Save the name</button>
-          </form>
-
-          <p className="mt-2 text-xs text-ink-light">
-            A name typed here is pencilled in: free, and nobody is emailed. Invitations are sent from{' '}
-            <Link href="/people" className="underline hover:text-rust">People</Link>. Clearing the box changes
-            nothing — use <span className="italic">Make this role vacant</span> to empty a role.
-          </p>
-        </section>
-      )}
-
-      <section className="card mt-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-serif text-xl text-ink">Off the chart</h2>
-          <span className="text-sm text-ink-light">
-            {detached.length
-              ? `${detached.reduce((s, d) => s + d.below + 1, 0)} roles out of every average`
-              : 'Nothing detached'}
-          </span>
-        </div>
-        {detached.length ? (
-          <>
-            <div
-              className="mt-3 flex flex-wrap gap-2 rounded-lg border border-dashed border-rust-300 p-3"
-              onDragOver={e => { if (canEdit && drag?.kind === 'role') e.preventDefault(); }}
-            >
-              {detached.map(d => (
-                <span
-                  key={d.role.id}
-                  draggable={canEdit}
-                  onDragStart={() => canEdit && setDrag({ kind: 'role', id: d.role.id, title: d.role.title })}
-                  onDragEnd={() => setDrag(null)}
-                  onClick={() => setSelectedId(d.role.id)}
-                  onContextMenu={e => openMenu(e, d.role.id)}
-                  className={`rounded-full border border-rust-400 px-3 py-1.5 text-xs text-rust-800 ${canEdit ? 'cursor-grab' : ''}`}
-                >
-                  {d.label}
-                </span>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-ink-light">
-              These keep their KPIs and their people. They are out of every average and out of the Flow stage
-              until they are dragged back onto a role — excluded, and counted, rather than quietly dropped.
+          {!selected ? (
+            <p className="mt-4 text-sm leading-6 text-ink-light">
+              Press a role on the chart and its scorecard opens here — what it is measured on, how each
+              pillar is going this month, and the way to change either.
             </p>
-          </>
-        ) : (
-          <p className="mt-3 text-sm text-ink-light">Every role is linked, so every role counts.</p>
-        )}
-      </section>
+          ) : (
+            <>
+              {/*
+                Renaming, in the place the design puts it rather than behind a menu item.
+
+                Two ordinary forms with a Save on each, not the prototype's save-as-you-type. A chart
+                is a shared document: a keystroke that reaches the database before anybody has
+                finished thinking is how a role gets renamed "Operations Manage" because a colleague
+                walked past.
+              */}
+              {canEdit ? (
+                <>
+                  <form action={renameRole} className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
+                    <input type="hidden" name="roleId" value={selected.id} />
+                    <label className="sr-only" htmlFor="org-title">Role title</label>
+                    <input
+                      id="org-title"
+                      name="title"
+                      value={draft?.id === selected.id ? draft.title : selected.title}
+                      onChange={e => setDraft(d => (d ? { ...d, title: e.target.value } : d))}
+                      className="min-h-[44px] w-full rounded-md border border-ink/15 bg-cream px-3 py-2 font-serif text-[19px] text-ink"
+                      placeholder="Role title"
+                    />
+                    <button className="btn-secondary">Save the role name</button>
+                  </form>
+
+                  <form action={renamePerson} className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto]">
+                    <input type="hidden" name="roleId" value={selected.id} />
+                    <label className="sr-only" htmlFor="org-person">Person in the role</label>
+                    <input
+                      id="org-person"
+                      name="person"
+                      value={draft?.id === selected.id ? draft.person : selected.person ?? ''}
+                      onChange={e => setDraft(d => (d ? { ...d, person: e.target.value } : d))}
+                      className="min-h-[40px] w-full rounded-md border border-ink/15 bg-cream px-3 py-2 text-sm text-ink"
+                      placeholder="Vacant — type a name to pencil somebody in"
+                    />
+                    <button className="btn-secondary">Save the name</button>
+                  </form>
+                </>
+              ) : (
+                <div className="mt-4">
+                  <p className="font-serif text-[19px] text-ink">{selected.title}</p>
+                  <p className="mt-1 text-sm text-ink-light">{selected.person ?? 'Vacant'}</p>
+                </div>
+              )}
+
+              {/*
+                The four pillars as the design draws them: a card each, the percentage in serif, and
+                the measures NAMED underneath.
+
+                The prototype puts a slider here and drags the score around. That is the one thing
+                from this design that must not be built: a score in SPEC is what the KPI results add
+                up to, and a control that sets it directly would make every number on the board a
+                matter of opinion. The button goes to where the numbers are actually decided.
+              */}
+              <div className="mt-6 grid gap-3">
+                {PILLARS.map(p => {
+                  const value = selected.pillars?.[p] ?? null;
+                  const named = selected.kpis?.[p] ?? [];
+                  return (
+                    <div key={p} className="rounded-2xl bg-cream p-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="label-caps flex items-center gap-2.5 text-ink-light">
+                          <span
+                            aria-hidden
+                            className="block h-3 w-3 shrink-0 rounded-full"
+                            style={{ background: LIGHT_COLOUR[light(value)] }}
+                          />
+                          {PILLAR_META[p].name}
+                        </span>
+                        <span className="font-serif text-[22px] leading-none text-ink">
+                          {value === null ? '0%' : `${Math.round(value * 100)}%`}
+                        </span>
+                      </div>
+                      <div className="mt-3.5 grid gap-1.5">
+                        {named.length ? (
+                          named.map(n => (
+                            <span key={n} className="text-[13.5px] leading-5 text-ink/80">{n}</span>
+                          ))
+                        ) : (
+                          <span className="text-[13.5px] leading-5 text-ink-light">
+                            No KPIs set, so nothing to score.
+                          </span>
+                        )}
+                      </div>
+                      {/* The bar is a reading of the score, never a way to set one. */}
+                      <div className="mt-3.5 h-2 overflow-hidden rounded-full bg-ink/10">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.round((value ?? 0) * 100)}%`,
+                            background: LIGHT_COLOUR[light(value)],
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {canEdit && (
+                <>
+                  <div className="mt-6 flex flex-wrap gap-2.5">
+                    <Link href={`/setup/kpis?role=${selected.id}`} className="btn-primary">
+                      Set this role&rsquo;s KPIs
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => post(addRole, { title: 'New role', parentId: selected.id })}
+                    >
+                      Add a direct report
+                    </button>
+                    <Link href={`/scorecard/${selected.id}`} className="btn-secondary">
+                      Open scorecard
+                    </Link>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-ink-light">
+                    A name typed here is pencilled in: free, and nobody is emailed. Invitations are sent
+                    from <Link href="/people" className="underline hover:text-rust">People</Link>. Clearing
+                    the box changes nothing — use <span className="italic">Make this role vacant</span> to
+                    empty a role.
+                  </p>
+                </>
+              )}
+            </>
+          )}
+        </section>
+
+        {/*
+          What the board sees, on the screen where it is decided.
+
+          The averages were computed on this page already and shown nowhere — you had to go to the
+          team roll-up to find out what the chart you were editing added up to. Moving a role or
+          filling a vacancy changes these four numbers, so this is where they belong.
+        */}
+        <section className="rounded-2xl bg-surface p-6 shadow-sm sm:p-8">
+          <span className="label-caps block text-rust-700">What the board sees</span>
+          <p className="mt-3.5 max-w-[40ch] text-[15.5px] leading-[26px] text-ink/80">
+            Each pillar is the average of every scored role on the chart. Change the structure or a score
+            and this moves with it.
+          </p>
+          <div className="mt-5 grid gap-3.5">
+            {PILLARS.map(p => {
+              const value = averages[p];
+              return (
+                <div key={p}>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="flex items-center gap-2.5 text-[14.5px] leading-[22px] text-ink">
+                      <span
+                        aria-hidden
+                        className="block h-3 w-3 shrink-0 rounded-full"
+                        style={{ background: LIGHT_COLOUR[light(value)] }}
+                      />
+                      {PILLAR_META[p].name}
+                    </span>
+                    <span className="font-serif text-[17px] leading-none text-ink">
+                      {value === null ? '0%' : `${Math.round(value * 100)}%`}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink/10">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.round((value ?? 0) * 100)}%`,
+                        background: LIGHT_COLOUR[light(value)],
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/*
+            The verdict, in the design's own words — and the honest fourth case the prototype does
+            not have, because a prototype always has numbers in it and a real business on its first
+            morning does not.
+          */}
+          <div className="mt-6 rounded-2xl p-5" style={{ background: verdict.wash }}>
+            <p className="font-serif text-[18px] leading-[1.3] text-ink">{verdict.title}</p>
+            <p className="mt-2 text-sm leading-[22px] text-ink/80">{verdict.body}</p>
+          </div>
+        </section>
+      </div>
     </>
   );
+}
+
+/** Is this role the one being viewed from, or somewhere under it? */
+function under(role: ChartRole, all: ChartRole[], fromId: string): boolean {
+  const seen = new Set<string>();
+  let cursor: ChartRole | undefined = role;
+  while (cursor && !seen.has(cursor.id)) {
+    if (cursor.id === fromId) return true;
+    seen.add(cursor.id);
+    cursor = cursor.parentId ? all.find(r => r.id === cursor!.parentId) : undefined;
+  }
+  return false;
 }
 
 /** Is this role outside the branch hanging off the chart's root? */
