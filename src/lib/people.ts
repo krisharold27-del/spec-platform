@@ -213,9 +213,23 @@ export interface HiringCheck {
  */
 export const HIRING_CHECKS: HiringCheck[] = [
   { key: 'right_to_work', label: 'Right to work', note: 'Established before anything else. No exceptions, and no starting while it is pending.' },
-  { key: 'licence', label: 'Licence or ticket', note: 'Whatever the role legally requires, verified with the issuer rather than sighted. No licence, no Clear to Work.' },
+  { key: 'licence', label: 'Licence or ticket', note: 'Tickets and licences verified with the issuer rather than sighted, and checked before day one so Clear to Work holds. No licence, no Clear to Work.' },
   { key: 'band', label: 'Pay band', note: 'What this role pays in this region, agreed before an offer rather than negotiated after it.' },
-  { key: 'award', label: 'Award or agreement', note: 'What is set by instrument rather than by you — overtime, allowances, travel.' },
+  /*
+    "Grading" rather than only "agreement", because the grading is the half that decides the money.
+    An award is one document; where somebody sits inside it is the number, and an offer made without
+    it is an offer made twice.
+  */
+  { key: 'award', label: 'Award or grading', note: 'What is set by instrument rather than by you — the award or agreement, and the level within it that fixes the rate, overtime, allowances and travel.' },
+  /*
+    Overseas hiring, which is not the same question as right to work.
+
+    Right to work asks whether somebody may work at all. This asks what the visa ATTACHES to — an
+    employer, an occupation, a number of hours, an end date. A sponsored person changing roles on
+    the org chart can quietly stop being allowed to do the job they have just been moved into, and
+    nothing else on this list would notice.
+  */
+  { key: 'overseas', label: 'Overseas hiring', note: 'If the visa is tied to an employer, an occupation or an end date, those conditions move with the role — so a change on the chart is a question to answer before it is made, not after.' },
   { key: 'references', label: 'References', note: 'Against the four pillars, so they answer the same questions the scorecard will.' },
 ];
 

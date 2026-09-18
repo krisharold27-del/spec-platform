@@ -83,3 +83,50 @@ not on one screen. `tests/manage-people.test.ts` fails if the block starts
 hard-coding those four hex values.
 
 **Decided:** 17 September 2026.
+
+---
+
+### `Close the open corrective action from the yard inspection`
+### `Finish psychosocial safety basics`
+### `Working at heights today`
+
+A prototype has to put *something* on the screen, and these are that something: three
+invented rows in the demo data of My Page and the mobile field view — a corrective
+action at a made-up yard, a training module due, a toolbox talk about scaffold work.
+
+SPEC writes those lines itself, from a real business's real month. "Hold the missed
+one-to-one with Tom Alderson" is generated from an actual missed one-to-one; the
+words around it are already in the product and already checked. Carrying the
+prototype's particular examples would mean hard-coding somebody else's to-do list
+into everybody's.
+
+Two of the three are nearly real and worth saying so, because that is what made them
+look like gaps rather than data:
+
+**Psychosocial safety basics** is a genuine SPEC training module — `seed/training_modules.json`
+has shipped it all along. Only the word *Finish* in front of it is the prototype's.
+This check now reads `seed/` as well as `src/` for exactly that reason.
+
+**Corrective actions** are real too: obligations and the Zero Harm gate both hold
+them. The yard inspection is not.
+
+**Decided:** 18 September 2026, when the `scripted()` tier started reading the labels
+prototypes build in code rather than write in markup — which is how the org chart's
+missing right-click menu had stayed invisible at 100% coverage.
+
+---
+
+### `Divisional whales (~20 customers)`
+
+The growth plan in `SPEC Cockpit.dc.html` names one channel "divisional whales". SPEC's own
+copy says **"Divisional customers (~20 of them)"** — same twenty customers, same four
+thousand seats, different word.
+
+"Whale" is sales-desk slang for a customer big enough to carry a quarter. It is a fine word
+in a spreadsheet and the wrong one on a screen Kris will one day turn round to show somebody.
+The cockpit is a founder's page today; it is a board page later, and the people described as
+whales are the people in the room.
+
+Not a rewording of a feature — the row, the number and the reasoning are identical.
+
+**Decided:** 18 September 2026.

@@ -4,7 +4,7 @@ import { VIRTUAL_GM, GM_COMPARISON } from '@/lib/virtual-gm';
 import { PublicNav } from '@/components/public-nav';
 import { LabourCalculator } from '@/components/labour-calculator';
 import { SEAT_PRICES, HOME_CURRENCY, type Currency, PACKAGES } from '@/lib/pricing';
-import { TIER } from '@/lib/plan';
+import { TIER, TIER_COMPARISON } from '@/lib/plan';
 import { LIGHT_COLOUR } from '@/lib/today';
 
 export const metadata = { title: 'SPEC — pricing' };
@@ -65,6 +65,44 @@ export default function Pricing() {
           because that is when SPEC starts doing work for more than one of you. A vacant or predicted
           role never carries a seat, however the structure moves.
         </p>
+
+        {/*
+          The difference itself, rather than two descriptions to hold side by side.
+
+          Both tiers are the same price, so "what is Advanced" is not the question anybody is
+          actually asking — "what do I get that I do not get now" is. Six rows, and the first two
+          are deliberately ticked on both: a comparison that only lists what the cheaper one lacks
+          reads as a downgrade, and Basic is not one.
+        */}
+        <section className="mt-10 card overflow-hidden p-0">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-ink/10 bg-cream/50 text-left">
+                <th className="p-3 font-normal text-ink-light">What you get</th>
+                <th className="w-24 p-3 font-normal text-ink-light">Basic</th>
+                <th className="w-28 p-3 font-normal text-ink-light">Advanced</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TIER_COMPARISON.map(row => (
+                <tr key={row.label} className="border-t border-ink/10">
+                  <td className="p-3 text-ink">{row.label}</td>
+                  {[row.basic, row.advanced].map((has, i) => (
+                    <td key={i} className="p-3">
+                      <span
+                        aria-label={has ? 'Included' : 'Not included'}
+                        style={{ color: has ? LIGHT_COLOUR.green : undefined }}
+                        className={has ? '' : 'text-ink-light/50'}
+                      >
+                        {has ? 'Yes' : 'No'}
+                      </span>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
 
         <section className="mt-10 grid gap-4 sm:grid-cols-2">
           {(['advanced', 'basic'] as const).map(t => (

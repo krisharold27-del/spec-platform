@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync, readdirSync } from 'node:fs';
 import {
   pctLabel, seatProgress, money, health, SCALE_CHECKS, CHANNELS, CHANNEL_TOTAL,
   PHASES, SOFTWARE_TARGET,
@@ -126,5 +127,57 @@ describe('running SPEC Business Solutions', () => {
 
   it('has a road with three phases, in order', () => {
     expect(PHASES.map(p => p.tone)).toEqual(['early', 'building', 'compounding']);
+  });
+});
+
+describe('the scale checklist has to be true, not just written', () => {
+  /*
+    ── The cockpit was quoting numbers from a fortnight ago ──────────────────────────────────────
+
+    `SCALE_CHECKS` is what Kris reads to answer his own two standing questions: *"we need to scale
+    to 20,000 seats"* and *"make it stable - it must never be down"*. On 18 September it said
+    **"647 tests"** when there were 1,181, **"four customer journeys"** when there were fifteen, and
+    **"24 of 24 tables"** under row-level security when there were 33.
+
+    Every one of those was true when it was written. None had been true for a week. It is the same
+    failure `tests/readiness.test.ts` was written to catch in the readiness document — a claim
+    nobody checks quietly stops being true — and it had simply never been pointed at the one screen
+    where the founder goes to find out whether his own product is ready.
+
+    Only the counts are held here. The judgement about what is risky is prose, and prose is exactly
+    what a person should be writing.
+  */
+  const evidence = SCALE_CHECKS.map(c => c.evidence).join(' ');
+
+  it('QUOTES THE REAL NUMBER OF TESTS', () => {
+    const files = readdirSync('tests').filter(f => f.endsWith('.ts'));
+    const blocks = files
+      .map(f => readFileSync(`tests/${f}`, 'utf8').match(/^\s*(it|test)(\.[a-z]+)?\(/gm)?.length ?? 0)
+      .reduce((a, b) => a + b, 0);
+    // Written with a thousands separator, the way a person reads it.
+    const written = `${blocks.toLocaleString('en-AU')} tests`;
+    expect(evidence, `there are ${blocks} tests; the cockpit says otherwise`).toContain(written);
+  });
+
+  it('QUOTES THE REAL NUMBER OF BROWSER JOURNEYS', () => {
+    const journeys = readdirSync('scripts').filter(f => /-journey\.m[jt]s$/.test(f));
+    const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+      'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen',
+      'eighteen', 'nineteen', 'twenty'];
+    const said = words[journeys.length] ?? String(journeys.length);
+    expect(evidence, `there are ${journeys.length} journeys; the cockpit says otherwise`)
+      .toContain(`${said} customer journeys`);
+  });
+
+  it('QUOTES THE REAL NUMBER OF TABLES UNDER ROW-LEVEL SECURITY', () => {
+    /*
+      Counted from the schema, never from the database. Asking a database about its own shape tells
+      you about the machine you happen to be pointed at — and local dev, CI and production are three
+      different machines. The schema is the thing that ships.
+    */
+    const schema = readFileSync('src/db/schema.ts', 'utf8');
+    const rls = (schema.match(/\.enableRLS\(\)/g) ?? []).length;
+    expect(rls).toBeGreaterThan(20);
+    expect(evidence, `${rls} tables enable RLS; the cockpit says otherwise`).toContain(`${rls} of ${rls} tables`);
   });
 });

@@ -481,3 +481,13 @@ jobs:
           # in the source. This opens the menu, presses the item, and asks the chart whether the
           # role is really there.
           journey org-journey.mjs
+
+          # Importing a chart from the file a business actually keeps it in. Kris, 18 September:
+          # "it doesn't give the option of pdf or word doc. that how they will do it". The reading
+          # is unit-tested and pure; the two parts that actually break are the two a unit test
+          # cannot reach — unzipping a real .docx with the browser's own DecompressionStream, and
+          # pdfjs loading its worker inside a Next bundle. Both fail silently when they fail, which
+          # is the exact reason Word and PDF were refused for months. A real .docx and a real PDF
+          # are built byte by byte here and chosen with the button, including a scan with no text
+          # in it at all.
+          journey chart-import-journey.mjs

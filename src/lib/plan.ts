@@ -47,6 +47,30 @@ export const TIER: Record<Tier, { label: string; blurb: string; consequence: str
   },
 };
 
+/**
+ * What the AI actually buys, line by line.
+ *
+ * The pricing page had two cards and a paragraph each, which answers *"what is Advanced"* and not
+ * the question people really ask, which is **"what do I get that I do not get now"**. Somebody
+ * deciding between two things priced identically needs the difference itself, not two descriptions
+ * they have to hold side by side and diff in their head.
+ *
+ * `SPEC Pricing.dc.html` has carried this as four rows since the first export. Every one of them is
+ * a thing the product either does or does not do, checked against `hasConnectors`, `hasAssistant`
+ * and `readsProblems` rather than written as a claim — a comparison table is the one place in a
+ * product where an aspiration reads exactly like a feature.
+ */
+export interface TierRow { label: string; basic: boolean; advanced: boolean }
+
+export const TIER_COMPARISON: TierRow[] = [
+  { label: 'Every number entered and confirmed by a named person', basic: true, advanced: true },
+  { label: 'Problems read from the data', basic: true, advanced: true },
+  { label: 'Numbers fed from your systems', basic: false, advanced: true },
+  { label: 'KPI targets proposed from benchmarks', basic: false, advanced: true },
+  { label: 'Ask anything, on any page', basic: false, advanced: true },
+  { label: 'Recruitment and onboarding agent', basic: false, advanced: true },
+];
+
 export const tierOf = (value: string | null | undefined): Tier => (value === 'advanced' ? 'advanced' : 'basic');
 
 /** Connectors and the assistant are the two things the tier actually gates. Nothing else. */

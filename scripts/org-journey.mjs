@@ -67,17 +67,27 @@ const aimAt = async locator => {
   roughly one run in three, reporting a product fault that was entirely mine. Polling the thing
   being claimed is both faster and true.
 */
-const chartSays = async (wanted, ms = 8000) => {
-  const until = Date.now() + ms;
-  for (;;) {
+const chartSays = async (wanted, tries = 40) => {
+  for (let n = 0; n < tries; n++) {
     const text = await page.locator('[data-org-canvas]').innerText().catch(() => '');
     if (text.includes(wanted)) return true;
-    if (Date.now() > until) return false;
-    await page.waitForTimeout(200);
-    if (Date.now() % 2 < 1) await page.reload({ waitUntil: 'networkidle' }).catch(() => {});
+    await page.waitForTimeout(250);
   }
+  return false;
 };
 
+/*
+  ── Why this waits and never reloads ─────────────────────────────────────────────────────────────
+
+  It reloaded while it waited, and that was the whole flake. A server action is an ordinary request:
+  reloading the page half a second after pressing Save can abort it before the server has finished,
+  so the write never lands and the check reports a product fault that is entirely the check's doing.
+  It failed four runs in five and sent me looking for a bug in the chart twice.
+
+  Nothing needs reloading anyway — every one of these actions calls `revalidatePath('/org')`, so the
+  chart updates itself in place. Waiting for the words to appear is both the honest check and the
+  faster one.
+*/
 const failures = [];
 const check = (label, ok, detail = '') => {
   console.log(`${ok ? '  ok  ' : ' FAIL '} ${label}${ok || !detail ? '' : ` — ${detail}`}`);
@@ -188,7 +198,17 @@ await aimAt(target);
 await menu.getByRole('menuitem', { name: 'Rename role & person' }).click();
 await page.locator('#org-person').waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
 await page.locator('#org-person').fill('R. Nakamura');
+/*
+  The title is read as well as the name, and it is not decoration.
+
+  This check failed four runs in five and I twice went looking for a bug in the write. It was the
+  panel stealing focus a frame after it opened: the name was being typed into the TITLE box, and
+  the role came out called "Yard LeadR. Nakamura". Only printing both boxes at the moment of submit
+  showed it. So both are asserted from here on.
+*/
+const typedTitle = await page.locator('#org-title').inputValue();
 await page.getByRole('button', { name: 'Save the name' }).click();
+check('  and the name went in the NAME box, not the title', typedTitle === NEW_TITLE, `title reads ${JSON.stringify(typedTitle)}`);
 const pencilled = await chartSays('R. Nakamura');
 await page.reload({ waitUntil: 'networkidle' });
 check(

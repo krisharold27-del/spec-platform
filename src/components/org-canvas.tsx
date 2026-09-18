@@ -56,6 +56,23 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
   const [menu, setMenu] = useState<Menu | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  /*
+    What is CURRENTLY TYPED in the rename panel, held in React rather than left in the DOM.
+
+    These two boxes were `defaultValue` and uncontrolled, which looks simpler and is wrong here. This
+    chart re-renders whenever anything on the page finishes a server action, and an uncontrolled
+    input loses whatever is in it the moment React replaces the element. It failed about one time in
+    four: you type a name, press Save, and the form posts an EMPTY name — so `renamePerson` returns
+    without doing anything and the chart comes back exactly as it was, with no error and nothing to
+    tell you what happened.
+
+    Found by measuring rather than by reading: a browser check reported the box empty at the instant
+    of submit while the same run had typed into it a moment earlier.
+
+    SPEC already treats losing what somebody typed as a cardinal fault — it is why sign-up carries
+    its four boxes back on every bounce. The same rule applies to a box on a chart.
+  */
+  const [draft, setDraft] = useState<{ id: string; title: string; person: string } | null>(null);
   const [, start] = useTransition();
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -92,6 +109,17 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
     };
   }, [menu, shut]);
 
+  /*
+    A fresh draft when a DIFFERENT role is selected, and never otherwise — re-seeding on every render
+    would put the stored value back over the top of whatever is being typed, which is the same bug
+    wearing a different hat.
+  */
+  useEffect(() => {
+    const role = selectedId ? roles.find(r => r.id === selectedId) : null;
+    if (!role) { setDraft(null); return; }
+    setDraft(d => (d?.id === role.id ? d : { id: role.id, title: role.title, person: role.person ?? '' }));
+  }, [selectedId, roles]);
+
   const post = (action: (f: FormData) => unknown, fields: Record<string, string>) => {
     const f = new FormData();
     for (const [k, v] of Object.entries(fields)) f.set(k, v);
@@ -123,10 +151,23 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
   function editRole(roleId: string) {
     setSelectedId(roleId);
     shut();
-    // After the panel has re-rendered for the newly selected role, not before.
+    /*
+      After the panel has re-rendered for the newly selected role, not before — and NEVER over the
+      top of somebody who has already started typing.
+
+      Without that second condition the panel steals focus a frame after it opens. Press "Rename role
+      & person", click straight into the name box because that is the box you wanted, and your first
+      keystrokes land in the TITLE instead: the role ends up called "Yard LeadR. Nakamura" and the
+      name you typed is nowhere. Caught by a browser check that printed both boxes at the moment of
+      submit, after two wrong guesses at what was happening.
+    */
     requestAnimationFrame(() => {
-      panelRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      panelRef.current?.querySelector<HTMLInputElement>('input[name="title"]')?.focus();
+      const panel = panelRef.current;
+      if (!panel) return;
+      panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      const active = document.activeElement;
+      if (active && panel.contains(active)) return;    // they got there first
+      panel.querySelector<HTMLInputElement>('input[name="title"]')?.focus();
     });
   }
 
@@ -431,8 +472,8 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
             <input
               id="org-title"
               name="title"
-              defaultValue={selected.title}
-              key={`t-${selected.id}-${selected.title}`}
+              value={draft?.id === selected.id ? draft.title : selected.title}
+              onChange={e => setDraft(d => (d ? { ...d, title: e.target.value } : d))}
               className="w-full rounded border border-ink/15 px-3 py-2 font-serif text-base"
               placeholder="Role title"
             />
@@ -445,8 +486,8 @@ export function OrgCanvas({ roles, rootId, canEdit }: { roles: ChartRole[]; root
             <input
               id="org-person"
               name="person"
-              defaultValue={selected.person ?? ''}
-              key={`p-${selected.id}-${selected.person ?? ''}`}
+              value={draft?.id === selected.id ? draft.person : selected.person ?? ''}
+              onChange={e => setDraft(d => (d ? { ...d, person: e.target.value } : d))}
               className="w-full rounded border border-ink/15 px-3 py-2 text-sm"
               placeholder="Vacant — type a name to pencil somebody in"
             />

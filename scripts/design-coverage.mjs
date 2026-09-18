@@ -18,6 +18,7 @@ import { join, extname, basename } from 'node:path';
 
 const DESIGNS = process.env.SPEC_DESIGNS ?? new URL('../designs', import.meta.url).pathname;
 const SRC = new URL('../src', import.meta.url).pathname;
+const SEED = new URL('../seed', import.meta.url).pathname;
 
 /** Every file under a directory, recursively. */
 function walk(dir, out = []) {
@@ -71,8 +72,18 @@ const bareWords = s =>
  * words are on the page".
  */
 function productFiles() {
-  return walk(SRC)
-    .filter(p => ['.ts', '.tsx', '.css'].includes(extname(p)))
+  /*
+    `seed/` is part of the product, not test data.
+
+    It holds the twelve training modules a business is actually taught, the criteria templates every
+    new tenant is provisioned from and the rulebook — content SPEC ships and a customer reads. This
+    scan looked only at `src/`, so "Finish psychosocial safety basics" was reported as wording the
+    code does not carry, while `seed/training_modules.json` has carried a module called
+    "Psychosocial safety basics" all along. A check that reports a real feature as missing gets
+    argued with once and ignored afterwards, which costs more than the gap it found.
+  */
+  return [...walk(SRC), ...walk(SEED)]
+    .filter(p => ['.ts', '.tsx', '.css', '.json'].includes(extname(p)))
     .map(p => bareWords(readFileSync(p, 'utf8')));
 }
 
