@@ -7,6 +7,7 @@ import { isAdminEmail } from '@/lib/admin';
 import { currentLook } from '@/lib/look';
 import { isLapsed } from '@/lib/plan';
 import { LookBar } from './look-bar';
+import { navDoors } from '@/lib/doors';
 import { ReadOnlyNotice } from './read-only-notice';
 import { PILLAR_META, SCORE_COLOUR, SCORE_INK, scoreColour, scoreInk, pct } from '@/lib/pillars';
 
@@ -51,34 +52,68 @@ export async function Shell({ title, subtitle, children }: { title: string; subt
     read, which is a single row and the same query the page was going to make anyway.
   */
   const lapsed = me ? await isLapsed(me.tenantId) : false;
+
+  // One source with the directory on My Page, so a renamed route cannot leave the bar pointing at
+  // nothing while the grouped list quietly stays right.
+  const nav = me ? navDoors({ businesses: businesses.length, runsSpec }) : [];
+
   return (
     <div className="min-h-screen">
       {looking && <LookBar />}
       <header className="border-b border-ink/10 bg-surface">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+        {/* Wraps rather than scrolls: six links and a business name do not fit one line on a phone,
+            and a bar that slides sideways is the half of the navigation nobody finds. */}
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-3">
           {/* Inside the product the mark is a wayfinder, not a brand statement, so it carries no
               supporting line. */}
           {/*
-            The mark is the ONLY navigation SPEC has — "the mark goes home and nothing else
-            navigates" — which makes it the most-pressed thing in the product, and it measured 35px
-            on a phone. The one control everybody needs was the one too small to hit with a thumb.
-            `inline-flex` plus a floor gives it a 44px target without changing how it looks.
+            The mark goes home, and it is still the most-pressed thing in the product even now the
+            bar is back. It measured 35px on a phone — the one control everybody needs was the one
+            too small to hit with a thumb. `inline-flex` plus a floor gives it a 44px target without
+            changing how it looks.
           */}
           <Link href="/my-page" aria-label="SPEC home — My page" className="inline-flex min-h-[44px] items-center">
             <SpecLockup />
           </Link>
           {/*
-            No navigation, on purpose.
+            The navigation bar, which SPEC deliberately did not have until 18 September.
 
-            The shape of the product is: a landing page for arriving, then My Page, and everything
-            inside the system branches from there. A toolbar of five links and a dropdown of
-            fourteen had quietly made SPEC two things — a page you work on, and a menu you hunt in —
-            and a leader opening it at seven in the morning should see their day, not scan a
-            toolbar deciding which of nineteen places they meant.
+            The old reasoning was good and is kept in lib/doors: a toolbar of five links plus a
+            dropdown of fourteen had made SPEC two things — a page you work on and a menu you hunt in.
+            Every design screen has carried a bar throughout, and Kris, looking at the two side by
+            side: *"keep the nav bar"*. Six items, not nineteen; the complete list is still the
+            grouped directory at the bottom of My Page.
 
-            So the mark goes home and nothing else navigates. The doors live at the bottom of My
-            Page, grouped the way somebody actually thinks about them; see lib/doors.
+            Hidden during a look-around. A visitor is sat in the top role's seat to have something to
+            see, and handing them a bar into Scoring and Connections offers writes that will be
+            refused — see the guard in lib/guard.
           */}
+          {!looking && nav.length > 0 && (
+            <nav aria-label="SPEC" className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              {nav.map(d => (
+                <Link
+                  key={d.href}
+                  href={d.href}
+                  title={d.note}
+                  /* A floor, not a size: these stay quiet text and stop being 16px tall on a phone. */
+                  className="inline-flex min-h-[28px] items-center text-ink-light hover:text-rust"
+                >
+                  {d.label}
+                </Link>
+              ))}
+            </nav>
+          )}
+          {/*
+            The switcher, only for somebody who really has more than one business.
+
+            `myBusinesses()` was already being fetched on every page in the product and the result
+            thrown away — a query per page load for nothing. It has a use now.
+          */}
+          {!looking && businesses.length > 1 && (
+            <Link href="/businesses" className="inline-flex min-h-[28px] items-center text-sm text-ink-light hover:text-rust">
+              {businesses.find(b => b.tenantId === me?.tenantId)?.name ?? 'Switch business'} ▾
+            </Link>
+          )}
           {looking && (
             /* A visitor never signed in, so offering to sign them out is nonsense. They get the way
                out of the look-around instead. */

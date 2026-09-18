@@ -172,6 +172,22 @@ export default async function Business({ searchParams }: { searchParams: Promise
     >
       {error && <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">{error}</div>}
 
+      {/*
+        The seat is real and the email did not go.
+
+        Both halves matter. The account, the link and the charge all happened, so saying "that
+        failed" would be wrong — but so is "invited", which is what this used to say however the
+        send went. The link is in the list further down, which is the thing that actually gets them
+        in; email was never the product.
+      */}
+      {sp.notsent && (
+        <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">
+          <b>The seat is ready, but the email did not send.</b> {String(sp.notsent)} has their seat and
+          their link — we just could not deliver it. Scroll to <i>Anybody invited who has not come in
+          yet</i> below, copy their link, and send it however you normally would.
+        </div>
+      )}
+
       {/* Same title twice is legitimate below manager level, but the owner has to be able to tell them apart. */}
       {roleRows.some((r, i) => roleRows.findIndex(x => x.title === r.title && x.stream === r.stream) !== i) && (
         <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">

@@ -51,7 +51,8 @@ export const tenants = pgTable('tenants', {
    * Defaults to `basic` because manual is a complete and permanent way to run SPEC, not a lesser
    * one: nothing should switch itself on for a business that has not asked for it.
    */
-  tier: text('tier').notNull().default('basic'),
+  // Advanced by default: the first seat is free and whole. See provisionTenant.
+  tier: text('tier').notNull().default('advanced'),
   /**
    * Which of the four things this business is buying — see PACKAGES in lib/pricing.
    *

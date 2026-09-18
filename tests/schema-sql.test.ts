@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { additivePlan, isAdditive, tableShapes } from '../src/lib/schema-sql';
 import { expectedShape } from '../src/lib/schema-check';
 
@@ -77,10 +78,25 @@ describe('bringing a database up to the build', () => {
   });
 
   it('keeps a NOT NULL column that has a default', () => {
+    /*
+      The DEFAULT is read out of the schema rather than written here.
+
+      This used to assert `default 'basic'`, which is the value `tenants.tier` happened to carry.
+      On 18 September the first seat was made whole — a new business now starts on `advanced` — and
+      this failed, on a test that has nothing to do with which tier anybody starts on. It is about
+      the mechanism: a NOT NULL column with a default must be added WITH that default, or the alter
+      fails on every existing row.
+
+      Same rule as everywhere else here: never ask the database about its own shape, ask the schema.
+    */
+    const declared = readFileSync('src/db/schema.ts', 'utf8')
+      .match(/tier: text\('tier'\)\.notNull\(\)\.default\('([a-z]+)'\)/)?.[1];
+    expect(declared, 'tenants.tier no longer declares a default').toBeTruthy();
+
     const actual = expectedShape();
     actual.set('tenants', new Set([...actual.get('tenants')!].filter(c => c !== 'tier')));
     const alter = additivePlan(actual).statements.find(s => s.includes('"tier"'))!;
-    expect(alter).toMatch(/default 'basic'/);
+    expect(alter).toContain(`default '${declared}'`);
     expect(alter).toMatch(/not null/);
   });
 

@@ -302,11 +302,58 @@ export default async function MyPage({
         one. Held back until it has something in it. See nothingMarkedYet above.
       */}
       {nothingMarkedYet && (
-        <div className="mt-8">
-          <section className="card">
-            <h2 className="font-serif text-xl text-ink">What needs me today</h2>
-            <TodoList items={todos} />
-          </section>
+        /*
+          ── Day one, revised ─────────────────────────────────────────────────────────────────────
+
+          Kris, 18 September: *"the first seat should have all tools working"*, and in the brief:
+          *"System opens at full capacity, nothing locked."*
+
+          The rule above is still right about the boxes it was written for — an Ace run with no
+          closed month, a mail block with nothing connected, a week with nothing in it are true and
+          empty, and offering eight of those to somebody who came here already overwhelmed is worse
+          than offering none.
+
+          But it was applied to the whole column, and two of the things inside it are not empty on
+          day one at all:
+
+            ASK ANYTHING works from the first minute. It is the box the brief calls the do-anything
+            box — where somebody types "connect me to Xero" — and holding it back until a month has
+            been marked meant the one tool that could have HELPED them start was hidden until after
+            they had started.
+
+          My team is the other one — the roles are there the moment the chart is — but it is forty
+          lines of markup inside the branch below rather than a component, and copying it would give
+          this page two versions of the same block to keep in step. Left for when that block becomes
+          a component; noted here so it is a deferral rather than an oversight.
+
+          So the rule narrows from "nothing until a mark" to "nothing that would be EMPTY". A box
+          that works on day one is shown on day one.
+        */
+        <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
+          <div className="grid gap-6">
+            <section className="card">
+              <h2 className="font-serif text-xl text-ink">What needs me today</h2>
+              <TodoList items={todos} />
+            </section>
+          </div>
+          <div className="grid gap-6">
+            <section className="rounded-lg bg-sage-100 p-4">
+              <h2 className="font-serif text-xl text-ink">Ask anything</h2>
+              {advanced ? (
+                <AskPanel rows={myRows} score={myScore} meetingLogged={meetingLogged} />
+              ) : (
+                <>
+                  <p className="mt-2 text-sm text-ink-light">
+                    Asking comes with SPEC Advanced. On Basic the page still tells you everything it knows —
+                    every light above carries the reason underneath it — there is just nothing here to ask.
+                  </p>
+                  <Link href="/pricing" className="mt-4 link-go">
+                    See what Advanced adds &rarr;
+                  </Link>
+                </>
+              )}
+            </section>
+          </div>
         </div>
       )}
 

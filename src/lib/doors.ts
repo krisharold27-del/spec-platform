@@ -127,5 +127,46 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
   return groups;
 }
 
+/**
+ * The navigation bar.
+ *
+ * ── The decision, and the fact that it was reversed ──────────────────────────────────────────────
+ *
+ * SPEC had no navigation at all. The reasoning is worth keeping because it was good: a toolbar of
+ * five links and a dropdown of fourteen had made SPEC two things — a page you work on and a menu you
+ * hunt in — and a leader opening it at seven in the morning should see their day rather than scan a
+ * toolbar deciding which of nineteen places they meant. So the mark went home and nothing else
+ * navigated; the doors moved to the bottom of My Page, grouped the way somebody actually thinks.
+ *
+ * Every design screen has carried a navigation bar throughout. On 18 September Kris looked at the
+ * product beside the designs and said *"keep the nav bar"*. That settles it: he is the one who opens
+ * this at seven in the morning.
+ *
+ * Six items, because the argument against the old toolbar was never that navigation is wrong — it
+ * was nineteen of them. These are the places somebody goes repeatedly in a week. Everything else
+ * stays in the grouped directory on My Page, which is still the complete list.
+ *
+ * Built from `doors()` rather than written out again, so a route that is renamed cannot leave the
+ * bar pointing at nothing while the directory quietly stays right.
+ */
+export const NAV_HREFS = ['/my-page', '/org', '/scoring', '/board', '/boards', '/connections'] as const;
+
+export function navDoors(f: DoorsFor): Door[] {
+  const all = allDoors(f);
+  const find = (href: string) => all.find(d => d.href === href);
+  return [
+    { href: '/my-page', label: 'My page', note: 'Your day, and everything else opens from it.' },
+    find('/org') ?? { href: '/org', label: 'Org chart', note: 'Who does what, and who reports to whom.' },
+    { href: '/scoring', label: 'Scoring', note: 'Mark the month, and close it when it is done.' },
+    /*
+      The pack itself lives at /board/[periodId]. `/board` is the door — it opens the most recently
+      closed month, because a board pack is a record of a month that finished.
+    */
+    { href: '/board', label: 'Board pack', note: 'What went to the Board for the last closed month.' },
+    find('/boards') ?? { href: '/boards', label: 'Boards', note: 'Artifacts your team pins and runs projects through.' },
+    find('/connections') ?? { href: '/connections', label: 'Connections', note: 'The systems that feed your numbers.' },
+  ];
+}
+
 /** Every door, flattened — for a test that wants to walk all of them. */
 export const allDoors = (f: DoorsFor): Door[] => doors(f).flatMap(g => g.doors);

@@ -37,6 +37,23 @@ function resolveCriteria(role: TemplateRole): { pillar: Pillar; c: TemplateCrite
   return out;
 }
 
+/**
+ * The virtual GM's eight, resolved from the templates.
+ *
+ * Exported because a business that already exists needs a way to get them. `provisionTenant` writes
+ * these at sign-up, so until now the only businesses that had them were ones created after the
+ * template changed — which left JBI, the first real customer, holding the older generic set with no
+ * way to move.
+ *
+ * Read from the same template every new business is built from, never written out a second time:
+ * two copies of the eight is how the ones on a customer's screen stop being the ones in the test.
+ */
+export function virtualGmCriteria(): { pillar: Pillar; c: TemplateCriterion }[] {
+  const gm = (templates.roles as unknown as TemplateRole[]).find(r => r.template_id === 'gm');
+  if (!gm) throw new Error('No GM template — seed/criteria_templates.json has changed shape.');
+  return resolveCriteria(gm);
+}
+
 export interface ProvisionOptions {
   name: string;
   sector?: string;
@@ -108,7 +125,27 @@ export async function provisionTenant(opts: ProvisionOptions) {
   const wanted = opts.roleTemplates ?? ['gm', 'commercial_manager', 'operations_manager', 'growth_manager'];
   const roleTemplates = (templates.roles as TemplateRole[]).filter(r => wanted.includes(r.template_id));
 
-  await db.insert(schema.tenants).values({ id: tenantId, name: opts.name, sector: opts.sector, startDate: now() });
+  /*
+    ── The first seat is free AND whole ───────────────────────────────────────────────────────────
+
+    Kris, 18 September: *"the first seat should have all tools working - then when adding another
+    staff member the $26 seat cost kicks in"*, and in the brief: *"System opens at full capacity,
+    nothing locked."*
+
+    A new business used to land on `basic`, which is the tier without connectors and without the
+    assistant. So the first person — the one deciding in their first ten minutes whether any of this
+    is real — got a My Page carrying an upsell strip and an Ask box that said asking comes with
+    Advanced. Free and crippled is not the same offer as free, and it argues against the product on
+    the one screen where it has to argue for it.
+
+    Advanced is not a paid upgrade: /pricing says both tiers are the same money, because it is the
+    same system. Nothing about starting here changes what anybody is charged — the meter is seats,
+    and it starts at the second person (see `billableSeats`).
+
+    Set explicitly rather than left to the column default, so the decision is in the code that makes
+    the business rather than in a migration nobody reads.
+  */
+  await db.insert(schema.tenants).values({ id: tenantId, name: opts.name, sector: opts.sector, tier: 'advanced', startDate: now() });
 
   // Roles: GM first, everything else reports to GM by default.
   const roleIds = new Map<string, string>();

@@ -32,6 +32,13 @@ async function send(to: string, subject: string, html: string, text: string) {
   }
 }
 
+/** Like `send`, but the caller wants to know. Used where somebody is waiting for the email. */
+async function sendOrThrow(to: string, subject: string, html: string, text: string) {
+  if (!resend) throw new Error('Email is not configured.');
+  const { error } = await resend.emails.send({ from: FROM, to, subject, html, text });
+  if (error) throw new Error(`Resend refused the message: ${error.message ?? String(error)}`);
+}
+
 export const canSendEmail = () => resend !== null;
 
 /**
@@ -67,12 +74,25 @@ const wrap = (body: string) => `<div style="font-family:sans-serif;font-size:15p
  * moved to email and password. It described a way in that no longer exists, to somebody who has
  * never seen the product and has no way of telling which of us is wrong.
  */
+/**
+ * The invitation, which THROWS when it cannot be sent.
+ *
+ * Every other notification here is best effort — a failed "your board pack is ready" must never
+ * break the thing that produced the pack. This one is different for the same reason the sign-in
+ * email is: somebody is waiting for it, and there is a bill attached.
+ *
+ * `send()` swallows both cases: no `RESEND_API_KEY` logs a line to a server nobody is reading, and a
+ * rejected send is caught and dropped. Either way `invite()` had already stamped `invitedAt`, taken
+ * the seat onto the bill and told the leader "invited". A person who never got an email, being
+ * charged for, with the screen saying it went — and the only clue in a log.
+ */
 export async function sendInviteEmail(opts: {
   to: string; name: string; businessName: string; roleTitle: string; token: string;
 }) {
+  if (!resend) throw new Error('Email is not configured, so the invitation was not sent.');
   // The address the invitation was sent from, so the new person lands where their business is.
   const url = seatUrl(await currentOrigin(), opts.token);
-  await send(
+  await sendOrThrow(
     opts.to,
     `Take your seat at ${opts.businessName} on SPEC`,
     wrap(`<p>Hi ${opts.name},</p><p>You've been given the <b>${opts.roleTitle}</b> role at <b>${opts.businessName}</b> on SPEC.</p><p><a href="${url}" style="display:inline-block;background:#B5502F;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Take your seat</a></p><p style="color:#64748b;font-size:13px">The link is yours alone and works once, for ${SEAT_TOKEN_DAYS} days. You'll choose a password when you take it.</p>`),

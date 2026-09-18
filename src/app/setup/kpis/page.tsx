@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getRoles } from '@/lib/queries';
 import { PILLARS, type Pillar } from '@/lib/scoring';
 import { Shell, PILLAR_META, Badge } from '@/components/ui';
-import { saveCriteria } from './actions';
+import { saveCriteria, loadVirtualGmKpis } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +22,24 @@ export default async function KpiSetup({ searchParams }: { searchParams: Promise
       <nav className="flex flex-wrap gap-2 text-sm">
         {roles.map(r => <a key={r.id} href={`/setup/kpis?role=${r.id}`} className={`rounded-full border px-3 py-1 ${r.id === role.id ? 'bg-rust text-cream' : 'bg-surface'}`}>{r.title}</a>)}
       </nav>
+      {/*
+        The virtual GM's eight, for a business that already existed when they changed.
+
+        Offered on the top role only, because these are what the Board holds the general manager to.
+        Nothing is deleted: what is there is marked inactive exactly as an ordinary edit does, so a
+        month already closed keeps the scorecard it was scored against.
+      */}
+      {role.level === 'gm' && (
+        <form action={loadVirtualGmKpis} className="mt-4 flex flex-wrap items-baseline gap-3 rounded-lg border border-ink/10 bg-surface p-3">
+          <input type="hidden" name="roleId" value={role.id} />
+          <button className="btn-secondary text-sm">Load the virtual GM&rsquo;s eight</button>
+          <span className="text-xs text-ink-light">
+            Two per pillar — zero harm and zero workers compensation; trained for the role and a culture
+            nobody leaves; profitable and the financial systems fit for purpose; the contracts understood
+            and people doing as they say. Replaces what is here. Closed months keep what they were scored against.
+          </span>
+        </form>
+      )}
       {sp.err && <p className="mt-4 rounded bg-rust-100 p-3 text-sm text-rust-800">Not saved — weights must sum to 100% in every pillar. {sp.err}.</p>}
       {sp.saved && <p className="mt-4 rounded bg-sage-100 p-3 text-sm text-sage-900">Saved.</p>}
       <form action={saveCriteria} className="mt-4">

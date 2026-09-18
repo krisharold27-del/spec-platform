@@ -205,9 +205,20 @@ export async function invite(formData: FormData) {
     await db.update(schema.users)
       .set({ seatToken: token, seatTokenExpires: seatTokenExpiry() })
       .where(eq(schema.users.id, userId));
-    await sendInviteEmail({
-      to: email, name: person.name, businessName: tenant.name, roleTitle: roleRow.title, token,
-    });
+    /*
+      If it cannot be sent, SAY SO. The row stays — the account, the token and the seat are all
+      real, and a resend works — but the leader is told the email did not go and is given the link
+      to pass on by hand. Reporting "invited" for an email that never left, on a seat that has
+      started being charged, is the version of this that costs somebody a week.
+    */
+    try {
+      await sendInviteEmail({
+        to: email, name: person.name, businessName: tenant.name, roleTitle: roleRow.title, token,
+      });
+    } catch {
+      done(['/setup/business', '/org', '/journey', '/team']);
+      redirect(`/setup/business?notsent=${encodeURIComponent(email)}`);
+    }
   }
 
   done(['/setup/business', '/org', '/journey', '/team']);
