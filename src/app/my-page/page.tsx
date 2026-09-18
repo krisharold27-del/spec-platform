@@ -444,9 +444,30 @@ export default async function MyPage({
 
           <section className="card">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-serif text-xl text-ink">Numbers arriving on their own</h2>
+              {/*
+                ── What "connected" actually means today, said accurately ──────────────────────────
+
+                This heading read "Numbers arriving on their own" and the line beside it said N of M
+                systems CONNECTED, with "last read <date>" against each one.
+
+                None of that is happening. `connectSystem` writes a row; `markLive` is an
+                administrator pressing a button, which sets the status to live and stamps
+                `lastSyncAt` with the moment of the press. There is no OAuth anywhere in this
+                repository, no request to a vendor and no data. The date is when somebody clicked,
+                not when anything was read.
+
+                It mattered less while this block was behind the Advanced tier. Removing the tiers
+                on 18 September put it in front of EVERY business, which is how I found it — so this
+                is a lie I widened today and it is fixed in the same breath.
+
+                The register itself is real and worth having: which systems the business runs, who
+                owns each one, and the board's approval for the sensitive ones. That is what the
+                words now claim, and nothing more. When a connector genuinely fetches, this heading
+                is the thing to change back — and `f.lastSyncAt` becomes true at the same moment.
+              */}
+              <h2 className="font-serif text-xl text-ink">Where your numbers come from</h2>
               <span className="text-sm text-ink-light">
-                {live.length} of {feeds.length} {feeds.length === 1 ? 'system' : 'systems'} connected
+                {live.length} of {feeds.length} {feeds.length === 1 ? 'system' : 'systems'} signed off as a source
               </span>
             </div>
             {feeds.length ? (
@@ -461,7 +482,7 @@ export default async function MyPage({
                     </div>
                     <div className="mt-1 text-xs text-ink-light">
                       {f.name}
-                      {f.lastSyncAt && ` · last read ${f.lastSyncAt.slice(0, 10)}`}
+                      {f.lastSyncAt && ` · marked live ${f.lastSyncAt.slice(0, 10)}`}
                     </div>
                     {f.feeds.length > 0 && (
                       <div className="mt-2 text-xs text-ink-light">Feeds: {f.feeds.join(' · ')}</div>

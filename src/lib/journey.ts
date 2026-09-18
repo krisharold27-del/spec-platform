@@ -82,7 +82,7 @@ export const STEPS: StepDef[] = [
     later: true,
     optional: true, minutes: 10,
     why: 'Everything in SPEC works without this. Connecting the systems you already run — jobs, financials, safety, clients, payroll — is what stops the numbers being typed in by hand each month.',
-    payoff: 'Your numbers arrive on their own instead of being re-typed each month.',
+    payoff: 'Every number has a named source and an owner, so nobody argues about where a figure came from.',
     check: async t => {
       // Connecting your own mail is not progress the BUSINESS made, so it does not count here.
       const rows = await db.select().from(schema.systemConnections)

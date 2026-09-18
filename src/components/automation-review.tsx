@@ -85,7 +85,8 @@ function NothingConnected() {
     <div className="card mt-4">
       <h2 className="font-serif text-lg text-ink">Nothing is connected yet, so nothing can be read as ready</h2>
       <p className="mt-1 max-w-2xl text-sm text-ink-light">
-        A process can only take over work whose numbers already arrive on their own. Until a system is
+        A process can only take over work whose numbers come from an agreed system rather than somebody's
+        judgement each month. Until one is
         connected, the best any measure below can say is <b>{VERDICT_LABEL.assisted.toLowerCase()}</b> —
         worth doing, not yet possible unattended. That is an honest ceiling rather than a limitation of
         this page.{' '}

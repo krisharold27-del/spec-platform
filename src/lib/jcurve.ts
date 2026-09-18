@@ -128,8 +128,13 @@ export function phases(input: CurveInput, at: Date = new Date()): Phase[] {
       note: !input.firstFeedAt
           ? 'Nothing is feeding yet. Until something does, the picture is still being assembled by hand.'
           : fedFirst
-            ? `Numbers started arriving on their own ${linkingDays} ${linkingDays === 1 ? 'day' : 'days'} in — before the picture was finished, which is what collapses discovery.`
-            : `Numbers started arriving on their own ${linkingDays} ${linkingDays === 1 ? 'day' : 'days'} in. This is the step that collapses discovery.`,
+            /*
+              "started arriving on their own" was the claim here, and it is not what happened:
+              `firstFeedAt` is set when an administrator marks a system live, which is a person
+              naming the source rather than a number being fetched. See tests/no-false-feed.
+            */
+            ? `The first system was named as a source ${linkingDays} ${linkingDays === 1 ? 'day' : 'days'} in — before the picture was finished, which is what collapses discovery.`
+            : `The first system was named as a source ${linkingDays} ${linkingDays === 1 ? 'day' : 'days'} in. This is the step that collapses discovery.`,
     },
     {
       key: 'first_close',

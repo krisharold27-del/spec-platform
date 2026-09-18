@@ -104,7 +104,8 @@ export default async function Connections({
                   <div className="mt-1 text-xs text-ink-light">
                     {c.name}
                     {c.ownerName && ` · looked after by ${c.ownerName}`}
-                    {c.lastSyncAt && ` · last read ${c.lastSyncAt.slice(0, 10)}`}
+                    {/* "last read" claimed a fetch that does not exist. See the note on My Page. */}
+                    {c.lastSyncAt && ` · marked live ${c.lastSyncAt.slice(0, 10)}`}
                   </div>
 
                   {sensitive && (

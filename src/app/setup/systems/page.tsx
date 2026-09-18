@@ -36,7 +36,7 @@ export default async function Systems({ searchParams }: { searchParams: Promise<
   return (
     <Shell
       title="Connect the systems you already run"
-      subtitle="Optional. Everything in SPEC works without this — connecting simply means the numbers arrive on their own instead of being typed in each month."
+      subtitle="Optional. Everything in SPEC works without this — recording a system says where a number comes from and who owns it, so the source is agreed before anybody argues about the figure."
     >
       {error && <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">{error}</div>}
       {sp.added && (
