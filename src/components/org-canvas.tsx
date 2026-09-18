@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import {
   layout, rootsOf, detachedBranches, canMove, canRemove, collapsedAway, teamSize, boardVerdict,
-  type ChartRole, type Rollup,
+  cardStyle, type ChartRole, type Rollup,
 } from '@/lib/orgchart';
 import { PILLAR_META } from '@/lib/pillars';
 import { LIGHT_COLOUR, LIGHT_INK, light } from '@/lib/today';
@@ -407,6 +407,8 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
             const dragging = drag?.kind === 'role' && drag.id === r.id;
             const team = teamSize(r.id, onChart);
             const shut_ = collapsed.has(r.id);
+            // The design's numbers for this depth — width, padding, radius, title and tile size.
+            const z = cardStyle(c.depth);
             return (
               <div
                 key={r.id}
@@ -440,10 +442,40 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                   the chart rather than a divider, and the title centred over the person and the
                   four letters, so a row of them reads as a row.
                 */
-                className={`absolute flex flex-col items-center justify-center rounded-[18px] border-2 bg-surface px-3 py-2.5 text-center shadow-sm transition-colors ${
-                  isOver ? 'border-rust' : selectedId === r.id ? 'border-rust' : 'border-rust-300'
-                } ${dragging ? 'opacity-40' : ''} ${canEdit ? 'cursor-grab' : ''}`}
-                style={{ left: c.x, top: c.y, width: c.w, height: c.h }}
+                /*
+                  ── The card, to the design's own numbers ────────────────────────────────────
+
+                  Three things here were the "old design" Kris kept pointing at, and all three are
+                  in `SPEC Org Chart.dc.html` in black and white:
+
+                  **The fill is the CREAM page colour, not the sand surface.** The cards sit on a
+                  sand panel, so a sand card is the same colour as the thing behind it — which is
+                  why the chart photographed flat and washed out. `fills` in the prototype is
+                  `var(--color-bg)` at every level: the card is LIGHTER than its panel.
+
+                  **The edge is a 2.5px ring, not a border.** `box-shadow: 0 0 0 2.5px` sits
+                  outside the box, so it cannot eat a pixel of the space the title needs, and it
+                  reads as part of the chart rather than as a table rule. Selected is the full
+                  terracotta and lifts a pixel.
+
+                  **The radius and the type grow with seniority** — 28px at the top, 24 at the
+                  bottom. The product drew one radius and one text size for every card, so the
+                  hierarchy had to be read off the lines instead of being visible in the shapes.
+                */
+                className={`absolute flex flex-col items-center justify-center bg-cream text-center transition-[box-shadow,transform] ${
+                  dragging ? 'opacity-40' : ''
+                } ${canEdit ? 'cursor-grab' : ''}`}
+                style={{
+                  left: c.x, top: c.y, width: c.w, height: c.h,
+                  padding: `${z.pad}px ${Math.round(z.pad * 1.3)}px`,
+                  borderRadius: z.radius,
+                  boxShadow: isOver
+                    ? `0 0 0 3px ${LIGHT_COLOUR.green}, 0 12px 22px -8px rgba(0,0,0,0.28)`
+                    : selectedId === r.id
+                      ? '0 0 0 2px #c67139, 0 6px 16px -6px rgba(0,0,0,0.22)'
+                      : '0 0 0 2.5px #f6a06b, 0 6px 16px -8px rgba(0,0,0,0.18)',
+                  transform: isOver ? 'translateY(-3px)' : selectedId === r.id ? 'translateY(-1px)' : undefined,
+                }}
               >
                 {/*
                   The standing, hanging off the corner where it costs no card space at all — the
@@ -482,7 +514,32 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     lines tall, so a future tightening of the type cannot quietly start cutting names
                     in half again.
                   */
-                  className={`block w-full pb-[3px] font-serif text-sm leading-[1.35] text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
+                  className={`block w-full font-serif text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
+                  style={{
+                    fontSize: z.title,
+                    /*
+                      1.4, and NO padding underneath.
+
+                      The descenders need the room; padding is the wrong way to give it to them. A
+                      clamp box is capped at two line-heights, so padding-bottom sits OUTSIDE what
+                      the clamp will draw — the browser reports the box as overflowing by exactly
+                      the padding, for ever, and the check that exists to catch a cut-off name
+                      spends its life crying wolf about three pixels of nothing. Put the space in
+                      the line-height, where the clamp counts it.
+                    */
+                    lineHeight: 1.4,
+                    /*
+                      ── One device from the design deliberately NOT copied ────────────────────
+
+                      The prototype fakes extra weight with a half-pixel shadow of the text's own
+                      colour on all four sides, because Caprasimo ships with one weight. Rendered
+                      here it does not read as bolder, it reads as damaged — the letters come out
+                      outlined and smeared, worst at the 14px the deepest cards use. globals.css
+                      already carries the same finding about synthetic bolding, written before this
+                      and for the same reason.
+                      Faithful to the intent, not to the trick: the face is heavy enough on its own.
+                    */
+                  }}
                   title={r.title}
                 >
                   {r.title}
@@ -496,15 +553,31 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                       e.stopPropagation();
                       setDrag({ kind: 'person', id: r.id, title: r.person! });
                     }}
-                    className={`mt-1 inline-block max-w-full truncate rounded-full px-2 py-0.5 text-xs ${
-                      r.pencilled ? 'bg-ink/5 text-ink-light' : 'bg-rust-100 text-rust-800'
-                    } ${canEdit ? 'cursor-grab' : ''}`}
+                    /*
+                      The design's pill: the page colour with a one-pixel ring, not a tinted block.
+                      A pencilled name is the same pill in a quieter ink — the difference between
+                      somebody invited and somebody written in is a fact about the PERSON, and the
+                      tooltip says it; painting it a different colour would make it look like a
+                      score.
+                    */
+                    className={`mt-[5px] inline-block max-w-full truncate rounded-full px-2.5 py-0.5 text-[12.5px] leading-[18px] ${
+                      canEdit ? 'cursor-grab' : ''
+                    }`}
+                    style={{
+                      background: '#f5ead8',
+                      boxShadow: 'inset 0 0 0 1px #ffe1d0',
+                      color: r.pencilled ? 'rgba(32,30,29,0.55)' : 'rgba(32,30,29,0.85)',
+                    }}
                     title={r.pencilled ? `${r.person} — pencilled in, not invited` : r.person}
                   >
                     {r.person}
                   </span>
                 ) : (
-                  <span className="mt-1 inline-block text-xs text-ink-light">Vacant</span>
+                  /* Vacant is not a pill in the design — it is quiet text, because there is no
+                     name to pick up and move. */
+                  <span className="mt-[5px] inline-block text-[12.5px] leading-[18px]" style={{ color: 'rgba(32,30,29,0.55)' }}>
+                    Vacant
+                  </span>
                 )}
 
                 {r.level !== 'staff' ? (
@@ -538,17 +611,23 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     That set exists precisely because three of the four signal colours cannot be
                     read against — see SCORE_INK — and tests/colour.test.ts holds the ratio.
                   */
-                  <span className="mt-2 flex items-center justify-center gap-1.5">
+                  <span className="mt-2.5 flex items-center justify-center gap-[7px]">
                     {PILLARS.map(p => {
                       const value = r.pillars?.[p] ?? null;
-                      const size = c.depth === 0 ? 22 : 19;
                       return (
                         <span
                           key={p}
                           title={`${PILLAR_META[p].name} ${value === null ? 'no score' : `${Math.round(value * 100)}%`}`}
-                          className="grid shrink-0 place-content-center rounded-md font-serif text-cream"
+                          /*
+                            TILES, 8px of radius — the design's `tile()`. They were 6px on a
+                            smaller box, which at that size reads as a dot with a letter in it
+                            rather than as one of four squares. The size comes from the depth
+                            table like everything else on the card.
+                          */
+                          className="grid shrink-0 place-content-center font-serif text-cream"
                           style={{
-                            width: size, height: size, fontSize: size * 0.6, lineHeight: 1,
+                            width: z.tile, height: z.tile, borderRadius: 8,
+                            fontSize: Math.max(11, Math.round((z.tile - 13) * 1.05)), lineHeight: 1,
                             background: LIGHT_INK[light(value)],
                           }}
                         >
@@ -556,22 +635,30 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                         </span>
                       );
                     })}
-                    {/*
-                      The Ace run, out of the row rather than on the end of it.
-
-                      It sat beside the four letters with `ml-auto`, which pushed them off centre —
-                      and the four letters centred under the title is the whole look of the design's
-                      card. Pinned to the bottom corner instead, where it costs no width and the
-                      letters stay where the eye expects them.
-                    */}
-                    {r.ace && (
-                      <span className="absolute bottom-1.5 right-2 flex items-center">
-                        <AcePips ace={r.ace} big={false} />
-                      </span>
-                    )}
                   </span>
                 ) : (
                   <span className="mt-2 block text-[10px] text-ink-light">Checklist role</span>
+                )}
+
+                {/*
+                  ── The Ace run, only once there IS a run ─────────────────────────────────────
+
+                  Kris asked for this outright: *"Now show me the org chart with the aces on it"*.
+                  Before it, finding out where somebody was in their three meant opening their
+                  scorecard one role at a time, which nobody does for forty people.
+
+                  What was wrong was not the pips, it was drawing three EMPTY circles on every
+                  scored card in the business whether or not anybody was on a run — forty cards
+                  each wearing a marker for something that had not started. The design has no such
+                  thing on a card, and that is the clutter in the chart Kris called the old design.
+
+                  So they appear when the run does. Nought of three is not a run; it is a month
+                  like any other, and the card says so by being quiet.
+                */}
+                {r.ace && r.ace.consecutive > 0 && (
+                  <span className="absolute bottom-1.5 right-2 flex items-center">
+                    <AcePips ace={r.ace} big={false} />
+                  </span>
                 )}
 
                 {/*
@@ -620,8 +707,11 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     onPointerDown={e => e.stopPropagation()}
                     onClick={e => openMenu(e, r.id)}
                     /* Out from under the Ace star, which hangs off the same corner. */
-                    className={`absolute top-1 rounded px-1 text-[13px] leading-none text-ink-light hover:text-rust ${
-                      r.ace?.holdingAce ? 'right-8' : 'right-1.5'
+                    /* A 24px hit area around a 13px glyph. It measured 21×13 — under the floor the
+                       usability journey holds every control to, and small enough that clicking it
+                       was intermittently missing. The mark stays the same size; the target does not. */
+                    className={`absolute top-0 grid h-6 w-6 place-content-center rounded text-[13px] leading-none text-ink-light hover:text-rust ${
+                      r.ace?.holdingAce ? 'right-7' : 'right-0.5'
                     }`}
                   >
                     ⋯

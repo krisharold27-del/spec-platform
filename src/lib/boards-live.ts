@@ -162,7 +162,7 @@ export const EMPTY_BOARD =
   + 'a training result or a meeting output.';
 
 export const BOARDS_INTRO =
-  'Live boards your team pins, builds on and discusses — wired to the data connected through SPEC. '
+  'Live mirrors your team pins, builds on and discusses — wired to the data connected through SPEC. '
   + 'Not a snapshot; it updates as the numbers move.';
 
 export const NOTHING_PINNED =

@@ -394,8 +394,8 @@ export const HELP: HelpGroup[] = [
         say:
           'A board is a thing your team pins and argues over — a rate you are working out, a plan with an owner against '
           + 'each step. Anybody with a login can make one and anybody can comment.',
-        go: { href: '/boards', label: 'Boards' },
-        press: '+ New board',
+        go: { href: '/mirrors', label: 'Mirrors' },
+        press: '+ New mirror',
       },
       {
         ask: 'A board says it is not live',
@@ -411,7 +411,7 @@ export const HELP: HelpGroup[] = [
         say:
           'The Board is the governing group — its charter, its pack, its meeting. A board, lower case, is an artifact '
           + 'a team makes and works through. Same word, two different things, and you will use the second one far more.',
-        go: { href: '/boards', label: 'Boards' },
+        go: { href: '/mirrors', label: 'Mirrors' },
       },
       {
         ask: 'I want to tell you SPEC should do something differently',

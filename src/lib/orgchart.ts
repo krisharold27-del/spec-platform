@@ -88,24 +88,55 @@ export function boardVerdict(averages: Rollup): { title: string; body: string; w
   };
 }
 
-export const SLOT = 200;
-export const ROW = 168;
+export const SLOT = 216;
+export const ROW = 196;
 const STUB = 28;
 
-export const cardWidth = (depth: number) => (depth === 0 ? 226 : depth === 1 ? 186 : 158);
 /**
- * ONE height for every card at every depth, whatever the role count or the title length.
+ * ── The card's dimensions, taken from the design file rather than guessed ────────────────────────
+ *
+ * `SPEC Org Chart.dc.html` sizes a card by its DEPTH, in a table the prototype calls `sizes`:
+ *
+ *     level 0   min-width 210   padding 18px 24px   radius 28   title 19px   tile 26px
+ *     level 1   min-width 176   padding 16px 20px   radius 26   title 16px   tile 25px
+ *     level 2+  min-width 148   padding 13px 17px   radius 24   title 14px   tile 23px
+ *
+ * The product had one title size and one radius for every card, which is why the chart read flat:
+ * the design puts the top of the business in bigger type and rounds it more, so the hierarchy is
+ * legible from the shape before a single word is read. Kris, 18 September, looking at JBI beside the
+ * file: *"old design fix it"*.
+ *
+ * Height is DERIVED from those numbers rather than typed in, so the two cannot drift: padding, two
+ * lines of title at 1.25, the person pill, and the row of tiles.
+ */
+export const CARD = [
+  { w: 210, pad: 18, radius: 28, title: 19, tile: 26 },
+  { w: 176, pad: 16, radius: 26, title: 16, tile: 25 },
+  { w: 148, pad: 13, radius: 24, title: 14, tile: 23 },
+] as const;
+
+export const cardStyle = (depth: number) => CARD[Math.min(depth, CARD.length - 1)];
+
+export const cardWidth = (depth: number) => cardStyle(depth).w;
+
+/**
+ * ONE height per depth, whatever the role count or the title length.
  *
  * Export 5 made this explicit: "one fixed height for every card at every depth — the title is
  * clamped to 2 lines so content can never grow past this, making the row-to-row gap a true
- * structural constant." Two different heights meant the gap under a top-level card differed from
- * the gap under its children, which reads as a wonky diagram rather than as a hierarchy.
+ * structural constant."
  *
- * It is tall enough for two lines of title, the person pill, the four pillar dots with the Ace run
- * beside them, and the edit row — the clamp in org-canvas is what guarantees the title cannot take
- * more than its two lines and push the rest out.
+ * Worked out from the parts rather than declared: the padding top and bottom, two lines of title at
+ * 1.4 — which is where the descenders' room lives, since a clamp box will not draw padding — the
+ * person pill at 18px with its 5px margin,
+ * and the tiles with the 10px above them. Kris photographed names cut in half on 18 September
+ * because this was a number somebody had typed; now it cannot be too small without the card spec
+ * itself being wrong.
  */
-export const cardHeight = (_depth: number) => 120;
+export const cardHeight = (depth: number) => {
+  const z = cardStyle(depth);
+  return z.pad * 2 + Math.ceil(z.title * 1.4 * 2) + 23 + z.tile + 10;
+};
 
 export interface PlacedCard {
   role: ChartRole;

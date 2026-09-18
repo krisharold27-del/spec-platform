@@ -81,6 +81,15 @@ describe('the Ace on every card', () => {
     expect(orgPage, 'indexed by role so forty cards cost what one does').toContain('new Map(');
     expect(orgPage, 'and attached to the card').toContain('ace: aces.get(r.id)');
     expect(canvas, 'which the card renders').toContain('<AcePips');
+    /*
+      And only once there IS a run.
+
+      The chart drew three empty circles on every scored card in the business, for a run nobody had
+      started — forty markers for nothing, on the screen Kris opens first. Nought of three is not a
+      run; the card says so by being quiet. The information he asked for is unchanged: the moment
+      somebody is one month in, their card shows it.
+    */
+    expect(canvas, 'and not three empty circles on every card').toContain('r.ace.consecutive > 0');
   });
 
   /* Three pips, not "2/3". The chart is read across forty cards at once, and a fraction makes a

@@ -66,7 +66,7 @@ if (!/\/(my-page|welcome|setup)/.test(page.url())) await stop(1, `could not sign
 const bar = () => page.locator('header nav[aria-label="SPEC"]');
 const barLabels = async () => (await bar().locator('a').allInnerTexts()).map(t => t.trim());
 
-for (const path of ['/my-page', '/org', '/scoring', '/boards', '/connections', '/people', '/setup/kpis']) {
+for (const path of ['/my-page', '/org', '/scoring', '/mirrors', '/connections', '/people', '/setup/kpis']) {
   await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => {});
   const labels = await barLabels().catch(() => []);

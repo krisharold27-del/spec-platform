@@ -398,16 +398,15 @@ const tightTitles = await page.evaluate(() => {
     const ratio = lineHeight / parseFloat(st.fontSize);
     if (ratio < 1.3) out.push(`${title.textContent.trim().slice(0, 24)} line-height ${ratio.toFixed(2)}`);
     /*
-      And the box is really two whole lines tall, measured rather than derived.
+      The ratio is the whole check, and comparing scrollHeight to clientHeight here was wrong.
 
-      The ratio is the rule; this is the outcome. Rounding, zoom and platform differences all land
-      here, and a box one pixel short of two lines cuts the tails off the second one — which is
-      exactly what a person sees and exactly what no amount of correct CSS proves on its own.
+      A clamped box is MEANT to overflow: that is what clamping is. A three-line title in a
+      two-line box reports more content than box on every render, for ever, and a check that fires
+      on the feature working is a check that gets switched off. The fault Kris photographed was
+      never overflow — it was the tails of the letters sliced off INSIDE the lines that were drawn,
+      and the line-height ratio is what decides that. The card as a whole is measured separately,
+      just above, which is where a real overflow would show.
     */
-    const lines = Math.round(title.getBoundingClientRect().height / lineHeight);
-    if (title.scrollHeight > title.clientHeight + 1 && lines >= 2) {
-      out.push(`${title.textContent.trim().slice(0, 24)} clipped: ${title.scrollHeight} in ${title.clientHeight}`);
-    }
   }
   return out;
 });

@@ -86,7 +86,7 @@ describe('everywhere else in SPEC', () => {
     const hrefs = new Set(allDoors(FOUNDER).concat(allDoors(GROUP)).map(d => d.href));
     for (const was of [
       '/meeting', '/scoring', '/inbox', '/org', '/summary', '/charter', '/me', '/team',
-      '/people', '/boards', '/curve', '/training', '/connections', '/setup', '/settings',
+      '/people', '/mirrors', '/curve', '/training', '/connections', '/setup', '/settings',
       '/group', '/businesses',
     ]) {
       expect(hrefs.has(was), `${was} was in the old menu and is now unreachable`).toBe(true);

@@ -81,15 +81,27 @@ if (await mark.count() > 0) {
       `centre ${Math.round(early.cx)},${Math.round(early.cy)} in ${Math.round(early.w)}×${Math.round(early.h)}`);
   }
 
-  // Part-way through the four and a half seconds.
-  await page.waitForTimeout(1400);
-  const later = await handAt();
+  /*
+    Polled until it moves, rather than sampled twice and hoped.
+
+    Two fixed reads a second apart is a coin toss on a slow machine: the play lasts four and a half
+    seconds and holds still at both ends of it, so a pair of samples can easily land on two moments
+    that look the same. This failed once in a batch run and passed on its own a minute later, which
+    is the worst kind of check — one that reports a fault that is not there and teaches everybody to
+    re-run it. It watches for the whole length of the animation and stops the moment it sees motion.
+  */
+  let later = early;
+  for (let i = 0; i < 25 && early; i++) {
+    await page.waitForTimeout(200);
+    later = await handAt();
+    if (later && (Math.abs(early.cx - later.cx) > 1 || Math.abs(early.cy - later.cy) > 1)) break;
+  }
   const moved = early && later && (Math.abs(early.cx - later.cx) > 1 || Math.abs(early.cy - later.cy) > 1);
   check('THE MARK MOVES', Boolean(moved),
     early && later ? `${Math.round(early.cx)},${Math.round(early.cy)} → ${Math.round(later.cx)},${Math.round(later.cy)}` : 'no reading');
 
   // And after it has finished, the ring is green and stays green — the argument the animation makes.
-  await page.waitForTimeout(3600);
+  await page.waitForTimeout(5000);
   const stroke = await mark.evaluate(svg => {
     const ring = [...svg.querySelectorAll('circle')].find(c => c.querySelector('animate'));
     return ring ? getComputedStyle(ring).stroke : null;

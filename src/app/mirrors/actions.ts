@@ -23,7 +23,7 @@ export async function newBoard(form: FormData) {
 
   const title = String(form.get('title') ?? '').trim();
   // A board with no name is a board nobody will ever find again. Nothing is created.
-  if (!title) redirect('/boards?needs=title');
+  if (!title) redirect('/mirrors?needs=title');
 
   const id = await createBoard({
     tenantId: user.tenantId,
@@ -32,8 +32,8 @@ export async function newBoard(form: FormData) {
     summary: String(form.get('summary') ?? '').trim(),
     createdBy: user.name,
   });
-  revalidatePath('/boards');
-  redirect(`/boards?board=${id}`);
+  revalidatePath('/mirrors');
+  redirect(`/mirrors?board=${id}`);
 }
 
 export async function sayOnBoard(form: FormData) {
@@ -43,9 +43,9 @@ export async function sayOnBoard(form: FormData) {
 
   const boardId = String(form.get('boardId') ?? '');
   const text = String(form.get('text') ?? '').trim();
-  if (!boardId || !text) redirect(boardId ? `/boards?board=${boardId}` : '/boards');
+  if (!boardId || !text) redirect(boardId ? `/mirrors?board=${boardId}` : '/mirrors');
 
   await commentOnBoard({ tenantId: user.tenantId, boardId, authorName: user.name, text });
-  revalidatePath('/boards');
-  redirect(`/boards?board=${boardId}`);
+  revalidatePath('/mirrors');
+  redirect(`/mirrors?board=${boardId}`);
 }

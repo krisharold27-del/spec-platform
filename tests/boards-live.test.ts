@@ -154,13 +154,13 @@ describe('the promises the page makes', () => {
   });
 
   it('never shows faces that are not really there', () => {
-    const page = reads('src/app/boards/page.tsx');
+    const page = reads('src/app/mirrors/page.tsx');
     expect(page).toContain('editingNow');
     expect(page).toContain('Just you, right now.');
   });
 
   it('a visitor looking around still writes nothing', () => {
-    expect(reads('src/app/boards/actions.ts')).toContain('assertWritable');
+    expect(reads('src/app/mirrors/actions.ts')).toContain('assertWritable');
   });
 
   it('the worked examples are only ever for a look-around', () => {
@@ -172,8 +172,23 @@ describe('the promises the page makes', () => {
   });
 
   it('Conversation boards survived, and is still reachable', () => {
-    expect(reads('src/lib/doors.ts')).toContain('/boards/conversations');
-    expect(reads('src/app/boards/page.tsx')).toContain('/boards/conversations');
+    expect(reads('src/lib/doors.ts')).toContain('/mirrors/conversations');
+    expect(reads('src/app/mirrors/page.tsx')).toContain('/mirrors/conversations');
+  });
+
+  /*
+    Design 11 renamed Boards to Mirrors, and a rename is not a deletion.
+
+    "Board" in SPEC already means the company's Board — the pack, the charter, the four commitments —
+    and one word could not go on meaning both a governance body and a live artifact a crew pins a
+    rate card to. But somebody has the old address in a tab, a bookmark or a message to their
+    supervisor, and answering those with "page not found" teaches a customer that SPEC loses things.
+  */
+  it('THE OLD ADDRESS STILL FORWARDS, carrying whatever was on it', () => {
+    const moved = reads('src/app/boards/page.tsx');
+    expect(moved, 'the old route still exists').toContain('redirect(');
+    expect(moved, 'and lands on the new one').toContain("'/mirrors'");
+    expect(moved, 'with the query string, so a link to one mirror still opens it').toContain('searchParams');
   });
 
   it('and the delete knows about all three new tables', () => {

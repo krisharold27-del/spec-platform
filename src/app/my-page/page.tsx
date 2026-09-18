@@ -213,7 +213,7 @@ export default async function MyPage({
         claiming to be where you start is the most reliable way a product gets called confusing.
         The page is the dashboard; the conversation is how you work it.
       */}
-      <AskBar available href={`/boards?ask=1`} />
+      <AskBar available href={`/mirrors?ask=1`} />
 
       {/*
         The four lights, once there is light in them.

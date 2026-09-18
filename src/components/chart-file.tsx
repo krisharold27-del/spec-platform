@@ -127,7 +127,9 @@ export function ChartFile({ targetId }: { targetId: string }) {
   }
 
   return (
-    <div className="mt-3">
+    /* No top margin: this is its own card in the design's three-up row now, not a tail on the
+       paste box. */
+    <div>
       <input
         ref={input}
         type="file"
@@ -139,12 +141,14 @@ export function ChartFile({ targetId }: { targetId: string }) {
         type="button"
         disabled={busy}
         onClick={() => input.current?.click()}
-        className="btn-secondary text-sm disabled:opacity-60"
+        /* The design draws this as the terracotta pill — it is the primary thing to do in its
+           card, and it was a quiet secondary button hiding under a textarea. */
+        className="btn-primary justify-self-start text-sm disabled:opacity-60"
       >
         {busy ? 'Reading…' : 'Choose a file'}
       </button>
       <p className="mt-2 text-xs text-ink-light">
-        {note ?? 'Word, PDF, CSV or plain text. It is read here in your browser and put in the box above — nothing is uploaded — so you can check it before anything is drawn.'}
+        {note ?? 'Read here in your browser and put in the box beside this one — nothing is uploaded — so you can check it before anything is drawn.'}
       </p>
     </div>
   );

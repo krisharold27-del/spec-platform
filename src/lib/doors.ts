@@ -84,8 +84,8 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
           rate they are arguing about, a plan with an owner against each step. Nobody should have to
           work that out by opening both.
         */
-        { href: '/boards', label: 'Boards', note: 'Artifacts your team pins and runs projects through — not the Board itself.' },
-        { href: '/boards/conversations', label: 'Conversation boards', note: 'The decisions being worked through.' },
+        { href: '/mirrors', label: 'Boards', note: 'Artifacts your team pins and runs projects through — not the Board itself.' },
+        { href: '/mirrors/conversations', label: 'Conversation boards', note: 'The decisions being worked through.' },
       ],
     },
     {
@@ -149,7 +149,7 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
  * Built from `doors()` rather than written out again, so a route that is renamed cannot leave the
  * bar pointing at nothing while the directory quietly stays right.
  */
-export const NAV_HREFS = ['/my-page', '/org', '/scoring', '/board', '/boards', '/connections', '/my-page#everywhere'] as const;
+export const NAV_HREFS = ['/my-page', '/org', '/scoring', '/board', '/mirrors', '/connections', '/my-page#everywhere'] as const;
 
 export function navDoors(f: DoorsFor): Door[] {
   const all = allDoors(f);
@@ -163,7 +163,7 @@ export function navDoors(f: DoorsFor): Door[] {
       closed month, because a board pack is a record of a month that finished.
     */
     { href: '/board', label: 'Board pack', note: 'What went to the Board for the last closed month.' },
-    find('/boards') ?? { href: '/boards', label: 'Boards', note: 'Artifacts your team pins and runs projects through.' },
+    find('/mirrors') ?? { href: '/mirrors', label: 'Boards', note: 'Artifacts your team pins and runs projects through.' },
     find('/connections') ?? { href: '/connections', label: 'Connections', note: 'The systems that feed your numbers.' },
     /*
       The last item on the design's bar, and the reason the bar can stay at six.

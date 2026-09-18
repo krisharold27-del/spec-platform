@@ -54,7 +54,7 @@
     <a href="SPEC Org Chart.dc.html">Org chart</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
-    <a href="SPEC Boards.dc.html">Boards</a>
+    <a href="SPEC Mirrors.dc.html">Mirrors</a>
     <a href="SPEC Connections.dc.html">Connections</a>
     <a href="SPEC Home.dc.html">All pages</a>
     <button type="button" onClick="{{ toggleNotifs }}" style="{{ notifButtonStyle }}" title="Notifications">🔔<sc-if value="{{ hasNotifs }}" hint-placeholder-val="{{ false }}"><span style="{{ notifDotStyle }}"></span></sc-if></button>
@@ -877,7 +877,7 @@ class Component extends DCLogic {
       if (e.deniedByBoard && e.createdBy === myName) notifList.push({ text: 'Board sent back for a new owner: "' + e.text + '"' });
       if (e.deadline && e.status !== 'closed' && new Date(e.deadline) < new Date()) notifList.push({ text: 'Overdue: "' + e.text + '" was due ' + e.deadline });
     });
-    notifList.push({ text: 'New on Boards: the Rate Board was updated — check it out.', href: 'SPEC Boards.dc.html' });
+    notifList.push({ text: 'New on Mirrors: the Rate Board was updated — check it out.', href: 'SPEC Mirrors.dc.html' });
     notifList.push({ text: 'A new connection was linked in Connections — check it out.', href: 'SPEC Connections.dc.html' });
     const doneCount = p.tasks.filter(t => this.state.done[t.id]).length;
     const answer = this.state.answer;

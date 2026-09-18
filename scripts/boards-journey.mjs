@@ -47,12 +47,12 @@ if (page.url().includes('busy=1')) {
   process.exit(0);
 }
 
-await page.goto(`${BASE}/boards`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}/mirrors`, { waitUntil: 'networkidle' });
 let body = await text();
 
 check('Boards opens, and says what a board is for', /pins, builds on and discusses/i.test(body));
 check('THE WORKED EXAMPLES ARE THERE', body.includes('Rate Board') && body.includes('King of the Mountain'), body.slice(0, 120));
-check('and every type can be filtered on', (await page.locator('a[href^="/boards?type="]').count()) >= 6);
+check('and every type can be filtered on', (await page.locator('a[href^="/mirrors?type="]').count()) >= 6);
 
 // ── A board that cannot be live must not say it is ───────────────────────────────────────────────
 //
@@ -68,9 +68,9 @@ check(
 // By href, not by text: the card's title, its summary and a filter chip all contain words like
 // "rate", and a selector that matches three things is a selector that clicks the wrong one.
 const openBoard = async words => {
-  const card = page.locator('a[href^="/boards?board="]', { hasText: words }).first();
+  const card = page.locator('a[href^="/mirrors?board="]', { hasText: words }).first();
   await card.click();
-  await page.waitForURL('**/boards?board=*', { timeout: 15000 }).catch(() => {});
+  await page.waitForURL('**/mirrors?board=*', { timeout: 15000 }).catch(() => {});
   await page.waitForLoadState('networkidle');
 };
 await openBoard('Rate Board');
@@ -89,7 +89,7 @@ check('the discussion sits next to the numbers', body.includes('Discussion') && 
 check('and it says who is in the room, honestly', /editing now/i.test(body));
 
 // ── The plan board ───────────────────────────────────────────────────────────────────────────────
-await page.goto(`${BASE}/boards`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}/mirrors`, { waitUntil: 'networkidle' });
 await openBoard('King of the Mountain');
 body = await text();
 check('a plan shows who owns each step', body.includes('Permitting') && body.includes('Anthony'));
@@ -114,7 +114,7 @@ if (await say.count()) {
 }
 
 // ── Conversation boards survived ─────────────────────────────────────────────────────────────────
-await page.goto(`${BASE}/boards/conversations`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}/mirrors/conversations`, { waitUntil: 'networkidle' });
 body = await text();
 check(
   'CONVERSATION BOARDS STILL EXIST, and are still a mirror',

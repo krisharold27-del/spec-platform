@@ -1,4 +1,4 @@
-import { inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { db, schema } from '@/db';
@@ -71,6 +71,28 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   // Proposals, which are deliberately NOT roles — see lib/predict-data. Nothing that walks the
   // business can see them, which is what stops one ever being counted, scored or billed for.
   const predicted = await pendingPredictions(user.tenantId);
+
+  /*
+    This business's own systems, for the "Connect a system" card.
+
+    The design lists connectors with a state beside each. What is drawn is the register THIS business
+    keeps — never a menu of logos SPEC does not talk to yet. Offering to connect a payroll system
+    that nothing behind it can reach is the same class of claim as the feed wording that had to be
+    torn out on 18 September, and it would be on the first screen a new customer opens.
+  */
+  const connections = manage
+    ? await db.select().from(schema.systemConnections)
+        .where(and(
+          eq(schema.systemConnections.tenantId, user.tenantId),
+          /*
+            A personal mailbox is NOT one of the business's systems, and every list of the business's
+            systems has to say so in its query. `tests/mail.test.ts` caught this within a minute of
+            the card being written — somebody's own inbox would have been printed on the org chart as
+            a company connection, for their whole team to read.
+          */
+          isNull(schema.systemConnections.personalFor),
+        ))
+    : [];
 
   // The goal, worked down the chart. Proposals too — a row becomes a KPI only when somebody takes it.
   const cascade = await cascadeFor(user.tenantId);
@@ -162,107 +184,17 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
       </section>
 
       {/*
-        What the chart is missing, above the chart itself.
+        ── The chart FIRST, then everything that is a question about it ─────────────────────────
 
-        Above rather than below, because it is a question about the structure and the structure is
-        what the page is for — and because a proposal nobody scrolls to is a proposal nobody decides.
-      */}
-      <PredictedRoles
-        predicted={predicted}
-        read={read === '' ? null : Number(read)}
-        canEdit={manage}
-      />
+        The design was re-cut on 18 September and Kris sent it over with *"redo the org chart page
+        like this"*. The change is the order: the diagram used to sit under three panels of
+        proposals and setup, so the thing the page is named after was the fourth thing on it. Now
+        the chart is directly under Link → Flow → Grow, and what SPEC has to ASK about the chart —
+        roles it thinks are missing, the goal worked down it, and where a structure can be brought
+        in from — follows underneath, in the order somebody would deal with them.
 
-      {/*
-        And then the goal, worked down the chart the structure just settled.
-
-        Below the predicted roles on purpose: the design says "this is that cascade, ONCE STRUCTURE
-        IS APPROVED", and the order on the page is the order of the thinking. There is no point
-        deciding what a role measures before deciding whether the role exists.
-      */}
-      <Cascade
-        view={cascade}
-        goalsSet={goalsSet}
-        canEdit={manage}
-        read={cascadeRead === '' ? null : Number(cascadeRead)}
-      />
-
-      {/*
-        Bringing a structure in, ABOVE the chart and folded shut.
-
-        The design puts one quiet strip here — a line and an "Import your structure" link — because
-        importing is something a business does once, on the first morning, and never again. The
-        product had it at the BOTTOM of the page as two permanently-open cards with a textarea, a
-        file picker and three paragraphs, so every visit to the chart ended in a wall of setup.
-
-        Open by default while the chart is empty, because on that one morning it is the whole point
-        of the screen.
-      */}
-      {manage && (
-        <details open={roles.length === 0} className="mt-6 rounded-2xl bg-surface p-6">
-          <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-3">
-            <span>
-              <span className="font-serif text-xl text-ink">Start from what you already have</span>
-              <span className="mt-1 block text-sm text-ink-light">
-                Nobody types their org chart twice. Bring it in from a document, a spreadsheet, or the
-                system that already holds it.
-              </span>
-            </span>
-            <span className="shrink-0 text-sm text-rust-700 hover:underline">Import your structure</span>
-          </summary>
-
-          <div className="mt-6 grid items-start gap-6 lg:grid-cols-2">
-            <div>
-              <h2 className="label-caps text-rust-700">Bring in a whole structure</h2>
-              <p className="mt-2 text-sm text-ink-light">
-                One role per line: <span className="font-mono text-xs">role, person, reports to</span>. A manager
-                SPEC cannot match is still created — it lands off the chart, where you can drag it in.
-              </p>
-              <form action={importChart} className="mt-4 grid gap-2">
-                <textarea
-                  id="chart-paste"
-                  className="input min-h-[120px] rounded-lg font-mono text-xs"
-                  name="text"
-                  placeholder={'General Manager, A. Morgan\nOperations Manager, J. Barnes, General Manager\nSite Supervisor, , Operations Manager'}
-                  aria-label="Paste your structure"
-                />
-                <SubmitButton className="btn-primary justify-self-start" pending="Drawing…">Build the chart</SubmitButton>
-              </form>
-              <p className="mt-3 text-xs text-ink-light">
-                A CSV exported from a payroll or HR system pastes in the same way — SPEC drops the header row
-                when it recognises one.
-              </p>
-              {/*
-                Upload a file, because a business's structure lives in a file rather than in somebody's
-                clipboard. It fills the box above rather than going anywhere, so what runs is the same
-                import that is already tested, and the person sees what arrived before anything is drawn.
-              */}
-              <ChartFile targetId="chart-paste" />
-            </div>
-
-            <div>
-              <h2 className="label-caps text-rust-700">Or add one role</h2>
-              <p className="mt-2 text-sm text-ink-light">
-                It starts vacant. Roles are defined by what the business needs and a person is assigned
-                afterwards — never the other way round. On the chart itself, right-click does the same thing.
-              </p>
-              <form action={addRole} className="mt-4 grid gap-2 sm:grid-cols-[2fr_1.5fr_auto]">
-                <input className="input" name="title" required placeholder="Role title" aria-label="Role title" />
-                <select className="input" name="parentId" aria-label="Reports to" defaultValue={rootId ?? ''}>
-                  <option value="">Top of the chart</option>
-                  {roles.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
-                </select>
-                <SubmitButton className="btn-primary shrink-0" pending="Adding…">Add it</SubmitButton>
-              </form>
-            </div>
-          </div>
-        </details>
-      )}
-
-      {/*
-        The chart, and the two panels the design hangs off it: the selected role's scorecard, and
-        what the board sees. All three live in the canvas component because the first two follow the
-        selection, and a selection is a thing the browser holds rather than the server.
+        The two panels beside the chart live inside the canvas component: they follow the selection,
+        and a selection is a thing the browser holds rather than the server.
       */}
       {roles.length > 0 && (
         <div className="mt-6">
@@ -278,6 +210,133 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
             }}
           />
         </div>
+      )}
+
+      {/* What the chart is still missing. Nothing here is real until somebody says so. */}
+      <PredictedRoles
+        predicted={predicted}
+        read={read === '' ? null : Number(read)}
+        canEdit={manage}
+      />
+
+      {/*
+        And then the goal, worked down the chart.
+
+        Below the predicted roles on purpose: the design says "this is that cascade, ONCE STRUCTURE
+        IS APPROVED", and the order on the page is the order of the thinking. There is no point
+        deciding what a role measures before deciding whether the role exists.
+      */}
+      <Cascade
+        view={cascade}
+        goalsSet={goalsSet}
+        canEdit={manage}
+        read={cascadeRead === '' ? null : Number(cascadeRead)}
+      />
+
+      {/*
+        Bringing a structure in — three ways, in the design's own order.
+
+        Folded shut once there is a chart, because importing is something a business does on the
+        first morning and never again; open while the chart is empty, because on that one morning it
+        is the whole point of the screen.
+      */}
+      {manage && (
+        <details open={roles.length === 0} className="mt-6 rounded-2xl bg-surface p-6 sm:p-8">
+          <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-3">
+            <span>
+              <span className="font-serif text-[22px] leading-tight text-ink">Start from what you already have</span>
+              <span className="mt-2.5 block max-w-[58ch] text-[14.5px] leading-[23px] text-ink/80">
+                Nobody types their org chart twice. Bring it in from a document, a spreadsheet, or the
+                system that already holds it.
+              </span>
+            </span>
+            <span className="shrink-0 text-sm text-rust-700 hover:underline">Import your structure</span>
+          </summary>
+
+          <div className="mt-7 grid items-start gap-4 lg:grid-cols-3">
+            {/*
+              Upload a file. A business's structure lives in a document, not in somebody's clipboard
+              — this is the card Kris asked for when the picker took CSV and nothing else.
+            */}
+            <div className="grid content-start gap-3 rounded-[20px] bg-cream p-6">
+              <p className="font-serif text-[17px] text-ink">Upload a file</p>
+              <p className="text-[13.5px] leading-[21px] text-ink/80">
+                Word, PDF, Excel or CSV. SPEC reads the role, the person and who they report to, then
+                asks you to confirm before anything is drawn.
+              </p>
+              <ChartFile targetId="chart-paste" />
+            </div>
+
+            <div className="grid content-start gap-3 rounded-[20px] bg-cream p-6">
+              <p className="font-serif text-[17px] text-ink">Paste it in</p>
+              <p className="text-[13.5px] leading-[21px] text-ink/80">
+                One role per line: role, person, who they report to. Straight out of a document or a
+                spreadsheet column. A manager SPEC cannot match is still created — it lands off the
+                chart, where you can drag it in.
+              </p>
+              <form action={importChart} className="grid gap-3">
+                <textarea
+                  id="chart-paste"
+                  className="min-h-[120px] w-full resize-y rounded-[18px] border border-ink/15 bg-surface px-4 py-3.5 font-mono text-[13px] leading-5 text-ink"
+                  name="text"
+                  placeholder={'General Manager, Kris Harold\nOperations Manager, Dane Whitmore, General Manager\nScheduler, Amrit Kaur, Operations Manager'}
+                  aria-label="Paste your structure"
+                />
+                <SubmitButton className="btn-primary justify-self-start" pending="Drawing…">Build the chart</SubmitButton>
+              </form>
+            </div>
+
+            {/*
+              Connect a system.
+
+              The design lists connectors with a state beside each. What is drawn here is this
+              business's OWN connections, read from the register — not a menu of logos SPEC does not
+              talk to yet. A card that offers to connect BambooHR when nothing behind it can would be
+              the same lie the feed wording was.
+            */}
+            <div className="grid content-start gap-3 rounded-[20px] bg-cream p-6">
+              <p className="font-serif text-[17px] text-ink">Connect a system</p>
+              <p className="text-[13.5px] leading-[21px] text-ink/80">
+                The structure stays in step with the system that owns it. New starter there, new role
+                here.
+              </p>
+              {connections.length > 0 ? (
+                <ul className="grid gap-2">
+                  {connections.map(c => (
+                    <li
+                      key={c.id}
+                      className="flex items-center justify-between gap-3 rounded-xl bg-surface px-3.5 py-2.5"
+                    >
+                      <span className="truncate text-sm text-ink">{c.name}</span>
+                      <span className="shrink-0 text-[12.5px] text-ink-light">
+                        {c.status === 'live' ? 'Connected' : c.status === 'pending' ? 'Waiting on approval' : 'Not connected'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[13px] leading-5 text-ink-light">Nothing is connected yet.</p>
+              )}
+              <Link href="/connections" className="btn-secondary justify-self-start">Open the connection centre</Link>
+            </div>
+          </div>
+
+          <div className="mt-6 border-t border-ink/10 pt-6">
+            <p className="font-serif text-[17px] text-ink">Or add one role</p>
+            <p className="mt-2 max-w-[58ch] text-[13.5px] leading-[21px] text-ink/80">
+              It starts vacant. Roles are defined by what the business needs and a person is assigned
+              afterwards — never the other way round. On the chart itself, right-click does the same thing.
+            </p>
+            <form action={addRole} className="mt-4 grid gap-2 sm:grid-cols-[2fr_1.5fr_auto]">
+              <input className="input" name="title" required placeholder="Role title" aria-label="Role title" />
+              <select className="input" name="parentId" aria-label="Reports to" defaultValue={rootId ?? ''}>
+                <option value="">Top of the chart</option>
+                {roles.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
+              </select>
+              <SubmitButton className="btn-primary shrink-0" pending="Adding…">Add it</SubmitButton>
+            </form>
+          </div>
+        </details>
       )}
 
       {!manage && (
