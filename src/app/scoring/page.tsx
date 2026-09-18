@@ -21,6 +21,8 @@ import { AceWatch } from '@/components/ace-watch';
 import { GoalsPanel } from '@/components/goals-panel';
 import { goalsFor } from '@/lib/goals-data';
 import { aceWatch } from '@/lib/ace-watch-data';
+import { Refused } from '@/components/refused';
+import { refusedReason } from '@/lib/refuse';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +34,11 @@ export const dynamic = 'force-dynamic';
  * cannot measure at all. The last group is reported as a gap and excluded from the score, because a
  * business that scores what it cannot measure is not measuring.
  */
-export default async function MonthlyScoring() {
+export default async function MonthlyScoring({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // Why SPEC said no, if it just did. See lib/refuse — a refusal is a rule working, not a fault.
+  const cannot = refusedReason(await searchParams);
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
@@ -110,6 +116,7 @@ export default async function MonthlyScoring() {
       headline="Close the month. Then nobody argues about it."
       subtitle="Every number confirmed against what it was supposed to be, with the reason written down beside anything that missed. Then it locks, and nobody re-litigates it in March."
     >
+      <Refused reason={cannot} />
       <section className="card">
         <div className="flex flex-wrap items-center gap-3">
           {(['open', 'submitted', 'locked'] as PeriodStatus[]).map(s => {

@@ -8,6 +8,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { answerFor } from '@/lib/status';
+import { refuseTo } from '@/lib/refuse';
 
 /**
  * Save Y/N/NA answers and notes for one role in one period.
@@ -22,12 +23,12 @@ export async function saveScorecard(formData: FormData) {
 
   await assertWritable(user.tenantId);
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) throw new Error('You can only score your own role and the roles beneath it.');
+  if (!scope.canEdit(roleId)) refuseTo(`/scorecard/${roleId}`, 'You can only score your own role and the roles beneath it.');
 
   const periods = await db.select().from(schema.periods)
     .where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId)));
   const period = periods[0];
-  if (!period || period.status === 'locked') throw new Error('Period is locked — locked months are never edited.');
+  if (!period || period.status === 'locked') refuseTo(`/scorecard/${roleId}`, 'Period is locked — locked months are never edited.');
 
   // Only this role's own KPIs. The ids arrive as form field names, which anybody can edit.
   const ownCriteria = new Set((await db.select({ id: schema.criteria.id }).from(schema.criteria)
@@ -73,11 +74,11 @@ export async function addComment(formData: FormData) {
 
   await assertWritable(user.tenantId);
   const scope = await getScope(user);
-  if (!scope.canSee(roleId)) throw new Error('That card is not yours to comment on.');
+  if (!scope.canSee(roleId)) refuseTo(`/scorecard/${roleId}`, 'That card is not yours to comment on.');
 
   const [period] = await db.select().from(schema.periods)
     .where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId)));
-  if (!period || period.status === 'locked') throw new Error('That month is locked. Corrections are dated amendments in the next one.');
+  if (!period || period.status === 'locked') refuseTo(`/scorecard/${roleId}`, 'That month is locked. Corrections are dated amendments in the next one.');
 
   await db.insert(schema.scorecardComments).values({
     id: randomUUID(), tenantId: user.tenantId, roleId, periodId,
@@ -118,7 +119,7 @@ export async function addKpi(formData: FormData) {
 
   await assertWritable(user.tenantId);
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) throw new Error('You can only change your own card and the cards beneath it.');
+  if (!scope.canEdit(roleId)) refuseTo(`/scorecard/${roleId}`, 'You can only change your own card and the cards beneath it.');
 
   const existing = await db.select().from(schema.criteria)
     .where(and(eq(schema.criteria.roleId, roleId), eq(schema.criteria.pillar, pillar), eq(schema.criteria.active, true)));

@@ -376,7 +376,7 @@ export const HELP: HelpGroup[] = [
   },
 
   {
-    title: 'Boards, and the improvement register',
+    title: 'Mirrors, and the improvement register',
     note: 'The artifacts your team runs projects through, and the running list of problems.',
     answers: [
       {
@@ -389,28 +389,29 @@ export const HELP: HelpGroup[] = [
         press: 'Log it',
       },
       {
-        ask: 'How do I make a board?',
-        also: ['new board', 'create board', 'add a board'],
+        ask: 'How do I make a mirror?',
+        /* The old words are kept as ways in: somebody who learnt this as a board still finds it. */
+        also: ['new mirror', 'create mirror', 'add a mirror', 'new board', 'create board', 'add a board'],
         say:
-          'A board is a thing your team pins and argues over — a rate you are working out, a plan with an owner against '
+          'A mirror is a thing your team pins and argues over — a rate you are working out, a plan with an owner against '
           + 'each step. Anybody with a login can make one and anybody can comment.',
         go: { href: '/mirrors', label: 'Mirrors' },
         press: '+ New mirror',
       },
       {
-        ask: 'A board says it is not live',
+        ask: 'A mirror says it is not live',
         also: ['not updating', 'live data', 'no numbers'],
         say:
-          'It names which feed is not connected. SPEC will not call a board live while any of its inputs are missing, '
+          'It names which feed is not connected. SPEC will not call a mirror live while any of its inputs are missing, '
           + 'because "partly current" reads as "current" on the screen where somebody is about to change a price.',
         go: { href: '/connections', label: 'Connections' },
       },
       {
-        ask: 'What is the difference between the Board and a board?',
-        also: ['board confusing', 'governance'],
+        ask: 'What is the difference between the Board and a mirror?',
+        also: ['board confusing', 'governance', 'mirror'],
         say:
-          'The Board is the governing group — its charter, its pack, its meeting. A board, lower case, is an artifact '
-          + 'a team makes and works through. Same word, two different things, and you will use the second one far more.',
+          'The Board is the governing group — its charter, its pack, its meeting. A mirror is an artifact a team makes '
+          + 'and works through. They used to share the word "board", which is exactly why one of them was renamed.',
         go: { href: '/mirrors', label: 'Mirrors' },
       },
       {

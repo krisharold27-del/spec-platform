@@ -19,6 +19,8 @@ import { LIGHT_COLOUR } from '@/lib/today';
 import { signOffTraining } from '@/app/my-page/actions';
 import { Problems } from '@/components/problems';
 import { MANAGEMENT_STANCE, NON_NEGOTIABLES, READING, CURRICULUM_IDEAS } from '@/lib/manage-people';
+import { Refused } from '@/components/refused';
+import { refusedReason } from '@/lib/refuse';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +34,11 @@ export const dynamic = 'force-dynamic';
  * The path belongs to the role. Whoever holds the role inherits it; reassigning somebody never
  * edits it; and a role may require training with nobody in it.
  */
-export default async function Training() {
+export default async function Training({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // Why SPEC said no, if it just did. See lib/refuse — a refusal is a rule working, not a fault.
+  const cannot = refusedReason(await searchParams);
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const scope = await getScope(user);
@@ -104,6 +110,7 @@ export default async function Training() {
       headline="Assign the path to the role"
       subtitle="Trained on the role, not on the software. Every module is tied to a number somebody owns."
     >
+      <Refused reason={cannot} />
       {specModules.length > 0 && (
         <section className="card mb-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">

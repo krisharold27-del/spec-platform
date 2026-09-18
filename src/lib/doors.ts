@@ -74,18 +74,20 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
         { href: '/summary', label: 'Executive summary', note: 'The whole business this month, on one screen.' },
         { href: '/curve', label: 'Your J curve', note: 'What SPEC has cost and returned, measured.' },
         /*
-          Boards, lower case, and the Board are two different things in SPEC.
+          Mirrors, because "boards" and "the Board" could not both keep the word.
 
           Kris, 17 September: *"there is the Board as the governing group and boards as the artifacts
-          people review and run projects through"*.
+          people review and run projects through"*. The note used to do the telling apart, which is
+          a note doing a name's job. Design 11 renamed the artifacts to Mirrors and the collision is
+          gone: the Board is the governing group — its charter, its pack, its meeting — and a mirror
+          is a thing a team makes, a rate they are arguing about, a plan with an owner on each step.
 
-          They sit in the same door list, so the note has to do the telling apart. The Board is the
-          governing group — its charter, its pack, its meeting. A board is a thing a team makes: a
-          rate they are arguing about, a plan with an owner against each step. Nobody should have to
-          work that out by opening both.
+          The label was left reading "Boards" after the rename because the address changed and the
+          word did not, which put the old name in the navigation bar on a page whose heading already
+          said Mirrors. Kris, on the live site: *"should say mirrors at the top"*.
         */
-        { href: '/mirrors', label: 'Boards', note: 'Artifacts your team pins and runs projects through — not the Board itself.' },
-        { href: '/mirrors/conversations', label: 'Conversation boards', note: 'The decisions being worked through.' },
+        { href: '/mirrors', label: 'Mirrors', note: 'Artifacts your team pins and runs projects through — not the Board itself.' },
+        { href: '/mirrors/conversations', label: 'Conversation mirrors', note: 'The decisions being worked through.' },
       ],
     },
     {
@@ -163,7 +165,7 @@ export function navDoors(f: DoorsFor): Door[] {
       closed month, because a board pack is a record of a month that finished.
     */
     { href: '/board', label: 'Board pack', note: 'What went to the Board for the last closed month.' },
-    find('/mirrors') ?? { href: '/mirrors', label: 'Boards', note: 'Artifacts your team pins and runs projects through.' },
+    find('/mirrors') ?? { href: '/mirrors', label: 'Mirrors', note: 'Artifacts your team pins and runs projects through.' },
     find('/connections') ?? { href: '/connections', label: 'Connections', note: 'The systems that feed your numbers.' },
     /*
       The last item on the design's bar, and the reason the bar can stay at six.

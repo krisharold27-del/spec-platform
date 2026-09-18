@@ -503,10 +503,9 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     the clamp itself. Every word present, every box the right size, and the text
                     sliced through the middle of the letters.
 
-                    1.35 clears the descenders, and `pb-[3px]` puts three pixels of slack below the
-                    last line on top of that. Belt and braces on purpose: line-height is rounded to
-                    whole pixels differently at different zoom levels and on different platforms, so
-                    a ratio that is comfortable at 100% on this machine can still shave a tail at
+                    1.4 clears the descenders at every size the card uses. Line-height is rounded
+                    to whole pixels differently at different zoom levels and on different platforms,
+                    so a ratio that is comfortable at 100% on this machine can still shave a tail at
                     110% on somebody else's. Clipping through the middle of a person's role is not a
                     thing to leave to rounding.
 
@@ -522,7 +521,7 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     four tiles towards the bottom. Everything centred in a tight block, which is
                     what this was, reads as a label; the design's card reads as a card.
                   */
-                  className={`flex w-full flex-1 items-center justify-center font-serif text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
+                  className={`flex w-full flex-1 items-center justify-center text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
                   style={{
                     fontSize: z.title,
                     /*
@@ -537,15 +536,18 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     */
                     lineHeight: 1.4,
                     /*
-                      ── One device from the design deliberately NOT copied ────────────────────
+                      ── The BODY face, which is what the design's preview draws ────────────────
 
-                      The prototype fakes extra weight with a half-pixel shadow of the text's own
-                      colour on all four sides, because Caprasimo ships with one weight. Rendered
-                      here it does not read as bolder, it reads as damaged — the letters come out
-                      outlined and smeared, worst at the 14px the deepest cards use. globals.css
-                      already carries the same finding about synthetic bolding, written before this
-                      and for the same reason.
-                      Faithful to the intent, not to the trick: the face is heavy enough on its own.
+                      The prototype computes a `titleStyle` — the display face, sized by depth, with
+                      a half-pixel shadow on all four sides to fake a heavier weight — and never
+                      applies it to the element. So every title in the design's own preview is plain
+                      16px Figtree, and for a while the product was the only one of the two
+                      rendering what the file's code asked for.
+
+                      Kris looked at both: *"match the design preview - make titles the body font"*.
+                      Right on more than deference — the display face at card size is a lot of
+                      texture on a diagram somebody scans forty of at once, and the faux-bold reads
+                      as damaged rather than bolder at these sizes anyway.
                     */
                   }}
                   title={r.title}

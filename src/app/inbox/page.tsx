@@ -13,6 +13,8 @@ import { NOTIFY_LEVELS, NOTIFY_ALWAYS, NOTIFY_SENDS_TODAY, notifyLevelOf } from 
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { approve, decline, setNotifyLevel } from './actions';
 import { Problems } from '@/components/problems';
+import { Refused } from '@/components/refused';
+import { refusedReason } from '@/lib/refuse';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +29,11 @@ const TONE = {
  * path with no signature, a role nobody holds. Only decisions that need a record of their own are
  * stored. Everything says what it blocks, because an approval with no consequence is not urgent.
  */
-export default async function Inbox() {
+export default async function Inbox({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // Why SPEC said no, if it just did. See lib/refuse — a refusal is a rule working, not a fault.
+  const cannot = refusedReason(await searchParams);
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
 
@@ -136,6 +142,7 @@ export default async function Inbox() {
       headline={items.length === 1 ? 'One thing is waiting on you' : items.length ? `${items.length} things are waiting on you` : 'Nothing is waiting on you'}
       subtitle="Everything in SPEC that needs a person to decide, in one place, oldest first."
     >
+      <Refused reason={cannot} />
       {items.length ? (
         <ul className="grid gap-4">
           {items.map(i => {

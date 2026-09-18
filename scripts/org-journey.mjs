@@ -416,6 +416,48 @@ check(
   tightTitles.join(' | '),
 );
 
+// ── A refusal is a sentence, never the fault screen ──────────────────────────────────────────────
+/*
+  Kris renamed a role on JBI and got "This page did not load. Something went wrong on our end."
+  Nothing had. The server had correctly refused — and refused by `throw`ing, which renders the
+  generic crash page. Fifteen guards on this page did that, and each one had a useful sentence in it
+  that no customer ever saw.
+
+  The one case already covered — removing an occupied role — passed only because the BROWSER checks
+  before asking. So the check was proving the client's manners rather than the server's, and every
+  other route to a refusal was untested. This posts straight to the action, the way a stale tab or a
+  second window does, and asks what the customer is shown.
+*/
+const roleIdNow = await page.locator('[data-org-canvas] [data-role-card]').first().getAttribute('data-role-card');
+await page.evaluate(async id => {
+  const f = document.createElement('form');
+  f.method = 'POST';
+  f.innerHTML = `<input name="roleId" value="${id}"><input name="title" value="Renamed by a stale tab">`;
+  document.body.append(f);
+}, 'not-a-role-in-this-business');
+await page.locator('[data-org-canvas] [data-role-card]').first().click();
+await page.waitForTimeout(300);
+await page.fill('#org-title', 'A perfectly good name');
+// Take the role id out from under the form, which is what a stale tab really is.
+await page.evaluate(() => {
+  const hidden = document.querySelector('#org-title')?.closest('form')?.querySelector('input[name="roleId"]');
+  if (hidden) hidden.value = 'gone';
+});
+await page.getByRole('button', { name: 'Save the role name' }).click();
+await page.waitForTimeout(1800);
+const afterRefusal = await page.evaluate(() => document.body.innerText);
+check(
+  'A REFUSAL IS A SENTENCE, not the fault screen',
+  !/This page did not load|went wrong on our end/i.test(afterRefusal),
+  afterRefusal.slice(0, 80).replace(/\n/g, ' '),
+);
+check(
+  '  and it says which rule said no',
+  /outside your part of the chart|not in this business/i.test(afterRefusal),
+  afterRefusal.slice(0, 120).replace(/\n/g, ' '),
+);
+void roleIdNow;
+
 check('no page threw', faults.length === 0, faults.join(' | '));
 
 await browser.close();

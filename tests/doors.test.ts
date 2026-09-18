@@ -139,7 +139,16 @@ describe('the navigation bar', () => {
 
   it('and every item carries the words the design uses', () => {
     const labels = navDoors(f).map(d => d.label);
-    expect(labels).toEqual(['My page', 'Org chart', 'Scoring', 'Board pack', 'Boards', 'Connections', 'All pages']);
+    /*
+      Mirrors, not Boards — Design 11's rename, and the bar is where it was missed.
+
+      The rename moved the ADDRESS and left the WORD, so the navigation said Boards on a page whose
+      own heading said Mirrors. Kris, looking at the live site: *"should say mirrors at the top"*.
+      This test exists to hold the bar to the design's words and did not catch it, because it was
+      written before the rename and nobody updated it — so it was asserting the old name as though
+      it were the design's.
+    */
+    expect(labels).toEqual(['My page', 'Org chart', 'Scoring', 'Board pack', 'Mirrors', 'Connections', 'All pages']);
   });
 
   it('THE BAR AND THE DIRECTORY CANNOT DISAGREE', () => {

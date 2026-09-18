@@ -23,6 +23,8 @@ import {
 import { addCandidate, setStage, rateCandidate, addObligation, bookLeave, decideLeave } from './actions';
 import { Problems } from '@/components/problems';
 import type { Pillar } from '@/lib/scoring';
+import { Refused } from '@/components/refused';
+import { refusedReason } from '@/lib/refuse';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,10 +59,13 @@ const ORDER = { expired: 0, missing: 1, expiring: 2, current: 3 } as const;
  * Records held against a PERSON — pay, personal documents — sit outside the scorecard. They gate
  * Clear to Work; they never become a score.
  */
-export default async function People({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
+export default async function People({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
-  const { mode } = await searchParams;
+  const sp = await searchParams;
+  const mode = typeof sp.mode === 'string' ? sp.mode : undefined;
+  // Why SPEC said no, if it just did. See lib/refuse.
+  const cannot = refusedReason(sp);
   const hiring = mode === 'hiring';
 
   const scope = await getScope(user);
@@ -189,6 +194,7 @@ export default async function People({ searchParams }: { searchParams: Promise<{
       headline={hiring ? 'Recruit against the scorecard they will hold' : 'The HR system for people businesses'}
       subtitle={hiring ? 'The roles you need filled, and who is in front of you.' : 'Who is where, who is clear to work, and what each of them is measured on.'}
     >
+      <Refused reason={cannot} />
       {/*
         The two lines the design carries above this page and the product did not.
 

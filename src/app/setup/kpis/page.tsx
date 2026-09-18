@@ -6,12 +6,15 @@ import { getRoles } from '@/lib/queries';
 import { PILLARS, type Pillar } from '@/lib/scoring';
 import { Shell, PILLAR_META, Badge } from '@/components/ui';
 import { saveCriteria, loadVirtualGmKpis } from './actions';
+import { Refused } from '@/components/refused';
+import { refusedReason } from '@/lib/refuse';
 
 export const dynamic = 'force-dynamic';
 
-export default async function KpiSetup({ searchParams }: { searchParams: Promise<{ role?: string; err?: string; saved?: string }> }) {
+export default async function KpiSetup({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await getCurrentUser(); if (!user) redirect('/signin');
   const sp = await searchParams;
+  const cannot = refusedReason(sp);
   const roles = (await getRoles(user.tenantId)).filter(r => r.level !== 'staff');
   const role = roles.find(r => r.id === sp.role) ?? roles[0];
   if (!role) return <Shell title="KPIs"><p>Define roles first.</p></Shell>;
@@ -19,6 +22,7 @@ export default async function KpiSetup({ searchParams }: { searchParams: Promise
 
   return (
     <Shell title="KPIs per role" subtitle="Two per pillar to start, and add as many as you like. Targets are negotiated, so leave one blank until it is agreed.">
+      <Refused reason={cannot} />
       <nav className="flex flex-wrap gap-2 text-sm">
         {roles.map(r => <a key={r.id} href={`/setup/kpis?role=${r.id}`} className={`rounded-full border px-3 py-1 ${r.id === role.id ? 'bg-rust text-cream' : 'bg-surface'}`}>{r.title}</a>)}
       </nav>

@@ -37,6 +37,14 @@ export const dynamic = 'force-dynamic';
 export default async function OrgChart({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const read = String(sp.read ?? '');
+  /*
+    Why SPEC said no, in the words the guard used.
+
+    Every refusal on this page used to `throw`, which renders "This page did not load — something
+    went wrong on our end". Nothing had gone wrong: the server had correctly refused, and the
+    customer was told the product was broken. See `refuse` in ./actions.
+  */
+  const cannot = String(sp.cannot ?? '').slice(0, 300);
   const cascadeRead = String(sp.cascade ?? '');
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
@@ -182,6 +190,15 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
           </div>
         ))}
       </section>
+
+      {cannot && (
+        <p
+          role="status"
+          className="mt-6 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm text-ink"
+        >
+          {cannot}
+        </p>
+      )}
 
       {/*
         ── The chart FIRST, then everything that is a question about it ─────────────────────────

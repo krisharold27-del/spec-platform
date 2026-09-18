@@ -10,6 +10,7 @@ import { assertWritable } from '@/lib/plan';
 import { validateWeights, evenWeights, PILLARS, type Pillar } from '@/lib/scoring';
 import { virtualGmCriteria } from '@/lib/provision';
 import { resolveTarget } from '@/lib/targets';
+import { refuseTo } from '@/lib/refuse';
 
 /** Save edited criteria for one role. Refuses to save if any pillar's weights don't sum to 100%. */
 export async function saveCriteria(formData: FormData) {
@@ -20,7 +21,7 @@ export async function saveCriteria(formData: FormData) {
   const role = roleRows[0];
   if (!role) redirect('/setup/kpis');
   // KPIs belong to the leader of the section: your own role and those beneath it, never a peer's or your leader's.
-  if (!(await getScope(user)).canEdit(roleId)) throw new Error('You can only set KPIs for your own role and the roles beneath it.');
+  if (!(await getScope(user)).canEdit(roleId)) refuseTo('/setup/kpis', 'You can only set KPIs for your own role and the roles beneath it.');
 
   /*
     ── SPEC does the arithmetic, not the person ─────────────────────────────────────────────────
@@ -105,7 +106,7 @@ export async function loadVirtualGmKpis(formData: FormData) {
   const [role] = await db.select().from(schema.roles)
     .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
   if (!role) redirect('/setup/kpis');
-  if (!(await getScope(user)).canEdit(roleId)) throw new Error('That role is outside your part of the chart.');
+  if (!(await getScope(user)).canEdit(roleId)) refuseTo('/setup/kpis', 'That role is outside your part of the chart.');
 
   /*
     The top role only. These eight are what the BOARD holds the general manager to — "the SPEC

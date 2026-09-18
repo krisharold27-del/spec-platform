@@ -25,6 +25,30 @@ async function editor() {
   return user;
 }
 
+/**
+ * ── A refusal is a sentence, not a crash ─────────────────────────────────────────────────────────
+ *
+ * Kris, 18 September, renaming a role on JBI: *"when changing a name on the org chart it did this"*
+ * — and a screenshot of **"This page did not load. Something went wrong on our end."**
+ *
+ * Nothing had gone wrong on SPEC's end. The server had correctly refused to rename a role outside
+ * his part of the chart, by `throw`ing — and a server action that throws renders the generic fault
+ * screen. So every guard on this page, fifteen of them, told a customer the product was broken
+ * instead of telling them why it had said no. "Move the person out of that role first" and "three
+ * roles report to that one" are useful sentences, and not one of them ever reached a screen.
+ *
+ * This was already the product's own rule, written for exactly one of the fifteen: the org journey
+ * asserts that removing an occupied role is *"REFUSED IN WORDS ... and not with a fault screen"*,
+ * which passed only because the browser checks that one case before asking. Every other path to a
+ * refusal produced the crash page.
+ *
+ * So: the reason goes back to the chart in the address, and the page says it. `redirect` rather than
+ * `throw`, because the work genuinely did not happen and the person has to know that.
+ */
+function refuse(reason: string): never {
+  redirect(`/org?cannot=${encodeURIComponent(reason)}`);
+}
+
 /** The chart as the move rules need to see it. Titles and links only — no scores. */
 async function chartOf(tenantId: string): Promise<ChartRole[]> {
   const roles = await getRoles(tenantId);
@@ -41,16 +65,16 @@ export async function moveRole(formData: FormData) {
   const roleId = String(formData.get('roleId') ?? '');
   const ontoId = String(formData.get('ontoId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) throw new Error('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
 
   const chart = await chartOf(user.tenantId);
   const check = canMove(roleId, ontoId, chart);
-  if (!check.ok) throw new Error(check.reason ?? 'That move is not allowed.');
+  if (!check.ok) refuse(check.reason ?? 'That move is not allowed.');
 
   // Entities are sealed branches: no reporting line may cross one.
   const [role] = await db.select().from(schema.roles).where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
   const [onto] = await db.select().from(schema.roles).where(and(eq(schema.roles.id, ontoId), eq(schema.roles.tenantId, user.tenantId)));
-  if (!role || !onto) throw new Error('That role is not in this business.');
+  if (!role || !onto) refuse('That role is not in this business.');
 
   await db.update(schema.roles).set({ reportsToRoleId: ontoId }).where(eq(schema.roles.id, roleId));
   revalidatePath('/org');
@@ -66,7 +90,7 @@ export async function breakLink(formData: FormData) {
   const user = await editor();
   const roleId = String(formData.get('roleId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) throw new Error('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
   await db.update(schema.roles).set({ reportsToRoleId: null })
     .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
   revalidatePath('/org');
@@ -86,7 +110,7 @@ export async function movePerson(formData: FormData) {
 
   const scope = await getScope(user);
   if (!scope.canEdit(fromRoleId) || !scope.canEdit(toRoleId)) {
-    throw new Error('Both roles have to be inside your part of the chart.');
+    refuse('Both roles have to be inside your part of the chart.');
   }
 
   const open = await db.select().from(schema.roleAssignments).where(isNull(schema.roleAssignments.toDate));
@@ -119,14 +143,14 @@ export async function addRole(formData: FormData) {
   if (!title) return;
 
   const scope = await getScope(user);
-  if (parentId && !scope.canEdit(parentId)) throw new Error('That role is outside your part of the chart.');
+  if (parentId && !scope.canEdit(parentId)) refuse('That role is outside your part of the chart.');
 
   let stream = 'operations';
   let level = 'manager';
   if (parentId) {
     const [parent] = await db.select().from(schema.roles)
       .where(and(eq(schema.roles.id, parentId), eq(schema.roles.tenantId, user.tenantId)));
-    if (!parent) throw new Error('That role is not in this business.');
+    if (!parent) refuse('That role is not in this business.');
     stream = parent.stream;
     level = parent.level === 'gm' ? 'manager' : parent.level === 'manager' ? 'supervisor' : 'staff';
   }
@@ -161,7 +185,7 @@ export async function renameRole(formData: FormData) {
   if (!title) return;
 
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) throw new Error('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
 
   await db.update(schema.roles).set({ title })
     .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
@@ -195,11 +219,11 @@ export async function renamePerson(formData: FormData) {
   if (!name) return;
 
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) throw new Error('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
 
   const [role] = await db.select().from(schema.roles)
     .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
-  if (!role) throw new Error('That role is not in this business.');
+  if (!role) refuse('That role is not in this business.');
 
   const [open] = await db.select().from(schema.roleAssignments)
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
@@ -229,7 +253,7 @@ export async function renamePerson(formData: FormData) {
       */
       const [held] = await db.select().from(schema.roleAssignments)
         .where(and(eq(schema.roleAssignments.staffId, existing.id), isNull(schema.roleAssignments.toDate)));
-      if (held) throw new Error(`${existing.name} already holds another role. Move them from People, so SPEC can ask whether that is a move or a second seat.`);
+      if (held) refuse(`${existing.name} already holds another role. Move them from People, so SPEC can ask whether that is a move or a second seat.`);
     }
 
     const staffId = existing?.id ?? randomUUID();
@@ -252,15 +276,15 @@ export async function removeRole(formData: FormData) {
   const user = await editor();
   const roleId = String(formData.get('roleId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) throw new Error('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
 
   const open = await db.select().from(schema.roleAssignments)
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
-  if (open.length) throw new Error('Move the person out of that role first — removing it would lose their placement.');
+  if (open.length) refuse('Move the person out of that role first — removing it would lose their placement.');
 
   const children = await db.select().from(schema.roles)
     .where(and(eq(schema.roles.reportsToRoleId, roleId), eq(schema.roles.tenantId, user.tenantId)));
-  if (children.length) throw new Error(`${children.length} role(s) report to that one. Move them first.`);
+  if (children.length) refuse(`${children.length} role(s) report to that one. Move them first.`);
 
   // Deactivated, not deleted: a locked month keeps the structure it had.
   await db.update(schema.roles).set({ active: false })
@@ -273,7 +297,7 @@ export async function vacateRole(formData: FormData) {
   const user = await editor();
   const roleId = String(formData.get('roleId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) throw new Error('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
   await db.update(schema.roleAssignments).set({ toDate: new Date().toISOString().slice(0, 10) })
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
   revalidatePath('/org');

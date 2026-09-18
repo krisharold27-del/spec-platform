@@ -12,12 +12,13 @@ import { getTeamRollup, getGates, PILLARS } from '@/lib/queries';
 import { governanceChecks, cadenceOf } from '@/lib/governance';
 import { generateBoardOutput } from '@/lib/board-output';
 import { sendBoardOutputReadyEmail } from '@/lib/email';
+import { refuseTo } from '@/lib/refuse';
 
 /** Enter the two hard gates for the current period. */
 export async function saveGates(formData: FormData) {
   const user = await requireManager();
   // Whole-business action: restricted to the top of the org chart, not to every full-access user.
-  if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
+  if (!isTopOfChart(await getScope(user))) refuseTo('/scoring', 'Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
   const periodId = String(formData.get('periodId'));
   // The id comes from a form anybody can edit: it must be this business's own month, and still open.
@@ -43,7 +44,7 @@ export async function saveGates(formData: FormData) {
 export async function lockPeriod(formData: FormData) {
   const user = await requireManager();
   // Whole-business action: restricted to the top of the org chart, not to every full-access user.
-  if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
+  if (!isTopOfChart(await getScope(user))) refuseTo('/scoring', 'Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
   const periodId = String(formData.get('periodId'));
   const periodRows = await db.select().from(schema.periods).where(and(eq(schema.periods.id, periodId), eq(schema.periods.tenantId, user.tenantId)));
@@ -77,7 +78,7 @@ export async function lockPeriod(formData: FormData) {
 export async function approveBoardOutput(formData: FormData) {
   const user = await requireManager();
   // Whole-business action: restricted to the top of the org chart, not to every full-access user.
-  if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
+  if (!isTopOfChart(await getScope(user))) refuseTo('/scoring', 'Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
   const periodId = String(formData.get('periodId'));
   // Only this business's own pack — the id comes from a form anybody can edit.
@@ -98,7 +99,7 @@ export async function approveBoardOutput(formData: FormData) {
  */
 export async function sendBackBoardOutput(formData: FormData) {
   const user = await requireManager();
-  if (!isTopOfChart(await getScope(user))) throw new Error('Only the top of the org chart can do this.');
+  if (!isTopOfChart(await getScope(user))) refuseTo('/scoring', 'Only the top of the org chart can do this.');
   await assertWritable(user.tenantId);
   const periodId = String(formData.get('periodId'));
   const reason = String(formData.get('reason') ?? '').trim().slice(0, 1000);

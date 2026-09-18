@@ -17,6 +17,8 @@ import { addComment, addKpi } from './actions';
 import { Problems } from '@/components/problems';
 import { IncentivePanel } from '@/components/incentive-panel';
 import { incentiveView } from '@/lib/incentive-data';
+import { Refused } from '@/components/refused';
+import { refusedReason } from '@/lib/refuse';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +31,12 @@ export const dynamic = 'force-dynamic';
  *
  * Marking the month happens on /scoring, which is where a month is closed. This page is the record.
  */
-export default async function Scorecard({ params }: { params: Promise<{ roleId: string }> }) {
+export default async function Scorecard({ params, searchParams }: {
+  params: Promise<{ roleId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // Why SPEC said no, if it just did. See lib/refuse — a refusal is a rule working, not a fault.
+  const cannot = refusedReason(await searchParams);
   const { roleId } = await params;
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
@@ -121,6 +128,7 @@ export default async function Scorecard({ params }: { params: Promise<{ roleId: 
       headline={`${role.title} SPEC scorecard`}
       subtitle={`${role.holder?.name ?? role.pencilled ?? 'Vacant'} · what this role is measured on, and where it stands this month.`}
     >
+      <Refused reason={cannot} />
       {/*
         The way back into the numbers, offered ALWAYS rather than only when there are none.
 

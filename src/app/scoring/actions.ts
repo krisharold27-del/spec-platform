@@ -6,6 +6,7 @@ import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
+import { refuseTo } from '@/lib/refuse';
 
 /**
  * Handing the month up, and closing it.
@@ -25,7 +26,7 @@ async function periodFor(tenantId: string, periodId: string) {
 export async function submitPeriod(formData: FormData) {
   const user = await requireManager();
   const scope = await getScope(user);
-  if (!isTopOfChart(scope)) throw new Error('Only the top of the org chart submits the month.');
+  if (!isTopOfChart(scope)) refuseTo('/scoring', 'Only the top of the org chart submits the month.');
   await assertWritable(user.tenantId);
 
   const period = await periodFor(user.tenantId, String(formData.get('periodId') ?? ''));
@@ -47,7 +48,7 @@ export async function submitPeriod(formData: FormData) {
 export async function reopenPeriod(formData: FormData) {
   const user = await requireManager();
   const scope = await getScope(user);
-  if (!isTopOfChart(scope)) throw new Error('Only the top of the org chart reopens the month.');
+  if (!isTopOfChart(scope)) refuseTo('/scoring', 'Only the top of the org chart reopens the month.');
   await assertWritable(user.tenantId);
 
   const period = await periodFor(user.tenantId, String(formData.get('periodId') ?? ''));
@@ -66,7 +67,7 @@ export async function reopenPeriod(formData: FormData) {
 export async function signPeriod(formData: FormData) {
   const user = await requireManager();
   const scope = await getScope(user);
-  if (!isTopOfChart(scope)) throw new Error('Only the top of the org chart signs the month.');
+  if (!isTopOfChart(scope)) refuseTo('/scoring', 'Only the top of the org chart signs the month.');
   await assertWritable(user.tenantId);
 
   const period = await periodFor(user.tenantId, String(formData.get('periodId') ?? ''));

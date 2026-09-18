@@ -9,6 +9,7 @@ import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { PILLARS } from '@/lib/scoring';
 import { STAGES } from '@/lib/people';
+import { refuseTo } from '@/lib/refuse';
 
 /**
  * Hiring against a role.
@@ -22,7 +23,7 @@ async function manager(roleId?: string) {
   await assertWritable(user.tenantId);
   if (roleId) {
     const scope = await getScope(user);
-    if (!scope.canEdit(roleId)) throw new Error('That role is outside your part of the chart.');
+    if (!scope.canEdit(roleId)) refuseTo('/people', 'That role is outside your part of the chart.');
   }
   return user;
 }
@@ -53,7 +54,7 @@ export async function setStage(formData: FormData) {
     .where(and(eq(schema.candidates.id, id), eq(schema.candidates.tenantId, user.tenantId)));
   if (!candidate) return;
   const scope = await getScope(user);
-  if (!scope.canEdit(candidate.roleId)) throw new Error('That role is outside your part of the chart.');
+  if (!scope.canEdit(candidate.roleId)) refuseTo('/people', 'That role is outside your part of the chart.');
 
   await db.update(schema.candidates).set({ stage }).where(eq(schema.candidates.id, id));
   revalidatePath('/people');
@@ -74,7 +75,7 @@ export async function rateCandidate(formData: FormData) {
     .where(and(eq(schema.candidates.id, id), eq(schema.candidates.tenantId, user.tenantId)));
   if (!candidate) return;
   const scope = await getScope(user);
-  if (!scope.canEdit(candidate.roleId)) throw new Error('That role is outside your part of the chart.');
+  if (!scope.canEdit(candidate.roleId)) refuseTo('/people', 'That role is outside your part of the chart.');
 
   const ratings: Record<string, number> = {};
   for (const p of PILLARS) {
@@ -128,17 +129,17 @@ export async function addObligation(formData: FormData) {
   // ids arrive from the client, so neither is taken on trust.
   if (holder.roleId) {
     const scope = await getScope(user);
-    if (!scope.canSee(holder.roleId)) throw new Error('That role is not yours to hold a record against.');
+    if (!scope.canSee(holder.roleId)) refuseTo('/people', 'That role is not yours to hold a record against.');
   }
   if (holder.userId) {
     const [row] = await db.select({ id: schema.users.id }).from(schema.users)
       .where(and(eq(schema.users.id, holder.userId), eq(schema.users.tenantId, user.tenantId)));
-    if (!row) throw new Error('That person is not in this business.');
+    if (!row) refuseTo('/people', 'That person is not in this business.');
   }
   if (holder.staffId) {
     const [row] = await db.select({ id: schema.staff.id }).from(schema.staff)
       .where(and(eq(schema.staff.id, holder.staffId), eq(schema.staff.tenantId, user.tenantId)));
-    if (!row) throw new Error('That person is not in this business.');
+    if (!row) refuseTo('/people', 'That person is not in this business.');
   }
 
   await db.insert(schema.obligations).values({

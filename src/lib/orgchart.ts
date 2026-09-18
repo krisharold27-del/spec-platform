@@ -97,22 +97,28 @@ const STUB = 28;
  *
  * `SPEC Org Chart.dc.html` sizes a card by its DEPTH, in a table the prototype calls `sizes`:
  *
- *     level 0   min-width 210   padding 18px 24px   radius 28   title 19px   tile 26px
- *     level 1   min-width 176   padding 16px 20px   radius 26   title 16px   tile 25px
- *     level 2+  min-width 148   padding 13px 17px   radius 24   title 14px   tile 23px
+ *     level 0   min-width 210   padding 18px 24px   radius 28   tile 26px
+ *     level 1   min-width 176   padding 16px 20px   radius 26   tile 25px
+ *     level 2+  min-width 148   padding 13px 17px   radius 24   tile 23px
  *
- * The product had one title size and one radius for every card, which is why the chart read flat:
- * the design puts the top of the business in bigger type and rounds it more, so the hierarchy is
- * legible from the shape before a single word is read. Kris, 18 September, looking at JBI beside the
- * file: *"old design fix it"*.
+ * The radius grows with seniority, so the hierarchy is legible from the shape before a word is read.
+ *
+ * ── The title is 16px BODY type at every depth, which is not what the file's code says ───────────
+ *
+ * The prototype computes a `titleStyle` — Caprasimo, 19/16/14px by depth — and never applies it to
+ * the element, so its own preview draws every title in 16px Figtree. The product followed the code;
+ * Kris looked at both and chose the preview: *"match the design preview - make titles the body
+ * font"*. His call, and a defensible one — the display face at 14px inside a small card is a lot of
+ * texture for a diagram somebody scans forty of. So the title size is here as a constant rather
+ * than a per-depth value, and the card height still derives from it.
  *
  * Height is DERIVED from those numbers rather than typed in, so the two cannot drift: padding, two
  * lines of title at 1.25, the person pill, and the row of tiles.
  */
 export const CARD = [
-  { w: 210, pad: 18, radius: 28, title: 19, tile: 26 },
+  { w: 210, pad: 18, radius: 28, title: 16, tile: 26 },
   { w: 176, pad: 16, radius: 26, title: 16, tile: 25 },
-  { w: 148, pad: 13, radius: 24, title: 14, tile: 23 },
+  { w: 148, pad: 13, radius: 24, title: 16, tile: 23 },
 ] as const;
 
 export const cardStyle = (depth: number) => CARD[Math.min(depth, CARD.length - 1)];

@@ -8,6 +8,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getScope, assertAdministrator } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { guessCategory, categoryName, isSensitive } from '@/lib/systems';
+import { refuseTo } from '@/lib/refuse';
 
 /**
  * Connecting a system.
@@ -114,7 +115,7 @@ export async function markLive(formData: FormData) {
     const approved = await db.select().from(schema.approvals)
       .where(and(eq(schema.approvals.tenantId, user.tenantId), eq(schema.approvals.refId, id)));
     if (!approved.some(a => a.state === 'approved')) {
-      throw new Error('That category needs the board to approve it first.');
+      refuseTo('/connections', 'That category needs the board to approve it first.');
     }
   }
 

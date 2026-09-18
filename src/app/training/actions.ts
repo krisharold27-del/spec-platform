@@ -7,6 +7,7 @@ import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
+import { refuseTo } from '@/lib/refuse';
 
 /**
  * Setting the path a role has to complete.
@@ -24,7 +25,7 @@ export async function setCurriculum(formData: FormData) {
 
   const roleId = String(formData.get('roleId') ?? '');
   const scope = await getScope(user);
-  if (!roleId || !scope.canEdit(roleId)) throw new Error('That role is outside your part of the chart.');
+  if (!roleId || !scope.canEdit(roleId)) refuseTo('/training', 'That role is outside your part of the chart.');
 
   const wanted = new Set(formData.getAll('moduleId').map(String).filter(Boolean));
 

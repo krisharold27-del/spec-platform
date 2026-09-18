@@ -7,6 +7,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { requireManager } from '@/lib/guard';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
+import { refuseTo } from '@/lib/refuse';
 
 /**
  * Deciding an approval.
@@ -31,10 +32,10 @@ async function decide(formData: FormData, state: 'approved' | 'declined') {
   // Board-level decisions belong to the top of the chart; administration is a separate right and
   // never widens what somebody may decide.
   if (approval.decidedByLevel === 'board' && !isTopOfChart(scope)) {
-    throw new Error('That decision belongs to the board.');
+    refuseTo('/inbox', 'That decision belongs to the board.');
   }
   if (approval.decidedByLevel === 'administrator' && !scope.canAdminister) {
-    throw new Error('That decision needs an administrator.');
+    refuseTo('/inbox', 'That decision needs an administrator.');
   }
 
   await db.update(schema.approvals)

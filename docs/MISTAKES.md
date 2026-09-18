@@ -227,6 +227,43 @@ called a people problem.
 
 ---
 
+## 18 September — every refusal in SPEC was served as a crash
+
+**What Kris said.** *"when changing a name on the org chart it did this"*, with a screenshot of
+**"This page did not load. Something went wrong on our end."** Then: *"also check everything youve
+done - this is unacceptable"*.
+
+**What was true.** Nothing had gone wrong on SPEC's end. The server had correctly refused to rename
+a role outside his part of the chart — and it refused by `throw`ing, which renders the generic fault
+screen. There were **thirty-nine** of these across the product: every guard on the org chart, on
+People, on Monthly scoring, on a scorecard, on the KPI screen.
+
+Each one carried a sentence worth reading, and not one of them could ever reach a screen:
+
+> Only the top of the org chart signs the month.
+> Move the person out of that role first — removing it would lose their placement.
+> You can only set KPIs for your own role and the roles beneath it.
+
+**Where the reasoning went wrong.** A refusal and a fault are different things and the product
+treated them as one. A fault is SPEC's problem — nobody could have avoided it and the crash screen
+is the right answer. A refusal is a rule WORKING, and the reason is nearly always the next thing the
+person needs to know. Telling a customer the product is broken when it has just correctly said no is
+the worst possible translation of a working rule.
+
+**The part that should have caught it, and did not.** The rule was already written down — for
+exactly one of the thirty-nine. `scripts/org-journey.mjs` asserts that removing an occupied role is
+*"REFUSED IN WORDS ... and not with a fault screen"*, and it passed, because the BROWSER checks that
+one case before asking. So the check proved the client's manners while thirty-eight other routes to
+a refusal produced the crash page. **A check that covers one instance of a class is how a class of
+fault survives** — and this one survived in front of a customer.
+
+**Now caught by.** `tests/refusals.test.ts`, which walks every `actions.ts` in the product and fails
+if any server action throws a message meant for a person, and separately if a screen that refuses
+never shows the reason. Proven by putting one back. `scripts/org-journey.mjs` also posts a refusal
+the way a stale tab does and reads what the customer is shown.
+
+---
+
 ## Earlier
 
 Kept in `docs/READINESS.md`, where each row states what was wrong, what it cost and the command that

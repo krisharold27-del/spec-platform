@@ -11,6 +11,8 @@ import { CATEGORIES, categoryName, isSensitive, STATUS_LABEL, SENSITIVE_NOTE } f
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { propose } from '@/lib/mapping';
 import { connectSystem, disconnectSystem, markLive } from './actions';
+import { Refused } from '@/components/refused';
+import { refusedReason } from '@/lib/refuse';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,9 +29,11 @@ export const dynamic = 'force-dynamic';
 export default async function Connections({
   searchParams,
 }: {
-  searchParams: Promise<{ ask?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { ask } = await searchParams;
+  const sp = await searchParams;
+  const ask = typeof sp.ask === 'string' ? sp.ask : undefined;
+  const cannot = refusedReason(sp);
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
@@ -73,6 +77,7 @@ export default async function Connections({
       headline="You talk to Claude. The systems talk to each other."
       subtitle={`${live.length} of ${connections.length} feeding numbers · ${tenant.name}`}
     >
+      <Refused reason={cannot} />
       {/* Kris's own description of running JBI, and the sharpest promise the product makes. */}
       <p className="-mt-4 mb-6 max-w-2xl font-serif text-xl text-ink">
         You talk to Claude. The systems talk to each other.

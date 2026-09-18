@@ -17,6 +17,7 @@
  */
 
 import { chromium } from 'playwright';
+import { readFile } from 'node:fs/promises';
 import { tidyUp } from './test-cleanup.mjs';
 
 const RUN_STARTED = new Date().toISOString();
@@ -29,7 +30,20 @@ const PASSWORD = 'a-good-password-123';
 const BUSINESS = `Nav Test ${stamp}`;
 
 /** Verbatim from every design screen's header. */
-const BAR = ['My page', 'Org chart', 'Scoring', 'Board pack', 'Boards', 'Connections'];
+/*
+  The bar's words, read from lib/doors rather than typed here.
+
+  This was a hand-written list and it went red the moment Design 11 renamed Boards to Mirrors — the
+  SIXTH check this week to fail for asserting yesterday's wording rather than today's behaviour, and
+  the second in the same hour. What it actually cares about is that every item the product puts in
+  the bar really appears on every screen, so it asks the product what those items are.
+
+  Still a real check: `navDoors` is the one source the Shell builds the bar from, so if a label were
+  dropped there this would find it missing on the page.
+*/
+const BAR = [...(await readFile(new URL('../src/lib/doors.ts', import.meta.url), 'utf8'))
+  .match(/export function navDoors[\s\S]*?\n}/)[0]
+  .matchAll(/label: '([^']+)'/g)].map(m => m[1]);
 
 const failures = [];
 const check = (label, ok, detail = '') => {
