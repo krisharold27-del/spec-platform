@@ -21,6 +21,7 @@
  * which is silent and looks exactly like a page with nothing on it.
  */
 import { chromium } from 'playwright';
+import { realFonts } from './design-fonts.mjs';
 const OUT='/tmp/claude-0/-home-claude-repo/7fcbd828-c8f9-54e2-b54f-78d2e286654f/scratchpad/sweep';
 const UMD='/tmp/claude-0/-home-claude-repo/7fcbd828-c8f9-54e2-b54f-78d2e286654f/scratchpad/umd/package/umd';
 const APP='http://localhost:3100', DES='http://localhost:3200';
@@ -50,6 +51,16 @@ const ctx = await b.newContext({ viewport: { width: 1400, height: 1000 } });
 // The prototypes pull React from unpkg, which this environment's proxy denies. Served locally.
 await ctx.route('**unpkg.com/react@**', r => r.fulfill({ path: `${UMD}/react.production.min.js`, contentType: 'application/javascript' }));
 await ctx.route('**unpkg.com/react-dom@**', r => r.fulfill({ path: `${UMD}/react-dom.production.min.js`, contentType: 'application/javascript' }));
+/*
+  The prototypes get their REAL typeface before a single shot is taken.
+
+  Without this they render in Arial — their Google Fonts import is refused by this environment's
+  proxy — and every pair produced here compares the product against a design in the wrong font.
+  See scripts/design-fonts.mjs; it throws rather than falling back, because a silent fallback is
+  what made weeks of these screenshots quietly misleading.
+*/
+await realFonts(ctx, APP);
+
 const p = await ctx.newPage();
 
 // a business with real numbers in it, so neither side is showing an empty state

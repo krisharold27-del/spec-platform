@@ -100,12 +100,23 @@ if (await mark.count() > 0) {
   check('THE MARK MOVES', Boolean(moved),
     early && later ? `${Math.round(early.cx)},${Math.round(early.cy)} → ${Math.round(later.cx)},${Math.round(later.cy)}` : 'no reading');
 
-  // And after it has finished, the ring is green and stays green — the argument the animation makes.
-  await page.waitForTimeout(5000);
-  const stroke = await mark.evaluate(svg => {
+  /*
+    And it finishes green — polled, not timed.
+
+    A fixed wait failed in a batch run and passed a minute later on its own: several browsers at
+    once, and the page is throttled, so four and a half seconds of animation takes longer than four
+    and a half seconds of wall clock. Waiting longer is not the fix — asking repeatedly until the
+    answer stops changing is. Fifteen seconds is the ceiling, which is generous for a 4.5s play.
+  */
+  const green = () => mark.evaluate(svg => {
     const ring = [...svg.querySelectorAll('circle')].find(c => c.querySelector('animate'));
     return ring ? getComputedStyle(ring).stroke : null;
   });
+  let stroke = await green();
+  for (let i = 0; i < 60 && !/rgb\(\s*79,\s*122,\s*63\s*\)/.test(stroke ?? ''); i++) {
+    await page.waitForTimeout(250);
+    stroke = await green();
+  }
   check('  and it finishes green rather than staying red',
     /rgb\(\s*79,\s*122,\s*63\s*\)/.test(stroke ?? ''), stroke ?? 'no ring');
 }

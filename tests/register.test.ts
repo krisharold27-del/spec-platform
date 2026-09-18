@@ -78,12 +78,28 @@ describe('the fix happens in one order', () => {
 });
 
 describe('what sits at the top of the list', () => {
-  it('ranks harm, then money, then people, then everything else', () => {
+  it('ranks harm, then money, then the standard, then people', () => {
     expect(priorityOf({ bloom: bloom(['safety', 'definite']) })).toBe(1);
     expect(priorityOf({ bloom: bloom(['earnings', 'definite']) })).toBe(2);
-    expect(priorityOf({ bloom: bloom(['people', 'definite']) })).toBe(3);
-    expect(priorityOf({ bloom: bloom(['compliance', 'definite']) })).toBe(4);
+    expect(priorityOf({ bloom: bloom(['compliance', 'definite']) })).toBe(3);
+    expect(priorityOf({ bloom: bloom(['people', 'definite']) })).toBe(4);
     expect(PRIORITY_LABEL[1]).toBe('Harm — act now');
+  });
+
+  /*
+    The band has to SAY something, and People cannot.
+
+    Kris logged "the Wangaratta warehouse needs to be reorganised and housekeeping standards
+    enforced" and SPEC filed it as *Losing people*: *"makes no sense - not keeping warehouse tidy is
+    a compliance issue"*. People is in the bloom of nearly every entry by construction — the method
+    insists on it — so ranking on it answered "what kind of problem is this" with the same word every
+    time. The ladder reads the pillars that are specific; People is what is left when none of them
+    is true, which is when it means something.
+  */
+  it('A COMPLIANCE PROBLEM IS NOT FILED AS A PEOPLE PROBLEM, even though People is always in the bloom', () => {
+    const housekeeping = bloom(['compliance', 'definite'], ['people', 'definite']);
+    expect(priorityOf({ bloom: housekeeping })).toBe(3);
+    expect(PRIORITY_LABEL[priorityOf({ bloom: housekeeping })]).toBe('Standard not being kept');
   });
 
   it('takes the worst pillar in the chain, not the first', () => {
@@ -96,8 +112,10 @@ describe('what sits at the top of the list', () => {
    * just a list.
    */
   it('ignores a maybe entirely when ranking', () => {
-    expect(priorityOf({ bloom: bloom(['safety', 'possible'], ['people', 'definite']) })).toBe(3);
-    expect(priorityOf({ bloom: bloom(['safety', 'possible']) })).toBe(4);
+    expect(priorityOf({ bloom: bloom(['safety', 'possible'], ['people', 'definite']) })).toBe(4);
+    // Nothing definite at all is the only way to reach the bottom band.
+    expect(priorityOf({ bloom: bloom(['safety', 'possible']) })).toBe(5);
+    expect(PRIORITY_LABEL[5]).toBe('Everything else');
   });
 
   it('sorts by priority, then by how often it has come back, then newest', () => {

@@ -16,6 +16,22 @@ with the same business loaded, and **looking at both**. Nothing here comes from 
 
 `scripts/sweep-designs.mjs` regenerates the pairs.
 
+### One thing that made every earlier pair unreliable
+
+Until 18 September the prototypes rendered here **in the wrong typeface**. Each one imports
+Caprasimo from Google Fonts; this environment's proxy refuses that host; the import failed in
+silence and the browser used Arial. So every "design versus product" picture was partly a comparison
+of two different fonts — which is how the design's card titles came to look lighter than the
+product's, and sent me hunting a weight problem that did not exist.
+
+`scripts/design-fonts.mjs` now serves both faces to the prototypes as inlined files, and throws if
+it cannot. Anything in this document dated before then was read off a picture in Arial.
+
+**And a thing worth knowing before matching a screenshot exactly:** with the real face loading, the
+design's own card titles are still a plain sans, because `SPEC Org Chart.dc.html` computes a
+`titleStyle` — Caprasimo, sized by depth, two-line clamp — and never applies it to the element. The
+product does what the file says. A prototype is code, and code has bugs.
+
 ---
 
 ## The pattern, which is the same on every screen

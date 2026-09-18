@@ -116,7 +116,7 @@ export function ImprovementRegister({
       </p>
       <p className="mt-2 text-sm text-ink-light">
         You see what you logged and what your direct reports logged or own — not the whole business. Ranked
-        by impact: harm first, then money, then people, then everything else. Nothing here is deleted;
+        by impact: harm first, then money, then the standard, then people. Nothing here is deleted;
         closed problems become history you can look back on.
       </p>
 

@@ -462,7 +462,7 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                   bottom. The product drew one radius and one text size for every card, so the
                   hierarchy had to be read off the lines instead of being visible in the shapes.
                 */
-                className={`absolute flex flex-col items-center justify-center bg-cream text-center transition-[box-shadow,transform] ${
+                className={`absolute flex flex-col items-center bg-cream text-center transition-[box-shadow,transform] ${
                   dragging ? 'opacity-40' : ''
                 } ${canEdit ? 'cursor-grab' : ''}`}
                 style={{
@@ -514,7 +514,15 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     lines tall, so a future tightening of the type cannot quietly start cutting names
                     in half again.
                   */
-                  className={`block w-full font-serif text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
+                  /*
+                    The title takes the space, and the rest sits under it.
+
+                    The design gives the title `height: 100%` so it fills whatever the card has
+                    spare, which puts air between the role and the name and drops the name and the
+                    four tiles towards the bottom. Everything centred in a tight block, which is
+                    what this was, reads as a label; the design's card reads as a card.
+                  */
+                  className={`flex w-full flex-1 items-center justify-center font-serif text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
                   style={{
                     fontSize: z.title,
                     /*

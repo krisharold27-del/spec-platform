@@ -175,6 +175,58 @@ port being free.
 
 ---
 
+## 18 September — every design screenshot was in the wrong typeface
+
+**What was true.** Each `.dc.html` prototype declares `--font-heading: "Caprasimo"` and pulls it from
+Google Fonts with an `@import`. This environment's proxy refuses that host. The import failed
+silently, the browser fell back to Arial, and **every screenshot of a design taken here rendered in
+a font the design does not use**.
+
+**What it cost.** Every "design versus product" comparison I made was partly a comparison of two
+different typefaces. It is why the design's card titles looked lighter than the product's, which
+sent me looking for a weight problem that did not exist.
+
+**The same fault one layer down.** My first fix pointed the prototypes at the font files the running
+app already serves. A font from another origin needs CORS headers the static server does not send,
+so the browser fetched, refused, fell back to Arial again — and the harness reported success. The
+files are inlined as `data:` URIs now, which no origin can refuse.
+
+**And what it uncovered.** With the real face loading, the design's own card titles are STILL a plain
+sans — because the prototype computes a `titleStyle` and never applies it to the element. The
+product implements what the file SAYS the title is. Worth knowing before matching a screenshot
+pixel for pixel: a prototype is code, and code has bugs.
+
+**Now caught by.** `scripts/design-fonts.mjs`, which throws rather than carrying on if it cannot
+find the faces. A silent fallback is what caused this.
+
+---
+
+## 18 September — "Losing people" on a warehouse that needed tidying
+
+**What Kris said.** *"makes no sense - not keeping warehouse tidy is a compliance issue - fixed by
+people takijg ownership of the space and enforcing housekeeping rules"*.
+
+**What was true.** Two faults, stacked.
+
+The offline reading knew licences, tickets, audits and contracts — the PAPERWORK kind of compliance
+— and none of the words a business uses for the standards it sets itself: housekeeping, procedure,
+checklist, a rule nobody enforces. The most common compliance failure in a trade business was the
+one class it could not see.
+
+Underneath that, the priority band ranked on People — which the method puts in the bloom of *almost
+every entry by construction*. So the band answered "what kind of problem is this" with the same two
+words every time, and nothing could ever reach "Everything else".
+
+**The fix.** The vocabulary, and a ladder that reads the pillars which actually discriminate: harm,
+then money, then the standard, then people as the residual. The order of IMPACT is not the order of
+the FIX — the fix is still People, then Compliance, then Earnings, which is exactly what Kris said
+in the same sentence.
+
+**Now caught by.** `tests/register.test.ts`, which files a housekeeping entry and asserts it is not
+called a people problem.
+
+---
+
 ## Earlier
 
 Kept in `docs/READINESS.md`, where each row states what was wrong, what it cost and the command that

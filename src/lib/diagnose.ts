@@ -114,7 +114,25 @@ export function deterministic(text: string): Diagnosis {
   if (has('hurt', 'injur', 'injury', 'near miss', 'hazard', 'unsafe', 'accident', 'strain', 'stress')) {
     bloom.push({ pillar: 'safety', certainty: 'definite' });
   }
-  if (has('licence', 'license', 'ticket', 'expired', 'audit', 'contract', 'breach', 'sign-off', 'signed off')) {
+  /*
+    Compliance is a STANDARD not being kept, not just a piece of paper being out of date.
+
+    Kris, 18 September, reading his own entry back — *"The Wangaratta warehouse needs to be
+    reorganised and housekeeping standards enforced"* — which SPEC had filed as a people problem:
+    *"makes no sense - not keeping warehouse tidy is a compliance issue - fixed by people takijg
+    ownership of the space and enforcing housekeeping rules"*.
+
+    He is right, and the list was the reason: it knew licences, tickets and audits — the paperwork
+    kind of compliance — and none of the words a business actually uses for the standards it sets
+    itself. Housekeeping, 5S, a procedure, a checklist, a rule nobody enforces. That is the most
+    common compliance failure in a trade business and it was the one class the reading could not see.
+  */
+  if (has(
+    'licence', 'license', 'ticket', 'expired', 'audit', 'contract', 'breach', 'sign-off', 'signed off',
+    'housekeeping', 'standard', 'procedure', 'policy', 'protocol', 'process', 'rule', 'enforce',
+    'checklist', 'inspection', 'induction', 'permit', 'certif', 'compliance', 'tidy', 'clean',
+    'reorganis', 'reorganiz', 'organise', 'organize', 'mess', '5s', 'sds', 'register',
+  )) {
     bloom.push({ pillar: 'compliance', certainty: 'definite' });
   }
   if (has('margin', 'cost', 'money', 'profit', 'rework', 'overtime', 'invoice', 'quote', 'losing')) {

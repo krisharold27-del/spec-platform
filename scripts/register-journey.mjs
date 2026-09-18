@@ -11,6 +11,7 @@
 //   node scripts/register-journey.mjs
 
 import { chromium } from 'playwright';
+import { readFile } from 'node:fs/promises';
 import { tidyUp } from './test-cleanup.mjs';
 
 // When this run began — everything it created is newer than this.
@@ -90,7 +91,20 @@ await press('button:has-text("Log it")');
 await page.goto(`${BASE}/my-page`, { waitUntil: 'networkidle' });
 let body = await text();
 check('THE PROBLEM IS LOGGED, in the words it was typed in', body.includes(PROBLEM));
-check('it was read, not just stored', /Harm — act now|Losing money|Losing people|Everything else/.test(body));
+/*
+  Read the band names out of the source rather than typing them here.
+
+  This listed four labels by hand and went red the moment one was renamed — the band for a standard
+  not being kept, added on 18 September when Kris pointed out that a warehouse needing a tidy was
+  being filed as a people problem. That is the fifth check this week to fail because it was
+  asserting yesterday's wording rather than today's behaviour. What it actually cares about is that
+  the entry came back with SOME reading against it, so it asks lib/register what the readings are.
+*/
+const BANDS = [...(await readFile(new URL('../src/lib/register.ts', import.meta.url), 'utf8'))
+  .match(/PRIORITY_LABEL[^}]*}/s)[0]
+  .matchAll(/'([^']+)'/g)].map(m => m[1]);
+check('  the bands were read from lib/register, not typed here', BANDS.length >= 4, BANDS.join(' | '));
+check('it was read, not just stored', BANDS.some(b => body.includes(b)), BANDS.join(' | '));
 
 // The single most important line the register produces.
 check('nobody owns it yet, and it says whose job that is', /Nobody owns this yet/i.test(body));
