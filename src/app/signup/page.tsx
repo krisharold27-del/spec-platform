@@ -21,6 +21,9 @@ const ERRORS: Record<string, string> = {
   short: 'Choose a password of at least 8 characters. Everything else you typed is still here.',
   failed: "That didn't work. Press Create again — nothing you typed is lost.",
   expired: 'This form had been open a while. Press Create again — everything you typed is still here.',
+  // Not a refusal and not their fault: SPEC holds a very fast sign-up for three seconds to slow
+  // scripts down. Says what happened rather than blaming the form. See lib/bot-check.waitOutMs.
+  too_fast: 'That went through faster than our checks. Press Create again — everything you typed is still here.',
   check: 'Press Create again — everything you typed is still here.',
   consent: CONSENT_REQUIRED,
   busy: 'A lot of businesses are being set up from your network right now. Wait a minute and press Create again — nothing you typed is lost.',

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  layout, rootsOf, branch, isDescendant, canMove, detachedBranches, stages,
+  layout, rootsOf, branch, isDescendant, canMove, canRemove, collapsedAway, teamSize,
+  detachedBranches, stages,
   parseRoles, resolveImport, parseCsv, SLOT, ROW, cardWidth,
   type ChartRole,
 } from '../src/lib/orgchart';
@@ -273,5 +274,93 @@ describe('parseCsv', () => {
 
   it('reads an empty file as nothing', () => {
     expect(parseCsv('')).toEqual([]);
+  });
+});
+
+describe('canRemove', () => {
+  /*
+    The server refuses all of these by throwing, which on a server action means the error page. These
+    are the same three rules said on the chart, so a leader gets a sentence instead of a fault — and
+    a test each, because a polite refusal that silently stops refusing is how the error page comes
+    back without anybody noticing.
+  */
+  it('REFUSES THE TOP OF THE CHART — everything else hangs off it', () => {
+    const all = tree();
+    const check = canRemove('gm', all, 'gm');
+    expect(check.ok).toBe(false);
+    expect(check.reason).toMatch(/top of the chart/i);
+  });
+
+  it('REFUSES A ROLE SOMEBODY IS IN, and says who', () => {
+    const all = [role('gm', null, { level: 'gm' }), role('a', 'gm', { person: 'J. Barnes' })];
+    const check = canRemove('a', all, 'gm');
+    expect(check.ok).toBe(false);
+    expect(check.reason).toContain('J. Barnes');
+  });
+
+  it('REFUSES A ROLE WITH ANYBODY UNDER IT, and counts them', () => {
+    const check = canRemove('a', tree(), 'gm');
+    expect(check.ok).toBe(false);
+    // Two directs, and the sentence has to agree with itself.
+    expect(check.reason).toContain('2 roles report');
+  });
+
+  it('says it in the singular for one', () => {
+    const all = [role('gm', null, { level: 'gm' }), role('a', 'gm'), role('a1', 'a')];
+    expect(canRemove('a', all, 'gm').reason).toContain('1 role reports');
+  });
+
+  it('allows an empty leaf', () => {
+    expect(canRemove('b', tree(), 'gm')).toEqual({ ok: true, reason: null });
+  });
+
+  it('and refuses a role that is not on this chart at all', () => {
+    expect(canRemove('nowhere', tree(), 'gm').ok).toBe(false);
+  });
+});
+
+describe('collapsedAway', () => {
+  it('HIDES EVERYTHING BENEATH A FOLDED ROLE, never the role itself', () => {
+    const hidden = collapsedAway(['a'], tree());
+    expect([...hidden].sort()).toEqual(['a1', 'a2']);
+    expect(hidden.has('a')).toBe(false);
+  });
+
+  it('hides a whole branch, not just the first layer', () => {
+    const all = [...tree(), role('a1x', 'a1')];
+    expect(collapsedAway(['a'], all).has('a1x')).toBe(true);
+  });
+
+  it('nothing folded hides nothing', () => {
+    expect(collapsedAway([], tree()).size).toBe(0);
+  });
+
+  it('IS A READING AID ONLY — the roles are untouched', () => {
+    /*
+      The whole risk of collapsing is that it quietly changes a number. The page takes its counts
+      from the full list and hands `layout` a filtered one, so this returns a set to hide rather
+      than a new chart — and the chart it was given comes back unchanged.
+    */
+    const all = tree();
+    const before = all.map(r => r.id);
+    collapsedAway(['a', 'gm'], all);
+    expect(all.map(r => r.id)).toEqual(before);
+  });
+
+  it('folding the root leaves the root drawn and everything else away', () => {
+    const hidden = collapsedAway(['gm'], tree());
+    expect(hidden.has('gm')).toBe(false);
+    expect(hidden.size).toBe(4);
+  });
+});
+
+describe('teamSize', () => {
+  it('counts everybody underneath, at any depth', () => {
+    expect(teamSize('gm', tree())).toBe(4);
+    expect(teamSize('a', tree())).toBe(2);
+  });
+
+  it('is zero for a leaf', () => {
+    expect(teamSize('b', tree())).toBe(0);
   });
 });

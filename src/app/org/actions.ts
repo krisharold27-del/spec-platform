@@ -142,6 +142,111 @@ export async function addRole(formData: FormData) {
   revalidatePath('/org');
 }
 
+/**
+ * Rename a role.
+ *
+ * The title is the one thing on a chart everybody reads, and until now the only way to correct one
+ * was to remove the role and build it again — which throws away its KPIs, its training path and
+ * every closed month that referred to it. A typo should cost a keystroke, not a history.
+ *
+ * The row is updated in place on purpose. A role is the seat, not the words on it: renaming
+ * "Ops Manager" to "Operations Manager" does not make it a different job, and every locked month
+ * that scored that seat still scored THIS seat.
+ */
+export async function renameRole(formData: FormData) {
+  const user = await editor();
+  const roleId = String(formData.get('roleId') ?? '');
+  const title = String(formData.get('title') ?? '').trim().slice(0, 200);
+  // An empty box is somebody clearing it to type, not asking for a role with no name.
+  if (!title) return;
+
+  const scope = await getScope(user);
+  if (!scope.canEdit(roleId)) throw new Error('That role is outside your part of the chart.');
+
+  await db.update(schema.roles).set({ title })
+    .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
+  revalidatePath('/org');
+  revalidatePath('/people');
+  revalidatePath(`/scorecard/${roleId}`);
+}
+
+/**
+ * Put a name against a role, or correct the one that is there.
+ *
+ * Three cases, and they are three different things happening to the data:
+ *
+ *   Somebody holds it with an account — their name is corrected. It is the same person; a
+ *   misspelling on a chart is a misspelling, not a new employee.
+ *
+ *   Somebody is pencilled in — the name on the staff row is corrected. Same again.
+ *
+ *   The role is vacant — a name is pencilled in. Free, silent, nobody is emailed. An invitation is
+ *   a separate, deliberate act on /people, and it stays that way: typing a name into a chart must
+ *   never send mail to a person who has not been told they are getting it.
+ *
+ * Clearing the box does NOTHING. Emptying a role is `vacateRole`, which is its own menu item and
+ * its own decision — a rename box that could silently end somebody's placement because a cursor
+ * landed in it and a key was pressed is a trap, not a convenience.
+ */
+export async function renamePerson(formData: FormData) {
+  const user = await editor();
+  const roleId = String(formData.get('roleId') ?? '');
+  const name = String(formData.get('person') ?? '').trim().slice(0, 200);
+  if (!name) return;
+
+  const scope = await getScope(user);
+  if (!scope.canEdit(roleId)) throw new Error('That role is outside your part of the chart.');
+
+  const [role] = await db.select().from(schema.roles)
+    .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
+  if (!role) throw new Error('That role is not in this business.');
+
+  const [open] = await db.select().from(schema.roleAssignments)
+    .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
+
+  if (open?.userId) {
+    // Tenant-scoped on purpose: a user id arriving from a form must never reach another business's row.
+    await db.update(schema.users).set({ name })
+      .where(and(eq(schema.users.id, open.userId), eq(schema.users.tenantId, user.tenantId)));
+  } else if (open?.staffId) {
+    await db.update(schema.staff).set({ name })
+      .where(and(eq(schema.staff.id, open.staffId), eq(schema.staff.tenantId, user.tenantId)));
+  } else {
+    /*
+      Vacant. Reuse a name already in the directory rather than creating a second row for the same
+      person — two "Dave Morgan"s is how a business ends up with one person's training record split
+      down the middle. Matched case-insensitively, because nobody types their own staff list the
+      same way twice.
+    */
+    const existing = (await db.select().from(schema.staff).where(eq(schema.staff.tenantId, user.tenantId)))
+      .find(s => s.name.trim().toLowerCase() === name.toLowerCase());
+
+    if (existing) {
+      /*
+        Already somewhere else on the chart. This is the move-or-merge question `placeStaff` asks on
+        /setup/business, and guessing it here would either strand a role the business still needs or
+        quietly take one off somebody. Point at the screen that can ask properly.
+      */
+      const [held] = await db.select().from(schema.roleAssignments)
+        .where(and(eq(schema.roleAssignments.staffId, existing.id), isNull(schema.roleAssignments.toDate)));
+      if (held) throw new Error(`${existing.name} already holds another role. Move them from People, so SPEC can ask whether that is a move or a second seat.`);
+    }
+
+    const staffId = existing?.id ?? randomUUID();
+    if (!existing) {
+      await db.insert(schema.staff).values({
+        id: staffId, tenantId: user.tenantId, name, userId: null, createdAt: new Date().toISOString(),
+      });
+    }
+    await db.insert(schema.roleAssignments).values({
+      id: randomUUID(), roleId, staffId, fromDate: new Date().toISOString().slice(0, 10),
+    });
+  }
+
+  revalidatePath('/org');
+  revalidatePath('/people');
+}
+
 /** Take a role off the chart for good. Never used on a role with anybody in it. */
 export async function removeRole(formData: FormData) {
   const user = await editor();

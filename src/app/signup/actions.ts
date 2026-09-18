@@ -84,7 +84,21 @@ export async function signUp(formData: FormData) {
   const token = String(formData.get('form_token') ?? '');
   const held = waitOutMs(token, formSecret());
   if (held > 0) await new Promise(resolve => setTimeout(resolve, held));
-  if (checkFormToken(token, formSecret()) !== 'ok') back('expired');
+  /*
+    Say which one it was.
+
+    Every failure here used to come back as "expired", including `too_fast` — so somebody who typed
+    quickly, was held for three seconds and came out a millisecond short was told their form had
+    expired. It had not. Telling a customer something untrue on the first screen of the product is
+    worse than telling them nothing, and it is the kind of thing nobody ever reports: they try again,
+    it works, and they quietly think less of the software.
+
+    `WAIT_MARGIN_MS` should mean `too_fast` never reaches here at all. Its own message exists anyway,
+    because "cannot happen" is how the last one got written.
+  */
+  const verdict = checkFormToken(token, formSecret());
+  if (verdict === 'too_fast') back('too_fast');
+  if (verdict !== 'ok') back('expired');
 
   /*
     Agreement, checked on the SERVER.

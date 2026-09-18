@@ -47,10 +47,26 @@ export type FormTokenCheck = 'ok' | 'too_fast' | 'expired' | 'invalid';
  *
  * Only `too_fast` is waited out. A replayed or forged token is still refused outright — that is
  * somebody using an old form, not somebody typing fast.
+ *
+ * ── The margin, and why the wait was landing one millisecond short ───────────────────────────────
+ *
+ * The caller sleeps for exactly what this returns and then asks again. Node's `setTimeout` is
+ * allowed to fire a whisker early — libuv rounds to whole milliseconds — so the second question was
+ * sometimes asked at 2,999ms, came back `too_fast` a second time, and the person was bounced to the
+ * form reading **"That form expired"**. Nothing had expired. They had typed quickly, waited three
+ * seconds without knowing it, and been told something untrue on the first screen of the product.
+ *
+ * Caught on 18 September when this suite's own sign-ups started failing intermittently — twice in
+ * six runs, which is a rate a real customer meets too.
+ *
+ * Fifty milliseconds. Unnoticeable to a person, irrelevant to a script being slowed to three
+ * seconds a go, and far wider than any timer is wrong by.
  */
+export const WAIT_MARGIN_MS = 50;
+
 export function waitOutMs(token: string, secret: string, now = Date.now()): number {
   if (checkFormToken(token, secret, now) !== 'too_fast') return 0;
-  return Math.max(0, MIN_FILL_MS - (now - Number(token.split('.')[0])));
+  return Math.max(0, MIN_FILL_MS - (now - Number(token.split('.')[0]))) + WAIT_MARGIN_MS;
 }
 
 export function checkFormToken(token: string, secret: string, now = Date.now()): FormTokenCheck {

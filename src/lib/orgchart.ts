@@ -201,6 +201,59 @@ export function canMove(roleId: string, ontoId: string, all: ChartRole[]): MoveC
   return { ok: true, reason: null };
 }
 
+/**
+ * May this role be taken off the chart for good?
+ *
+ * The server refuses all three of these already — but it refuses by throwing, which on a server
+ * action means the error page. Somebody who right-clicks "Remove role" on a role with two people
+ * under it should get a sentence explaining why, on the chart they are looking at, not a fault
+ * screen. So the same three rules are stated here, where the chart can say them.
+ *
+ * This is deliberately a second copy rather than the only one. The check that protects the data is
+ * the one on the server, and it stays there: a rule enforced only in the browser is a rule one
+ * devtools line away from gone. This copy exists to be polite, not to be trusted.
+ */
+export function canRemove(roleId: string, all: ChartRole[], chartRootId: string | null): MoveCheck {
+  const role = all.find(r => r.id === roleId);
+  if (!role) return { ok: false, reason: 'That role is not on this chart.' };
+  if (role.id === chartRootId) {
+    return { ok: false, reason: 'The top of the chart cannot be removed — everything else hangs off it.' };
+  }
+  if (role.person) {
+    return { ok: false, reason: `${role.person} is in that role. Move them out first, or make the role vacant — removing it would lose their placement.` };
+  }
+  const under = all.filter(r => r.parentId === roleId);
+  if (under.length) {
+    return {
+      ok: false,
+      reason: `${under.length} role${under.length === 1 ? '' : 's'} report${under.length === 1 ? 's' : ''} to ${role.title}. Move ${under.length === 1 ? 'it' : 'them'} first.`,
+    };
+  }
+  return { ok: true, reason: null };
+}
+
+/**
+ * Roles hidden because a leader above them is collapsed.
+ *
+ * Collapsing is a reading aid and nothing else: the roles are still on the chart, still in every
+ * average, still counted. Only the drawing changes. That is why this returns a set to hide rather
+ * than filtering the roles — the counts on the page are taken from the full list, and a reading aid
+ * that quietly changed a number would be a bug disguised as a feature.
+ *
+ * A collapsed role hides everything BENEATH it, never itself.
+ */
+export function collapsedAway(collapsed: Iterable<string>, all: ChartRole[]): Set<string> {
+  const hidden = new Set<string>();
+  for (const id of collapsed) {
+    // `branch` includes the role itself; the collapsed card stays visible, carrying the count.
+    for (const r of branch(id, all)) if (r.id !== id) hidden.add(r.id);
+  }
+  return hidden;
+}
+
+/** How many roles sit under this one, at any depth. What the "Team of 4" badge counts. */
+export const teamSize = (roleId: string, all: ChartRole[]): number => branch(roleId, all).length - 1;
+
 export interface Detached {
   /** The top of the detached branch — the chip shown in the tray. */
   role: ChartRole;

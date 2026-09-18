@@ -147,6 +147,17 @@ const SAMPLE_IDENTITIES = [
   'Dane Whitmore', 'Tom Alderson', 'Amrit Kaur',   // people in the colour system and org designs
   'Justin Bussell',                                 // the director who signs the month off
   'JBI Electrical',                                 // the business every screen is drawn around
+  /*
+    The jobs those people are drawn working on.
+
+    Added when the `scripted()` tier arrived: the My Page prototype builds its task list as
+    `{ label }` objects, so seven invented jobs — "Harbourview stage 2 rough-in with Ruby",
+    "Send the Northline stage 3 quote" — came through as affordances the product was missing. They
+    are a customer's own work, read from their records. Listed here beside the people for the same
+    reason the people are listed: a pattern loose enough to catch a site name would also catch half
+    the product's real labels.
+  */
+  'Harbourview', 'Northline', 'Kelvin Rd', 'Ruby',
 ];
 
 /** A month and a year, or a day and a month — a heading the product builds from real dates. */
@@ -258,6 +269,49 @@ function labels(html) {
 }
 
 /**
+ * The labels the prototypes BUILD rather than write — and the reason this tier exists.
+ *
+ * ── How a check reporting 100% hid five missing features ─────────────────────────────────────────
+ *
+ * On 18 September Kris opened the org chart and said it was not the same as the design. He was
+ * right: the design offered a right-click menu with "Add a direct report", "Rename role & person",
+ * "Break the link", "Make this role vacant" and "Remove role", and the product had none of them —
+ * no menu, and no way to rename a role anywhere in SPEC at all.
+ *
+ * This script said 100%. All three tiers above read the design's MARKUP, and `labels()` opens by
+ * deleting every `<script>`. The prototype builds its menu in its class body, as an array of
+ * `{ label }` objects — so the five things the chart could not do were the five things this check
+ * was structurally incapable of looking for. It did not fail quietly; it passed loudly, screen by
+ * screen, and printed the word "complete". That is worse than no check at all.
+ *
+ * So this tier reads only what the others throw away. Menus, toasts, status lines and empty states
+ * are where a prototype keeps its verbs — which makes them exactly where a product goes missing.
+ */
+function scripted(html) {
+  const found = new Set();
+  for (const [, body] of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+    // Comments first: a prototype explains itself in prose, and prose is not an affordance.
+    const code = body.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+    /*
+      `label:` alone, and the narrowness is the point.
+
+      The first cut also took `title:`, `heading:` and `detail:`, and went from five real findings to
+      thirty-three — because in these prototypes those keys hold the seeded demo rows: Harbourview
+      stage 2, Tom Alderson, Dispatch Coordinator. Every one of them would have needed an entry on an
+      exception list, and a check that has to be argued down before it can be read is a check nobody
+      reads. `label:` is the key the prototypes use for a thing you can DO, which is the one thing
+      the three tiers above cannot see.
+    */
+    for (const [, text] of code.matchAll(/\blabel\s*:\s*'([^'\\]{4,60})'/g)) found.add(text);
+    for (const [, text] of code.matchAll(/\blabel\s*:\s*"([^"\\]{4,60})"/g)) found.add(text);
+  }
+  return [...found]
+    .map(t => t.replace(/\s+/g, ' ').trim())
+    // Same floor as `labels()`: one word is not a label, and a long one is a sentence.
+    .filter(t => /^[A-Za-z"]/.test(t) && t.split(' ').length >= 2 && t.split(' ').length <= 9);
+}
+
+/**
  * Is this phrase present in the product?
  * Exact first; then every significant word, so "What needs me today" still
  * counts when the code says "What needs you today".
@@ -316,6 +370,9 @@ for (const file of screens) {
     ...(deep
       ? labels(html).filter(t => !isScaffold(t) && !isSampleData(t)).map(text => ({ text, kind: 'labels' }))
       : []),
+    // Always on, deep or not. This is the tier that was missing when the chart lost its menu, and a
+    // gap that only shows under a flag is a gap nobody sees.
+    ...scripted(html).filter(t => !isScaffold(t) && !isSampleData(t)).map(text => ({ text, kind: 'menu' })),
   ];
   const misses = [];
   let exact = 0;
@@ -331,7 +388,18 @@ for (const file of screens) {
       // question anybody actually has is WHICH — especially for a screen held to exact wording.
       if (process.argv.includes('--show-reworded')) rewordedHere.push(phrase.text);
       // On a pinned screen, close enough is not enough — unless it is written down why.
-      if (PINNED.includes(name) && !MAY_DIFFER.has(`${name}::${phrase.text}`)) {
+      /*
+        A pinned screen is held word for word — but not this tier.
+
+        `scripted()` reads the strings a prototype BUILDS, and a prototype builds two different
+        kinds: the verbs on a menu, and the rows it invents to have something on the screen. My Page
+        is pinned, and the moment this tier arrived it reported five drifts — "Log the weekly
+        meeting", "Book two ticket renewals before month end" — which are tasks SPEC writes from a
+        real business's real month. Holding the product to the prototype's wording there would mean
+        hard-coding somebody else's to-do list. The question this tier asks is whether the
+        affordance exists, not whether the sentence matches.
+      */
+      if (phrase.kind !== 'menu' && PINNED.includes(name) && !MAY_DIFFER.has(`${name}::${phrase.text}`)) {
         drifted.push(`${name} — ${phrase.text}`);
       }
     }

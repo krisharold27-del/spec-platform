@@ -471,3 +471,13 @@ jobs:
           # could — a box enforced only in the browser produces a record saying somebody agreed
           # when the server never asked.
           journey consent-journey.mjs
+
+          # The org chart's own affordances, pressed rather than read. Kris, 18 September: "this is
+          # not the same as on the design site". He was right — the design's right-click menu was
+          # missing entirely, along with any way to rename a role anywhere in SPEC, while
+          # `designs:coverage --deep` reported 100%. It could not have seen it: its tiers read the
+          # design's MARKUP and one of them deletes every <script>, which is where a prototype keeps
+          # its menu. That hole is closed too, but a phrase check can only ever prove the WORDS are
+          # in the source. This opens the menu, presses the item, and asks the chart whether the
+          # role is really there.
+          journey org-journey.mjs
