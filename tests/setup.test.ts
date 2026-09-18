@@ -3,13 +3,13 @@ import { steps, currentStep, progress, WHAT_SPEC_DOES, type StepInput } from '..
 
 const input = (over: Partial<StepInput> = {}): StepInput => ({
   goalsAnswered: false, goalCount: 0,
-  named: false, tierChosen: false, roleCount: 0, rolesWithKpis: 0, scoredRoleCount: 0,
+  named: false, roleCount: 0, rolesWithKpis: 0, scoredRoleCount: 0,
   rolesFilled: 0, managersHandedOver: 0, managerCount: 0, ...over,
 });
 
 const done = (over: Partial<StepInput> = {}): StepInput => input({
   goalsAnswered: true, goalCount: 3,
-  named: true, tierChosen: true, roleCount: 4, rolesWithKpis: 3, scoredRoleCount: 3,
+  named: true, roleCount: 4, rolesWithKpis: 3, scoredRoleCount: 3,
   rolesFilled: 4, managersHandedOver: 2, managerCount: 2, ...over,
 });
 
@@ -36,14 +36,22 @@ describe('steps', () => {
   });
 
   it('does not claim KPIs are done when there is no scored role at all', () => {
-    const s = steps(input({ named: true, tierChosen: true, roleCount: 1 })).find(x => x.key === 'kpis')!;
+    const s = steps(input({ named: true, roleCount: 1 })).find(x => x.key === 'kpis')!;
     expect(s.done).toBe(false);
     expect(s.state).toBe('No scored role yet');
   });
 
-  it('waits on the AI question before calling the business step done', () => {
-    expect(steps(input({ named: true })).find(s => s.key === 'business')!.done).toBe(false);
-    expect(steps(input({ named: true })).find(s => s.key === 'business')!.detail).toContain('Basic is complete without it');
+  it('NAMING THE BUSINESS IS THE WHOLE STEP', () => {
+    /*
+      It used to wait on one more answer — "do you want the power of AI?" — which switched a business
+      between two tiers that cost the same money. There is one SPEC now, so the step completes when
+      the business has a name. A setup question whose answer never varies is a step that wastes
+      somebody's first ten minutes, and this is the check that stops one being added back.
+    */
+    const business = (i: Parameters<typeof input>[0]) => steps(input(i)).find(s => s.key === 'business')!;
+    expect(business({ named: false }).done).toBe(false);
+    expect(business({ named: true }).done).toBe(true);
+    expect(business({ named: true }).detail).not.toMatch(/Basic|Advanced|power of AI/);
   });
 
   it('counts the roles and the people as it goes', () => {
@@ -69,7 +77,7 @@ describe('currentStep', () => {
   it('is the first one outstanding', () => {
     expect(currentStep(steps(input())).key).toBe('goals');
     expect(currentStep(steps(input({ goalsAnswered: true, goalCount: 1 }))).key).toBe('business');
-    expect(currentStep(steps(input({ goalsAnswered: true, goalCount: 1, named: true, tierChosen: true }))).key).toBe('roles');
+    expect(currentStep(steps(input({ goalsAnswered: true, goalCount: 1, named: true }))).key).toBe('roles');
   });
 
   it('rests on the last step once everything is done', () => {

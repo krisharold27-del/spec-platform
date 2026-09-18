@@ -130,3 +130,42 @@ whales are the people in the room.
 Not a rewording of a feature — the row, the number and the reasoning are identical.
 
 **Decided:** 18 September 2026.
+
+---
+
+### Screen shape: the two pricing tiers
+
+`SPEC Pricing.dc.html` shows SPEC Basic beside SPEC Advanced, and a comparison
+table with a column for each. The product no longer has either.
+
+Kris, 18 September: *"take away the basic and advanced - either use the system with
+1 person yourself for free - or add everyone and pay $26 per seat. SPEC is sure you
+will want everyone in here once you feel the power and productivity improvement
+potential."*
+
+Three things were wrong with the two tiers, and they compounded.
+
+**It was not a price.** The pricing page said both tiers cost the same money,
+because it is the same system. So the only thing the choice did was take features
+away for nothing in return, and there is no honest sentence explaining why somebody
+would pick that.
+
+**The default punished the newcomer.** A new business landed on Basic, so the one
+screen that has to argue for the product carried an upsell strip and an Ask box
+saying asking came with Advanced. Free and crippled is a different offer from free.
+
+**It argued against the pitch.** SPEC's whole claim is that connecting the systems
+is where the productivity comes from. A tier that shipped with connectors switched
+off was the product disagreeing with itself on its own pricing page.
+
+Every ROW of that comparison survives, as `EVERYTHING_IN_IT` in `lib/plan` — the
+same six things, with the columns taken off, because there is nothing left to
+compare. The wording is therefore all still present and the coverage check is
+unaffected; what changed is the shape, which is why this is recorded here rather
+than left to be noticed as drift.
+
+`tenants.tier` stays in the schema and is no longer read. Migrations here are
+additive by design, and dropping a column on the way past is how a rollback becomes
+a data loss.
+
+**Decided:** 18 September 2026.

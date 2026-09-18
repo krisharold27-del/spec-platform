@@ -7,14 +7,14 @@ import { SubmitButton } from '@/components/submit-button';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { getScope } from '@/lib/scope';
-import { planStateFor, costLabel, TIER, tierOf } from '@/lib/plan';
+import { planStateFor, costLabel } from '@/lib/plan';
 import { moneyLabel, SEAT_PRICES, isFrontlineLeader, TRAINING_SEAT_ON_SALE } from '@/lib/pricing';
 import { libraryLine, LIBRARY } from '@/lib/training-library';
 import { PERMISSIONS, LEVELS, stateOf, STATE_LABEL, levelOf } from '@/lib/permissions';
 import { cadenceOf, CADENCE } from '@/lib/governance';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { adminActivity } from '@/lib/admin-activity';
-import { setCadence, setTier, setCeilings, resetCeilings, setTrainingSeat } from './actions';
+import { setCadence, setCeilings, resetCeilings, setTrainingSeat } from './actions';
 import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsFor, usesOwnCeilings } from '@/lib/ceilings';
 import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_AT_OR_BELOW } from '@/lib/incentive';
 
@@ -41,7 +41,6 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const tenant = (await getTenantById(user.tenantId))!;
   const scope = await getScope(user);
   const plan = await planStateFor(user.tenantId);
-  const tier = tierOf(tenant.tier);
   const ceilings = ceilingsFor(tenant.ceilings);
   const ownCeilings = usesOwnCeilings(tenant.ceilings);
   // Written from the engine's own constants so the explanation cannot drift from the arithmetic.
@@ -244,17 +243,6 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             <p className="mt-2 text-xs text-ink-light">{CADENCE[cadenceOf(tenant.boardCadence)].note}</p>
           </form>
 
-          <form action={setTier} className="mt-6">
-            <label className="label-caps" htmlFor="tier">Connectors and the assistant</label>
-            <div className="mt-1 flex flex-wrap gap-2">
-              <select id="tier" name="tier" className="input flex-1" defaultValue={tier}>
-                <option value="basic">SPEC Basic</option>
-                <option value="advanced">SPEC Advanced</option>
-              </select>
-              <SubmitButton className="btn-secondary shrink-0" pending="Saving…">Save</SubmitButton>
-            </div>
-            <p className="mt-2 text-xs text-ink-light">{TIER[tier].consequence}</p>
-          </form>
         </section>
       </div>
 

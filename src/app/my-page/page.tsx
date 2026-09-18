@@ -18,7 +18,6 @@ import { doors } from '@/lib/doors';
 import { isAdminEmail } from '@/lib/admin';
 import { myBusinesses } from '@/lib/auth';
 import { doSignOut } from '@/app/signin/actions';
-import { hasDiagnosis } from '@/lib/plan';
 import { light, pillarNote, clearToWork, LIGHT_COLOUR, LIGHT_LABEL, type Light } from '@/lib/today';
 import type { Pillar, RoleScore } from '@/lib/scoring';
 import { Problems } from '@/components/problems';
@@ -73,7 +72,7 @@ export default async function MyPage({
     );
   }
 
-  const { myRows, myScore, team, reportsTo, feeds, todos, changes, meetingLogged, training, ace, scored, tier } = data;
+  const { myRows, myScore, team, reportsTo, feeds, todos, changes, meetingLogged, training, ace, scored } = data;
 
   // A visitor looking around never writes. `assertWritable` refuses them anyway, but showing a form
   // that cannot work is a worse way to find that out than being told.
@@ -137,7 +136,6 @@ export default async function MyPage({
     which is also when it starts being worth reading.
   */
   const nothingMarkedYet = PILLARS.every(p => myScore.pillars[p] === null);
-  const advanced = tier === 'advanced';
   // A supervisor's reports are on the tools, not running scorecards of their own. Calling that
   // "my team" is the language of an office; "my crew" is what they actually say.
   const crew = team.length > 0 && team.every(m => !m.scored);
@@ -197,7 +195,7 @@ export default async function MyPage({
         claiming to be where you start is the most reliable way a product gets called confusing.
         The page is the dashboard; the conversation is how you work it.
       */}
-      <AskBar available={advanced} href={`/boards?ask=1`} />
+      <AskBar available href={`/boards?ask=1`} />
 
       {/*
         The four lights, once there is light in them.
@@ -266,7 +264,7 @@ export default async function MyPage({
         stranger — so a problem raised before anybody had an account lands in exactly this list.
       */}
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
-        <ImprovementBox canWrite={canWrite} read={hasDiagnosis(tier)} />
+        <ImprovementBox canWrite={canWrite} read />
         <ImprovementRegister
           entries={register}
           me={user.name}
@@ -339,19 +337,7 @@ export default async function MyPage({
           <div className="grid gap-6">
             <section className="rounded-lg bg-sage-100 p-4">
               <h2 className="font-serif text-xl text-ink">Ask anything</h2>
-              {advanced ? (
-                <AskPanel rows={myRows} score={myScore} meetingLogged={meetingLogged} />
-              ) : (
-                <>
-                  <p className="mt-2 text-sm text-ink-light">
-                    Asking comes with SPEC Advanced. On Basic the page still tells you everything it knows —
-                    every light above carries the reason underneath it — there is just nothing here to ask.
-                  </p>
-                  <Link href="/pricing" className="mt-4 link-go">
-                    See what Advanced adds &rarr;
-                  </Link>
-                </>
-              )}
+              <AskPanel rows={myRows} score={myScore} meetingLogged={meetingLogged} />
             </section>
           </div>
         </div>
@@ -458,27 +444,12 @@ export default async function MyPage({
 
           <section className="card">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-serif text-xl text-ink">
-                {advanced ? 'Numbers arriving on their own' : 'Where your numbers come from'}
-              </h2>
+              <h2 className="font-serif text-xl text-ink">Numbers arriving on their own</h2>
               <span className="text-sm text-ink-light">
-                {advanced
-                  ? `${live.length} of ${feeds.length} ${feeds.length === 1 ? 'system' : 'systems'} connected`
-                  : 'SPEC Basic'}
+                {live.length} of {feeds.length} {feeds.length === 1 ? 'system' : 'systems'} connected
               </span>
             </div>
-            {!advanced ? (
-              <>
-                <p className="mt-3 text-sm text-ink-light">
-                  You are on SPEC Basic, so every number on your card is entered by hand and carries the
-                  name of whoever confirmed it. That is a complete way to run SPEC — no feature anywhere
-                  needs a connector — and it is the only honest option while a number has no system behind it.
-                </p>
-                <Link href="/pricing" className="mt-4 link-go">
-                  What SPEC Advanced adds →
-                </Link>
-              </>
-            ) : feeds.length ? (
+            {feeds.length ? (
               <ul className="mt-4 grid gap-2">
                 {feeds.map(f => (
                   <li key={f.id} className="card-inset">
@@ -504,11 +475,7 @@ export default async function MyPage({
                 to run SPEC — a connector is never required for any of it.
               </p>
             )}
-            {advanced && (
-              <Link href="/setup/systems" className="mt-4 link-go">
-                Manage what SPEC reads →
-              </Link>
-            )}
+            <Link href="/setup/systems" className="mt-4 link-go">Manage what SPEC reads &rarr;</Link>
           </section>
         </div>
 
@@ -516,19 +483,7 @@ export default async function MyPage({
 
           <section className="rounded-lg bg-sage-100 p-4">
             <h2 className="font-serif text-xl text-ink">Ask anything</h2>
-            {advanced ? (
-              <AskPanel rows={myRows} score={myScore} meetingLogged={meetingLogged} />
-            ) : (
-              <>
-                <p className="mt-2 text-sm text-ink-light">
-                  Asking comes with SPEC Advanced. On Basic the page still tells you everything it knows —
-                  every light above carries the reason underneath it — there is just nothing here to ask.
-                </p>
-                <Link href="/pricing" className="mt-4 link-go">
-                  See what Advanced adds →
-                </Link>
-              </>
-            )}
+            <AskPanel rows={myRows} score={myScore} meetingLogged={meetingLogged} />
           </section>
 
 

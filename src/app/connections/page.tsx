@@ -7,7 +7,6 @@ import { SubmitButton } from '@/components/submit-button';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { getScope } from '@/lib/scope';
-import { tierOf, TIER } from '@/lib/plan';
 import { CATEGORIES, categoryName, isSensitive, STATUS_LABEL, SENSITIVE_NOTE } from '@/lib/systems';
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { propose } from '@/lib/mapping';
@@ -35,7 +34,6 @@ export default async function Connections({
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
   const scope = await getScope(user);
-  const tier = tierOf(tenant.tier);
 
   // The business's connections only. A person's own mailbox is theirs — it belongs on their page,
   // not in a list the whole business reads. See PERSONAL_CATEGORIES in lib/systems.
@@ -61,23 +59,12 @@ export default async function Connections({
   */
   const proposal = authorised && ask?.trim() ? await propose(ask) : null;
 
-  if (tier === 'basic') {
-    return (
-      <Shell title="Connections" subtitle="SPEC Basic — every number entered by hand">
-        <div className="callout max-w-2xl">
-          <div className="font-serif text-lg text-ink">{TIER.basic.label}</div>
-          <p className="mt-1 text-sm text-ink-light">{TIER.basic.consequence}</p>
-          <p className="mt-3 text-sm text-ink-light">
-            That is a complete way to run the whole system — no feature anywhere is reachable only by
-            connecting something. Advanced changes where the numbers come from, not what SPEC can do.
-          </p>
-          {authorised && (
-            <Link href="/settings" className="btn-primary mt-4 inline-block">Change it in settings</Link>
-          )}
-        </div>
-      </Shell>
-    );
-  }
+  /*
+    The Basic wall stood here: a business on the cheaper-sounding tier opened Connections and was
+    shown a card explaining that it could not connect anything, with a link to change tiers. Both
+    tiers cost the same money, so that wall was taking the product's central feature away for
+    nothing in return. There is one SPEC now — see ONE_PRODUCT in lib/plan.
+  */
 
   return (
     <Shell

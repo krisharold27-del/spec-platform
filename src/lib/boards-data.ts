@@ -15,7 +15,6 @@ import { db, schema } from '../db';
 import { getScope } from './scope';
 import { getTeamRollup } from './queries';
 import { currentPeriod } from './period';
-import { tierOf } from './plan';
 import { actionsOf, decisionsOf, attendeesOf, mondayOf, recentMondays, weeksBetween } from './meeting';
 import { whoDecides, inTheRoom, whereItWaits, type Board } from './boards';
 import { daysBetween, type CurveInput } from './jcurve';
@@ -177,7 +176,6 @@ export async function getCurve(user: CurrentUser): Promise<CurveInput> {
     firstFeedAt,
     firstLockedAt: locked.length ? (locked[0].signedAt ?? locked[0].submittedAt ?? null) : null,
     closedMonths,
-    tier: tierOf(tenant?.tier),
   };
 }
 

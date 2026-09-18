@@ -38,7 +38,7 @@ function mins(n: number) {
  * back on the same page assumes the product is broken, and they are already dealing with enough.
  */
 const BILLING_NOTICE: Record<string, { tone: 'ok' | 'warn'; text: string }> = {
-  upgraded: { tone: 'ok', text: 'Payment received — you are on SPEC Basic. Nothing you set up during the trial has changed.' },
+  upgraded: { tone: 'ok', text: 'Payment received. Nothing you set up before it has changed.' },
   upgrade_cancelled: { tone: 'warn', text: 'Checkout was cancelled, so nothing has been charged. Your trial is untouched and you can subscribe whenever you are ready.' },
   nothing_to_bill: { tone: 'ok', text: 'Nothing to pay — you have not invited anyone in yet, and the structure you are building is free.' },
   no_subscription: { tone: 'warn', text: "There's no subscription to manage yet — nothing has ever been charged. Use Start paying to set one up, and the Billing page appears once it's running." },

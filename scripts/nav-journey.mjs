@@ -179,6 +179,30 @@ check('  and nothing says asking comes with Advanced', !/Asking comes with SPEC 
 */
 check('THE ASK BOX IS THERE ON DAY ONE, before anything is marked', /Ask anything/.test(myPage));
 
+// ── There is one SPEC ────────────────────────────────────────────────────────────────────────────
+//
+// Kris: "take away the basic and advanced". Swept across every screen rather than checked on the
+// one it was removed from, because the tier reached nineteen files and the way copy like this
+// survives is on the page nobody thought to look at.
+const tierWords = [];
+for (const path of ['/my-page', '/connections', '/settings', '/setup', '/curve', '/pricing', '/journey']) {
+  await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle').catch(() => {});
+  const body = await page.evaluate(() => document.body.innerText);
+  const hit = body.match(/SPEC Basic|SPEC Advanced|power of AI|What Advanced adds|Asking comes with/);
+  if (hit) tierWords.push(`${path}: ${hit[0]}`);
+}
+check('NO SCREEN STILL OFFERS A TIER', tierWords.length === 0, tierWords.join(' | '));
+
+/*
+  Connections is the one that mattered most. A business on Basic opened it and was shown a wall
+  explaining it could not connect anything, with a link to change tiers — the product's central
+  feature taken away, for no difference in price.
+*/
+await page.goto(`${BASE}/connections`, { waitUntil: 'networkidle' });
+const conn = await page.evaluate(() => document.body.innerText);
+check('CONNECTIONS IS OPEN, not a wall with a price behind it', !/Change it in settings/.test(conn), conn.slice(0, 120));
+
 check('no page threw', faults.length === 0, faults.join(' | '));
 
 await browser.close();

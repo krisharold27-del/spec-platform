@@ -22,74 +22,56 @@ import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatRate, type Curre
 export const SEAT_PRICE_MONTHLY = SEAT_PRICES[HOME_CURRENCY].seat;
 
 /**
- * The two ways to run SPEC, decided by one question to the leader — "do you want the power of AI?"
+ * ── There is one SPEC ────────────────────────────────────────────────────────────────────────────
  *
- *   basic    — no connectors, no assistant. Every number is typed in and confirmed by a name.
- *   advanced — systems feed the KPIs, every figure traces to where it came from, and Claude is
- *              available on every page. AI usage is paid for through SPEC.
+ * Kris, 18 September: *"take away the basic and advanced - either use the system with 1 person
+ * yourself for free - or add everyone and pay $26 per seat. SPEC is sure you will want everyone in
+ * here once you feel the power and productivity improvement potential."*
  *
- * Basic is a complete way to run the whole system, not a crippled one: no feature anywhere is
- * reachable only by connecting something. The difference is where the numbers come from, and
- * whether there is anything to ask.
+ * What was here: two tiers, `basic` and `advanced`, decided by one question to the leader — do you
+ * want the power of AI? Basic had no connectors and no assistant; every number was typed in and
+ * confirmed by a name.
+ *
+ * Three things were wrong with it, and they compounded.
+ *
+ *   **It was not a price.** /pricing said both tiers cost the same money, because it is the same
+ *   system. So the only thing the choice did was take features away for nothing in return, and
+ *   there is no honest sentence that explains why somebody would pick that.
+ *
+ *   **The default punished the newcomer.** A new business landed on `basic`, so the screen that has
+ *   to argue for the product carried an upsell strip and an Ask box saying asking came with
+ *   Advanced. Free and crippled is a different offer from free.
+ *
+ *   **It argued against the pitch.** SPEC's whole claim is that connecting the systems is where the
+ *   productivity comes from. A tier that ships with connectors switched off is the product
+ *   disagreeing with itself on the pricing page.
+ *
+ * So: one product. Everything is on for everybody, the first seat is free, and the meter starts at
+ * the second person — see `billableSeats`.
+ *
+ * The `tenants.tier` column is deliberately still in the schema and is no longer read. Migrations
+ * here are additive by design (see scripts/deploy-migrate), and dropping a column on the way past
+ * is how a rollback becomes a data loss. It will go when something else needs that migration.
  */
-export type Tier = 'basic' | 'advanced';
-
-export const TIER: Record<Tier, { label: string; blurb: string; consequence: string }> = {
-  basic: {
-    label: 'SPEC Basic',
-    blurb: 'No connectors, no assistant. Every number typed in and confirmed by a named person.',
-    consequence: 'Everything still works. You enter each month’s results yourself, and every figure carries the name of whoever confirmed it.',
-  },
-  advanced: {
-    label: 'SPEC Advanced',
-    blurb: 'Systems feed the KPIs, every figure is traceable, and Claude is on every page.',
-    consequence: 'Numbers arrive on their own from the systems you already run, and you can ask about any of them. AI usage is paid for through SPEC.',
-  },
-};
-
 /**
- * What the AI actually buys, line by line.
+ * What "everything" means, said as a list rather than as the word.
  *
- * The pricing page had two cards and a paragraph each, which answers *"what is Advanced"* and not
- * the question people really ask, which is **"what do I get that I do not get now"**. Somebody
- * deciding between two things priced identically needs the difference itself, not two descriptions
- * they have to hold side by side and diff in their head.
- *
- * `SPEC Pricing.dc.html` has carried this as four rows since the first export. Every one of them is
- * a thing the product either does or does not do, checked against `hasConnectors`, `hasAssistant`
- * and `readsProblems` rather than written as a claim — a comparison table is the one place in a
- * product where an aspiration reads exactly like a feature.
+ * This replaces the Basic-versus-Advanced comparison table. The rows are the same ones — the
+ * prototypes have carried them since the first export — with the columns taken off, because there
+ * is nothing to compare any more. Kept as a list rather than a sentence for the same reason the
+ * table was a table: "everything is included" is a claim, and six things you can point at is not.
  */
-export interface TierRow { label: string; basic: boolean; advanced: boolean }
-
-export const TIER_COMPARISON: TierRow[] = [
-  { label: 'Every number entered and confirmed by a named person', basic: true, advanced: true },
-  { label: 'Problems read from the data', basic: true, advanced: true },
-  { label: 'Numbers fed from your systems', basic: false, advanced: true },
-  { label: 'KPI targets proposed from benchmarks', basic: false, advanced: true },
-  { label: 'Ask anything, on any page', basic: false, advanced: true },
-  { label: 'Recruitment and onboarding agent', basic: false, advanced: true },
+export const EVERYTHING_IN_IT = [
+  'Every number entered and confirmed by a named person',
+  'Numbers fed from your systems',
+  'Problems read from the data',
+  'KPI targets proposed from benchmarks',
+  'Ask anything, on any page',
+  'Recruitment and onboarding agent',
 ];
 
-export const tierOf = (value: string | null | undefined): Tier => (value === 'advanced' ? 'advanced' : 'basic');
-
-/** Connectors and the assistant are the two things the tier actually gates. Nothing else. */
-export const hasConnectors = (tier: Tier) => tier === 'advanced';
-export const hasAssistant = (tier: Tier) => tier === 'advanced';
-
-/**
- * Whether a problem gets READ for them — a different question from whether they can log one.
- *
- * Basic is "the platform with no AI support, every number typed by hand", so having Claude work out
- * the causal chain is exactly the thing Basic is defined as not including. But the register itself
- * is not AI: logging a problem, ranking it, giving it an owner, accepting it, signing it off — that
- * is the method, and the method is what a business bought.
- *
- * So Basic gets the whole register and names its own pillars. The difference between the tiers is
- * who does the thinking, never whether the feature exists — the same line the product draws
- * everywhere else, where a business that connects nothing still gets all of it, with more typing.
- */
-export const hasDiagnosis = (tier: Tier) => tier === 'advanced';
+export const ONE_PRODUCT =
+  'One SPEC. Connectors, the assistant and every screen are on from the first minute — the first seat is free, and it is A$26 a seat a month once anybody else comes in.';
 
 /**
  * The plans a person can put a business on from /admin.
@@ -197,10 +179,6 @@ export interface PlanState {
    * back past the free seat locks then, which is correct: that is the moment it owes something.
    */
   readOnly: boolean;
-  /** basic or advanced — whether connectors and the assistant are part of this business's SPEC. */
-  tier: Tier;
-  connectors: boolean;
-  assistant: boolean;
 }
 
 /**
@@ -283,7 +261,6 @@ export function planState(
   const beta = tenant.plan === 'beta';
   const lapsed = tenant.plan === 'lapsed';
   const subscribed = Boolean(tenant.stripeSubscriptionId);
-  const tier = tierOf(tenant.tier);
   const bill = seatBill(seats, trainingSeats, currency);
   const billable = bill.billable;
   return {
@@ -309,9 +286,6 @@ export function planState(
     // Lapsed AND owing something. A lapsed business with nothing to bill is not a debtor, and
     // locking it sends somebody to a checkout that has nothing to charge them for.
     readOnly: lapsed && billable > 0,
-    tier,
-    connectors: hasConnectors(tier),
-    assistant: hasAssistant(tier),
   };
 }
 

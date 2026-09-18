@@ -1,26 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { hasDiagnosis, tierOf } from '../src/lib/plan';
 import { selfDiagnosed, deterministic, NO_OWNER_LINE } from '../src/lib/diagnose';
 
 /**
- * Who gets a problem read for them, and what happens when they do not.
+ * What happens when a problem is NOT read for somebody.
  *
- * Two separate decisions that look like one. A Basic customer is not entitled to have Claude read
- * their problem, and a stranger on the front door gets exactly one. Neither of them is ever refused
- * the register itself — that is the method, and the method is what a business bought.
+ * ── This used to be about Basic ──────────────────────────────────────────────────────────────────
+ *
+ * There were two tiers, and a Basic customer was not entitled to have Claude read their problem;
+ * they named their own pillars instead. Kris removed the tiers on 18 September — there is one SPEC
+ * and every problem is read.
+ *
+ * `selfDiagnosed` is deliberately still here, and so are its tests. It is the fallback when the
+ * read FAILS: a register that refused the entry because a model was briefly unavailable would lose
+ * the thing somebody came to write down, which is the one part of this that is theirs. Same
+ * guarantee as before, reached for a different reason — the entry is real either way. It ranks, it
+ * assigns, it signs off.
  */
 
-describe('what Basic actually gets', () => {
-  it('has no diagnosis', () => {
-    expect(hasDiagnosis(tierOf('basic'))).toBe(false);
-    expect(hasDiagnosis(tierOf(null))).toBe(false);
-    expect(hasDiagnosis(tierOf('advanced'))).toBe(true);
-  });
-
+describe('an entry somebody diagnosed themselves', () => {
   /**
-   * The important half. Basic names its own pillars, and the entry that comes out is a real entry —
-   * it ranks, it assigns, it signs off. The difference between the tiers is who does the thinking,
-   * never whether the feature exists.
+   * The important half, and the reason this survived the tiers: the entry that comes out when a
+   * person picked the pillars is a real entry. What varies is who did the thinking, never whether
+   * the feature exists.
    */
   it('still produces a real entry when the person names the pillars', () => {
     const out = selfDiagnosed(['safety', 'people'], 'Dane Whitmore');

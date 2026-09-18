@@ -60,7 +60,6 @@ export interface CurveInput {
   firstLockedAt: string | null;
   /** Every closed month, oldest first, with the roll-up it closed on. */
   closedMonths: { period: string; overall: number | null }[];
-  tier: 'basic' | 'advanced';
   threshold?: number;
 }
 
@@ -121,9 +120,12 @@ export function phases(input: CurveInput, at: Date = new Date()): Phase[] {
       // to connect something is a number, but it is not this phase's duration.
       days: input.firstFeedAt || pictureAt ? linkingDays : null,
       endedAt: input.firstFeedAt,
-      note: input.tier === 'basic'
-        ? 'You are on Basic, so nothing feeds automatically. Every number is entered and confirmed by a named person — a complete way to run SPEC, and not a shallow J curve.'
-        : !input.firstFeedAt
+      /*
+        The "you are on Basic, so nothing feeds automatically" branch went with the tier. A business
+        that has connected nothing is now simply a business that has not connected anything yet,
+        which is a step on the curve rather than a different product.
+      */
+      note: !input.firstFeedAt
           ? 'Nothing is feeding yet. Until something does, the picture is still being assembled by hand.'
           : fedFirst
             ? `Numbers started arriving on their own ${linkingDays} ${linkingDays === 1 ? 'day' : 'days'} in — before the picture was finished, which is what collapses discovery.`
@@ -211,7 +213,7 @@ export function comparison(input: CurveInput, at: Date = new Date()): Comparison
   const discovery = all[0];
   const ours = discovery.days;
   const finished = discovery.state === 'done';
-  const collapsed = input.tier === 'advanced' && !!input.firstFeedAt;
+  const collapsed = !!input.firstFeedAt;
 
   if (!finished || ours === null) {
     return {
@@ -228,9 +230,7 @@ export function comparison(input: CurveInput, at: Date = new Date()): Comparison
   if (!collapsed) {
     return {
       ours, handBuilt: HAND_BUILT_DISCOVERY_DAYS, saved, collapsed,
-      line: input.tier === 'basic'
-        ? `Discovery took ${ours} days, assembled by hand. That is a real number and a real result, but it is not the collapse — nothing here is fed by a system.`
-        : `Discovery took ${ours} days without anything feeding it yet. The collapse comes when a system does.`,
+      line: `Discovery took ${ours} days, assembled by hand. That is a real number and a real result, but it is not the collapse — nothing here is fed by a system yet, and the collapse comes when one is.`,
     };
   }
 

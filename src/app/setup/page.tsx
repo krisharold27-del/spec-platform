@@ -8,7 +8,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getTenantById, PILLARS } from '@/lib/queries';
 import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
-import { tierOf, TIER } from '@/lib/plan';
+
 import { steps, currentStep, progress, WHAT_SPEC_DOES } from '@/lib/setup';
 import { goalsFor } from '@/lib/goals-data';
 import { goalsAnswered, goalsSet } from '@/lib/goals';
@@ -29,7 +29,6 @@ export default async function Setup() {
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
   const scope = await getScope(user);
-  const tier = tierOf(tenant.tier);
 
   /*
     Scoped through this business's own roles rather than read whole and filtered afterwards.
@@ -65,7 +64,6 @@ export default async function Setup() {
     goalCount: goalsSet(goals),
     named: !!tenant.name,
     // Basic is the default, so it only counts as chosen once somebody has actually been asked.
-    tierChosen: tenant.tier === 'advanced' || tenant.tier === 'basic',
     roleCount: roles.length,
     rolesWithKpis: withKpis.length,
     scoredRoleCount: scored.length,
@@ -123,33 +121,13 @@ export default async function Setup() {
               <Link href={s.href} className="mt-1 block font-serif text-lg text-ink hover:text-rust">{s.label}</Link>
               <p className="mt-1 text-sm text-ink-light">{s.detail}</p>
 
-              {s.key === 'business' && (
-                <form action={setTier} className="mt-4">
-                  <div className="label-caps">Do you want the power of AI?</div>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    {(['advanced', 'basic'] as const).map(t => (
-                      <label
-                        key={t}
-                        className={`cursor-pointer rounded-lg p-3 transition-colors ${tier === t ? 'bg-cream' : 'bg-surface hover:bg-cream'}`}
-                      >
-                        <span className="flex items-start gap-2">
-                          <input type="radio" name="tier" value={t} defaultChecked={tier === t} className="mt-1 accent-rust" />
-                          <span className="min-w-0">
-                            <span className="block font-serif text-base text-ink">
-                              {t === 'advanced' ? 'Yes — SPEC Advanced' : 'No — SPEC Basic'}
-                            </span>
-                            <span className="mt-1 block text-xs text-ink-light">{TIER[t].blurb}</span>
-                            <span className="mt-1 block text-xs text-ink-light">{TIER[t].consequence}</span>
-                          </span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                  {scope.canAdminister && (
-                    <SubmitButton className="btn-primary mt-3 justify-self-start" pending="Saving…">Save the answer</SubmitButton>
-                  )}
-                </form>
-              )}
+              {/*
+                The "do you want the power of AI?" question used to sit here, and answering it
+                switched a business between two tiers that cost the same money. There is one SPEC
+                now — see ONE_PRODUCT in lib/plan — so the step is gone rather than answered for
+                them: a setup question whose answer never varies is a step that wastes somebody's
+                first ten minutes.
+              */}
 
               <Link href={s.href} className="mt-3 link-go">
                 {s.done ? 'Look at it again →' : 'Do this step →'}

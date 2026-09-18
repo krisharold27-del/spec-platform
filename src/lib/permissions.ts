@@ -160,10 +160,9 @@ export const SETTINGS: Setting[] = [
     note: 'Monthly is what the rhythm is built around. Quarterly is the outer limit — a board that meets quarterly and reports honestly beats one that agrees to monthly and then does not sit.',
     options: ['monthly', 'quarterly'],
   },
-  {
-    id: 'tier',
-    label: 'Connectors and the assistant',
-    note: 'Basic is a complete way to run SPEC: every number typed in and confirmed by a name. Advanced adds systems feeding the KPIs and Claude on every page.',
-    options: ['basic', 'advanced'],
-  },
+  /*
+    The tier used to be a company setting here — Basic or Advanced, connectors and the assistant on
+    or off. It is gone with the tier: there is one SPEC, everything is on, and a setting whose only
+    value is "yes" is a switch that can only ever be turned the wrong way.
+  */
 ];

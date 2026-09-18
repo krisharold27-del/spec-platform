@@ -16,7 +16,6 @@ import { currentPeriod } from './period';
 import { getScope } from './scope';
 import { categoryName, STATUS_LABEL } from './systems';
 import { canManage, type CurrentUser } from './auth';
-import { tierOf, type Tier } from './plan';
 import { roleScore, PILLARS, type RoleScore } from './scoring';
 import { whatNeedsMe, changesToKnowAbout, type TodoItem, type ChangeItem } from './today';
 
@@ -90,8 +89,6 @@ export interface TodayData {
   meetingLogged: boolean;
   training: TrainingView;
   ace: AceView;
-  /** basic or advanced: whether this business has connectors and the assistant at all. */
-  tier: Tier;
   /**
    * Whether this role carries an individual KPI scorecard. A checklist role is not behind — it is
    * simply not scored, and the page says so rather than drawing four empty lights.
@@ -202,8 +199,6 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
   const scope = await getScope(user);
   const period = await currentPeriod(user.tenantId);
   const roles = scope.roles;
-  const [tenant] = await db.select({ tier: schema.tenants.tier }).from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
-  const tier = tierOf(tenant?.tier);
 
   const myRole = scope.myRoleId ? roles.find(r => r.id === scope.myRoleId) ?? null : null;
   const reportsTo = myRole?.reportsToRoleId ? roles.find(r => r.id === myRole.reportsToRoleId) ?? null : null;
@@ -213,7 +208,7 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
     return {
       period: period ?? null, myRole, myRows: [], myScore: empty, team: [], reportsTo,
       feeds: [], todos: [], changes: [], meetingLogged: false, training: NO_TRAINING,
-      ace: NO_ACE, tier, scored: false, canManage: manage,
+      ace: NO_ACE, scored: false, canManage: manage,
     };
   }
 
@@ -291,7 +286,7 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
 
   return {
     period, myRole, myRows: mine.rows, myScore: mine.score, team, reportsTo,
-    feeds, todos, changes, meetingLogged, training, ace, tier, scored, canManage: manage,
+    feeds, todos, changes, meetingLogged, training, ace, scored, canManage: manage,
   };
 }
 

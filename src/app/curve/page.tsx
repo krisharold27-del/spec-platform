@@ -237,18 +237,11 @@ export default async function Curve() {
             numbers, which is people doing their jobs properly.
           </p>
           <p className="mt-3 text-sm text-ink-light">
-            {input.tier === 'basic'
-              ? 'You are on Basic, so this has not happened here. Every number is assembled by hand, which is a complete way to run SPEC and is not a shallow J curve. Advanced is what collapses discovery.'
-              : c.collapsed
-                ? 'It happened here. The linking phase above is the day it did.'
-                : 'It has not happened here yet, because nothing is feeding. Connecting one system is what collapses the rest.'}
+            {c.collapsed
+              ? 'It happened here. The linking phase above is the day it did.'
+              : 'It has not happened here yet, because nothing is feeding. Connecting one system is what collapses the rest.'}
           </p>
-          <Link
-            href={input.tier === 'basic' ? '/pricing' : '/connections'}
-            className="mt-4 link-go"
-          >
-            {input.tier === 'basic' ? 'What Advanced changes →' : 'What SPEC reads →'}
-          </Link>
+          <Link href="/connections" className="mt-4 link-go">What SPEC reads &rarr;</Link>
         </section>
       </div>
 

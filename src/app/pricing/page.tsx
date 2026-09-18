@@ -4,8 +4,9 @@ import { VIRTUAL_GM, GM_COMPARISON } from '@/lib/virtual-gm';
 import { PublicNav } from '@/components/public-nav';
 import { LabourCalculator } from '@/components/labour-calculator';
 import { SEAT_PRICES, HOME_CURRENCY, type Currency, PACKAGES } from '@/lib/pricing';
-import { TIER, TIER_COMPARISON } from '@/lib/plan';
+
 import { LIGHT_COLOUR } from '@/lib/today';
+import { EVERYTHING_IN_IT } from '@/lib/plan';
 
 export const metadata = { title: 'SPEC — pricing' };
 
@@ -67,69 +68,35 @@ export default function Pricing() {
         </p>
 
         {/*
-          The difference itself, rather than two descriptions to hold side by side.
+          One product, and what is in it.
 
-          Both tiers are the same price, so "what is Advanced" is not the question anybody is
-          actually asking — "what do I get that I do not get now" is. Six rows, and the first two
-          are deliberately ticked on both: a comparison that only lists what the cheaper one lacks
-          reads as a downgrade, and Basic is not one.
+          This was two cards and a six-row comparison table with Basic and Advanced columns. Kris,
+          18 September: *"take away the basic and advanced - either use the system with 1 person
+          yourself for free - or add everyone and pay $26 per seat."*
+
+          The two tiers cost the same money — this page said so — so the only thing the choice ever
+          did was take features away for nothing in return. Worse, a business landed on Basic by
+          default, which meant the product shipped with its own central argument switched off:
+          connecting the systems is where the productivity comes from, and Basic was the tier that
+          could not connect anything.
         */}
-        <section className="mt-10 card overflow-hidden p-0">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-ink/10 bg-cream/50 text-left">
-                <th className="p-3 font-normal text-ink-light">What you get</th>
-                <th className="w-24 p-3 font-normal text-ink-light">Basic</th>
-                <th className="w-28 p-3 font-normal text-ink-light">Advanced</th>
-              </tr>
-            </thead>
-            <tbody>
-              {TIER_COMPARISON.map(row => (
-                <tr key={row.label} className="border-t border-ink/10">
-                  <td className="p-3 text-ink">{row.label}</td>
-                  {[row.basic, row.advanced].map((has, i) => (
-                    <td key={i} className="p-3">
-                      <span
-                        aria-label={has ? 'Included' : 'Not included'}
-                        style={{ color: has ? LIGHT_COLOUR.green : undefined }}
-                        className={has ? '' : 'text-ink-light/50'}
-                      >
-                        {has ? 'Yes' : 'No'}
-                      </span>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-
-        <section className="mt-10 grid gap-4 sm:grid-cols-2">
-          {(['advanced', 'basic'] as const).map(t => (
-            <div
-              key={t}
-              className="card"
-              style={{ borderTopColor: t === 'advanced' ? LIGHT_COLOUR.green : LIGHT_COLOUR.pending, borderTopWidth: 4 }}
-            >
-              <div className="label-caps">{t === 'advanced' ? 'With the power of AI' : 'Without it'}</div>
-              <h2 className="mt-1 font-serif text-2xl text-ink">{TIER[t].label}</h2>
-              <p className="mt-2 text-sm text-ink-light">{TIER[t].blurb}</p>
-              <p className="mt-2 text-sm text-ink-light">{TIER[t].consequence}</p>
-              <div className="mt-4 font-serif text-2xl text-ink">{home.symbol}{home.seat}<span className="text-sm text-ink-light"> / seat / month, first seat free</span></div>
-              {t === 'basic' && (
-                <p className="mt-2 text-xs text-ink-light">
-                  The same price, because it is the same system. Basic is not a cheaper SPEC — it is SPEC
-                  with the numbers entered by hand, which for a number no system produces is the only
-                  honest way to get it.
-                </p>
-              )}
-              {t === 'advanced' && (
-                <p className="mt-2 text-xs text-ink-light">
-                  AI usage is paid for through SPEC, so there is no second bill and no key of yours in it.
-                </p>
-              )}
-            </div>
-          ))}
+        <section className="mt-10 card">
+          <h2 className="font-serif text-2xl text-ink">Everything is in it, from the first minute</h2>
+          <p className="mt-2 max-w-2xl text-sm text-ink-light">
+            There is one SPEC. No tier to choose, nothing held back for a bigger plan, and no version
+            of this where you pay the same money for less of it.
+          </p>
+          <ul className="mt-5 grid gap-2 text-sm sm:grid-cols-2">
+            {EVERYTHING_IN_IT.map(line => (
+              <li key={line} className="card-inset flex items-baseline gap-2">
+                <span aria-hidden style={{ color: LIGHT_COLOUR.green }}>&#10003;</span>
+                <span className="text-ink">{line}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs text-ink-light">
+            AI usage is paid for through SPEC, so there is no second bill and no key of yours in it.
+          </p>
         </section>
 
         <section className="mt-10">

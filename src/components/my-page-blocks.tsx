@@ -114,18 +114,15 @@ export function MyWeek({ beats, line }: { beats: Beat[]; line: string }) {
  * cheaply once people have learned one of them. So the conversation lives on the page: the page is
  * the dashboard, the ask bar is how you work it.
  */
+/*
+  `available` is kept and is always true from the product's side. It used to be the Basic/Advanced
+  gate, and the branch behind it showed a strip reading "On Advanced you can ask this page a
+  question" — an upsell on the screen a new business opens first. There is one SPEC now (see
+  ONE_PRODUCT in lib/plan), so the strip is gone. The prop stays because there is one honest reason
+  left to hide the bar: a look-around, where nothing anybody types is kept.
+*/
 export function AskBar({ available, href }: { available: boolean; href: string }) {
-  if (!available) {
-    return (
-      <div className="callout mt-6 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-ink-light">
-          On Advanced you can ask this page a question in plain words and get the answer here, rather
-          than on another screen.
-        </p>
-        <Link href="/pricing" className="link-go">What Advanced adds →</Link>
-      </div>
-    );
-  }
+  if (!available) return null;
   return (
     <Link
       href={href}

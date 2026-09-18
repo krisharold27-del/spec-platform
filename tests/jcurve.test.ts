@@ -12,7 +12,6 @@ const input = (over: Partial<CurveInput> = {}): CurveInput => ({
   firstFeedAt: '2026-08-19T00:00:00Z',
   firstLockedAt: '2026-09-05T00:00:00Z',
   closedMonths: [{ period: '2026-08', overall: 0.78 }],
-  tier: 'advanced',
   ...over,
 });
 
@@ -76,10 +75,17 @@ describe('phases', () => {
   });
 
   // The honest consequence, stated rather than buried.
-  it('tells a Basic business plainly that this is not a shallow J curve', () => {
-    const l = phases(input({ tier: 'basic', firstFeedAt: null }), AT)[1];
-    expect(l.note).toContain('not a shallow J curve');
-    expect(l.note).toContain('complete way to run SPEC');
+  it('SAYS NOTHING IS FEEDING YET, rather than pretending otherwise', () => {
+    /*
+      This used to check the Basic branch: "you are on Basic, so nothing feeds automatically ...
+      a complete way to run SPEC, and not a shallow J curve". The tiers went on 18 September, so a
+      business that has connected nothing is no longer a different product — it is one that has not
+      reached this step yet, which is the honest thing to say and the thing that still has to be
+      said rather than skipped.
+    */
+    const l = phases(input({ firstFeedAt: null }), AT)[1];
+    expect(l.note).toContain('Nothing is feeding yet');
+    expect(l.note).not.toMatch(/Basic|Advanced/);
   });
 
   it('calls a first close a baseline rather than a result', () => {
@@ -154,9 +160,11 @@ describe('comparison', () => {
   // The collapse is caused by connectors. Claiming it without them would be the overclaim that
   // makes every other number on the page worth less.
   it('refuses to claim the collapse without a system feeding', () => {
-    expect(comparison(input({ tier: 'basic', firstFeedAt: null }), AT).collapsed).toBe(false);
-    expect(comparison(input({ tier: 'basic', firstFeedAt: null }), AT).line).toContain('not the collapse');
-    expect(comparison(input({ firstFeedAt: null }), AT).line).toContain('The collapse comes when a system does');
+    expect(comparison(input({ firstFeedAt: null }), AT).collapsed).toBe(false);
+    expect(comparison(input({ firstFeedAt: null }), AT).line).toContain('not the collapse');
+    expect(comparison(input({ firstFeedAt: null }), AT).line).toContain('the collapse comes when one is');
+    // The page may never congratulate the product for a thing that has not happened.
+    expect(comparison(input({ firstFeedAt: null }), AT).line).not.toMatch(/Basic|Advanced/);
   });
 
   // A page that can only ever congratulate the product is not a measurement.

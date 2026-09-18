@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { diagnose, selfDiagnosed } from '@/lib/diagnose';
-import { assertWritable, hasDiagnosis, tierOf } from '@/lib/plan';
+import { assertWritable } from '@/lib/plan';
 import { PILLARS } from '@/lib/scoring';
 import { logProblem, assign, respond, markDone, signOff } from '@/lib/register-data';
 
@@ -34,17 +34,23 @@ export async function logImprovement(formData: FormData) {
   const text = String(formData.get('text') ?? '').trim().slice(0, 2000);
   if (text.length < 8) return;
 
-  // Basic is the tier with no AI in it, so nothing is read for them — they name the pillars
-  // themselves and the entry is identical in every other way. See `hasDiagnosis` in lib/plan.
-  const [tenant] = await db.select({ tier: schema.tenants.tier })
-    .from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
+  /*
+    Every problem gets read. There is one SPEC now — see `ONE_PRODUCT` in lib/plan — so the branch
+    that had Basic businesses naming their own pillars is gone along with the tier that caused it.
 
-  const diagnosis = hasDiagnosis(tierOf(tenant?.tier))
-    ? await diagnose(text)
-    : selfDiagnosed(
-        PILLARS.filter(p => formData.get(`pillar.${p}`) === 'on'),
-        String(formData.get('owner') ?? '').trim() || null,
-      );
+    `selfDiagnosed` is deliberately kept and still used below when the read fails: a register that
+    refuses the entry because a model was unavailable would lose the thing somebody came to write
+    down, which is the one part of this that is theirs.
+  */
+  let diagnosis;
+  try {
+    diagnosis = await diagnose(text);
+  } catch {
+    diagnosis = selfDiagnosed(
+      PILLARS.filter(p => formData.get(`pillar.${p}`) === 'on'),
+      String(formData.get('owner') ?? '').trim() || null,
+    );
+  }
 
   await logProblem(user.tenantId, text, diagnosis, user.name);
   revalidatePath('/my-page');

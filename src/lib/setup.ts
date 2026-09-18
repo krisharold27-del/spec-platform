@@ -29,7 +29,6 @@ export interface StepInput {
   goalCount: number;
   /** The business has a name and has answered the AI question. */
   named: boolean;
-  tierChosen: boolean;
   roleCount: number;
   /** Roles carrying a scorecard that have two KPIs in every pillar. */
   rolesWithKpis: number;
@@ -78,11 +77,17 @@ export function steps(i: StepInput): Step[] {
     {
       key: 'business',
       label: 'The business',
-      done: i.named && i.tierChosen,
-      state: i.named && i.tierChosen ? 'Done' : 'Waiting',
-      detail: i.tierChosen
-        ? 'Named, and you have said whether SPEC reads your systems.'
-        : 'One question decides the rest: do you want the power of AI? Basic is complete without it.',
+      /*
+        This step used to ask one more thing — "do you want the power of AI?" — which switched a
+        business between two tiers that cost the same money. There is one SPEC now, so naming it is
+        the whole step. A setup question whose answer never varies is a step that wastes somebody's
+        first ten minutes.
+      */
+      done: i.named,
+      state: i.named ? 'Done' : 'Waiting',
+      detail: i.named
+        ? 'Named. Connectors, the assistant and every screen are already on.'
+        : 'What the business is called, and the currency it bills in.',
       href: '/settings',
     },
     {
