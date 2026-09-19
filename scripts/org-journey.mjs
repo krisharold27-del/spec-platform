@@ -24,6 +24,7 @@
 
 import { chromium } from 'playwright';
 import { tidyUp } from './test-cleanup.mjs';
+import { reportCrashes } from './journey-crash.mjs';
 import { randomUUID } from 'node:crypto';
 
 const RUN_STARTED = new Date().toISOString();
@@ -56,7 +57,21 @@ const CARD_MENU = [
 const aimAt = async locator => {
   await locator.scrollIntoViewIfNeeded();
   await page.waitForTimeout(150);
-  await locator.click({ button: 'right' });
+  /*
+    A card that has not finished settling is not a product fault.
+
+    Playwright refuses to click an element whose box is still moving, and throws — which ends the
+    whole run with a stack trace instead of a result. CI failed exactly this way on 19 September and
+    the run could say only "org-journey failed", because a crash prints no FAIL line for the
+    annotations to lift. A slower machine is allowed to be slower. A second aim, once, after a
+    pause: if it is still moving then, something really is wrong and it should be heard about.
+  */
+  try {
+    await locator.click({ button: 'right', timeout: 8000 });
+  } catch {
+    await page.waitForTimeout(800);
+    await locator.click({ button: 'right', timeout: 8000 });
+  }
   await menu.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
 };
 
@@ -102,6 +117,7 @@ const check = (label, ok, detail = '') => {
 };
 
 const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
+reportCrashes({ browser: () => browser, business: BUSINESS, since: RUN_STARTED });
 const context = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
 const page = await context.newPage();
 

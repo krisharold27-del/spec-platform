@@ -19,6 +19,7 @@
 import { chromium } from 'playwright';
 import { readFile } from 'node:fs/promises';
 import { tidyUp } from './test-cleanup.mjs';
+import { reportCrashes } from './journey-crash.mjs';
 
 const RUN_STARTED = new Date().toISOString();
 const BASE = process.argv[2] ?? process.env.APP_URL ?? 'http://localhost:3000';
@@ -52,6 +53,7 @@ const check = (label, ok, detail = '') => {
 };
 
 const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
+reportCrashes({ browser: () => browser, business: BUSINESS, since: RUN_STARTED });
 const context = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
 const page = await context.newPage();
 const faults = [];

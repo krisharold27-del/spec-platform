@@ -22,6 +22,7 @@
 
 import { chromium } from 'playwright';
 import { tidyUp } from './test-cleanup.mjs';
+import { reportCrashes } from './journey-crash.mjs';
 
 // When this run began — everything it created is newer than this.
 const RUN_STARTED = new Date().toISOString();
@@ -36,6 +37,7 @@ const EMAIL = `pay-${stamp}@example.test`;
 const BUSINESS = `Pay Test ${stamp}`;
 
 const b = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
+reportCrashes({ browser: () => b, business: BUSINESS, since: RUN_STARTED });
 const page = await (await b.newContext({ viewport: { width: 1280, height: 1400 } })).newPage();
 
 const errors = [];

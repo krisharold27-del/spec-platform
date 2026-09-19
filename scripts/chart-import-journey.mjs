@@ -26,6 +26,7 @@ import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { tidyUp } from './test-cleanup.mjs';
+import { reportCrashes } from './journey-crash.mjs';
 
 const RUN_STARTED = new Date().toISOString();
 const BASE = process.argv[2] ?? process.env.APP_URL ?? 'http://localhost:3000';
@@ -161,6 +162,7 @@ const EMPTY_PDF = join(dir, 'scanned chart.pdf');
 pdf(EMPTY_PDF, []);                 // a photograph of a page: opens fine, contains no text at all
 
 const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
+reportCrashes({ browser: () => browser, business: BUSINESS, since: RUN_STARTED });
 const context = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
 const page = await context.newPage();
 const faults = [];

@@ -13,6 +13,7 @@
 import { chromium } from 'playwright';
 import { readFile } from 'node:fs/promises';
 import { tidyUp } from './test-cleanup.mjs';
+import { reportCrashes } from './journey-crash.mjs';
 
 // When this run began — everything it created is newer than this.
 const RUN_STARTED = new Date().toISOString();
@@ -29,6 +30,7 @@ const BUSINESS = `Register Test ${stamp}`;
 const PROBLEM = 'the yard is a mess every Monday morning and the crew lose an hour finding gear';
 
 const b = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
+reportCrashes({ browser: () => b, business: BUSINESS, since: RUN_STARTED });
 const page = await (await b.newContext({ viewport: { width: 1280, height: 1400 } })).newPage();
 
 const errors = [];

@@ -11,6 +11,7 @@
 
 import { chromium } from 'playwright';
 import { tidyUp } from './test-cleanup.mjs';
+import { reportCrashes } from './journey-crash.mjs';
 import { VIRTUAL_GM } from '../src/lib/virtual-gm.ts';
 
 // When this run began — everything it created is newer than this.
@@ -26,6 +27,7 @@ const BUSINESS = `Front Door ${stamp}`;
 const PROBLEM = 'our best apprentice just quit and it is the second one this year';
 
 const b = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
+reportCrashes({ browser: () => b, business: BUSINESS, since: RUN_STARTED });
 const page = await (await b.newContext({ viewport: { width: 1280, height: 1400 } })).newPage();
 
 const errors = [];
