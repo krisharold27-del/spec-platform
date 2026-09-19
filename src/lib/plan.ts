@@ -19,7 +19,8 @@
 import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatRate, type Currency } from './pricing';
 
 /** Per active named seat, per month, in the home currency (AUD). Other regions: see lib/pricing. */
-export const SEAT_PRICE_MONTHLY = SEAT_PRICES[HOME_CURRENCY].seat;
+/** The leadership seat, which is the one the free-first-seat rule is about. */
+export const SEAT_PRICE_MONTHLY = SEAT_PRICES[HOME_CURRENCY].leadership;
 
 /**
  * ── There is one SPEC ────────────────────────────────────────────────────────────────────────────

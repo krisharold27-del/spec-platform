@@ -202,7 +202,7 @@ export default async function Landing() {
             <div className="card p-8">
               <div className="label-caps">A seat</div>
               <div className="mt-3 font-serif text-[44px] leading-tight text-ink">
-                {moneyLabel(HOME_CURRENCY, SEAT.seat)}
+                {moneyLabel(HOME_CURRENCY, SEAT.leadership)}
               </div>
               <p className="mt-1.5 text-sm text-ink-light">per seat, per month</p>
               <p className="mt-5 text-base leading-7 text-ink">
@@ -222,7 +222,7 @@ export default async function Landing() {
             <div className="rounded-lg bg-sage-100 p-8">
               <div className="label-caps text-sage-800">Seat plus training</div>
               <div className="mt-3 font-serif text-[44px] leading-tight text-ink">
-                {moneyLabel(HOME_CURRENCY, SEAT.withTraining)}
+                {moneyLabel(HOME_CURRENCY, SEAT.team)}
               </div>
               <p className="mt-1.5 text-sm text-ink-light">per frontline leader, per month · not open yet</p>
               <p className="mt-5 text-base leading-7 text-ink">

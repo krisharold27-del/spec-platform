@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { planState, costLabel, billableSeats, FREE_SEATS, SEAT_PRICE_MONTHLY, type TenantPlan } from '../src/lib/plan';
+import { SEAT_PRICES } from '../src/lib/pricing';
 
 const t = (plan: string, over: Partial<TenantPlan> = {}): TenantPlan =>
   ({ id: 'x', plan, startDate: '2026-01-01', ...over });
@@ -27,8 +28,7 @@ describe('seat-based plan', () => {
     expect(s.seats, 'five people are in it').toBe(5);
     expect(s.billable, 'four of them are charged for').toBe(4);
     expect(s.monthlyCost).toBe(4 * SEAT_PRICE_MONTHLY);
-    expect(s.monthlyCost).toBe(104);
-    expect(costLabel(s)).toBe('A$104 a month · 5 people, first seat free');
+    expect(costLabel(s)).toBe(`A$${4 * SEAT_PRICE_MONTHLY} a month · 5 people, first seat free`);
   });
 
   it('A BUSINESS OF ONE PAYS NOTHING, and is not told it is empty', () => {
@@ -38,7 +38,8 @@ describe('seat-based plan', () => {
     expect(s.monthlyCost).toBe(0);
     expect(s.needsCheckout, 'and is never sent to a checkout for nothing').toBe(false);
     // The wrong sentence here is "Free — nobody in it yet", said to the person who is in it.
-    expect(costLabel(s)).toBe('Free — the first seat is, and so far it is just you. A$26 a month for each person you add');
+    expect(costLabel(s))
+      .toBe(`Free — the first seat is, and so far it is just you. A$${SEAT_PRICE_MONTHLY} a month for each person you add`);
   });
 
   it('starts charging at the second person, not the first', () => {
@@ -60,8 +61,9 @@ describe('seat-based plan', () => {
 
   it('bills in the business’s own currency, at the regional price — never converted', () => {
     const s = planState(t('basic'), 5, 'gbp');
-    expect(s.monthlyCost).toBe(68);    // 4 × £17
-    expect(costLabel(s)).toBe('£68 a month · 5 people, first seat free');
+    const four = 4 * SEAT_PRICES.gbp.leadership;
+    expect(s.monthlyCost).toBe(four);
+    expect(costLabel(s)).toBe(`£${four} a month · 5 people, first seat free`);
   });
 
   it('only goes read-only when a payment has actually failed', () => {

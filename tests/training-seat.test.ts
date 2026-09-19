@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { canBeTrained, isFrontlineLeader, TRAINING_SEAT_ON_SALE, seatRate, SEAT_PRICES, PACKAGES, digitRoot } from '../src/lib/pricing';
+import { canBeTrained, isFrontlineLeader, TRAINING_SEAT_ON_SALE, seatRate, SEAT_PRICES, PACKAGES, digitRoot, everyPublishedSeatPrice } from '../src/lib/pricing';
 import { seatBill, planState, FREE_SEATS } from '../src/lib/plan';
 import { LIBRARY, libraryOrder, libraryMinutes, libraryLine } from '../src/lib/training-library';
 
@@ -17,6 +17,17 @@ import { LIBRARY, libraryOrder, libraryMinutes, libraryLine } from '../src/lib/t
  */
 
 const t = (plan: string) => ({ id: 'x', plan, startDate: '2026-01-01' });
+
+/*
+  Derived from the table rather than written out, deliberately.
+
+  `tests/pricing.test.ts` owns the twenty-four published numbers and states every one of them
+  literally, so a table change is caught there once. These tests are about the ARITHMETIC on top of
+  it — who is charged which rate, and which seat the free one comes off — and hard-coding totals
+  here meant design 15 broke nine of them for saying nothing about the maths at all.
+*/
+const PLAIN = SEAT_PRICES.aud.leadership;       // 134
+const WITH_AI = SEAT_PRICES.aud.leadershipWithAi; // 224
 
 describe('who the training seat is for', () => {
   it('frontline leaders, and nobody else', () => {
@@ -48,9 +59,15 @@ describe('who the training seat is for', () => {
     expect(canBeTrained('staff')).toBe(false);
   });
 
-  it('but the price is still published, for when it is', () => {
-    expect(PACKAGES.seat_training.aud).toBe(44);
-    expect(SEAT_PRICES.aud.withTraining).toBe(44);
+  /*
+    Design 15 retired the A$44 training seat. It had been published for months and was never
+    sellable — the supervisor pack was never finished — and the same slot is now the leadership seat
+    with the AI on it, at A$224.
+  */
+  it('but the slot is now the AI seat, and the training seat is gone', () => {
+    expect(PACKAGES.seat_training.aud).toBe(224);
+    expect(SEAT_PRICES.aud.leadershipWithAi).toBe(224);
+    expect(PACKAGES.seat_training.label).toContain('AI');
   });
 });
 
@@ -61,8 +78,7 @@ describe('a bill made of two kinds of seat', () => {
     expect(bill.training).toBe(6);
     expect(bill.plain).toBe(33);
     expect(bill.plain + bill.training + FREE_SEATS).toBe(40);
-    expect(bill.monthlyCost).toBe(33 * 26 + 6 * 44);
-    expect(bill.monthlyCost).toBe(1122);
+    expect(bill.monthlyCost).toBe(33 * PLAIN + 6 * WITH_AI);
   });
 
   /*
@@ -72,13 +88,13 @@ describe('a bill made of two kinds of seat', () => {
   */
   it('NEVER charges the training rate to people who are not on training', () => {
     const bill = seatBill(40, 6, 'aud');
-    expect(bill.monthlyCost).toBeLessThan(39 * 44);
-    expect(bill.monthlyCost, 'and is not the plain rate for everybody either').toBeGreaterThan(39 * 26);
+    expect(bill.monthlyCost).toBeLessThan(39 * WITH_AI);
+    expect(bill.monthlyCost, 'and is not the plain rate for everybody either').toBeGreaterThan(39 * PLAIN);
   });
 
   it('takes the free seat off a plain seat, not off the dearer one', () => {
-    // Two people, one on training. The free seat is the plain one, so A$44 is left, not A$26.
-    expect(seatBill(2, 1, 'aud').monthlyCost).toBe(44);
+    // Two people, one on the AI seat. The free seat is the plain one, so the dearer rate is left.
+    expect(seatBill(2, 1, 'aud').monthlyCost).toBe(WITH_AI);
     expect(seatBill(2, 1, 'aud').plain).toBe(0);
     expect(seatBill(2, 1, 'aud').training).toBe(1);
   });
@@ -86,7 +102,7 @@ describe('a bill made of two kinds of seat', () => {
   it('but the first seat is still free when every seat is a training seat', () => {
     // "The first seat is free" has to be true however the business is shaped.
     expect(seatBill(1, 1, 'aud').monthlyCost).toBe(0);
-    expect(seatBill(3, 3, 'aud').monthlyCost).toBe(2 * 44);
+    expect(seatBill(3, 3, 'aud').monthlyCost).toBe(2 * WITH_AI);
   });
 
   it('a business of one pays nothing whichever seat they are on', () => {
@@ -98,25 +114,26 @@ describe('a bill made of two kinds of seat', () => {
     // More training seats than people is not a bill, it is a bug upstream. Cap rather than throw.
     expect(seatBill(3, 9, 'aud').training).toBe(2);
     expect(seatBill(3, 9, 'aud').plain).toBe(0);
-    expect(seatBill(3, 9, 'aud').monthlyCost).toBe(2 * 44);
+    expect(seatBill(3, 9, 'aud').monthlyCost).toBe(2 * WITH_AI);
   });
 
   it('bills in the region’s own prices, never converted', () => {
-    expect(seatBill(5, 2, 'gbp').monthlyCost).toBe(2 * 17 + 2 * 26);
-    expect(seatRate('gbp', true)).toBe(26);
-    expect(seatRate('gbp', false)).toBe(17);
+    expect(seatBill(5, 2, 'gbp').monthlyCost)
+      .toBe(2 * SEAT_PRICES.gbp.leadership + 2 * SEAT_PRICES.gbp.leadershipWithAi);
+    expect(seatRate('gbp', true)).toBe(SEAT_PRICES.gbp.leadershipWithAi);
+    expect(seatRate('gbp', false)).toBe(SEAT_PRICES.gbp.leadership);
   });
 
   it('reaches the plan state, so the page shows the real number', () => {
     const s = planState(t('basic'), 40, 'aud', 6);
     expect(s.seats).toBe(40);
     expect(s.trainingSeats).toBe(6);
-    expect(s.monthlyCost).toBe(1122);
+    expect(s.monthlyCost).toBe(33 * PLAIN + 6 * WITH_AI);
   });
 
   it('holds at twenty thousand seats', () => {
     const bill = seatBill(20_000, 2_000, 'aud');
-    expect(bill.monthlyCost).toBe(17_999 * 26 + 2_000 * 44);
+    expect(bill.monthlyCost).toBe(17_999 * PLAIN + 2_000 * WITH_AI);
   });
 });
 
@@ -124,15 +141,22 @@ describe('every published price still reduces to 8', () => {
   /* Looped inside one `it` rather than generating six of them: docs/READINESS.md publishes the
      number of tests, and it is counted by reading the files, so a loop makes the two disagree. */
   it('both rates, in every currency', () => {
-    for (const c of Object.keys(SEAT_PRICES) as (keyof typeof SEAT_PRICES)[]) {
-      expect(digitRoot(SEAT_PRICES[c].seat), `${c} seat`).toBe(8);
-      expect(digitRoot(SEAT_PRICES[c].withTraining), `${c} with training`).toBe(8);
+    for (const [c, p] of Object.entries(SEAT_PRICES)) {
+      for (const amount of everyPublishedSeatPrice(p)) {
+        expect(digitRoot(amount), `${c} publishes ${amount}`).toBe(8);
+      }
     }
   });
 
-  it('and the training seat is dearer than the plain one everywhere', () => {
-    for (const c of Object.keys(SEAT_PRICES) as (keyof typeof SEAT_PRICES)[]) {
-      expect(SEAT_PRICES[c].withTraining).toBeGreaterThan(SEAT_PRICES[c].seat);
+  /*
+    The AI costs more than not having it, and leading people costs more than being led. Both are
+    obvious and both are the kind of thing a table typed by hand gets backwards once.
+  */
+  it('and every seat is dearer with the AI, and leadership dearer than team, everywhere', () => {
+    for (const [c, p] of Object.entries(SEAT_PRICES)) {
+      expect(p.leadershipWithAi, `${c} leadership`).toBeGreaterThan(p.leadership);
+      expect(p.teamWithAi, `${c} team`).toBeGreaterThan(p.team);
+      expect(p.leadership, `${c} leadership vs team`).toBeGreaterThan(p.team);
     }
   });
 });
@@ -182,9 +206,9 @@ describe('the material itself', () => {
   });
 
   it('is described to a customer as what it is', () => {
-    expect(PACKAGES.seat_training.what).toMatch(/frontline leaders/i);
+    expect(PACKAGES.seat_training.what).toMatch(/assistant|\bAI\b/i);
     expect(PACKAGES.seat_training.per, 'it is a seat, not a plan for the whole business').toBe('seat');
-    expect(PACKAGES.seat_training.aud).toBe(44);
+    expect(PACKAGES.seat_training.aud).toBe(WITH_AI);
   });
 });
 

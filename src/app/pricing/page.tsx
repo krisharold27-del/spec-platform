@@ -57,7 +57,7 @@ export default function Pricing() {
         </section>
 
         <h1 className="font-serif text-3xl tracking-tight text-ink sm:text-4xl">
-          {home.symbol}{home.seat} per seat per month. The first one is free.
+          {home.symbol}{home.leadership} a leadership seat, {home.symbol}{home.team} a team seat, per month. The first one is free.
         </h1>
         <p className="mt-3 max-w-2xl text-base text-ink-light">
           <b>The first seat is free</b>, so a business of one pays nothing at all. No minimum. No tier
@@ -132,8 +132,8 @@ export default function Pricing() {
                 {ORDER.map(c => (
                   <tr key={c}>
                     <td className="text-ink">{REGION[c]}</td>
-                    <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].seat}</td>
-                    <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].withTraining}</td>
+                    <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].leadership}</td>
+                    <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].team}</td>
                   </tr>
                 ))}
               </tbody>
@@ -204,7 +204,7 @@ export default function Pricing() {
             month to month. Move the sliders to your own figures, and switch off any line you disagree with.
           </p>
           <div className="mt-6">
-            <LabourCalculator seatCostAnnual={home.seat * 12} currencySymbol={home.symbol} />
+            <LabourCalculator seatCostAnnual={home.leadership * 12} currencySymbol={home.symbol} />
           </div>
         </section>
 

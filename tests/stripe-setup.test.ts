@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
-import { SEAT_PRICES, digitRoot, type Currency } from '../src/lib/pricing';
+import { SEAT_PRICES, digitRoot, everyPublishedSeatPrice } from '../src/lib/pricing';
 
 /*
   ── The setup document has to be true, not just written ──────────────────────────────────────────
@@ -68,16 +68,25 @@ describe('the Stripe setup list matches the code', () => {
     The table in the document is the only place those numbers are transcribed by a human.
   */
   it('states every published price exactly as the product charges it', () => {
-    for (const [currency, price] of Object.entries(SEAT_PRICES) as [Currency, { seat: number }][]) {
-      const row = new RegExp(`\\|\\s*${currency.toUpperCase()}\\s*\\|\\s*${price.seat}\\s*\\|`, 'i');
-      expect(doc, `${currency.toUpperCase()} should be ${price.seat}`).toMatch(row);
+    for (const [currency, price] of Object.entries(SEAT_PRICES)) {
+      /*
+        All four now, in the order the table prints them. Design 15 turned one seat into two and the
+        row from two numbers into four — a check that still read the first column would have passed
+        on a document whose other three were anything at all.
+      */
+      const row = new RegExp(
+        `\\|\\s*${currency.toUpperCase()}\\s*\\|\\s*${price.leadership}\\s*\\|\\s*${price.leadershipWithAi}`
+        + `\\s*\\|\\s*${price.team}\\s*\\|\\s*${price.teamWithAi}\\s*\\|`, 'i');
+      expect(doc, `${currency.toUpperCase()} should read ${price.leadership} ${price.leadershipWithAi} ${price.team} ${price.teamWithAi}`).toMatch(row);
     }
   });
 
   /* And the rule those numbers obey, so a seventh region is not invented carelessly. */
   it('every published price still reduces to 8', () => {
-    for (const [currency, price] of Object.entries(SEAT_PRICES) as [Currency, { seat: number }][]) {
-      expect(digitRoot(price.seat), currency).toBe(8);
+    for (const [currency, price] of Object.entries(SEAT_PRICES)) {
+      for (const amount of everyPublishedSeatPrice(price)) {
+        expect(digitRoot(amount), `${currency} publishes ${amount}`).toBe(8);
+      }
     }
   });
 

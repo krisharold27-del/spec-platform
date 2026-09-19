@@ -190,8 +190,8 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             <div className="label-caps">SPEC&apos;s training material</div>
             <p className="mt-1 text-sm text-ink-light">
               For frontline leaders — supervisors and team leaders. {libraryLine(LIBRARY)} It takes their
-              seat from {moneyLabel(plan.currency, SEAT_PRICES[plan.currency].seat)} to{' '}
-              {moneyLabel(plan.currency, SEAT_PRICES[plan.currency].withTraining)} a month, and the
+              seat from {moneyLabel(plan.currency, SEAT_PRICES[plan.currency].leadership)} to{' '}
+              {moneyLabel(plan.currency, SEAT_PRICES[plan.currency].leadershipWithAi)} a month, and the
               modules go onto the path for the role they hold.
             </p>
             {sp.training === 'not_frontline' && (
@@ -227,8 +227,8 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                     <span className="text-xs text-ink-light">{role.title}</span>
                     <span className={`rounded px-2 py-0.5 text-xs font-medium ${person.trainingSeat ? 'bg-sage-200 text-sage-900' : 'bg-cream text-ink-light'}`}>
                       {person.trainingSeat
-                        ? `On training · ${moneyLabel(plan.currency, SEAT_PRICES[plan.currency].withTraining)}`
-                        : `${moneyLabel(plan.currency, SEAT_PRICES[plan.currency].seat)}`}
+                        ? `With AI · ${moneyLabel(plan.currency, SEAT_PRICES[plan.currency].leadershipWithAi)}`
+                        : `${moneyLabel(plan.currency, SEAT_PRICES[plan.currency].leadership)}`}
                     </span>
                     <form action={setTrainingSeat} className="ml-auto">
                       <input type="hidden" name="userId" value={person.id} />

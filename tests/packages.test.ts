@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   PACKAGES, PACKAGE_KEYS, packageOf, monthlyCostOf, packagePrice, currencyFor,
-  availableTo, unavailableBecause, digitRoot, SEAT_PRICES, HOME_CURRENCY,
+  availableTo, unavailableBecause, digitRoot, SEAT_PRICES, HOME_CURRENCY, everyPublishedSeatPrice,
   type Package,
 } from '../src/lib/pricing';
 
@@ -29,8 +29,8 @@ describe('the four packages', () => {
   });
 
   it('charges what he said', () => {
-    expect(PACKAGES.seat.aud).toBe(26);
-    expect(PACKAGES.seat_training.aud).toBe(44);
+    expect(PACKAGES.seat.aud).toBe(SEAT_PRICES.aud.leadership);
+    expect(PACKAGES.seat_training.aud).toBe(SEAT_PRICES.aud.leadershipWithAi);
     /*
       A$1,007 → A$1,502 on 18 September. Kris: *"One-to-one is the premium format, and the old
       number priced it like a freelancer hour ($250/hr) — too cheap for training delivered at your
@@ -52,9 +52,10 @@ describe('the four packages', () => {
     for (const key of PACKAGE_KEYS) {
       expect(digitRoot(PACKAGES[key].aud), `${key} is ${PACKAGES[key].aud}`).toBe(8);
     }
-    for (const c of Object.keys(SEAT_PRICES) as (keyof typeof SEAT_PRICES)[]) {
-      expect(digitRoot(SEAT_PRICES[c].seat), `${c} seat`).toBe(8);
-      expect(digitRoot(SEAT_PRICES[c].withTraining), `${c} with training`).toBe(8);
+    for (const [c, p] of Object.entries(SEAT_PRICES)) {
+      for (const amount of everyPublishedSeatPrice(p)) {
+        expect(digitRoot(amount), `${c} publishes ${amount}`).toBe(8);
+      }
     }
     expect(digitRoot(1008), 'the number that started this').toBe(9);
   });
@@ -66,8 +67,8 @@ describe('seats scale; somebody\'s week does not', () => {
     of money for forty people's worth of value. A full day a week times forty is still one day.
   */
   it('multiplies a seat package by the people in it', () => {
-    expect(monthlyCostOf('seat', 'aud', 40)).toBe(26 * 40);
-    expect(monthlyCostOf('seat_training', 'aud', 40)).toBe(44 * 40);
+    expect(monthlyCostOf('seat', 'aud', 40)).toBe(SEAT_PRICES.aud.leadership * 40);
+    expect(monthlyCostOf('seat_training', 'aud', 40)).toBe(SEAT_PRICES.aud.leadershipWithAi * 40);
   });
 
   it('NEVER multiplies a per-business package by a headcount', () => {
@@ -77,10 +78,15 @@ describe('seats scale; somebody\'s week does not', () => {
     }
   });
 
-  it('uses the training price for the training package, not the plain seat one', () => {
-    expect(monthlyCostOf('seat_training', 'aud', 1)).toBe(44);
-    expect(monthlyCostOf('seat_training', 'gbp', 1)).toBe(SEAT_PRICES.gbp.withTraining);
-    expect(monthlyCostOf('seat', 'gbp', 1)).toBe(SEAT_PRICES.gbp.seat);
+  /*
+    `seat_training` is the AI seat now, not SPEC's training material — design 15 retired that seat,
+    which had been published for months and was never sellable. The KEY is unchanged because it is
+    stored on businesses and renaming it is a migration; see the note in lib/pricing.
+  */
+  it('uses the AI price for the AI package, not the plain seat one', () => {
+    expect(monthlyCostOf('seat_training', 'aud', 1)).toBe(224);
+    expect(monthlyCostOf('seat_training', 'gbp', 1)).toBe(SEAT_PRICES.gbp.leadershipWithAi);
+    expect(monthlyCostOf('seat', 'gbp', 1)).toBe(SEAT_PRICES.gbp.leadership);
   });
 });
 
@@ -189,7 +195,7 @@ describe('who sets it', () => {
 
   /* Each package says what it includes in the words it was sold in, so nobody is surprised later. */
   it('describes what is actually delivered', () => {
-    expect(PACKAGES.seat_training.what).toContain('online');
+    expect(PACKAGES.seat_training.what).toMatch(/assistant|\bAI\b/i);
     // One-to-one, and described by the sessions rather than by an hour — see tests/published-prices.
     expect(PACKAGES.sessions.what).toContain('Four one-to-one sessions a month');
     expect(PACKAGES.full_control.what).toContain('board meeting');

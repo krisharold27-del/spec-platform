@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { PACKAGES, PACKAGE_KEYS, SEAT_PRICES } from '../src/lib/pricing';
+import { PACKAGES, PACKAGE_KEYS, SEAT_PRICES, everyPublishedSeatPrice } from '../src/lib/pricing';
 
 /**
  * The rules about money that a page may say out loud.
@@ -39,8 +39,9 @@ describe('the rule of 8, on every published figure', () => {
 
   it('and every seat price in every currency', () => {
     for (const [currency, p] of Object.entries(SEAT_PRICES)) {
-      expect(digitSum(p.seat), `${currency} seat A$${p.seat}`).toBe(8);
-      expect(digitSum(p.withTraining), `${currency} training seat ${p.withTraining}`).toBe(8);
+      for (const amount of everyPublishedSeatPrice(p)) {
+        expect(digitSum(amount), `${currency} publishes ${amount}`).toBe(8);
+      }
     }
   });
 

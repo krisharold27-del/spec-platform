@@ -81,18 +81,59 @@ Each one gets **six monthly recurring prices on that same product** — not six 
 finds the right currency by looking up other prices *on the same product*, so a second product is
 invisible to it.
 
-| Currency | Seat | Seat plus training |
-|---|---|---|
-| AUD | 26 | 44 |
-| NZD | 35 | 53 |
-| GBP | 17 | 26 |
-| EUR | 26 | 44 |
-| USD | 26 | 44 |
-| CAD | 35 | 53 |
+### Design 15 — two seats, not one
 
-Copy the **AUD seat** price ID into `STRIPE_PRICE_SEAT_MONTHLY`, and the **AUD seat plus training**
-price ID into `STRIPE_PRICE_SEAT_TRAINING_MONTHLY`. The other currencies are found through whichever
-of the two applies, by matching the exact published amount on the same product.
+Kris, 19 September: **"if you lead people, you're a leadership seat. If you're led, you're a team
+seat in a pool."** The single flat seat is gone. So is the A$44 *seat plus training*, which was
+published for months and never sellable; the same slot is now the seat **with the AI on it**.
+
+Which seat a person is on is read from the **org chart** — anybody with a direct report is a
+leadership seat — not from their job title. SPEC never has to guess.
+
+| Currency | Leadership seat | Leadership + AI | Team seat | Team + AI |
+|---|---|---|---|---|
+| AUD | 134 | 224 | 17 | 26 |
+| NZD | 179 | 296 | 26 | 44 |
+| GBP | 89 | 152 | 8 | 17 |
+| EUR | 134 | 224 | 17 | 26 |
+| USD | 134 | 224 | 17 | 26 |
+| CAD | 179 | 296 | 26 | 44 |
+
+The design draws the AI seats at **$227** and **$29**. Neither reduces to 8, which every published
+price in this product does, so neither could be published. Kris, given the nearest numbers that
+obey the rule: **"224 and 26"**.
+
+Copy the **AUD leadership** price ID into `STRIPE_PRICE_SEAT_MONTHLY`, and the **AUD leadership with
+AI** price ID into `STRIPE_PRICE_SEAT_TRAINING_MONTHLY`. The other currencies are found through
+whichever applies, by matching the exact published amount on the same product.
+
+### What to actually do in Stripe
+
+**Four products, not four prices on one.** The checkout route finds a price by currency *and exact
+amount* within a product, so two different amounts on the same product is ambiguous and it could
+charge the wrong one:
+
+  `SPEC leadership seat` · `SPEC leadership seat with AI` · `SPEC team seat` · `SPEC team seat with AI`
+
+Each gets **six monthly recurring prices on that same product**, one per currency, at the exact
+figures above. A price that drifts from this table is never charged — checkout logs it and falls
+back — which is safe and invisible, so the table has to be right.
+
+- **Recurring monthly, per-unit with a quantity.** SPEC sets the quantity as seats change.
+- **One subscription per business with several subscription items**, not several subscriptions —
+  one invoice, one billing cycle.
+- **Archive the old A$26 seat price. Do not delete it.** Live subscriptions reference it and
+  deleting breaks them; archiving only stops new use.
+- **Existing customers do not re-price themselves.** Moving them is a deliberate act on each
+  subscription, and it should be a decision rather than a side effect of this change.
+- **The free first seat stays in SPEC's maths**, not a Stripe coupon — one place owns that rule, and
+  it is `lib/plan`.
+- Price IDs go from the Stripe dashboard **straight into the Vercel settings box**. Never a chat, a
+  file, or a commit.
+
+Until those products exist, the pages state the new prices and billing still charges the old seat
+price. That gap is deliberate and Kris's call of 19 September — *"build and publish now"* — and it
+closes the moment the price IDs are in.
 
 **The amounts have to match exactly.** `src/app/api/stripe/checkout/route.ts` matches on currency
 *and* the exact amount, so a price that has drifted from this table is never charged — it falls back

@@ -7,14 +7,55 @@
  */
 export type Currency = 'aud' | 'nzd' | 'gbp' | 'eur' | 'usd' | 'cad';
 
-export const SEAT_PRICES: Record<Currency, { seat: number; withTraining: number; symbol: string }> = {
-  aud: { seat: 26, withTraining: 44, symbol: 'A$' },
-  nzd: { seat: 35, withTraining: 53, symbol: 'NZ$' },
-  gbp: { seat: 17, withTraining: 26, symbol: '£' },
-  eur: { seat: 26, withTraining: 44, symbol: '€' },
-  usd: { seat: 26, withTraining: 44, symbol: 'US$' },
-  cad: { seat: 35, withTraining: 53, symbol: 'CA$' },
+export interface SeatPrice {
+  /** Somebody who leads people. */
+  leadership: number;
+  leadershipWithAi: number;
+  /** Somebody who is led — priced in a pool, not one at a time. */
+  team: number;
+  teamWithAi: number;
+  symbol: string;
+}
+
+/**
+ * ── Two seats, not one ──────────────────────────────────────────────────────────────────────────
+ *
+ * Design 15, 19 September, replacing a single flat seat: **"if you lead people, you're a leadership
+ * seat. If you're led, you're a team seat in a pool."**
+ *
+ * The old table had one `seat` and a `withTraining` beside it. Both are gone: the A$44 training
+ * seat was published for months and never sellable — the supervisor pack was never finished — and
+ * the design retires it in favour of an AI variant on each of the two real seats.
+ *
+ * ── The two numbers that were drawn and could not be published ──────────────────────────────────
+ *
+ * The design draws the AI seats at **$227** and **$29**. Neither reduces to 8, and every published
+ * price in this product does — it is the rule at the top of this file and two tests enforce it.
+ * Kris, 19 September, given the nearest numbers that obey it: **"224 and 26"**.
+ *
+ * ── And the other five currencies ───────────────────────────────────────────────────────────────
+ *
+ * The design gives Australian dollars only. Kris: **"fix all pricing"**. These follow the
+ * relationship the old table already expressed — New Zealand and Canada above Australia, Britain
+ * about two thirds of it — moved to the nearest number that reduces to 8. They are chosen local
+ * numbers, not conversions, which is this file's first rule: *a price never moves because an
+ * exchange rate did*.
+ *
+ * `gbp.team` at £8 is the one to look at twice. It is the nearest number to the two-thirds
+ * relationship that obeys the rule, and the alternative is £17 — the same figure as Australia.
+ */
+export const SEAT_PRICES: Record<Currency, SeatPrice> = {
+  aud: { leadership: 134, leadershipWithAi: 224, team: 17, teamWithAi: 26, symbol: 'A$' },
+  nzd: { leadership: 179, leadershipWithAi: 296, team: 26, teamWithAi: 44, symbol: 'NZ$' },
+  gbp: { leadership: 89, leadershipWithAi: 152, team: 8, teamWithAi: 17, symbol: '£' },
+  eur: { leadership: 134, leadershipWithAi: 224, team: 17, teamWithAi: 26, symbol: '€' },
+  usd: { leadership: 134, leadershipWithAi: 224, team: 17, teamWithAi: 26, symbol: 'US$' },
+  cad: { leadership: 179, leadershipWithAi: 296, team: 26, teamWithAi: 44, symbol: 'CA$' },
 };
+
+/** Every number this table publishes, for the rule that they all reduce to 8. */
+export const everyPublishedSeatPrice = (p: SeatPrice): number[] =>
+  [p.leadership, p.leadershipWithAi, p.team, p.teamWithAi];
 
 /** SPEC's home market — used when there is no way to tell where a business is. */
 export const HOME_CURRENCY: Currency = 'aud';
@@ -41,7 +82,30 @@ export function digitRoot(n: number): number {
   return x;
 }
 
-export const seatLabel = (currency: Currency) => `${SEAT_PRICES[currency].symbol}${SEAT_PRICES[currency].seat}`;
+export type SeatKind = 'leadership' | 'team';
+
+/**
+ * Which seat somebody is on, from the chart rather than from their job title.
+ *
+ * The design describes leadership seats by title — "team leader, supervisor, manager +". SPEC does
+ * not have to guess: it holds the org chart, and the chart already knows who has somebody reporting
+ * to them. A title is what a business calls a person; the chart is what the person actually does,
+ * and the two disagree in every business that has ever existed.
+ *
+ * So: anybody with a direct report is a leadership seat. Everybody else is a team seat.
+ */
+export const seatKindFor = (hasDirectReports: boolean): SeatKind =>
+  (hasDirectReports ? 'leadership' : 'team');
+
+/** What one seat of a kind costs, with or without the AI. */
+export function seatPrice(currency: Currency, kind: SeatKind, withAi = false): number {
+  const p = SEAT_PRICES[currency];
+  if (kind === 'leadership') return withAi ? p.leadershipWithAi : p.leadership;
+  return withAi ? p.teamWithAi : p.team;
+}
+
+export const seatLabel = (currency: Currency, kind: SeatKind = 'leadership', withAi = false) =>
+  `${SEAT_PRICES[currency].symbol}${seatPrice(currency, kind, withAi)}`;
 export const moneyLabel = (currency: Currency, amount: number) => `${SEAT_PRICES[currency].symbol}${amount}`;
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -150,9 +214,15 @@ export const canBeTrained = (level: string | null | undefined): boolean =>
 export const isFrontlineLeader = (level: string | null | undefined): boolean =>
   TRAINING_LEVELS.includes(String(level) as (typeof TRAINING_LEVELS)[number]);
 
-/** What one seat of each kind costs a month, in this currency. */
-export const seatRate = (currency: Currency, training: boolean): number =>
-  training ? SEAT_PRICES[currency].withTraining : SEAT_PRICES[currency].seat;
+/**
+ * What one seat costs a month, in this currency.
+ *
+ * The boolean used to mean "with SPEC's training material". Design 15 retires that seat — it was
+ * published for months and never sellable, because the supervisor pack was never finished — and
+ * puts an AI variant on each of the two real seats instead. Same shape, different question.
+ */
+export const seatRate = (currency: Currency, withAi: boolean, kind: SeatKind = 'leadership'): number =>
+  seatPrice(currency, kind, withAi);
 
 export interface PackageSpec {
   label: string;
@@ -202,21 +272,34 @@ export interface PackageSpec {
 }
 
 export const PACKAGES: Record<Package, PackageSpec> = {
+  /*
+    ── The package keys are older than the model they now describe ────────────────────────────
+
+    `seat` and `seat_training` are stored on businesses, so the KEYS are left alone: renaming them
+    is a data migration, not a rename. What they mean has changed with design 15 — `seat_training`
+    is now the AI variant rather than SPEC's training material, which was published for months and
+    never sellable. The names should follow in a migration; until then this note is the only thing
+    stopping somebody reading the key and believing it.
+
+    Team seats are deliberately NOT a package. A business does not choose them: every business has
+    both kinds the moment it has a chart, and which seat a person is on is read from who reports to
+    whom. See `seatKindFor`.
+  */
   seat: {
-    label: 'Seat',
-    what: 'One person in SPEC. Their scorecard, their page, their part of the chart.',
+    label: 'Leadership seat',
+    what: 'One person who leads people. Their scorecard, their page, their part of the chart.',
     per: 'seat',
-    aud: 26,
+    aud: 134,
     everyCurrency: true,
     availableIn: 'anywhere',
     publishPrice: true,
   },
   seat_training: {
-    label: 'Seat plus training',
-    what: 'The same, and SPEC\'s own training material for frontline leaders — done online, through '
-      + 'this system, at their own pace. A supervisor or team leader seat only; see canBeTrained.',
+    label: 'Leadership seat with AI',
+    what: 'The same seat, with the assistant on it — SPEC reading the numbers with them rather than '
+      + 'just holding them.',
     per: 'seat',
-    aud: 44,
+    aud: 224,
     everyCurrency: true,
     availableIn: 'anywhere',
     publishPrice: true,
@@ -288,7 +371,7 @@ export function packagePrice(pkg: Package, currency: Currency = HOME_CURRENCY): 
   const c = currencyFor(pkg, currency);
   const amount = spec.per === 'business'
     ? spec.aud
-    : (pkg === 'seat_training' ? SEAT_PRICES[c].withTraining : SEAT_PRICES[c].seat);
+    : seatPrice(c, 'leadership', pkg === 'seat_training');
   return `${moneyLabel(c, amount)}${spec.per === 'seat' ? ' a person a month' : ' a month'}`;
 }
 
