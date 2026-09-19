@@ -3,7 +3,7 @@ import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '../db';
 import {
   kindOf, readList, readHeadline, liveAgainst, stillHere, initials, boardMeta,
-  type BoardKind, type Feed, type Row, type Step, type Headline,
+  type BoardKind, type Feed, type Row, type Step, type StepState, type Headline,
 } from './boards-live';
 import type { MirrorKpi } from './mirror-kpis';
 
@@ -332,4 +332,72 @@ export async function removeKpiFromBoard(opts: {
   await db.update(schema.boards)
     .set({ rows: JSON.stringify(rows), updatedAt: new Date().toISOString() })
     .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
+}
+
+/**
+ * Working IN a plan, rather than reading one.
+ *
+ * ── Why a plan on a mirror had to become something you can move ──────────────────────────────────
+ *
+ * Kris, 19 September: *"so the King of the Mountain mirror must be interactive"*.
+ *
+ * King of the Mountain is the plan mirror — what needs fixing, who is doing it, and where each one
+ * has got to. It was a printed list. The states were right there on the screen, in the business's
+ * own words, and the only way to move one was for somebody to go and edit a row of JSON. So the
+ * thing a team is looking at in a meeting could not be changed in that meeting, which is the moment
+ * it is worth changing.
+ *
+ * ── What is deliberately still forbidden ─────────────────────────────────────────────────────────
+ *
+ * A plan is never scored. There is no "60% complete" and no count of steps done, because a plan
+ * carrying a number becomes a number people manage rather than work they do — `scripts/
+ * boards-journey.mjs` holds that rule against the plan's own section of the screen.
+ *
+ * Steps are matched by their TEXT rather than by an index. A list two people are moving at once is
+ * exactly where "the third one" stops meaning the same thing to both of them, and the cost of
+ * getting it wrong is somebody else's step silently changing state.
+ */
+export async function moveStep(opts: {
+  tenantId: string;
+  boardId: string;
+  text: string;
+  state: StepState;
+}): Promise<{ moved: boolean }> {
+  const [board] = await db.select().from(schema.boards)
+    .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
+  if (!board) return { moved: false };
+
+  const steps = readList<Step>(board.steps);
+  const found = steps.find(s => s.text === opts.text);
+  if (!found) return { moved: false };
+  if (found.state === opts.state) return { moved: false };
+
+  found.state = opts.state;
+  await db.update(schema.boards)
+    .set({ steps: JSON.stringify(steps), updatedAt: new Date().toISOString() })
+    .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
+  return { moved: true };
+}
+
+/** Add a step to a plan. Starts Not started, because claiming work is a separate act from doing it. */
+export async function addStep(opts: {
+  tenantId: string; boardId: string; text: string; owner: string;
+}): Promise<{ added: boolean }> {
+  const text = opts.text.trim().slice(0, 300);
+  if (!text) return { added: false };
+
+  const [board] = await db.select().from(schema.boards)
+    .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
+  if (!board) return { added: false };
+
+  const steps = readList<Step>(board.steps);
+  // The same words twice is a list nobody can move a single line of — see the note about matching
+  // steps by their text.
+  if (steps.some(s => s.text === text)) return { added: false };
+
+  steps.push({ text, owner: opts.owner.trim().slice(0, 120) || 'Nobody yet', state: 'todo' });
+  await db.update(schema.boards)
+    .set({ steps: JSON.stringify(steps), updatedAt: new Date().toISOString() })
+    .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
+  return { added: true };
 }

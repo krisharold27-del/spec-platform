@@ -15,7 +15,7 @@ import { getScope } from '@/lib/scope';
 import { listBoards, getBoard, markViewing, mirrorKpisFor } from '@/lib/boards-live-data';
 import { kpiStanding, kpiGap } from '@/lib/mirror-kpis';
 import { LIGHT_COLOUR } from '@/lib/today';
-import { newBoard, sayOnBoard, putKpiOnBoard, takeKpiOffBoard } from './actions';
+import { newBoard, sayOnBoard, putKpiOnBoard, takeKpiOffBoard, moveStepOnBoard, addStepToBoard } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +45,7 @@ export const dynamic = 'force-dynamic';
  * about to make a decision about money.
  */
 export default async function Boards({ searchParams }: {
-  searchParams: Promise<{ board?: string; type?: string; needs?: string; period?: string; cannot?: string }>;
+  searchParams: Promise<{ board?: string; type?: string; needs?: string; period?: string; cannot?: string; full?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
@@ -99,16 +99,70 @@ export default async function Boards({ searchParams }: {
       : [];
     const titleOf = new Map(mine.map(r => [r.id, r.title]));
 
-    return (
-      <Shell title={board.title} subtitle={cardLabel(board.kind)}>
-        <Link href="/mirrors" className="text-sm text-rust-700 hover:underline">&larr; All mirrors</Link>
+    /*
+      ── A mirror is an OBJECT, not a page of cards ─────────────────────────────────────────────
 
-        {/* The one component every screen refuses through, so they all answer the same way. I
-            hand-rolled this banner first and tests/refusals.test.ts caught it within a minute. */}
-        <Refused reason={refusedReason(sp)} />
+      Kris, 19 September, after the numbers were made live: *"still doesn't look and feel like an
+      artifact"*. He was right, and it was the half I had not done.
 
-        <div className="mt-4 grid items-start gap-6 lg:grid-cols-[1.6fr_1fr]">
-          <div className="grid gap-6">
+      What an artifact IS, as a thing on a screen: one framed surface with its own header — its
+      name, what kind of thing it is, when it last moved, who is in it — and its controls in that
+      header rather than scattered down the page. It can be opened on its own, full width, with the
+      product's own furniture out of the way. Everything inside it is one continuous document
+      divided by hairlines, not five floating cards that happen to be near each other.
+
+      The old version was the product's page chrome wrapped around a stack of `.card`s. It read as
+      a REPORT ABOUT a mirror. This reads as the mirror.
+
+      `?full=1` drops the app shell entirely. Not a gimmick: a mirror is the thing a team puts on
+      the wall in a meeting, and a navigation bar and a page title are exactly what nobody in that
+      room needs.
+    */
+    const full = sp.full === '1';
+    const frame = (
+      <article className="overflow-hidden rounded-2xl border border-ink/12 bg-surface-raised shadow-[0_1px_2px_rgba(32,30,29,.05),0_18px_40px_-28px_rgba(32,30,29,.45)]">
+        {/* The header bar: what this is, and everything you can do to it. */}
+        <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-ink/10 bg-cream px-5 py-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-serif text-xl leading-tight text-ink">{board.title}</h1>
+            <p className="mt-0.5 text-xs text-ink-light">
+              {cardLabel(board.kind)}
+              {board.meta ? ` · ${board.meta}` : ''}
+              {board.editingNow.length > 0 ? ` · ${board.editingNow.join(', ')} here now` : ''}
+            </p>
+          </div>
+
+          {months.length > 0 && (
+            <form className="flex items-center gap-2">
+              <input type="hidden" name="board" value={board.id} />
+              {full && <input type="hidden" name="full" value="1" />}
+              <label className="sr-only" htmlFor="mirror-period">Month</label>
+              <select
+                id="mirror-period"
+                name="period"
+                defaultValue={chosen?.period ?? ''}
+                className="min-h-[36px] rounded-md border border-ink/15 bg-surface-raised px-2.5 py-1.5 text-sm text-ink"
+              >
+                {months.map(m => (
+                  <option key={m.id} value={m.period}>
+                    {m.period}{m.status === 'locked' ? ' — closed' : ''}
+                  </option>
+                ))}
+              </select>
+              <SubmitButton className="btn-secondary px-3 py-1.5 text-xs">Show that month</SubmitButton>
+            </form>
+          )}
+
+          <Link
+            href={`/mirrors?board=${board.id}${chosen ? `&period=${chosen.period}` : ''}${full ? '' : '&full=1'}`}
+            className="rounded-md border border-ink/15 px-3 py-1.5 text-xs text-ink-light hover:text-rust"
+          >
+            {full ? 'Back in SPEC' : 'Open on its own'}
+          </Link>
+        </header>
+
+        <div className="grid items-start gap-0 lg:grid-cols-[1.6fr_1fr] lg:divide-x lg:divide-ink/10">
+          <div className="grid gap-0 divide-y divide-ink/10">
             {/*
               ── The month this mirror is being read in ──────────────────────────────────────
 
@@ -119,31 +173,6 @@ export default async function Boards({ searchParams }: {
               Only months the business actually has. Offering one that was never opened would be
               inviting somebody into an empty room and letting them conclude the numbers are gone.
             */}
-            {months.length > 0 && (
-              <section className="card">
-                <form className="flex flex-wrap items-center gap-2">
-                  <input type="hidden" name="board" value={board.id} />
-                  <label className="label-caps" htmlFor="mirror-period">Reading</label>
-                  <select
-                    id="mirror-period"
-                    name="period"
-                    defaultValue={chosen?.period ?? ''}
-                    className="min-h-[40px] rounded-md border border-ink/15 bg-cream px-3 py-2 text-sm text-ink"
-                  >
-                    {months.map(m => (
-                      <option key={m.id} value={m.period}>
-                        {m.period}{m.status === 'locked' ? ' — closed' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <SubmitButton className="btn-secondary">Show that month</SubmitButton>
-                  <span className="text-xs text-ink-light">
-                    Every measure below is read again for the month you pick. Nothing here is a
-                    stored number.
-                  </span>
-                </form>
-              </section>
-            )}
 
             {/*
               The business's own KPIs, read live. This is the half Kris asked for: a mirror that
@@ -153,7 +182,7 @@ export default async function Boards({ searchParams }: {
             {/* Named so a check can read the live lines themselves rather than the whole page —
                 the picker below lists every measure by name, and a check scanning the document
                 cannot tell a line that is DRAWN from an option in a dropdown. */}
-            <section className="card" data-mirror-kpis>
+            <section className="p-5" data-mirror-kpis>
               <h2 className="font-serif text-xl text-ink">What this mirror is measured on</h2>
               {kpis.length === 0 ? (
                 <p className="mt-2 text-sm text-ink-light">
@@ -230,7 +259,7 @@ export default async function Boards({ searchParams }: {
             </section>
 
             {board.feeds.length > 0 && (
-              <section className="card">
+              <section className="p-5">
                 <div className="flex flex-wrap gap-2">
                   {board.feeds.map(f => (
                     <span
@@ -258,7 +287,7 @@ export default async function Boards({ searchParams }: {
             )}
 
             {board.headline && (
-              <section className="card">
+              <section className="p-5">
                 <div className="flex flex-wrap items-end gap-6">
                   <div>
                     <div className="label-caps">{board.headline.wasLabel}</div>
@@ -285,7 +314,7 @@ export default async function Boards({ searchParams }: {
               claim on the screen a business argues in front of.
             */}
             {board.rows.filter(r => !r.criterionId).length > 0 && (
-              <section className="card">
+              <section className="p-5">
                 <h2 className="font-serif text-xl text-ink">Entered by hand</h2>
                 <p className="mt-1 text-sm text-ink-light">
                   These were typed in and stay as they were until somebody changes them. They are
@@ -308,34 +337,107 @@ export default async function Boards({ searchParams }: {
               </section>
             )}
 
-            {board.steps.length > 0 && (
+            {/*
+              A plan mirror always has a plan, even before anybody has written a step on it.
+
+              The add-a-step form used to live INSIDE this section, which was only drawn when steps
+              already existed — so a mirror created as a plan could never become one. The first thing
+              somebody does with a new plan is add the first step, and that was the one thing they
+              could not do.
+            */}
+            {(board.steps.length > 0 || board.kind === 'plans') && (
               /* Named so the rule "a plan is never scored with a percentage" can be checked against
                  the plan itself rather than against everything else on the page. */
-              <section className="card" data-plan-steps>
+              <section className="p-5" data-plan-steps>
                 <p className="text-sm text-ink-light">
                   What needs fixing, and who&rsquo;s doing it — the plan the team climbs together.
                 </p>
+                {/*
+                  ── A plan you can move, in the meeting you are moving it in ──────────────────
+
+                  Kris, 19 September: *"so the King of the Mountain mirror must be interactive"*.
+
+                  This was a printed list. The states were right there in the business's own words
+                  and the only way to change one was to edit a row of JSON, so the thing a team
+                  looks at together could not be changed together — at the one moment it is worth
+                  changing.
+
+                  Still no number. A plan carrying "60% done" becomes a number people manage rather
+                  than work they do, which is why the states are words and why the journey holds
+                  this section to having no percentage in it at all.
+                */}
+                {board.steps.length === 0 && (
+                  <p className="mt-3 text-sm text-ink-light">
+                    Nothing on this plan yet. The first step is usually the one everybody already
+                    knows about.
+                  </p>
+                )}
                 <ul className="mt-4 space-y-3">
                   {board.steps.map((s, i) => {
-                    const state = STEP_STATE[stepStateOf(s.state)];
+                    const here = stepStateOf(s.state);
+                    const state = STEP_STATE[here];
                     return (
-                      <li key={i} className="flex items-start gap-3 text-sm">
-                        <span
-                          className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{ background: state.colour }}
-                          aria-hidden
-                        />
-                        <span className="flex-1 text-ink">{s.text}</span>
-                        <span className="shrink-0 text-xs text-ink-light">{s.owner} · {state.label}</span>
+                      <li key={i} className="rounded-xl bg-cream p-3 text-sm">
+                        <div className="flex items-start gap-3">
+                          <span
+                            className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ background: state.colour }}
+                            aria-hidden
+                          />
+                          <span className="flex-1 text-ink">{s.text}</span>
+                          <span className="shrink-0 text-xs text-ink-light">{s.owner} · {state.label}</span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5 pl-6">
+                          {(Object.keys(STEP_STATE) as (keyof typeof STEP_STATE)[]).map(key => (
+                            <form action={moveStepOnBoard} key={key}>
+                              <input type="hidden" name="boardId" value={board.id} />
+                              <input type="hidden" name="text" value={s.text} />
+                              <input type="hidden" name="state" value={key} />
+                              <SubmitButton
+                                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                  key === here
+                                    ? 'text-cream'
+                                    : 'bg-surface text-ink-light hover:text-ink'
+                                }`}
+                                style={key === here ? { background: STEP_STATE[key].colour } : undefined}
+                              >
+                                {STEP_STATE[key].label}
+                              </SubmitButton>
+                            </form>
+                          ))}
+                        </div>
                       </li>
                     );
                   })}
                 </ul>
+
+                <form action={addStepToBoard} className="mt-4 flex flex-wrap items-end gap-2 border-t border-rust-200 pt-4">
+                  <input type="hidden" name="boardId" value={board.id} />
+                  <div className="min-w-[220px] flex-1">
+                    <label className="label-caps" htmlFor="plan-step">Add a step</label>
+                    <input
+                      id="plan-step"
+                      name="text"
+                      className="mt-1 min-h-[40px] w-full rounded-md border border-ink/15 bg-cream px-3 py-2 text-sm text-ink"
+                      placeholder="What needs fixing"
+                    />
+                  </div>
+                  <div className="w-[160px]">
+                    <label className="label-caps" htmlFor="plan-owner">Who</label>
+                    <input
+                      id="plan-owner"
+                      name="owner"
+                      className="mt-1 min-h-[40px] w-full rounded-md border border-ink/15 bg-cream px-3 py-2 text-sm text-ink"
+                      placeholder={user.name}
+                    />
+                  </div>
+                  <SubmitButton className="btn-secondary">Add it</SubmitButton>
+                </form>
               </section>
             )}
 
             {!board.rows.length && !board.steps.length && !board.headline && (
-              <section className="card">
+              <section className="p-5">
                 <p className="text-sm text-ink-light">
                   {board.summary ? `${board.summary} ` : ''}{EMPTY_BOARD}
                 </p>
@@ -343,8 +445,8 @@ export default async function Boards({ searchParams }: {
             )}
           </div>
 
-          <div className="grid gap-6">
-            <section className="card">
+          <div className="grid gap-0 divide-y divide-ink/10">
+            <section className="p-5">
               <h2 className="label-caps">Editing now</h2>
               {board.editingNow.length ? (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -365,7 +467,7 @@ export default async function Boards({ searchParams }: {
               )}
             </section>
 
-            <section className="card">
+            <section className="p-5">
               <h2 className="font-serif text-xl text-ink">Discussion</h2>
               {board.comments.length === 0 && (
                 <p className="mt-2 text-sm text-ink-light">
@@ -394,6 +496,34 @@ export default async function Boards({ searchParams }: {
             </section>
           </div>
         </div>
+      </article>
+    );
+
+    /*
+      Full screen is the mirror and nothing else — no navigation, no page title, no footer. The one
+      way back is in the frame's own header, which is where every other control for this object is.
+    */
+    if (full) {
+      return (
+        <main className="mx-auto max-w-6xl px-4 py-6">
+          <Refused reason={refusedReason(sp)} />
+          {frame}
+        </main>
+      );
+    }
+
+    return (
+      /*
+        The page is "Mirrors"; the OBJECT carries its own name, in its own header.
+
+        Both printed the title, so the screen said "King of the Mountain — Solar Fix Plan" twice,
+        two inches apart, in two different sizes. That is the clearest tell that something is a
+        report ABOUT a thing rather than the thing.
+      */
+      <Shell title="Mirrors" subtitle="">
+        <Link href="/mirrors" className="text-sm text-rust-700 hover:underline">&larr; All mirrors</Link>
+        <Refused reason={refusedReason(sp)} />
+        <div className="mt-4">{frame}</div>
       </Shell>
     );
   }

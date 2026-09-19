@@ -108,6 +108,24 @@ check('and where each one has got to, without scoring it', /Stuck|Being done now
 */
 const planText = await page.locator('[data-plan-steps]').first().innerText().catch(() => '');
 check('a plan is drawn at all', planText.length > 0);
+
+/*
+  ── A plan you can move, in the meeting you are moving it in ────────────────────────────────────
+
+  Kris, 19 September: *"so the King of the Mountain mirror must be interactive"*.
+
+  It was a printed list: the states were on the screen in words and the only way to change one was
+  to edit a row of JSON, so the thing a team looks at together could not be changed together.
+
+  This is the look-around, which writes nothing by design — so what is asked here is that the
+  CONTROLS are on the plan at all. That the move really lands is asked further down, on a business
+  that can write.
+*/
+check('A PLAN OFFERS ITS STATES AS SOMETHING YOU CAN PRESS',
+      (await page.locator('[data-plan-steps] button').count()) >= 4,
+      `${await page.locator('[data-plan-steps] button').count()} controls on the plan`);
+check('  and a way to add a step, because a plan nobody can add to goes stale',
+      (await page.locator('#plan-step').count()) === 1);
 check('no percentage anywhere on a plan', !/\d+%/.test(planText),
       planText.match(/.{0,70}\d+%.{0,70}/s)?.[0]?.replace(/\n/g, ' ') ?? '');
 
@@ -173,6 +191,8 @@ const BUSINESS = `Mirror Test ${stamp}`;
   } else {
     await page.goto(`${BASE}/mirrors`, { waitUntil: 'networkidle' });
     await page.fill('input[name="title"]', 'Where the quotes go');
+    // Made as a PLAN, so the plan half of a mirror is exercised too.
+    await page.selectOption('select[name="kind"]', 'plans').catch(() => {});
     await page.getByRole('button', { name: /Start (a )?mirror|Create|Add/i }).first().click().catch(() => {});
     await page.waitForTimeout(2000);
 
@@ -226,6 +246,44 @@ const BUSINESS = `Mirror Test ${stamp}`;
               page.url().includes('period='), page.url());
       } else {
         console.log(` skip  AND THE MONTH CAN BE CHANGED — a new business has only ${months} month to look at`);
+      }
+    }
+
+    /*
+      And the plan, moved for real — by somebody who can write.
+
+      Pressing a state and then reading it back from the page is the whole question: a control that
+      looks pressable and changes nothing is worse than no control, because the team walks out of
+      the meeting believing the plan says something it does not.
+    */
+    await page.goto(`${BASE}/mirrors`, { waitUntil: 'networkidle' });
+    const planBoard = page.locator('a[href^="/mirrors?board="]').first();
+    if (await planBoard.count()) {
+      await planBoard.click();
+      await page.waitForURL('**/mirrors?board=*', { timeout: 15000 }).catch(() => {});
+      if (await page.locator('#plan-step').count()) {
+        const step = `Check the stock against the schedule ${stamp}`;
+        await page.fill('#plan-step', step);
+        await page.fill('#plan-owner', 'Pat Nguyen');
+        await page.getByRole('button', { name: 'Add it' }).click();
+        await page.waitForTimeout(2000);
+
+        let plan = await page.locator('[data-plan-steps]').first().innerText().catch(() => '');
+        check('A STEP CAN BE ADDED TO A PLAN, and it is really there',
+              plan.includes(step), plan.slice(0, 200).replace(/\n/g, ' '));
+        check('  and it starts Not started, because claiming work is not doing it',
+              /not started/i.test(plan), plan.slice(0, 200).replace(/\n/g, ' '));
+
+        const row = page.locator('[data-plan-steps] li', { hasText: step }).first();
+        await row.getByRole('button', { name: 'Stuck' }).click();
+        await page.waitForTimeout(2000);
+        plan = await page.locator('[data-plan-steps]').first().innerText().catch(() => '');
+        const moved = plan.split('\n').find(l => l.includes('Pat Nguyen')) ?? '';
+        check('  AND A STATE CAN BE MOVED, which is the whole point of it being interactive',
+              /stuck/i.test(moved), moved || plan.slice(0, 200).replace(/\n/g, ' '));
+
+        check('  and the plan is still never scored with a number',
+              !/\d+%/.test(plan), plan.match(/.{0,60}\d+%.{0,60}/s)?.[0] ?? '');
       }
     } else {
       check('A MIRROR CAN CARRY ONE OF THE BUSINESS’S REAL KPIs', false,

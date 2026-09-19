@@ -4,8 +4,8 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
-import { kindOf } from '@/lib/boards-live';
-import { createBoard, commentOnBoard, addKpiToBoard, removeKpiFromBoard } from '@/lib/boards-live-data';
+import { kindOf, stepStateOf } from '@/lib/boards-live';
+import { createBoard, commentOnBoard, addKpiToBoard, removeKpiFromBoard, moveStep, addStep } from '@/lib/boards-live-data';
 import { getScope } from '@/lib/scope';
 import { refuseTo } from '@/lib/refuse';
 
@@ -111,4 +111,58 @@ export async function takeKpiOffBoard(form: FormData) {
   await removeKpiFromBoard({ tenantId: user.tenantId, boardId, criterionId });
   revalidatePath('/mirrors');
   redirect(`/mirrors?board=${encodeURIComponent(boardId)}`);
+}
+
+/**
+ * Moving a step on a plan, and adding one.
+ *
+ * Kris, 19 September: *"so the King of the Mountain mirror must be interactive"*. A plan a team is
+ * looking at in a meeting could not be changed in that meeting — the states were on the screen in
+ * words and the only way to move one was to edit a row of JSON.
+ *
+ * Open to anybody with a seat, like commenting, and for the same reason: the person who knows a
+ * step is stuck is usually not the person allowed to change anything else about it. `assertWritable`
+ * still applies, so a look-around writes nothing and a lapsed business is read-only.
+ */
+export async function moveStepOnBoard(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+
+  const boardId = String(form.get('boardId') ?? '');
+  const text = String(form.get('text') ?? '');
+  const back = `/mirrors?board=${encodeURIComponent(boardId)}`;
+  if (!boardId || !text) redirect('/mirrors');
+
+  await moveStep({
+    tenantId: user.tenantId,
+    boardId,
+    text,
+    state: stepStateOf(String(form.get('state') ?? '')),
+  });
+  revalidatePath('/mirrors');
+  redirect(back);
+}
+
+export async function addStepToBoard(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+
+  const boardId = String(form.get('boardId') ?? '');
+  const back = `/mirrors?board=${encodeURIComponent(boardId)}`;
+  if (!boardId) redirect('/mirrors');
+
+  const { added } = await addStep({
+    tenantId: user.tenantId,
+    boardId,
+    text: String(form.get('text') ?? ''),
+    // Whoever is adding it, unless they name somebody. A step with no owner is how a plan rots.
+    owner: String(form.get('owner') ?? '') || user.name,
+  });
+  revalidatePath('/mirrors');
+  if (!added) {
+    refuseTo(back, 'That step needs some words, and cannot be one already on this plan.');
+  }
+  redirect(back);
 }
