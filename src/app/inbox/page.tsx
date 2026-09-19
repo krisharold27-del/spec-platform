@@ -9,6 +9,10 @@ import { getScorecard } from '@/lib/queries';
 import { currentPeriod } from '@/lib/period';
 import { getScope, scoredRolesInScope, isTopOfChart } from '@/lib/scope';
 import { queue, ageLabel, handled, type DerivedInputs } from '@/lib/inbox';
+import { progressFor, verdict } from '@/lib/month';
+import { getTeamRollupForRoles } from '@/lib/queries';
+import { isScored } from '@/lib/today-data';
+import { signPeriod, submitPeriod } from '@/app/scoring/actions';
 import { NOTIFY_LEVELS, NOTIFY_ALWAYS, NOTIFY_SENDS_TODAY, notifyLevelOf } from '@/lib/notify';
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { approve, decline, setNotifyLevel } from './actions';
@@ -45,20 +49,46 @@ export default async function Inbox({ searchParams }: {
   const stored = await db.select().from(schema.approvals)
     .where(eq(schema.approvals.tenantId, user.tenantId));
 
-  // Everything below is worked out from state this person is already entitled to see.
+  /*
+    ── The month, read ONCE, for both the queue and the pass ───────────────────────────────────
+
+    Kris, 19 September, on what the sign-off felt like: *"having to visit three screens"* — KPIs on
+    the org chart, marking on /scoring, approving here — and, asked what he actually wants to do in
+    one sitting: *"just sign off what others have marked"*.
+
+    Approvals already claimed to be "everything waiting on a person", and for the month it was
+    lying by omission: it printed a card reading **Sign off September scoring** whose only action
+    was a link to a different screen. Telling somebody a thing is waiting on them and then sending
+    them elsewhere to do it is what makes one job feel like three.
+
+    So the whole month is read here, not just the count. Every scored role, what is marked on it,
+    what it comes to — the same `getScorecard` loop that was already running, with the rows kept
+    instead of thrown away after counting.
+  */
   const inScope = scoredRolesInScope(scope);
+  const monthRoles = period
+    ? await Promise.all(inScope.map(async r => {
+      const { rows, score } = await getScorecard(r.id, period.id);
+      return {
+        roleId: r.id, title: r.title, holder: r.holder?.name ?? r.pencilled ?? null,
+        rows, score, scored: isScored(r.level, rows.length, r.isTeam),
+      };
+    }))
+    : [];
+  /*
+    `progressFor` is the same function /scoring draws its list from. The RULE about what "marked"
+    means has to be one rule — two screens counting a month differently is how a business is told
+    it is finished on one page and not on the other.
+  */
+  const progress = progressFor(monthRoles);
+  const monthRollup = period ? await getTeamRollupForRoles(inScope, period.id) : null;
+
   let submittedPeriod: DerivedInputs['submittedPeriod'] = null;
   if (period && period.status === 'submitted') {
-    let scored = 0;
-    let flagged = 0;
-    for (const r of inScope) {
-      const { rows, score } = await getScorecard(r.id, period.id);
-      if (score.overall !== null) scored += 1;
-      flagged += rows.filter(x => x.status === 'not_tracked').length;
-    }
     submittedPeriod = {
       period: period.period, submittedBy: period.submittedBy, submittedAt: period.submittedAt,
-      scoredRoles: scored, flagged,
+      scoredRoles: monthRoles.filter(r => r.score.overall !== null).length,
+      flagged: monthRoles.reduce((n, r) => n + r.rows.filter(x => x.status === 'not_tracked').length, 0),
     };
   }
 
@@ -143,6 +173,131 @@ export default async function Inbox({ searchParams }: {
       subtitle="Everything in SPEC that needs a person to decide, in one place, oldest first."
     >
       <Refused reason={cannot} />
+
+      {/*
+        ── The month, signed off in one pass, on the screen that says it is waiting ────────────
+
+        Kris: *"having to visit three screens"*, and what he wants in one sitting: *"just sign off
+        what others have marked"*.
+
+        This is the second half of that. Approvals listed the month as waiting on him and then sent
+        him to /scoring to act on it; now the decision and the thing being decided are in the same
+        place. Everything a person needs to sign: what the month comes to, which roles are marked
+        and what each scored, which are not and who they are waiting on.
+
+        ── What it deliberately does NOT do ─────────────────────────────────────────────────────
+
+        It does not mark anything. Reviewing and entering are different jobs done by different
+        people, and a screen that let the signer fill in the blanks would make the signature
+        worthless — the whole point of the trail is that one person marks and another accepts.
+        /scoring stays where marking happens, and the roles below link to it one at a time.
+
+        It also never shows a Sign button to somebody who cannot sign. `signPeriod` refuses anybody
+        who is not the top of the chart, and offering a control the server is going to refuse is
+        how "I still cant" happens with nothing on screen to explain it.
+      */}
+      {period && progress.length > 0 && (
+        <section className="card mb-6" data-month-pass>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <span className="label-caps text-rust-700">This month</span>
+              <p className="mt-1.5 font-serif text-xl text-ink">
+                {period.period} &mdash; {progress.filter(p => p.done).length} of {progress.length} roles marked
+              </p>
+            </div>
+            {monthRollup?.scoredCount ? (
+              <span className="shrink-0 text-right">
+                <span className="label-caps block text-ink-light">What the board sees</span>
+                <span className="font-serif text-[22px] leading-none text-ink" data-month-figure>
+                  {monthRollup.team.overall === null ? '—' : `${Math.round(monthRollup.team.overall * 100)}%`}
+                </span>
+              </span>
+            ) : null}
+          </div>
+
+          <p className="mt-2 max-w-[60ch] text-[13.5px] leading-[22px] text-ink-light">
+            {verdict(monthRollup?.scoredCount ? monthRollup.team : null).line}
+          </p>
+
+          {/*
+            Every role, marked or not, with who is waiting. A list of what is DONE tells a signer
+            nothing about whether they can sign; the outstanding ones are the decision.
+          */}
+          <ul className="mt-4 grid gap-1.5 border-t border-rust-200 pt-4">
+            {progress.map(line => (
+              <li key={line.roleId} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-cream px-3.5 py-2.5">
+                <span className="flex min-w-0 items-center gap-2.5 text-sm text-ink">
+                  <span
+                    aria-hidden
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ background: line.done ? LIGHT_COLOUR.green : LIGHT_COLOUR.pending }}
+                  />
+                  <Link href={`/scorecard/${line.roleId}`} className="truncate hover:text-rust">
+                    {line.title}
+                  </Link>
+                  <span className="truncate text-xs text-ink-light">{line.holder ?? 'Vacant'}</span>
+                </span>
+                <span className="shrink-0 text-xs font-semibold text-ink-light" data-month-role={line.roleId}>
+                  {line.done
+                    ? (line.score === null ? 'Marked' : `${Math.round(line.score * 100)}%`)
+                    : `${line.marked} of ${line.total} marked`}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {/*
+            One action, and only the one that is actually available right now. Three states, and
+            each of the other two says who it is waiting on rather than leaving a dead button.
+          */}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {/*
+              Only while it is submitted AND unsigned.
+
+              `signPeriod` records `signedBy` and `signedAt`; it does NOT set the status to locked,
+              because locking is its own act. So after signing, the status is still `submitted` —
+              and a button keyed on status alone stayed on screen, offering to sign a month that had
+              just been signed, above a sentence that still read "Signing accepts it". Press,
+              nothing visibly happens, press again.
+            */}
+            {period.status === 'submitted' && !period.signedBy && top && (
+              <form action={signPeriod}>
+                <input type="hidden" name="periodId" value={period.id} />
+                <SubmitButton className="btn-primary" pending="Signing…">
+                  Sign off {period.period}
+                </SubmitButton>
+              </form>
+            )}
+            {period.status === 'open' && top && progress.every(p => p.done) && (
+              <form action={submitPeriod}>
+                <input type="hidden" name="periodId" value={period.id} />
+                <SubmitButton className="btn-primary" pending="Submitting…">
+                  Submit {period.period} for sign-off
+                </SubmitButton>
+              </form>
+            )}
+            <p className="text-[13px] leading-5 text-ink-light">
+              {period.status === 'locked'
+                ? `Signed by ${period.signedBy ?? 'the board'}. Nothing recalculates a locked month.`
+                : period.signedBy
+                  ? `Signed by ${period.signedBy}. The business has accepted the month.`
+                : period.status === 'submitted'
+                  ? (top
+                    ? `Submitted by ${period.submittedBy ?? 'the top of the chart'}. Signing accepts it and closes the month.`
+                    : `Waiting on ${period.submittedBy ? 'the board' : 'the top of the chart'} to sign. Signing is never delegable.`)
+                  : progress.every(p => p.done)
+                    ? (top
+                      ? 'Every role is marked, so the month can go up.'
+                      : 'Every role is marked. The top of the chart submits it.')
+                    : `${progress.filter(p => !p.done).length} still to mark — each manager marks their own reports.`}
+            </p>
+            <Link href="/scoring" className="text-[13px] text-rust-700 underline-offset-2 hover:underline">
+              Open scoring
+            </Link>
+          </div>
+        </section>
+      )}
+
       {items.length ? (
         <ul className="grid gap-4">
           {items.map(i => {

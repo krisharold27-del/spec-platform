@@ -14,7 +14,20 @@ import { refuseTo } from '@/lib/refuse';
  * Two deliberate acts by two different people, kept apart on purpose. Submitting says "this is
  * finished as far as I am concerned"; signing says "the business accepts it". Locking follows the
  * signature rather than a date, because a month is closed by a person deciding it is closed.
+ *
+ * ── These are called from TWO screens now, so they revalidate both ──────────────────────────────
+ *
+ * They each revalidated `/scoring` alone, which was true while that was the only page they could be
+ * pressed from. Kris, 19 September: *"having to visit three screens"* — so Approvals now carries
+ * the same three buttons beside the month they act on.
+ *
+ * With one path revalidated, pressing Submit on Approvals worked and the page came back saying the
+ * month was still open: the write landed and the screen denied it, which is indistinguishable from
+ * a button that does nothing. Caught by `scripts/signoff-journey.mjs`, which pressed Submit, found
+ * no Sign button afterwards, and reported the month had "never reached submitted".
  */
+const SCREENS = ['/scoring', '/inbox', '/my-page'] as const;
+const refresh = () => { for (const path of SCREENS) revalidatePath(path); };
 
 async function periodFor(tenantId: string, periodId: string) {
   const [period] = await db.select().from(schema.periods)
@@ -35,7 +48,7 @@ export async function submitPeriod(formData: FormData) {
   await db.update(schema.periods)
     .set({ status: 'submitted', submittedBy: user.name, submittedAt: new Date().toISOString() })
     .where(eq(schema.periods.id, period.id));
-  revalidatePath('/scoring');
+  refresh();
 }
 
 /**
@@ -57,7 +70,7 @@ export async function reopenPeriod(formData: FormData) {
   await db.update(schema.periods)
     .set({ status: 'open', submittedBy: null, submittedAt: null })
     .where(eq(schema.periods.id, period.id));
-  revalidatePath('/scoring');
+  refresh();
 }
 
 /**
@@ -76,5 +89,5 @@ export async function signPeriod(formData: FormData) {
   await db.update(schema.periods)
     .set({ signedBy: user.name, signedAt: new Date().toISOString() })
     .where(eq(schema.periods.id, period.id));
-  revalidatePath('/scoring');
+  refresh();
 }
