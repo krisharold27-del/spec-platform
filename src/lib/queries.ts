@@ -23,6 +23,21 @@ export interface RoleView {
    * a name against it is not the same as an empty one.
    */
   pencilled: string | null;
+  /**
+   * A team node rather than a seat — several people, pooled, one shared scorecard between them.
+   * See `roles.isTeam` in db/schema and the team layer in design 15.
+   */
+  isTeam: boolean;
+  /**
+   * Everybody currently on the role, with the placement id.
+   *
+   * On every role, not only on teams. An ordinary role is meant to hold one person and the schema
+   * has never enforced it, so a role carrying two open placements is a real state the chart has
+   * already been bitten by — `placementShown` exists because of it. Listing them all is how a team
+   * is drawn, and on an ordinary role it is how the page can show that something is wrong rather
+   * than silently picking one.
+   */
+  members: { id: string; name: string; hasAccount: boolean }[];
 }
 
 /**
@@ -66,7 +81,33 @@ export async function getRoles(tenantId: string): Promise<RoleView[]> {
         .where(and(eq(schema.roleAssignments.roleId, r.id), isNull(schema.roleAssignments.toDate)));
       pencilled = p[0]?.name ?? null;
     }
-    out.push({ id: r.id, title: r.title, stream: r.stream, level: r.level, reportsToRoleId: r.reportsToRoleId, holder: a[0] ?? null, pencilled });
+
+    /*
+      Everybody on the role, not just the one the card shows.
+
+      A team holds several and the chart has to draw all of them; an ordinary role is meant to hold
+      one, and `placementShown` exists precisely because the schema does not enforce that. Two
+      queries — accounts and pencilled names — rather than one outer join, because the join would
+      need a coalesce and this reads the same way `holder` and `pencilled` above already do.
+    */
+    const withAccount = await db.select({ id: schema.roleAssignments.id, name: schema.users.name })
+      .from(schema.roleAssignments)
+      .innerJoin(schema.users, eq(schema.users.id, schema.roleAssignments.userId))
+      .where(and(eq(schema.roleAssignments.roleId, r.id), isNull(schema.roleAssignments.toDate)));
+    const pencilledIn = await db.select({ id: schema.roleAssignments.id, name: schema.staff.name })
+      .from(schema.roleAssignments)
+      .innerJoin(schema.staff, eq(schema.staff.id, schema.roleAssignments.staffId))
+      .where(and(eq(schema.roleAssignments.roleId, r.id), isNull(schema.roleAssignments.toDate)));
+    const members = [
+      ...withAccount.map(m => ({ id: m.id, name: m.name, hasAccount: true })),
+      ...pencilledIn.map(m => ({ id: m.id, name: m.name, hasAccount: false })),
+    ];
+
+    out.push({
+      id: r.id, title: r.title, stream: r.stream, level: r.level,
+      reportsToRoleId: r.reportsToRoleId, holder: a[0] ?? null, pencilled,
+      isTeam: r.isTeam, members,
+    });
   }
   return out;
 }

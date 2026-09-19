@@ -44,9 +44,20 @@ export interface TeamMember {
  *
  * A checklist role — an apprentice, most people on the tools — is measured through the role above
  * it. It is not behind, and it is never shown as though it were: no lights, no Ace, no score.
+ *
+ * ── Except a TEAM, which is the whole point of the team layer ───────────────────────────────────
+ *
+ * Design 15 draws a team node under a leader — "Technicians", "Apprentices" — holding several
+ * people and **one shared S/P/E/C between them**. A team sits at `staff` level, because everybody
+ * in it is on a team seat, so without this flag the one thing a team node exists for would never
+ * happen: it would carry four KPIs and draw four grey dots for ever.
+ *
+ * A flag rather than a fifth `level` value on purpose. `level` is read by training provisioning,
+ * default access, the seat rules and the frontline-leader test, and inventing a new value would
+ * have meant finding every one of those and hoping.
  */
-export const isScored = (level: string, criteriaCount: number): boolean =>
-  level !== 'staff' && criteriaCount > 0;
+export const isScored = (level: string, criteriaCount: number, isTeam = false): boolean =>
+  (isTeam || level !== 'staff') && criteriaCount > 0;
 
 export interface FeedLine {
   id: string;

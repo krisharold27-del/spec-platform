@@ -115,7 +115,9 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   const roles: ChartRole[] = [];
   for (const r of scope.roles) {
     const own = criteria.filter(c => c.roleId === r.id && c.active);
-    const scored = isScored(r.level, own.length);
+    // A team is scored even though it sits at `staff` level — one shared S/P/E/C for the group is
+    // the whole reason a team node exists. See isScored in lib/today-data.
+    const scored = isScored(r.level, own.length, r.isTeam);
     let pillars: ChartRole['pillars'] = null;
     if (period && scored) {
       const { score } = await getScorecard(r.id, period.id);
@@ -130,7 +132,16 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
       // Two measures per pillar is the starting point the whole system is built around, and it is
       // MIN_KPIS everywhere now — this was the third copy of the literal 2. See lib/chart-seats.
       hasKpis: PILLARS.every(p => own.filter(c => c.pillar === p && c.kpi).length >= MIN_KPIS),
-      badges: seatBadges({
+      isTeam: r.isTeam,
+      members: r.members,
+      /*
+        A team carries no seat badge.
+
+        "Leadership seat" and "Team seat" describe the person on a card, and a team node has no
+        person on it — it has several, each of whom is a team seat, and the design says so on their
+        own cards in the team layer rather than on the node.
+      */
+      badges: r.isTeam ? [] : seatBadges({
         title: r.title,
         hasDirectReports: scope.roles.some(other => other.reportsToRoleId === r.id),
         filled: Boolean(r.holder),
@@ -152,6 +163,14 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
         people: own.filter(c => c.pillar === 'people').map(c => c.text),
         earnings: own.filter(c => c.pillar === 'earnings').map(c => c.text),
         compliance: own.filter(c => c.pillar === 'compliance').map(c => c.text),
+      },
+      // The same measures by id, so the × beside one takes the right criterion off. Same filter,
+      // same order — if these two ever stop matching, a × removes somebody else's KPI.
+      kpiIds: {
+        safety: own.filter(c => c.pillar === 'safety').map(c => c.id),
+        people: own.filter(c => c.pillar === 'people').map(c => c.id),
+        earnings: own.filter(c => c.pillar === 'earnings').map(c => c.id),
+        compliance: own.filter(c => c.pillar === 'compliance').map(c => c.id),
       },
     });
   }
@@ -326,6 +345,12 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
             editableIds={editableIds}
             myRoleId={scope.myRoleId}
             readOnlyReason={readOnlyReason}
+            /* Every team action redirects back here carrying the team it acted on, so a name typed
+               into a crew comes back into that crew rather than onto the whole chart. */
+            openTeamId={typeof sp.team === 'string' ? sp.team : null}
+            /* And the card the panel was on, so an action on a pillar comes back to the role it
+               was about rather than to the top of the chart. */
+            openRoleId={typeof sp.role === 'string' ? sp.role : null}
             averages={{
               safety: averages.safety ?? null,
               people: averages.people ?? null,

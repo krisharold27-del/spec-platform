@@ -61,6 +61,25 @@ export interface ChartRole {
    * already loads the criteria, so putting it on the panel costs no extra query.
    */
   kpis?: { safety: string[]; people: string[]; earnings: string[]; compliance: string[] };
+  /**
+   * A TEAM node — several people, pooled, with one shared S/P/E/C between them.
+   *
+   * Design 15's team layer. Drawn differently (sage, no name pill, a member count where a person
+   * would be), it cannot be dragged or dropped onto, and opening it goes INTO the team rather than
+   * selecting a card. Everything else about it is an ordinary role, which is the whole point of
+   * building it as one — see `roles.isTeam` in db/schema.
+   */
+  isTeam?: boolean;
+  /** Who is in it, with the placement id so one of them can be taken out again. */
+  members?: { id: string; name: string; hasAccount: boolean }[];
+  /**
+   * Which criterion each named KPI is, in the same order as `kpis`.
+   *
+   * The panel needs the id to put a × beside a measure and take the right one off. Parallel arrays
+   * rather than a list of objects because `kpis` is read by the layout and the panel alike and
+   * changing its shape would have touched both for the sake of one screen.
+   */
+  kpiIds?: { safety: string[]; people: string[]; earnings: string[]; compliance: string[] };
 }
 
 /** The four pillars, in the order they are read on a card: S P E C. */
@@ -342,6 +361,25 @@ export function canMove(roleId: string, ontoId: string, all: ChartRole[]): MoveC
   const role = all.find(r => r.id === roleId);
   const onto = all.find(r => r.id === ontoId);
   if (!role || !onto) return { ok: false, reason: 'That role is not on this chart.' };
+  /*
+    ── Nothing reports to a team, and a team is never dragged ──────────────────────────────────
+
+    A team node holds people, not roles. Hanging a Site Supervisor under "Technicians" would give
+    the supervisor a manager that is a group — nobody to have the conversation with, and a shared
+    score meant for the people IN the team suddenly answering for somebody above it.
+
+    Dragging a team itself is refused for the plainer reason: the design does not offer it
+    (`dragStart: e => e.preventDefault()` on its card), and a team belongs to the leader who runs
+    it. Moving one elsewhere is deleting it there and adding it here — two decisions wearing one
+    gesture.
+
+    Checked BEFORE the loop test on purpose. A team almost always sits under the role somebody is
+    trying to drag, so the descendant check fires first and answers "that would cut the chart in
+    two" — true, and not the reason. A refusal that is accurate about the wrong thing sends
+    somebody looking for a problem they do not have.
+  */
+  if (onto.isTeam) return { ok: false, reason: `${onto.title} is a team, and roles do not report to a team. Drop it on the role that leads them.` };
+  if (role.isTeam) return { ok: false, reason: `${role.title} is a team, so it belongs to the role that runs it. Remove it and add a team under the other role.` };
   if (isDescendant(ontoId, roleId, all)) {
     return { ok: false, reason: `${onto.title} already reports up through ${role.title}. Moving it there would cut the chart in two.` };
   }

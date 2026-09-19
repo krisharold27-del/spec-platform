@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs';
 import {
   MIN_KPIS, LEADER_TITLE, seatKindFor, seatBadges, pillarReadiness, readinessLine,
   firstWednesdayNextMonth, monthName, cadence, kpiSuggestions, addKpi, mayScore, KPI_EXAMPLES,
+  teamName, addMember, memberLine, mayHoldTeam, TEAM_DEFAULT_NAME,
 } from '../src/lib/chart-seats';
+import { canMove, type ChartRole } from '../src/lib/orgchart';
+import { isScored } from '../src/lib/today-data';
 import { PILLARS } from '../src/lib/scoring';
 
 /**
@@ -222,3 +225,116 @@ describe('who may put a number on a pillar', () => {
     expect(mayScore({ scorerRoleId: null, roleReportsTo: null, roleId: 'gm', isAdministrator: false })).toBe(false);
   });
 });
+
+describe('a team node', () => {
+  /*
+    ── Several people, one shared score ─────────────────────────────────────────────────────────
+
+    Design 15's team layer: "Technicians" and "Apprentices" under a Site Supervisor, each holding a
+    handful of names and ONE set of S/P/E/C between them. Kris, 19 September: *"now do the team
+    nodes and the KPI editor"*.
+
+    It is built as a role with `isTeam` set, because everything a team needs already exists on a
+    role — a parent, criteria, a monthly score, a place in the layout — and `role_assignments` has
+    never had a uniqueness constraint on `role_id`, so several people on one role is an
+    already-supported shape rather than something to build.
+  */
+  it('IS SCORED, even though it sits at staff level', () => {
+    // This is the whole point of a team node, and the one thing a flag was needed for: a `staff`
+    // role is a checklist and carries no percentage, and a team is a `staff` role that does.
+    expect(isScored('staff', 4, true), 'a team with KPIs is scored').toBe(true);
+    expect(isScored('staff', 4, false), 'an ordinary staff role still is not').toBe(false);
+    expect(isScored('staff', 0, true), 'but not before it has anything to score').toBe(false);
+    expect(isScored('manager', 4), 'and nothing else changed').toBe(true);
+  });
+
+  it('is named, or called Team rather than refusing', () => {
+    expect(teamName('  Technicians ')).toBe('Technicians');
+    expect(teamName('Service   crew')).toBe('Service crew');
+    // An unnamed team is still a real team. The design's own prompt defaults the same way.
+    expect(teamName('')).toBe(TEAM_DEFAULT_NAME);
+    expect(teamName('   ')).toBe(TEAM_DEFAULT_NAME);
+  });
+
+  it('counts its members in words', () => {
+    expect(memberLine(0)).toBe('0 members');
+    expect(memberLine(1)).toBe('1 member');
+    expect(memberLine(4)).toBe('4 members');
+  });
+
+  /*
+    Case-insensitive on duplicates, for the reason `addKpi` is: a crew carrying two "Dave Morgan"s
+    reads as six people and is five, and a score shared between the wrong number is wrong for
+    everybody in it.
+  */
+  it('REFUSES THE SAME PERSON TWICE, however the name was typed', () => {
+    const added = addMember('dave MORGAN', ['Dave Morgan']);
+    expect(added.ok).toBe(false);
+    expect(added.ok === false && added.reason).toContain('already in this team');
+  });
+
+  it('and refuses an empty name, and tidies a real one', () => {
+    expect(addMember('  ', []).ok).toBe(false);
+    const ok = addMember('  Casey   Nguyen ', []);
+    expect(ok.ok && ok.text).toBe('Casey Nguyen');
+  });
+
+  /*
+    A team of teams has nobody accountable for it: the shared score would belong to a group whose
+    members are themselves groups, and there is no person at the end of it to have the conversation
+    with. The design only ever draws one under a leader.
+  */
+  it('HANGS UNDER A ROLE AND NEVER UNDER ANOTHER TEAM', () => {
+    expect(mayHoldTeam({ isTeam: false }).ok).toBe(true);
+    const nested = mayHoldTeam({ isTeam: true });
+    expect(nested.ok).toBe(false);
+    expect(nested.ok === false && nested.reason).toContain('cannot sit under another team');
+    expect(mayHoldTeam(null).ok, 'and never loose on the canvas').toBe(false);
+  });
+
+  /*
+    The same two rules, enforced on the drag. `canMove` is what the chart calls before it moves
+    anything, and it is what the server calls before it writes — so a team that could be dropped on
+    would be a hole in both.
+  */
+  it('AND THE CHART REFUSES TO DROP A ROLE ONTO ONE, or to drag the team itself', () => {
+    const chart: ChartRole[] = [
+      role({ id: 'gm', title: 'General Manager', parentId: null }),
+      role({ id: 'sup', title: 'Site Supervisor', parentId: 'gm' }),
+      role({ id: 'crew', title: 'Technicians', parentId: 'sup', isTeam: true }),
+    ];
+    const onto = canMove('sup', 'crew', chart);
+    expect(onto.ok).toBe(false);
+    expect(onto.reason).toContain('roles do not report to a team');
+
+    const dragged = canMove('crew', 'gm', chart);
+    expect(dragged.ok).toBe(false);
+    expect(dragged.reason).toContain('belongs to the role that runs it');
+
+    // And an ordinary move is untouched.
+    expect(canMove('sup', 'gm', chart).ok, 'sup already reports to gm').toBe(false);
+    expect(canMove('crew', 'crew', chart).ok).toBe(false);
+  });
+
+  /*
+    Everybody in a team is on a TEAM seat, which is the cheap one — nothing reports to a team, and
+    the node's title is the crew's name rather than a job title. If a crew were ever read as
+    leadership seats a business of forty would be billed at the leadership rate for its whole
+    workforce, which is the fault `seatBill` was just fixed for.
+  */
+  it('AND EVERYBODY IN ONE IS A TEAM SEAT, which is what they are billed', () => {
+    for (const title of ['Technicians', 'Apprentices', 'Installers', 'Service crew']) {
+      expect(seatKindFor({ title, hasDirectReports: false }), title).toBe('team');
+    }
+  });
+});
+
+/** A chart role with only the fields these rules read. */
+function role(over: Partial<ChartRole> & { id: string; title: string }): ChartRole {
+  return {
+    person: null, pencilled: false, parentId: null, level: 'manager', stream: 'operations',
+    pillars: null, scored: true, hasKpis: true, badges: [],
+    kpiCounts: { safety: 0, people: 0, earnings: 0, compliance: 0 },
+    ...over,
+  };
+}

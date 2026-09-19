@@ -39,6 +39,8 @@ const BUSINESS = `Org Test ${stamp}`;
 /** Every item the design's menu offers on a card. Verbatim from `SPEC Org Chart.dc.html`. */
 const CARD_MENU = [
   'Add a direct report',
+  // Design 15's team layer: a crew belongs to the leader who runs it, so it is added from their menu.
+  'Add a team',
   'Rename role & person',
   'Break the link',
   'Make this role vacant',
@@ -352,10 +354,31 @@ if (await boss.count()) {
   reporting that something else "intercepts pointer events" — which is a fault in the aim, not in
   the product. The left padding beside the middle of the tree cannot hold a card.
 */
+/*
+  ── Aimed through the LOCATOR, not with raw mouse coordinates ──────────────────────────────────
+
+  This used to compute two bounding boxes and drive `page.mouse.click` at the absolute point. A
+  bounding box is viewport-relative and the numbers were read BEFORE anything scrolled, so the aim
+  held only while the page was exactly as tall as it had been the day the check was written.
+
+  It stopped holding on 19 September, when the Role scorecard panel grew the readiness chips and an
+  add-a-KPI box on each of its four pillars. The page got taller, the chart sat further down, and
+  the computed point landed under the sticky header — which swallowed the right-click, so the menu
+  never opened and the check reported that the canvas offers nothing. Nothing was wrong with the
+  canvas.
+
+  `locator.click` with a `position` scrolls the element into view first, waits for it to be able to
+  receive the event at that point, and retries — so the aim follows the page instead of assuming
+  it. 4px in from the left edge is inside the section's padding at any height, which is the quiet
+  margin a person reads as "not a card".
+*/
 const canvas = page.locator('[data-org-canvas]').first();
 const outer = await canvas.boundingBox();
 const inner = await canvas.locator('> div').first().boundingBox();
-await page.mouse.click(outer.x + 4, inner.y + inner.height / 2, { button: 'right' });
+await canvas.click({
+  button: 'right',
+  position: { x: 4, y: (inner.y - outer.y) + inner.height / 2 },
+});
 await menu.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
 const canvasItems = (await menu.locator('[role="menuitem"]').allInnerTexts()).map(t => t.trim());
 check('RIGHT-CLICKING THE CANVAS OFFERS "Add a new role"', canvasItems.includes('Add a new role'), canvasItems.join(', '));
@@ -1080,6 +1103,135 @@ if (process.env.DATABASE_URL) {
   */
   skip('RENAMING THE PERSON CHANGES THE NAME ON THE CARD', 'needs DATABASE_URL to set up two placements');
   skip('THE CHART CAN INVITE THE PERSON ON A CARD', 'needs DATABASE_URL to read the seat back');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * The KPI editor, and the team layer
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/*
+  ── Why these are browser checks and not unit tests ───────────────────────────────────────────
+
+  Kris, 19 September: *"now do the team nodes and the KPI editor"*, and, an hour later, *"i need to
+  know you have set up the org chart fully? everything i gave you from design - i hate having to ask
+  this all the time"*.
+
+  He is right to ask, and the reason he has to is that the unit tests for both of these pass whether
+  or not the chart carries them. `addKpi` and `addMember` are pure and correct; a page that never
+  renders a box to type into makes both of them true and useless. The rule this suite runs on:
+  **a claim nobody checks quietly stops being true**, and a feature verified only in the library it
+  lives in is a feature verified nowhere somebody uses it.
+
+  So: type a KPI into the pillar card, and then ask the database-backed page whether it is on the
+  role. Add a team from the menu, put somebody in it, and read the count off the node.
+*/
+await page.goto(`${BASE}/org`, { waitUntil: 'domcontentloaded' });
+await page.locator('[data-org-canvas] [data-role-card]').first().click();
+await page.waitForTimeout(400);
+
+const kpiBox = page.locator('[data-add-kpi="safety"]').first();
+if (await kpiBox.count()) {
+  const measure = `Toolbox talk every Monday ${stamp}`;
+  await kpiBox.scrollIntoViewIfNeeded();
+  await kpiBox.fill(measure);
+  /*
+    The + button rather than Enter.
+
+    The box carries a `datalist` of the design's own examples, and in Chromium a keypress with a
+    suggestion list open is consumed by the list instead of submitting the form. Pressing the
+    control the design draws is both what a person does and the thing worth checking.
+  */
+  await page.locator('[data-pillar-card="safety"] button[aria-label^="Add this KPI"]').first().click();
+  /*
+    Read it back off the PAGE rather than trusting the redirect. `addRoleKpi` re-evens the pillar's
+    weights in the same write, and a criterion that landed without its pillar summing to 1 makes
+    every percentage on that pillar meaningless — so the thing worth checking is that the measure is
+    on the card afterwards, which only happens if the whole write went through.
+  */
+  const landed = await page.waitForFunction(
+    text => document.body.innerText.includes(text),
+    measure, { timeout: 15000 },
+  ).then(() => true).catch(() => false);
+  check('A KPI TYPED ON THE CHART LANDS ON THE ROLE', landed,
+        `${page.url()} :: panel=[${(await page.locator('[data-pillar-card="safety"]').first().innerText().catch(() => 'none')).replace(/\n/g, ' / ')}] cards=${await page.locator('[data-pillar-card]').count()}`);
+
+  // And the same measure again is refused in words, not with a fault screen.
+  await page.locator('[data-add-kpi="safety"]').first().fill(measure.toUpperCase());
+  await page.locator('[data-pillar-card="safety"] button[aria-label^="Add this KPI"]').first().click();
+  const refused = await page.waitForFunction(
+    () => /already on this pillar/i.test(document.body.innerText),
+    null, { timeout: 15000 },
+  ).then(() => true).catch(() => false);
+  check('  and the same measure twice is REFUSED IN WORDS, not with a fault screen', refused,
+        (await page.evaluate(() => document.body.innerText)).slice(0, 200).replace(/\n/g, ' '));
+
+  // The × beside it takes it off again.
+  const cross = page.locator(`[data-pillar-card="safety"] form button[aria-label*="${measure}"]`).first();
+  if (await cross.count()) {
+    await cross.scrollIntoViewIfNeeded();
+    await cross.click();
+    const gone = await page.waitForFunction(
+      text => !document.body.innerText.includes(text),
+      measure, { timeout: 15000 },
+    ).then(() => true).catch(() => false);
+    check('  and the × beside it takes it off again', gone);
+  } else {
+    skip('  and the × beside it takes it off again', 'no × rendered beside the measure');
+  }
+} else {
+  check('A KPI TYPED ON THE CHART LANDS ON THE ROLE', false, 'no add-a-KPI box on any pillar card');
+}
+
+/*
+  A team: added from the leader's menu, opened, and given somebody.
+
+  The node is read back by its member COUNT rather than by the words on it, because the count is the
+  thing that can only be right if the placement really landed — a title renders whether or not
+  anybody is in the crew.
+*/
+await page.goto(`${BASE}/org`, { waitUntil: 'domcontentloaded' });
+const leaderCard = page.locator('[data-org-canvas] [data-role-card]').first();
+await aimAt(leaderCard);
+const addTeamItem = menu.getByRole('menuitem', { name: 'Add a team' });
+if (await addTeamItem.count()) {
+  await addTeamItem.click();
+  const inTeam = await page.waitForSelector('[data-team-layer]', { timeout: 15000 })
+    .then(() => true).catch(() => false);
+  check('ADDING A TEAM OPENS THE TEAM LAYER', inTeam, page.url());
+
+  if (inTeam) {
+    const member = `Casey Nguyen ${stamp}`;
+    await page.locator('#team-add').fill(member);
+    await page.getByRole('button', { name: '+ Add to team' }).click();
+    const joined = await page.waitForFunction(
+      text => document.body.innerText.includes(text),
+      member, { timeout: 15000 },
+    ).then(() => true).catch(() => false);
+    check('  and somebody typed into it joins the team', joined,
+          (await page.evaluate(() => document.body.innerText)).slice(0, 200).replace(/\n/g, ' '));
+
+    /*
+      The shared score, which is the whole reason a team is a node rather than four more cards. Four
+      pillar cards inside the layer, each of which can take a KPI.
+    */
+    const pillars = await page.locator('[data-team-layer] [data-pillar-card]').count();
+    check('  and the team carries ONE shared S/P/E/C, not one per person', pillars === 4,
+          `${pillars} pillar cards in the team layer`);
+
+    // Back to the chart, and the node says how many are in it.
+    await page.getByRole('button', { name: /Back to org chart/i }).click();
+    const counted = await page.waitForFunction(
+      () => /1 member\b/.test(document.querySelector('[data-org-canvas]')?.innerText ?? ''),
+      null, { timeout: 15000 },
+    ).then(() => true).catch(() => false);
+    check('  and the team node on the chart counts its members', counted,
+          (await page.locator('[data-org-canvas]').innerText()).slice(0, 200).replace(/\n/g, ' '));
+
+    const nodes = await page.locator('[data-team-node]').count();
+    check('  and the team is drawn as a team node, not as an ordinary card', nodes > 0);
+  }
+} else {
+  check('ADDING A TEAM OPENS THE TEAM LAYER', false, '"Add a team" is not on the card menu');
 }
 
 check('no page threw', faults.length === 0, faults.join(' | '));

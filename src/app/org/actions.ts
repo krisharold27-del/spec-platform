@@ -12,6 +12,8 @@ import { assertWritable } from '@/lib/plan';
 import { getRoles, placementShown } from '@/lib/queries';
 import { installTraining } from '@/lib/provision';
 import { canMove, parseRoles, parseCsv, resolveImport, type ChartRole } from '@/lib/orgchart';
+import { PILLARS, evenWeights, type Pillar } from '@/lib/scoring';
+import { addKpi, addMember, teamName, mayHoldTeam } from '@/lib/chart-seats';
 
 /**
  * Changing the shape of the business.
@@ -47,8 +49,14 @@ async function editor() {
  * So: the reason goes back to the chart in the address, and the page says it. `redirect` rather than
  * `throw`, because the work genuinely did not happen and the person has to know that.
  */
-function refuse(reason: string): never {
-  redirect(`/org?cannot=${encodeURIComponent(reason)}`);
+function refuse(reason: string, roleId?: string): never {
+  /*
+    The role comes back in the address when there is one, so a refusal lands on the card it is
+    about. A sentence about a supervisor's KPI, read on the General Manager's panel, is a sentence
+    about nothing anybody can see.
+  */
+  const back = roleId ? `role=${encodeURIComponent(roleId)}&` : '';
+  redirect(`/org?${back}cannot=${encodeURIComponent(reason)}`);
 }
 
 /**
@@ -86,6 +94,9 @@ async function chartOf(tenantId: string): Promise<ChartRole[]> {
     id: r.id, title: r.title, person: r.holder?.name ?? r.pencilled ?? null,
     pencilled: !r.holder && !!r.pencilled, parentId: r.reportsToRoleId,
     level: r.level, stream: r.stream, pillars: null, scored: r.level !== 'staff', hasKpis: true,
+    // canMove refuses to hang a role under a team, or to drag a team, so it has to know which is
+    // which. Without this every team on the chart is a valid drop target.
+    isTeam: r.isTeam,
     badges: [],
     kpiCounts: { safety: 0, people: 0, earnings: 0, compliance: 0 },
   }));
@@ -635,6 +646,273 @@ export async function vacateRole(formData: FormData) {
   await db.update(schema.roleAssignments).set({ toDate: new Date().toISOString().slice(0, 10) })
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
   revalidatePath('/org');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * The KPI editor
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Add a KPI to one pillar of one role, from the chart.
+ *
+ * ── Why this exists when /setup/kpis already does ───────────────────────────────────────────────
+ *
+ * Kris, 18 September: *"org chart and entering kpi's is everything to this system - why is it so
+ * hard"*, and design 15 answers it by putting the editor ON the chart — right-click a pillar, type
+ * a line, done. The Setup screen is a form for doing all sixteen at once; this is for the moment
+ * somebody is looking at a role and thinks of one.
+ *
+ * ── The weights are re-evened here, not left to the form ────────────────────────────────────────
+ *
+ * A pillar's weights must sum to 1 or a percentage means nothing, and `validateWeights` refuses a
+ * save that breaks it. Adding a criterion changes the sum, so the pillar is re-evened in the same
+ * write. Doing it any other way is how "add a KPI" quietly broke "save" on the Setup screen in
+ * September — the spare row defaulted to 50%, the pillar went to 150%, and everything typed across
+ * all four pillars came back empty.
+ *
+ * `evenWeights` is the same function `saveCriteria` uses. One arithmetic, two screens.
+ */
+export async function addRoleKpi(formData: FormData) {
+  const user = await editor();
+  const roleId = String(formData.get('roleId') ?? '');
+  const pillar = String(formData.get('pillar') ?? '') as Pillar;
+  const typed = String(formData.get('text') ?? '');
+
+  if (!PILLARS.includes(pillar)) refuse('SPEC did not recognise that pillar.');
+  const scope = await getScope(user);
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
+
+  const [role] = await db.select().from(schema.roles)
+    .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
+  if (!role) refuse('That role is not in this business.');
+
+  const onPillar = (await db.select().from(schema.criteria)
+    .where(and(eq(schema.criteria.roleId, roleId), eq(schema.criteria.active, true))))
+    .filter(c => c.pillar === pillar);
+
+  const added = addKpi(typed, onPillar.map(c => c.text));
+  if (!added.ok) refuse(added.reason, roleId);
+
+  await db.insert(schema.criteria).values({
+    id: randomUUID(), roleId, pillar, text: added.text,
+    // Replaced a line below, once the pillar is counted with this row in it.
+    weight: 1, kpi: true, target: null, proposedTarget: null,
+    sortOrder: onPillar.length,
+  });
+  await reweigh(roleId, pillar);
+
+  for (const path of ['/org', '/setup/kpis', '/my-page', '/scoring', `/scorecard/${roleId}`]) revalidatePath(path);
+  /*
+    Back to the ROLE, not to the chart.
+
+    Without the id the panel reopens on whichever card it started on, so adding a measure to a
+    supervisor put somebody back on the General Manager with the line they had just typed nowhere
+    on screen — a write that worked and looked exactly like one that had not.
+  */
+  redirect(`/org?role=${encodeURIComponent(roleId)}&kpi=${encodeURIComponent(`${added.text} — added to ${pillar}.`)}`);
+}
+
+/**
+ * Take a KPI off a pillar.
+ *
+ * Marked inactive, never deleted, exactly as an ordinary edit on /setup/kpis does. A month that has
+ * already been closed was scored against this criterion, and removing the row would change a number
+ * a board has already signed off.
+ */
+export async function removeRoleKpi(formData: FormData) {
+  const user = await editor();
+  const criterionId = String(formData.get('criterionId') ?? '');
+
+  const [row] = await db.select({
+    id: schema.criteria.id, roleId: schema.criteria.roleId, pillar: schema.criteria.pillar,
+  })
+    .from(schema.criteria)
+    .innerJoin(schema.roles, eq(schema.roles.id, schema.criteria.roleId))
+    .where(and(eq(schema.criteria.id, criterionId), eq(schema.roles.tenantId, user.tenantId)));
+  if (!row) refuse('That measure is not in this business.');
+
+  const scope = await getScope(user);
+  if (!scope.canShapeChart(row.roleId)) outside(scope, user.access);
+
+  await db.update(schema.criteria).set({ active: false }).where(eq(schema.criteria.id, row.id));
+  await reweigh(row.roleId, row.pillar as Pillar);
+
+  for (const path of ['/org', '/setup/kpis', '/my-page', '/scoring', `/scorecard/${row.roleId}`]) revalidatePath(path);
+  // Back to the role it was taken off, for the same reason `addRoleKpi` does.
+  redirect(`/org?role=${encodeURIComponent(row.roleId)}`);
+}
+
+/**
+ * Share one pillar's weight evenly across whatever is on it now.
+ *
+ * Called after every add and every remove, because the alternative — leaving the weights alone —
+ * produces a pillar summing to something other than 1, which `validateWeights` refuses and which
+ * makes every percentage on that pillar meaningless until somebody opens the Setup screen and
+ * presses Save.
+ *
+ * An empty pillar is left alone: there is nothing to weigh, and `evenWeights(0)` is an empty list.
+ */
+async function reweigh(roleId: string, pillar: Pillar) {
+  const rows = (await db.select().from(schema.criteria)
+    .where(and(eq(schema.criteria.roleId, roleId), eq(schema.criteria.active, true))))
+    .filter(c => c.pillar === pillar)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const shares = evenWeights(rows.length);
+  for (let i = 0; i < rows.length; i++) {
+    await db.update(schema.criteria).set({ weight: shares[i] }).where(eq(schema.criteria.id, rows[i].id));
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Teams
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Add a team under a role: several people, pooled, with one shared scorecard between them.
+ *
+ * Design 15's team layer. It is a role with `isTeam` set — see the note on the column — so
+ * everything that already knows how to lay out, score and report a role knows how to do it to a
+ * team, and nothing had to learn a second kind of node.
+ *
+ * No training path is installed. `installTraining` gives a ROLE its curriculum, and a team is not a
+ * person: the people in it each carry their own training through their own placement, which is the
+ * arrangement the training record has had since it was built.
+ */
+export async function addTeam(formData: FormData) {
+  const user = await editor();
+  const parentId = String(formData.get('parentId') ?? '');
+  const name = teamName(String(formData.get('name') ?? ''));
+
+  const scope = await getScope(user);
+  if (!scope.canShapeChart(parentId)) outside(scope, user.access);
+
+  const [parent] = await db.select().from(schema.roles)
+    .where(and(eq(schema.roles.id, parentId), eq(schema.roles.tenantId, user.tenantId)));
+  if (!parent) refuse('That role is not in this business.');
+
+  const allowed = mayHoldTeam(parent);
+  if (!allowed.ok) refuse(allowed.reason);
+
+  const id = randomUUID();
+  await db.insert(schema.roles).values({
+    id, tenantId: user.tenantId, title: name, stream: parent.stream,
+    // Everybody in a team is on a team seat, and `staff` is the level that means exactly that.
+    level: 'staff', defaultAccess: 'readonly',
+    reportsToRoleId: parentId, isTeam: true, sortOrder: 99,
+  });
+
+  revalidatePath('/org');
+  redirect(`/org?team=${encodeURIComponent(id)}`);
+}
+
+/**
+ * Put somebody in a team.
+ *
+ * A staff row and an open assignment — the same two writes as pencilling a name onto any card, and
+ * free and silent for the same reason: nobody is emailed and nothing bills until somebody is
+ * deliberately invited from People.
+ *
+ * `role_assignments` has never had a uniqueness constraint on `role_id`, which is what makes a
+ * pooled team possible at all without a new table.
+ */
+export async function addTeamMember(formData: FormData) {
+  const user = await editor();
+  const roleId = String(formData.get('roleId') ?? '');
+  const typed = String(formData.get('name') ?? '');
+
+  const scope = await getScope(user);
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
+
+  const [team] = await db.select().from(schema.roles)
+    .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
+  if (!team) refuse('That team is not in this business.');
+  if (!team.isTeam) refuse('That is a role, not a team. Type the name onto the card instead.');
+
+  const here = await membersOf(roleId, user.tenantId);
+  const added = addMember(typed, here.map(m => m.name));
+  if (!added.ok) refuse(added.reason);
+
+  /*
+    Reuse a name already in the directory rather than creating a second row for the same person —
+    two "Dave Morgan"s is how a business ends up with one person's training record split down the
+    middle. The same rule, and the same reasoning, as `renamePerson`.
+  */
+  const existing = (await db.select().from(schema.staff).where(eq(schema.staff.tenantId, user.tenantId)))
+    .find(s => s.name.trim().toLowerCase() === added.text.toLowerCase());
+
+  if (existing) {
+    const [held] = await db.select().from(schema.roleAssignments)
+      .where(and(eq(schema.roleAssignments.staffId, existing.id), isNull(schema.roleAssignments.toDate)));
+    if (held) refuse(`${existing.name} already holds another role. Move them from People, so SPEC can ask whether that is a move or a second seat.`);
+  }
+
+  const staffId = existing?.id ?? randomUUID();
+  if (!existing) {
+    await db.insert(schema.staff).values({
+      id: staffId, tenantId: user.tenantId, name: added.text, userId: null,
+      createdAt: new Date().toISOString(),
+    });
+  }
+  await db.insert(schema.roleAssignments).values({
+    id: randomUUID(), roleId, staffId, fromDate: new Date().toISOString().slice(0, 10),
+  });
+
+  revalidatePath('/org');
+  revalidatePath('/people');
+  redirect(`/org?team=${encodeURIComponent(roleId)}`);
+}
+
+/**
+ * Take somebody out of a team.
+ *
+ * The assignment is CLOSED, not deleted, so the chart can still answer who was in this crew in
+ * March — which is the whole reason placements have a `toDate` rather than being removed.
+ */
+export async function removeTeamMember(formData: FormData) {
+  const user = await editor();
+  const assignmentId = String(formData.get('assignmentId') ?? '');
+
+  const [row] = await db.select({
+    id: schema.roleAssignments.id, roleId: schema.roleAssignments.roleId,
+  })
+    .from(schema.roleAssignments)
+    .innerJoin(schema.roles, eq(schema.roles.id, schema.roleAssignments.roleId))
+    .where(and(
+      eq(schema.roleAssignments.id, assignmentId),
+      eq(schema.roles.tenantId, user.tenantId),
+      isNull(schema.roleAssignments.toDate),
+    ));
+  if (!row) refuse('That placement is not in this business, or has already ended.');
+
+  const scope = await getScope(user);
+  if (!scope.canShapeChart(row.roleId)) outside(scope, user.access);
+
+  await db.update(schema.roleAssignments)
+    .set({ toDate: new Date().toISOString().slice(0, 10) })
+    .where(eq(schema.roleAssignments.id, row.id));
+
+  revalidatePath('/org');
+  revalidatePath('/people');
+  redirect(`/org?team=${encodeURIComponent(row.roleId)}`);
+}
+
+/** Everybody currently in a team, with the placement id so one of them can be taken out again. */
+async function membersOf(roleId: string, tenantId: string) {
+  const open = await db.select().from(schema.roleAssignments)
+    .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
+  if (!open.length) return [];
+
+  const staff = await db.select().from(schema.staff).where(eq(schema.staff.tenantId, tenantId));
+  const users = await db.select().from(schema.users).where(eq(schema.users.tenantId, tenantId));
+  const staffName = new Map(staff.map(s => [s.id, s.name]));
+  const userName = new Map(users.map(u => [u.id, u.name]));
+
+  return open.map(a => ({
+    id: a.id,
+    name: (a.userId ? userName.get(a.userId) : null) ?? (a.staffId ? staffName.get(a.staffId) : null) ?? 'Somebody',
+    /** True when they have a login, which is what makes the seat billable. */
+    hasAccount: Boolean(a.userId),
+  }));
 }
 
 /**

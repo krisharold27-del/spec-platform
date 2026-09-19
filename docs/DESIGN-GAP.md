@@ -66,7 +66,8 @@ did not render — because the state it needs is not there — is **not** in thi
 | **Group** `/group` | Entities |
 
 **Clean:** Monthly scoring, Mirrors, Org chart. The org chart matches the design section for section
-— including the three the broken sweep reported missing.
+— including the three the broken sweep reported missing, and, since 19 September, the two it was
+still genuinely missing: the **team layer** and the **KPI editor**. See below.
 
 ## The one pattern worth naming
 
@@ -164,7 +165,34 @@ a dashboard into a manual.
 
 ## Screen by screen
 
-### Org chart — DONE, 18 September
+### Org chart — DONE, 18 September; team layer and KPI editor, 19 September
+
+Kris, 19 September: *"i need to know you have set up the org chart fully? everything i gave you from
+design - i hate having to ask this all the time - huge waste of my time"*.
+
+He was right to ask, and the answer at that moment was **no**. Everything in the two passes below
+was built; two sections of `SPEC Org Chart.dc.html` were not, and nothing on the screen or in the
+suite said so — which is precisely why he had to ask. Both are now built and both are held by
+checks in a real browser rather than by unit tests that would pass on a page with neither:
+
+- ~~**Team layer** — a team node under a leader (`isTeamNode` in the design), holding a pool of
+  names with ONE shared S/P/E/C for the group, opened in place of the chart~~ `roles.isTeam`,
+  `addTeam` / `addTeamMember` / `removeTeamMember`, and five checks in `scripts/org-journey.mjs`
+- ~~**KPI editor** — add a measure to a pillar from the chart, with the design's own examples
+  offered, and a × to take one off~~ `addRoleKpi` / `removeRoleKpi`, re-evening the pillar's
+  weights in the same write, and three browser checks
+- ~~**Readiness chips** at the top of the Role scorecard — a dot and a count per pillar, with one
+  line saying which pillars are short~~
+
+Two faults the browser checks caught that no unit test could have, both the same shape — state
+initialised from a prop and never resynced across the soft navigation a server action redirect
+produces:
+
+- "Add a team" left the address saying a team was open while the canvas went on drawing the chart
+- Adding a KPI to a supervisor put the panel back on the General Manager, with the measure just
+  typed nowhere on screen: a write that worked and looked exactly like one that had not
+
+### Org chart — the two earlier passes
 
 Two passes. The first fixed the cards; Kris looked again — *"now fix all the rest especially org
 chart"* — and the second fixed the screen around them.

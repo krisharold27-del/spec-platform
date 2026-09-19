@@ -7,13 +7,16 @@ import {
   cardStyle, type ChartRole, type Rollup,
 } from '@/lib/orgchart';
 import { PILLAR_META } from '@/lib/pillars';
-import { pillarReadiness, MIN_KPIS, cadence } from '@/lib/chart-seats';
+import {
+  pillarReadiness, MIN_KPIS, cadence, memberLine, kpiSuggestions, seatKindFor, readinessLine,
+} from '@/lib/chart-seats';
 import { LIGHT_COLOUR, LIGHT_INK, light } from '@/lib/today';
 import { AcePips, AceStar } from '@/components/ace-pips';
 import { ChartKey, ChartKeyDetail } from '@/components/chart-key';
 import {
   moveRole, movePerson, breakLink, vacateRole, addRole, removeRole, renameRole, renamePerson,
   invitePerson, claimRole, requestRights,
+  addTeam, addTeamMember, removeTeamMember, addRoleKpi, removeRoleKpi,
 } from '@/app/org/actions';
 
 /**
@@ -69,7 +72,7 @@ const place = (x: number, y: number) => ({
 
 const PILLARS = ['safety', 'people', 'earnings', 'compliance'] as const;
 
-export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], myRoleId = null, readOnlyReason = null }: {
+export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], myRoleId = null, readOnlyReason = null, openTeamId = null, openRoleId = null }: {
   roles: ChartRole[];
   rootId: string | null;
   canEdit: boolean;
@@ -85,6 +88,24 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
   myRoleId?: string | null;
   /** Why NOTHING is editable, when that is the situation. Null when it is simply somebody else's branch. */
   readOnlyReason?: string | null;
+  /**
+   * A team to open straight into, from `?team=` in the address.
+   *
+   * Every team action redirects back to the chart, and landing on the whole chart after adding
+   * somebody to a crew would mean finding the team and opening it again for each name typed. The
+   * address carries it so a server round trip comes back where it left.
+   */
+  openTeamId?: string | null;
+  /**
+   * A role to come back to, from `?role=` in the address.
+   *
+   * Every action on a pillar card redirects, which re-renders this component from the server — and
+   * the panel's own `selectedId` is initial-only state, so the chart reopened on whatever card it
+   * had started on. Adding a KPI to a supervisor put you back on the General Manager, with the
+   * measure you had just typed nowhere on screen. Caught by `scripts/org-journey.mjs`, which saw
+   * the write succeed in the address and the panel showing somebody else's KPIs.
+   */
+  openRoleId?: string | null;
 }) {
   const editable = new Set(editableIds);
   const month = cadence();
@@ -99,7 +120,37 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
     place the design puts a filled scorecard was a sentence telling them to press something. The top
     of the chart is the one role that is always there.
   */
-  const [selectedId, setSelectedId] = useState<string | null>(rootId);
+  const [selectedId, setSelectedId] = useState<string | null>(openRoleId ?? rootId);
+  /*
+    Which team is open, if any. The whole canvas is replaced by it — the design's own arrangement,
+    and the right one: a crew of eight drawn as eight more cards on the chart would double the width
+    of a diagram whose job is showing who reports to whom.
+  */
+  const [teamId, setTeamId] = useState<string | null>(openTeamId);
+  /*
+    ── Keeping it in step with the address, which `useState(openTeamId)` alone does not ──────────
+
+    `useState` takes its argument as an INITIAL value and ignores it for ever after. Every team
+    action redirects to `/org?team=<id>`, and a redirect out of a server action is a soft
+    navigation: this component is re-rendered with a new `openTeamId` and never remounted. So the
+    prop was read once, on the first load of the chart, and "Add a team" landed on a page whose
+    address said a team was open while the canvas went on drawing the whole chart.
+
+    Adjusted during render rather than in an effect, which is React's own answer to a prop a piece
+    of state has to follow. An effect would paint the stale view first and correct it a frame
+    later — a visible flash on the one gesture whose whole job is taking somebody somewhere.
+  */
+  const cameFrom = useRef(openTeamId);
+  if (cameFrom.current !== openTeamId) {
+    cameFrom.current = openTeamId;
+    if (teamId !== openTeamId) setTeamId(openTeamId);
+  }
+  /* The same, for the card the panel is on. See `openRoleId`. */
+  const cameBackTo = useRef(openRoleId);
+  if (cameBackTo.current !== openRoleId) {
+    cameBackTo.current = openRoleId;
+    if (openRoleId && selectedId !== openRoleId) setSelectedId(openRoleId);
+  }
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   /*
     What is CURRENTLY TYPED in the rename panel, held in React rather than left in the DOM.
@@ -292,9 +343,29 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
         that one opened whichever role the screen happened to list first.
       */
       { label: 'Set this role\u2019s KPIs', run: () => { shut(); window.location.href = `/setup/kpis?role=${roleId}`; } },
-      { label: 'Add a direct report', run: () => { post(addRole, { title: 'New role', parentId: roleId }); shut(); } },
-      { label: 'Rename role & person', run: () => editRole(roleId) },
     ];
+
+    /*
+      ── A team is not a role, so most of this menu does not apply to it ─────────────────────────
+
+      Design 15 puts "Add a team" on a ROLE's menu — a crew belongs to the leader who runs it. A
+      team of teams has nobody accountable for it, so a team's own menu offers opening it, renaming
+      it, and taking it off; `mayHoldTeam` refuses the rest on the server too.
+    */
+    if (role.isTeam) {
+      out.push({ label: 'Open the team', run: () => { shut(); setTeamId(roleId); } });
+      out.push({ label: 'Rename the team', run: () => editRole(roleId) });
+    } else {
+      out.push({ label: 'Add a direct report', run: () => { post(addRole, { title: 'New role', parentId: roleId }); shut(); } });
+      /*
+        The design names it from a `window.prompt`. This adds the team named "Team" and opens it —
+        where the name is an ordinary box on the page, alongside everything else about the crew.
+        A modal prompt cannot be styled, cannot be cancelled back to anything useful, and on a
+        phone is a system dialog over a page the person has not finished reading.
+      */
+      out.push({ label: 'Add a team', run: () => { post(addTeam, { parentId: roleId, name: '' }); shut(); } });
+      out.push({ label: 'Rename role & person', run: () => editRole(roleId) });
+    }
     // Nothing to break when it already hangs from nothing.
     if (role.parentId) {
       out.push({ label: 'Break the link', run: () => { post(breakLink, { roleId }); shut(); } });
@@ -343,6 +414,16 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
   }
 
   const selected = selectedId ? roles.find(r => r.id === selectedId) ?? null : null;
+  /*
+    The team being looked at, and the role it belongs to.
+
+    Resolved from `roles` every render rather than held in state, so a name added or removed on the
+    server comes back into this view without the component having to be told twice. Falls back to
+    the whole chart when the id no longer names a team — a team that has been removed in another
+    tab should show the chart, not an empty layer.
+  */
+  const openTeam = teamId ? roles.find(r => r.id === teamId && r.isTeam) ?? null : null;
+  const teamLeader = openTeam?.parentId ? roles.find(r => r.id === openTeam.parentId) ?? null : null;
   const items = menu ? itemsFor(menu.roleId) : [];
 
   return (
@@ -381,6 +462,117 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
         className="rounded-2xl bg-surface p-5 shadow-sm sm:p-8"
         onContextMenu={e => openMenu(e, null)}
       >
+        {/*
+          ── The team layer, which REPLACES the chart ────────────────────────────────────────────
+
+          Design 15 draws it inside the same frame, in place of the tree: the crew as a grid of name
+          cards, a box to add another, and the four pillars the whole team shares.
+
+          Replacing rather than sitting beside it is the design's arrangement and the right one. A
+          crew of eight drawn as eight more cards on the chart would double the width of a diagram
+          whose entire job is showing who reports to whom — which is exactly why the team node
+          exists instead.
+        */}
+        {openTeam ? (
+          <div data-team-layer={openTeam.id}>
+            <button
+              type="button"
+              onClick={() => setTeamId(null)}
+              className="mb-4 text-[13.5px] text-rust-700 underline-offset-2 hover:underline"
+            >
+              &larr; Back to org chart
+            </button>
+            <span className="label-caps block text-rust-700">Team layer</span>
+            <h2 className="mt-1 font-serif text-2xl text-ink">
+              {openTeam.title}
+              {teamLeader && <span className="text-ink-light"> · under {teamLeader.title}</span>}
+            </h2>
+
+            <div className="mt-5 grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
+              {(openTeam.members ?? []).map(m => (
+                <div
+                  key={m.id}
+                  data-team-member={m.id}
+                  className="relative rounded-[20px] bg-cream px-4 py-[18px] text-center"
+                  style={{ boxShadow: 'inset 0 0 0 1px #ffe1d0' }}
+                >
+                  {canEdit && editable.has(openTeam.id) && (
+                    <form action={removeTeamMember} className="absolute right-2 top-1.5">
+                      <input type="hidden" name="assignmentId" value={m.id} />
+                      <button
+                        aria-label={`Take ${m.name} out of ${openTeam.title}`}
+                        title={`Take ${m.name} out of ${openTeam.title}`}
+                        className="text-sm leading-none"
+                        style={{ color: LIGHT_COLOUR.red }}
+                      >
+                        &times;
+                      </button>
+                    </form>
+                  )}
+                  <span className="block font-serif text-[15px] leading-5 text-ink">{m.name}</span>
+                  {/*
+                    Everybody in a team is on a team seat — nothing reports to a team, and the title
+                    on the node is the crew's name rather than a job title, so `seatKindFor` lands
+                    on `team` for all of them. The design says so on each card, and it is the number
+                    on the bill.
+                  */}
+                  <span className="mt-1.5 block text-[11.5px] text-ink-light">
+                    Team seat{m.hasAccount ? '' : ' · pencilled in'}
+                  </span>
+                </div>
+              ))}
+
+              {canEdit && editable.has(openTeam.id) && (
+                <form
+                  action={addTeamMember}
+                  className="flex flex-col gap-2 rounded-[20px] border-2 border-dashed border-rust-400 bg-cream px-4 py-[18px]"
+                >
+                  <input type="hidden" name="roleId" value={openTeam.id} />
+                  <label className="sr-only" htmlFor="team-add">Add somebody to {openTeam.title}</label>
+                  <input
+                    id="team-add"
+                    name="name"
+                    autoComplete="off"
+                    placeholder="Add a name"
+                    className="min-h-[36px] w-full rounded-md border border-ink/15 bg-surface-raised px-2.5 py-1.5 text-[13px] text-ink"
+                  />
+                  <button className="btn-secondary px-2.5 py-[7px] text-xs">+ Add to team</button>
+                </form>
+              )}
+            </div>
+
+            {/*
+              A name typed here costs nothing and emails nobody — the same rule as the chart's own
+              name boxes, and the reason a leader can draw a whole crew before deciding who gets a
+              login.
+            */}
+            {canEdit && editable.has(openTeam.id) && (
+              <p className="mt-3 text-xs leading-5 text-ink-light">
+                A name here is pencilled in: free, and nobody is emailed. Taking somebody out ends
+                their placement today and keeps the record of it.
+              </p>
+            )}
+
+            <div className="mt-7 border-t border-rust-200 pt-6">
+              <span className="label-caps block text-rust-700">Team KPIs &mdash; shared group score</span>
+              <p className="mt-1.5 max-w-[60ch] text-[13px] leading-5 text-ink-light">
+                One set of measures for the whole crew. Everybody in the team is scored on the same
+                four pillars together, which is what makes it a team rather than {(openTeam.members?.length ?? 0) || 'several'} separate cards.
+              </p>
+              <div className="mt-4 grid gap-3.5 sm:grid-cols-2">
+                {PILLARS.map(p => (
+                  <PillarCard
+                    key={p}
+                    pillar={p}
+                    role={openTeam}
+                    canEdit={canEdit && editable.has(openTeam.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+        <>
         {/*
           What part of the business is on screen, and how to change it.
 
@@ -502,6 +694,72 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
             const shut_ = collapsed.has(r.id);
             // The design's numbers for this depth — width, padding, radius, title and tile size.
             const z = cardStyle(c.depth);
+
+            /*
+              ── A team node, which is a different card ────────────────────────────────────────
+
+              Design 15 draws it sage rather than cream, with the team's name, a member count where
+              a person's pill would be, and the same four S/P/E/C tiles — one shared score for the
+              group.
+
+              It is not draggable and cannot be dropped onto: nothing reports to a team, and a team
+              belongs to the leader who runs it. `canMove` refuses both on the server as well, so
+              this is politeness rather than the rule.
+
+              One press opens the team. The design uses a double-click, and the same reasoning that
+              moved the power meter off one applies here — a double-click cannot be discovered,
+              cannot be reached from a keyboard and does not exist on a phone. There is nothing else
+              a press on a team card could usefully mean.
+            */
+            if (r.isTeam) {
+              const count = r.members?.length ?? 0;
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  data-team-node={r.id}
+                  onClick={() => setTeamId(r.id)}
+                  onContextMenu={e => openMenu(e, r.id)}
+                  title={`${r.title} — ${memberLine(count)}. Press to go into the team.`}
+                  className="group absolute flex flex-col items-center justify-center bg-sage-100 text-center transition-[box-shadow,transform] hover:-translate-y-px"
+                  style={{
+                    left: c.x, top: c.y, width: c.w, height: c.h,
+                    padding: `${z.pad}px ${Math.round(z.pad * 1.3)}px`,
+                    borderRadius: 22,
+                    boxShadow: selectedId === r.id
+                      ? '0 0 0 2px #7a8a5e, 0 6px 16px -6px rgba(0,0,0,0.22)'
+                      : '0 0 0 2.5px rgba(122,138,94,0.45), 0 6px 16px -8px rgba(0,0,0,0.18)',
+                  }}
+                >
+                  <span className="font-serif leading-[1.25] text-sage-900" style={{ fontSize: z.title }}>
+                    {r.title}
+                  </span>
+                  <span className="mt-1 block text-[12px] text-ink-light" data-team-count={r.id}>
+                    {memberLine(count)}
+                  </span>
+                  <span className="mt-2.5 flex items-center justify-center gap-[7px]">
+                    {PILLARS.map(p => {
+                      const value = r.pillars?.[p] ?? null;
+                      return (
+                        <span
+                          key={p}
+                          title={`${PILLAR_META[p].name} ${value === null ? 'no score' : `${Math.round(value * 100)}%`}`}
+                          className="grid shrink-0 place-content-center font-serif text-cream"
+                          style={{
+                            width: z.tile, height: z.tile, borderRadius: 8,
+                            fontSize: Math.max(11, Math.round((z.tile - 13) * 1.05)), lineHeight: 1,
+                            background: LIGHT_INK[light(value)],
+                          }}
+                        >
+                          {PILLAR_META[p].letter}
+                        </span>
+                      );
+                    })}
+                  </span>
+                </button>
+              );
+            }
+
             return (
               <div
                 key={r.id}
@@ -942,6 +1200,8 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
         <div className="mt-3">
           <ChartKeyDetail />
         </div>
+        </>
+        )}
       </section>
 
       {/*
@@ -1008,6 +1268,46 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
             </p>
           ) : (
             <>
+              {/*
+                ── How ready this role is to be scored, at the top of its own card ───────────────
+
+                Design 15 puts a chip per pillar here — a dot, the pillar, and how many KPIs it
+                carries — with one sentence underneath saying what it adds up to.
+
+                The chips are green or red on SPEC's minimum of two, which is the same threshold
+                `lib/period` refuses to open a month without. The line beneath names the pillars
+                that are short rather than only saying that something is, because "compliance and
+                people are short" is a thing somebody can go and fix and "not ready" is not.
+              */}
+              <div className="mt-4 flex flex-wrap gap-2.5" data-kpi-readiness>
+                {PILLARS.map(p => {
+                  const n = selected.kpiCounts?.[p] ?? 0;
+                  const ready = pillarReadiness(n) === 'ready';
+                  return (
+                    <span
+                      key={p}
+                      className="flex items-center gap-1.5 rounded-full bg-surface-raised px-2.5 py-[5px] text-xs text-ink"
+                      data-readiness={p}
+                    >
+                      <span
+                        aria-hidden
+                        className="block h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ background: ready ? LIGHT_COLOUR.green : LIGHT_COLOUR.red }}
+                      />
+                      {PILLAR_META[p].name} {n}
+                    </span>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-[12.5px] leading-[18px] text-sage-900" data-readiness-line>
+                {readinessLine({
+                  safety: selected.kpiCounts?.safety ?? 0,
+                  people: selected.kpiCounts?.people ?? 0,
+                  earnings: selected.kpiCounts?.earnings ?? 0,
+                  compliance: selected.kpiCounts?.compliance ?? 0,
+                })}
+              </p>
+
               {/*
                 Renaming, in the place the design puts it rather than behind a menu item.
 
@@ -1199,71 +1499,23 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                 up to, and a control that sets it directly would make every number on the board a
                 matter of opinion. The button goes to where the numbers are actually decided.
               */}
+              {/*
+                The four pillars as the design draws them: a card each, the percentage in serif,
+                the measures NAMED underneath, and a box to add another.
+
+                The prototype puts a slider here and drags the score around. That is the one thing
+                from this design that must not be built: a score in SPEC is what the KPI results
+                add up to, and a control that sets it directly would make every number on the board
+                a matter of opinion. The button goes to where the numbers are actually decided.
+
+                Drawn by the same `PillarCard` the team layer uses — the same question asked of a
+                person's role and of a crew, and two copies would be two chances for the KPI list
+                and the add box to drift.
+              */}
               <div className="mt-6 grid gap-3">
-                {PILLARS.map(p => {
-                  const value = selected.pillars?.[p] ?? null;
-                  const named = selected.kpis?.[p] ?? [];
-                  return (
-                    <div key={p} className="rounded-2xl bg-cream p-5">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="label-caps flex items-center gap-2.5 text-ink-light">
-                          <span
-                            aria-hidden
-                            className="block h-3 w-3 shrink-0 rounded-full"
-                            style={{ background: LIGHT_COLOUR[light(value)] }}
-                          />
-                          {PILLAR_META[p].name}
-                        </span>
-                        <span className="font-serif text-[22px] leading-none text-ink">
-                          {value === null ? '0%' : `${Math.round(value * 100)}%`}
-                        </span>
-                      </div>
-                      <div className="mt-3.5 grid gap-1.5">
-                        {named.length ? (
-                          named.map(n => (
-                            <span key={n} className="text-[13.5px] leading-5 text-ink/80">{n}</span>
-                          ))
-                        ) : (
-                          <span className="text-[13.5px] leading-5 text-ink-light">
-                            No KPIs set, so nothing to score.
-                          </span>
-                        )}
-                        {/*
-                          ── Whether this pillar can be scored at all ──────────────────────────
-
-                          Design 15 draws a dot per pillar, green at SPEC's minimum of two KPIs and
-                          red below it. There is already a dot on this row and it means something
-                          else — how the pillar is GOING — so a second one in the same card, in the
-                          same colours, meaning readiness instead, would be two lights saying
-                          different things two centimetres apart.
-
-                          So it is said in words, and only when it is SHORT, which is the only time
-                          it changes what anybody does. `MIN_KPIS` is the same threshold lib/period
-                          refuses to open a month without.
-                        */}
-                        {pillarReadiness(selected.kpiCounts?.[p] ?? 0) === 'short' && (
-                          <span
-                            className="text-[13px] leading-5"
-                            style={{ color: LIGHT_COLOUR.red }}
-                            data-pillar-short={p}
-                          >
-                            {(selected.kpiCounts?.[p] ?? 0)} of {MIN_KPIS} KPIs — this pillar cannot be scored yet.
-                          </span>
-                        )}
-                      </div>
-                      {/* The bar is a reading of the score, never a way to set one. */}
-                      <div className="mt-3.5 h-2 overflow-hidden rounded-full bg-ink/10">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${Math.round((value ?? 0) * 100)}%`,
-                            background: LIGHT_COLOUR[light(value)],
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                {PILLARS.map(p => (
+                  <PillarCard key={p} pillar={p} role={selected} canEdit={canEdit} />
+                ))}
               </div>
 
               {canEdit && (
@@ -1387,4 +1639,149 @@ function isOff(role: ChartRole, all: ChartRole[], rootId: string): boolean {
     cursor = cursor.parentId ? all.find(r => r.id === cursor!.parentId) : undefined;
   }
   return true;
+}
+
+/**
+ * One pillar of one scorecard: how it is going, what it is measured on, and a box to add another.
+ *
+ * ── The KPI editor design 15 asks for ───────────────────────────────────────────────────────────
+ *
+ * Kris, 18 September: *"org chart and entering kpi's is everything to this system - why is it so
+ * hard"*. The design's answer is a prompt that opens from a right-click on a pillar, with the
+ * business's own examples offered underneath.
+ *
+ * This is that, as a box on the card rather than a modal over it. A modal has to be opened before
+ * it can be typed in, which is two gestures for one line of text, and it hides the four KPIs
+ * already on the pillar at the moment somebody is deciding whether to add a fifth. The examples
+ * are a `datalist`, so they are suggestions in the box rather than a sentence to press.
+ *
+ * ── The same card in two places ─────────────────────────────────────────────────────────────────
+ *
+ * The Role scorecard panel and the team layer draw exactly this. They are the same question — what
+ * is this scored on — asked of a person's role and of a crew, and the design draws them the same
+ * way. Two copies would have been two chances for the KPI list and the add box to drift.
+ */
+function PillarCard({ pillar, role, canEdit }: {
+  pillar: (typeof PILLARS)[number];
+  role: ChartRole;
+  canEdit: boolean;
+}) {
+  const value = role.pillars?.[pillar] ?? null;
+  const named = role.kpis?.[pillar] ?? [];
+  const ids = role.kpiIds?.[pillar] ?? [];
+  const count = role.kpiCounts?.[pillar] ?? 0;
+  /*
+    A supervisor is measured on what their team did; an electrician on what they did. A team node
+    is measured as a crew, which is the frontline list — offering "Gross profit margin at 40%" to
+    somebody who cannot see a margin teaches them SPEC is not about their job.
+  */
+  const kind = role.isTeam
+    ? 'team'
+    : seatKindFor({ title: role.title, hasDirectReports: false });
+  const examples = kpiSuggestions(kind, pillar, named);
+  const listId = `kpi-examples-${role.id}-${pillar}`;
+
+  return (
+    <div className="rounded-2xl bg-cream p-5" data-pillar-card={pillar}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="label-caps flex items-center gap-2.5 text-ink-light">
+          <span
+            aria-hidden
+            className="block h-3 w-3 shrink-0 rounded-full"
+            style={{ background: LIGHT_COLOUR[light(value)] }}
+          />
+          {PILLAR_META[pillar].name}
+        </span>
+        <span className="font-serif text-[22px] leading-none text-ink">
+          {value === null ? '0%' : `${Math.round(value * 100)}%`}
+        </span>
+      </div>
+
+      <div className="mt-3.5 grid gap-1.5">
+        {named.length ? (
+          named.map((n, i) => (
+            <span key={ids[i] ?? n} className="flex items-start justify-between gap-2 text-[13.5px] leading-5 text-ink/80">
+              {n}
+              {/*
+                The × the design puts beside every measure.
+
+                It marks the criterion inactive rather than deleting it — a month already closed was
+                scored against this line, and removing the row would change a number a board has
+                signed off. See removeRoleKpi.
+              */}
+              {canEdit && ids[i] && (
+                <form action={removeRoleKpi}>
+                  <input type="hidden" name="criterionId" value={ids[i]} />
+                  <button
+                    aria-label={`Take "${n}" off ${PILLAR_META[pillar].name}`}
+                    title={`Take "${n}" off ${PILLAR_META[pillar].name}`}
+                    className="text-xs leading-none"
+                    style={{ color: LIGHT_COLOUR.red }}
+                  >
+                    &times;
+                  </button>
+                </form>
+              )}
+            </span>
+          ))
+        ) : (
+          <span className="text-[13.5px] leading-5 text-ink-light">No KPIs set, so nothing to score.</span>
+        )}
+
+        {/*
+          ── Whether this pillar can be scored at all ──────────────────────────────────────────
+
+          Design 15 draws a dot per pillar, green at SPEC's minimum of two KPIs and red below it.
+          There is already a dot on this row and it means something else — how the pillar is GOING —
+          so a second one in the same card, in the same colours, meaning readiness instead, would be
+          two lights saying different things two centimetres apart.
+
+          So it is said in words, and only when it is SHORT, which is the only time it changes what
+          anybody does. `MIN_KPIS` is the same threshold lib/period refuses to open a month without.
+        */}
+        {pillarReadiness(count) === 'short' && (
+          <span className="text-[13px] leading-5" style={{ color: LIGHT_COLOUR.red }} data-pillar-short={pillar}>
+            {count} of {MIN_KPIS} KPIs — this pillar cannot be scored yet.
+          </span>
+        )}
+      </div>
+
+      {canEdit && (
+        <form action={addRoleKpi} className="mt-3 flex gap-2">
+          <input type="hidden" name="roleId" value={role.id} />
+          <input type="hidden" name="pillar" value={pillar} />
+          <label className="sr-only" htmlFor={`add-${role.id}-${pillar}`}>
+            Add a KPI under {PILLAR_META[pillar].name}
+          </label>
+          <input
+            id={`add-${role.id}-${pillar}`}
+            name="text"
+            list={listId}
+            autoComplete="off"
+            placeholder={examples[0] ?? 'What does good look like?'}
+            className="min-h-[36px] w-full rounded-md border border-ink/15 bg-surface-raised px-2.5 py-1.5 text-[13px] text-ink"
+            data-add-kpi={pillar}
+          />
+          {/* The design's round + button, at the end of the box. */}
+          <button
+            aria-label={`Add this KPI to ${PILLAR_META[pillar].name}`}
+            className="grid h-9 w-9 shrink-0 place-content-center rounded-full bg-rust text-[17px] leading-none text-cream"
+          >
+            +
+          </button>
+          {/*
+            The design's "Use suggestion" line, as a datalist instead.
+
+            Same examples, same source — KPI_EXAMPLES in lib/chart-seats, which is the design's own
+            list — but offered IN the box, where they can be edited before they are added. A button
+            that fills the field is one more press for the same result, and a suggestion nobody can
+            adjust before committing is one people accept unread.
+          */}
+          <datalist id={listId}>
+            {examples.map(e => <option key={e} value={e} />)}
+          </datalist>
+        </form>
+      )}
+    </div>
+  );
 }

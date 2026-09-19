@@ -199,6 +199,65 @@ export function addKpi(raw: string, existing: readonly string[]): KpiAdded {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+ * Teams
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * A team node holds several people and one shared scorecard between them.
+ *
+ * Design 15: "Technicians" and "Apprentices" hanging under a Site Supervisor, each with a pool of
+ * names and one set of S/P/E/C for the group. The design seeds the name with a `window.prompt`
+ * defaulting to "Team"; here it is typed into the chart, and an empty box means the same thing.
+ */
+export const TEAM_DEFAULT_NAME = 'Team';
+
+/** What the design offers as examples of a team name, in its own words. */
+export const TEAM_NAME_EXAMPLES = ['Technicians', 'Apprentices', 'Installers', 'Service crew'];
+
+export type Named =
+  | { ok: true; text: string }
+  | { ok: false; reason: string };
+
+/** A team's name. Falls back rather than refusing: an unnamed team is still a real team. */
+export function teamName(raw: string): string {
+  const text = raw.trim().replace(/\s+/g, ' ').slice(0, 80);
+  return text || TEAM_DEFAULT_NAME;
+}
+
+/**
+ * Somebody joining a team.
+ *
+ * Refuses a duplicate in any case, for the same reason `addKpi` does: two "Dave Morgan"s in one
+ * crew is a team that reads as six and is five, and a shared score divided by the wrong number is
+ * wrong for everybody in it.
+ */
+export function addMember(raw: string, existing: readonly string[]): Named {
+  const text = raw.trim().replace(/\s+/g, ' ');
+  if (!text) return { ok: false, reason: 'A name, so the team knows who is in it.' };
+  if (text.length > 120) return { ok: false, reason: 'That is too long for a name.' };
+  if (existing.some(e => e.trim().toLowerCase() === text.toLowerCase())) {
+    return { ok: false, reason: 'They are already in this team.' };
+  }
+  return { ok: true, text };
+}
+
+/** "3 members", the way the design's card prints it. */
+export const memberLine = (n: number): string => `${n} ${n === 1 ? 'member' : 'members'}`;
+
+/**
+ * May a team node hang here?
+ *
+ * Under a role, never under another team. A team of teams has nobody accountable for it: the shared
+ * score would belong to a group whose members are themselves groups, and there is no person at the
+ * end of it to have the conversation with. The design only ever draws one under a leader.
+ */
+export function mayHoldTeam(parent: { isTeam: boolean } | null | undefined): Named {
+  if (!parent) return { ok: false, reason: 'A team has to sit under the role that leads it.' };
+  if (parent.isTeam) return { ok: false, reason: 'A team cannot sit under another team — put it under the role that leads them both.' };
+  return { ok: true, text: 'ok' };
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
  * Who may put a number on a pillar
  * ───────────────────────────────────────────────────────────────────────────── */
 

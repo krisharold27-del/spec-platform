@@ -382,6 +382,28 @@ export const roles = pgTable('roles', {
    */
   focus: text('focus'),
   pnlView: text('pnl_view'),                 // operational_ebitda | controllable_net_profit | full_statutory
+  /**
+   * A TEAM rather than a seat: several people, pooled, with one shared scorecard between them.
+   *
+   * Design 15's team layer — "Technicians" and "Apprentices" hanging under a Site Supervisor, each
+   * holding a handful of names and one set of S/P/E/C for the group.
+   *
+   * ── Why a team is a role and not a new table ────────────────────────────────────────────────
+   *
+   * Everything a team needs already exists on a role and nowhere else: it reports to somebody, it
+   * carries criteria, it is scored each month, it is laid out on the chart — and
+   * `role_assignments` has never had a uniqueness constraint on `role_id`, so several people
+   * sitting on one role is an already-supported shape rather than something to build.
+   *
+   * A separate table would have meant a second kind of node for the layout to place, a second kind
+   * of parent for a reporting line, a second scoring path and a second set of period rules, all to
+   * express "this one holds more than one person". This column is the whole difference.
+   *
+   * Nobody is billed differently for it. Which seat a person is on is read from the chart and the
+   * title (`seatKindFor` in lib/chart-seats) and nothing reports to a team, so everybody in one is
+   * a team seat — which is exactly what the design calls them.
+   */
+  isTeam: boolean('is_team').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
   active: boolean('active').notNull().default(true),
 }, t => [index('roles_tenant').on(t.tenantId)]).enableRLS();
