@@ -260,12 +260,40 @@ function standUpStack(dbUrl) {
     if (!up) return null;
   }
 
+  /*
+    ── And the other end of the Xero connector ────────────────────────────────────────────────────
+
+    This machine cannot reach Xero: the egress proxy denies every one of its hosts. So the only way
+    to walk "a business links its accounts" is to serve Xero's own contract here and drive SPEC's
+    two ends against it. `scripts/fake-xero.mjs` does that, and `XERO_FAKE_BASE` points the app at
+    it.
+
+    That variable can only ever name a LOOPBACK address and is ignored outright on a real
+    deployment — both rules live in `endpoints` in lib/xero-net and are tested there. It is exactly
+    as safe here as it is anywhere, which is why it can simply be part of the stack.
+
+    The credentials below are obvious fakes on purpose. SPEC's real Xero client id and secret live
+    in the deployment's settings and appear in no file, no chat and no log.
+  */
+  const xeroPort = 5055;
+  if (!curlOk(`http://127.0.0.1:${xeroPort}/connections`, 3)) {
+    // It answers 401 without a bearer token, which `curl -f` treats as a failure — so this never
+    // wrongly concludes one is already up. A second copy on a taken port exits by itself.
+    spawnQuiet('node', ['scripts/fake-xero.mjs', String(xeroPort)], {});
+  }
+
   spawnQuiet('npx', ['next', 'dev', '-p', String(appPort)], {
     DATABASE_URL: dbUrl,
     NEXT_PUBLIC_SUPABASE_URL: `http://127.0.0.1:${authPort}`,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-anon-key',
     APP_URL: base,
     NODE_ENV: 'test',
+    XERO_FAKE_BASE: `http://localhost:${xeroPort}`,
+    XERO_CLIENT_ID: 'offline-client-id',
+    XERO_CLIENT_SECRET: 'offline-client-secret',
+    // Only ever seals tokens issued by the offline server above. A real key is 32+ random
+    // characters, set once in the deployment's settings and nowhere else.
+    TOKEN_ENCRYPTION_KEY: 'offline-only-key-for-the-fake-xero-server',
   });
   return waitFor(`${base}/`, 120) ? base : null;
 }
@@ -351,6 +379,9 @@ const JOURNEYS = [
   ['seat', 'somebody you invited taking their seat', 'seat-journey'],
   ['boards', 'a board a team can pin, read the working on, and argue over', 'boards-journey'],
   ['cockpit', 'your own cockpit staying private', 'cockpit-journey'],
+  // Needs the offline Xero server above. When it is not there the journey says so and skips rather
+  // than passing quietly — a connector nobody exercised is not a connector anybody has proven.
+  ['xero', 'a business linking its accounts, and the board guarding the ledger', 'xero-journey.mts'],
   // Not a browser journey: it drives the real delete function against a real database, because what
   // is worth checking is the guards, not a page. '.mts' so it can import the product's TypeScript.
   ['delete', 'clearing a test business, and every guard that stops the wrong one going', 'delete-journey.mts'],

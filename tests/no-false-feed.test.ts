@@ -68,6 +68,25 @@ const code = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^
 */
 const connectorExists = source.some(text => EVIDENCE.some(re => re.test(code(text))));
 
+/*
+  ── The ratchet has TWO notches, and 19 September is why ─────────────────────────────────────────
+
+  The Xero connector landed. `connectorExists` went true by itself, exactly as this file intended —
+  and in going true it switched off all three bans at once, including the one that was still lying.
+
+  "Numbers arriving on their own" is now earned: SPEC really can exchange a code, rotate a refresh
+  token and read a Profit and Loss. **"Last read <date>" is not.** Nothing in this repository writes
+  `lastSyncAt` from a fetch — `markLive` used to stamp it with the moment of a click and that write
+  was torn out on 19 September — so the column is null everywhere, and a screen printing a date
+  beside it would still be inventing one.
+
+  They are different claims and they become true at different moments. So the second notch carries
+  its own evidence: something has to SET `lastSyncAt` from a read rather than from a button. Until
+  it does, the oldest and most specific of these three lies stays banned.
+*/
+const READ_EVIDENCE = /lastSyncAt:\s*(new Date|now|read|fetched|at)/;
+const readsAreRecorded = source.some(text => READ_EVIDENCE.test(code(text)));
+
 describe('no screen claims a number arrived on its own', () => {
   /*
     Written out one by one rather than looped.
@@ -77,18 +96,32 @@ describe('no screen claims a number arrived on its own', () => {
     and runs three, so looping here would quietly make both of those documents wrong by two — a
     check that breaks a different check's honesty to save four lines.
   */
-  const guiltyOf = (pattern: RegExp) =>
-    connectorExists
-      ? []                                // a real connector exists now — the wording is earned
+  const guiltyOf = (pattern: RegExp, earned = connectorExists) =>
+    earned
+      ? []                                // the thing this wording claims really happens now
       : files
           .map((path, i) => [path, code(source[i])] as const)
           .filter(([, text]) => pattern.test(text))
           .map(([path]) => path.replace(`${process.cwd()}/`, ''));
 
   it('never says "last read"', () => {
-    // `lastSyncAt` is stamped when an administrator presses Mark live. It is the time of a click.
-    const guilty = guiltyOf(/last read/i);
+    /*
+      Held to `readsAreRecorded`, not to `connectorExists`. A connector that can read is not the
+      same fact as a read having happened, and this is the sentence that prints a DATE — the most
+      specific and therefore the most believable of the three.
+    */
+    const guilty = guiltyOf(/last read/i, readsAreRecorded);
     expect(guilty, `Found in: ${guilty.join(', ')}`).toEqual([]);
+  });
+
+  it('AND THAT SECOND NOTCH IS STILL SHUT, because nothing writes a read time yet', () => {
+    /*
+      Asserted rather than assumed, for the same reason the first notch is. If this ever passes
+      while `lastSyncAt` is still only ever null, the check above has quietly stopped checking —
+      and the wording it guards is the one that was on four screens on 18 September.
+    */
+    expect(readsAreRecorded, 'something now records a read time; the ban above has lifted itself')
+      .toBe(false);
   });
 
   it('never says numbers are "arriving on their own"', () => {

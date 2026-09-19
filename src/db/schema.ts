@@ -329,6 +329,15 @@ export const connectionCredentials = pgTable('connection_credentials', {
   xeroOrgId: text('xero_org_id'),
   /** The organisation's name as Xero gave it, so a person can tell which books these are. */
   orgName: text('org_name'),
+  /**
+   * Every organisation the consent covers, as JSON, when there is more than one.
+   *
+   * A Xero login often reaches several sets of books — a group, a trust, an accountant's practice
+   * with twenty clients on it. SPEC cannot know which one is this business's, and picking the first
+   * would put somebody else's accounts on a scorecard. So the choices are kept, the administrator
+   * says which, and until they have, `xeroOrgId` is null and nothing can be read at all.
+   */
+  orgChoices: text('org_choices'),
   /** Sealed. See lib/secret-box. A plaintext token here would be sixty days of somebody's accounts. */
   refreshTokenSealed: text('refresh_token_sealed').notNull(),
   /** What the consent actually covers, as Xero granted it — never what we asked for. */

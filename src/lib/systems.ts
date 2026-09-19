@@ -93,6 +93,22 @@ export const STATUS_LABEL: Record<string, string> = {
 };
 
 /**
+ * Is this the one system SPEC has a real connector for?
+ *
+ * Xero, and nothing else yet.
+ *
+ * Everything else in this file reasons in CATEGORIES on purpose — a vendor list is exactly how a
+ * business on something SPEC has never heard of would route around the board. A connector is the
+ * opposite kind of thing: it speaks one company's API and knows the shape of one company's Profit
+ * and Loss, so naming the vendor is the honest thing here rather than the shortcut. Simpro gets its
+ * own line when it lands.
+ *
+ * Matched on the name the business typed, because that is the only place a vendor ever appears: a
+ * connection's category says what it HOLDS and never what it is.
+ */
+export const isXero = (name: string): boolean => /\bxero\b/i.test(name);
+
+/**
  * Categories the board decides on, not the GM.
  *
  * Anything carrying pay, personal records or the ledger. The test is what the system holds rather

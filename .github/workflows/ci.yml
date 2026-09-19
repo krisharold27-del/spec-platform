@@ -281,6 +281,20 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
           APP_URL: http://localhost:3000
           NODE_ENV: test
+          # ── The other end of the Xero connector ─────────────────────────────────────────────
+          #
+          # GitHub's runners cannot reach Xero from a pull request, and neither can the machine this
+          # was written on. So Xero's own contract is served here by scripts/fake-xero.mjs and SPEC's
+          # two ends are driven against it.
+          #
+          # XERO_FAKE_BASE can only ever name a LOOPBACK address and is ignored outright on a real
+          # deployment — both rules live in `endpoints` in src/lib/xero-net.ts and are tested there.
+          # The credentials below are obvious fakes; SPEC's real ones live in the deployment's
+          # settings and appear in no file, no log and no workflow.
+          XERO_FAKE_BASE: http://localhost:5055
+          XERO_CLIENT_ID: offline-client-id
+          XERO_CLIENT_SECRET: offline-client-secret
+          TOKEN_ENCRYPTION_KEY: offline-only-key-for-the-fake-xero-server
         run: |
           # ── Why each journey is timed and fenced ────────────────────────────────────────────
           #
@@ -323,6 +337,9 @@ jobs:
           }
 
           node scripts/fake-auth.mjs 54321 &
+          # Xero's contract, answered locally. Started before the app, because the app reads
+          # XERO_FAKE_BASE at request time and the journey is the only thing that talks to it.
+          node scripts/fake-xero.mjs 5055 &
 
           # ── Wait for the stand-in, WITHOUT -f ────────────────────────────────────────────────
           #
@@ -443,6 +460,11 @@ jobs:
           # that a board whose feeds are not connected never claims to be live: "partly current"
           # reads as "current", on the screen where somebody drops a sell rate by ten dollars an hour.
           journey boards-journey.mjs
+
+          # A business linking its accounts, and the board guarding the ledger on the way. Walked
+          # against the offline Xero above: it proves SPEC's two ends against Xero's published
+          # contract and nothing whatever about how the real Xero behaves.
+          journey xero-journey.mts
 
           journey seat-journey.mjs
 

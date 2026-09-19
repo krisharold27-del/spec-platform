@@ -10,9 +10,13 @@ import { getScope } from '@/lib/scope';
 import { CATEGORIES, categoryName, isSensitive, STATUS_LABEL, SENSITIVE_NOTE } from '@/lib/systems';
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { propose } from '@/lib/mapping';
-import { connectSystem, disconnectSystem, markLive } from './actions';
+import { connectSystem, disconnectSystem, markLive, startXero, chooseXeroOrg } from './actions';
 import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
+import { credentialFor } from '@/lib/xero-link';
+import { xeroApp } from '@/lib/xero-net';
+import { canHoldSecrets } from '@/lib/secret-box';
+import { isXero } from '@/lib/systems';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +53,20 @@ export default async function Connections({
   const approvals = await db.select().from(schema.approvals)
     .where(eq(schema.approvals.tenantId, user.tenantId));
 
+  /*
+    What SPEC actually holds for each connection — the organisation, the granted scope, when it was
+    last refreshed. Never the credential: `credentialFor` deliberately does not return the sealed
+    token, so nothing on this page can carry a key to somebody's accounts into a render.
+  */
+  const credentials = new Map(
+    await Promise.all(
+      connections.map(async c => [c.id, await credentialFor(user.tenantId, c.id)] as const),
+    ),
+  );
+  const xeroReady = Boolean(xeroApp()) && canHoldSecrets();
+  const choosing = typeof sp.choose === 'string' ? sp.choose : undefined;
+  const linked = typeof sp.linked === 'string' ? sp.linked : undefined;
+
   const live = connections.filter(c => c.status === 'live');
   const authorised = scope.canAdminister;
 
@@ -75,9 +93,33 @@ export default async function Connections({
       title="Connections"
       kicker="Connection centre"
       headline="You talk to Claude. The systems talk to each other."
-      subtitle={`${live.length} of ${connections.length} feeding numbers · ${tenant.name}`}
+      // "feeding numbers" claimed a flow only one of these can do. Connected is the fact; whether
+      // anything has been READ is said on the row itself, where it can be true per connection.
+      subtitle={`${live.length} of ${connections.length} connected · ${tenant.name}`}
     >
       <Refused reason={cannot} />
+      {/*
+        Coming back from Xero, said plainly — and said differently depending on what actually
+        happened. "Connected" and "connected, but SPEC does not know whose books yet" are different
+        facts, and running them together is how somebody walks away believing a number is on its
+        way when nothing can be read at all.
+      */}
+      {linked && (
+        <div className="callout mb-6" data-xero-done>
+          <p className="text-sm text-ink">
+            Xero is connected to <b>{linked}</b>. SPEC holds a read-only key for the Profit and Loss
+            and nothing else, and it is stored encrypted.
+          </p>
+        </div>
+      )}
+      {choosing && !linked && (
+        <div className="callout mb-6" data-xero-choosing>
+          <p className="text-sm text-ink">
+            Xero signed in. One thing left: that login reaches more than one organisation, so tell
+            SPEC which set of books is {tenant.name}. Nothing is read until you do.
+          </p>
+        </div>
+      )}
       {/* Kris's own description of running JBI, and the sharpest promise the product makes. */}
       <p className="-mt-4 mb-6 max-w-2xl font-serif text-xl text-ink">
         You talk to Claude. The systems talk to each other.
@@ -99,6 +141,8 @@ export default async function Connections({
               const sensitive = isSensitive(c.category);
               const approval = approvals.find(a => a.refId === c.id);
               const approved = approval?.state === 'approved';
+              const xero = isXero(c.name);
+              const credential = credentials.get(c.id) ?? null;
               const tone = c.status === 'live' ? 'green' : c.status === 'broken' ? 'red' : 'pending';
               return (
                 <li key={c.id} className="card-inset" style={{ borderLeft: `4px solid ${LIGHT_COLOUR[tone]}` }}>
@@ -125,21 +169,93 @@ export default async function Connections({
                     </div>
                   )}
 
+                  {/*
+                    ── The one system SPEC really connects to ────────────────────────────────
+
+                    Everything else on this screen is a business saying "we run this" so SPEC knows
+                    what a number is made of. Xero is different: there is a connector, so this is
+                    the row where somebody actually hands SPEC a key — and the screen has to be
+                    exact about what has and has not happened.
+                  */}
+                  {credential && (
+                    <div className="mt-2 text-xs text-ink-light" data-xero-linked={c.id}>
+                      {credential.orgName
+                        ? <>Linked to <b className="text-ink">{credential.orgName}</b> in Xero</>
+                        : 'Linked to Xero — but nobody has said which set of books yet'}
+                      {credential.scope && ` · Xero granted: ${credential.scope}`}
+                      {credential.expiresAt && ` · this link lapses ${credential.expiresAt.slice(0, 10)} unless it is used`}
+                    </div>
+                  )}
+
                   {authorised && (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {c.status !== 'live' && (!sensitive || approved) && (
+                      {/*
+                        Connecting Xero is not "marking it live". It sends somebody to Xero to sign
+                        in and consent, and what comes back is a credential SPEC stores sealed. So
+                        it is offered instead of the manual button, never beside it — two buttons
+                        that look alike and mean completely different things is how somebody marks a
+                        ledger live that nothing is reading.
+                      */}
+                      {xero && xeroReady && (!sensitive || approved) && (
+                        <form action={startXero}>
+                          <input type="hidden" name="connectionId" value={c.id} />
+                          <SubmitButton className="btn-primary px-3 py-1.5 text-xs" pending="Going to Xero…">
+                            {credential ? 'Link Xero again' : 'Connect to Xero'}
+                          </SubmitButton>
+                        </form>
+                      )}
+                      {xero && !xeroReady && (
+                        <span className="text-xs text-ink-light">
+                          SPEC&rsquo;s Xero connector is not set up on this deployment yet, so this one is
+                          still a note about what the business runs.
+                        </span>
+                      )}
+                      {!xero && c.status !== 'live' && (!sensitive || approved) && (
                         <form action={markLive}>
                           <input type="hidden" name="connectionId" value={c.id} />
                           <SubmitButton className="btn-secondary px-3 py-1.5 text-xs" pending="…">Mark it live</SubmitButton>
                         </form>
                       )}
-                      {c.status === 'live' && (
+                      {(c.status === 'live' || credential) && (
                         <form action={disconnectSystem}>
                           <input type="hidden" name="connectionId" value={c.id} />
                           <SubmitButton className="btn-secondary px-3 py-1.5 text-xs" pending="…">Disconnect</SubmitButton>
                         </form>
                       )}
                     </div>
+                  )}
+
+                  {/*
+                    ── Which set of books ─────────────────────────────────────────────────────
+
+                    One Xero login often reaches several: a group, a trust, an accountant's practice
+                    with twenty clients on it. SPEC cannot know which one is this business, and
+                    taking the first would put somebody else's accounts on a scorecard. So it asks,
+                    and reads nothing until it has been told.
+                  */}
+                  {authorised && credential && !credential.xeroOrgId && credential.orgChoices.length > 0 && (
+                    <form action={chooseXeroOrg} className="mt-3 rounded-lg bg-cream p-3" data-xero-choose={c.id}>
+                      <input type="hidden" name="connectionId" value={c.id} />
+                      <p className="text-xs text-ink">
+                        That Xero login reaches {credential.orgChoices.length} organisations. Which one is{' '}
+                        {tenant.name}? SPEC reads nothing until you say.
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-end gap-2">
+                        <select
+                          name="xeroOrgId"
+                          aria-label="Which Xero organisation"
+                          className="input max-w-xs"
+                          defaultValue={credential.orgChoices[0]?.xeroOrgId}
+                        >
+                          {credential.orgChoices.map(o => (
+                            <option key={o.xeroOrgId} value={o.xeroOrgId}>{o.name}</option>
+                          ))}
+                        </select>
+                        <SubmitButton className="btn-primary px-3 py-1.5 text-xs" pending="…">
+                          That is us
+                        </SubmitButton>
+                      </div>
+                    </form>
                   )}
                 </li>
               );

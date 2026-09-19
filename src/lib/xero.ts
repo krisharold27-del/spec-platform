@@ -71,6 +71,14 @@ export interface AuthorizeInput {
   redirectUri: string;
   /** Random, single use, and checked on the way back. Without it the callback accepts anybody's code. */
   state: string;
+  /**
+   * Where to send them, when it is not Xero's own address.
+   *
+   * Only ever the offline server in `scripts/fake-xero.mjs`, and only outside production — see
+   * `endpoints` in lib/xero-net, which is the one place that decides this and the one place it can
+   * be checked. Defaulting to the real address means forgetting to pass it is harmless.
+   */
+  authorize?: string;
 }
 
 export function authorizeUrl(input: AuthorizeInput): string {
@@ -81,7 +89,7 @@ export function authorizeUrl(input: AuthorizeInput): string {
     scope: SCOPES.join(' '),
     state: input.state,
   });
-  return `${AUTHORIZE_URL}?${q}`;
+  return `${input.authorize ?? AUTHORIZE_URL}?${q}`;
 }
 
 /** The body of the code-for-token exchange. Credentials go in the header, never in here. */
