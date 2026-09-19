@@ -82,11 +82,11 @@ const HEAVY: Slot[] = [
   },
   {
     id: 'contract_breach', name: 'Contractual breach', pillar: 'compliance', weight: 'heavy',
-    matches: /\b(contract(ual)? breach|breach of contract|contract compliance)/i,
+    matches: /\b(contract(ual)? breach|breach of contract|contract compliance|contractual (work )?obligation)/i,
   },
   {
     id: 'turnover', name: 'Negative staff turnover', pillar: 'people', weight: 'heavy',
-    matches: /\b(staff turnover|turnover rate|attrition|retention)/i,
+    matches: /\b(staff turnover|turnover rate|negative turnover|attrition|retention|regretted departure|nobody wants to leave)/i,
   },
 ];
 
@@ -103,19 +103,19 @@ const SHARED: Slot[] = [
   { id: 'safety_actions', name: 'Safety actions closed on time', pillar: 'safety', weight: 'shared', matches: /safety action|hazard.*clos|toolbox|inspection/i },
 
   { id: 'absenteeism', name: 'Absenteeism', pillar: 'people', weight: 'shared', matches: /absentee|sick leave|unplanned leave/i },
-  { id: 'training_done', name: 'Training completion', pillar: 'people', weight: 'shared', matches: /training (completion|complete|done)|inducti|competenc/i },
+  { id: 'training_done', name: 'Training completion', pillar: 'people', weight: 'shared', matches: /training (completion|complete|done)|\btrained\b|inducti|competenc/i },
   { id: 'engagement', name: 'Engagement / satisfaction', pillar: 'people', weight: 'shared', matches: /engagement|satisfaction|one[- ]to[- ]one|1:1/i },
-  { id: 'dev_plans', name: 'Managers with a dev plan', pillar: 'people', weight: 'shared', matches: /development plan|dev plan|succession/i },
+  { id: 'dev_plans', name: 'Managers with a dev plan', pillar: 'people', weight: 'shared', matches: /development (plan|pathway)|dev plan|succession/i },
 
   { id: 'budget_miss', name: 'Budget misses', pillar: 'earnings', weight: 'shared', matches: /budget miss|over budget|budget variance/i },
-  { id: 'revenue_budget', name: 'Revenue vs budget', pillar: 'earnings', weight: 'shared', matches: /revenue (vs|against) budget|sales (vs|against) budget/i },
+  { id: 'revenue_budget', name: 'Revenue vs budget', pillar: 'earnings', weight: 'shared', matches: /revenue (vs|against) budget|sales (vs|against) budget|revenue (at or )?(above|at) target/i },
   { id: 'net_margin', name: 'Net profit margin', pillar: 'earnings', weight: 'shared', matches: /net (profit|margin)|\bnpat\b|bottom line/i },
   { id: 'cash_flow', name: 'Cash flow', pillar: 'earnings', weight: 'shared', matches: /cash ?flow|cash at bank|liquidity/i },
   { id: 'revenue_growth', name: 'Revenue growth rate', pillar: 'earnings', weight: 'shared', matches: /revenue growth|sales growth|growth rate/i },
   { id: 'debtor_days', name: 'Debtor days', pillar: 'earnings', weight: 'shared', matches: /debtor|receivab|days sales outstanding|\bdso\b|overdue invoice|\b90 days\b/i },
   { id: 'productivity', name: 'Productivity (revenue per work hour)', pillar: 'earnings', weight: 'shared', matches: /productivity|revenue per|per (work )?hour|utilisation|utilization|billable/i },
 
-  { id: 'regulatory', name: 'Regulatory breaches', pillar: 'compliance', weight: 'shared', matches: /regulator|notifiable|infringement|prosecut/i },
+  { id: 'regulatory', name: 'Regulatory breaches', pillar: 'compliance', weight: 'shared', matches: /regulator|notifiable|infringement|prosecut|\bbreaches\b/i },
   { id: 'audit', name: 'Audit pass rate', pillar: 'compliance', weight: 'shared', matches: /audit/i },
   { id: 'corrective', name: 'Corrective actions closed on time', pillar: 'compliance', weight: 'shared', matches: /corrective action|non[- ]?conformance|\bncr\b/i },
   { id: 'licensing', name: 'Licensing currency', pillar: 'compliance', weight: 'shared', matches: /licen[cs]|ticket|accredit|certificat|registration current/i },
@@ -204,10 +204,16 @@ export function readSlot(slot: Slot, measures: readonly Measure[]): SlotReading 
   return { slot, from, state: held ? 'met' : 'not_measured', cause: null };
 }
 
-/** What went wrong, in the business's own figures rather than in the framework's words. */
+/**
+ * What went wrong, in the business's own figures rather than in the framework's words.
+ *
+ * The middle case used to read *"missed against an agreed 0"*, which is not a sentence anybody
+ * says. Plenty of real targets ARE zero — zero incidents, zero claims, zero negative turnover — so
+ * that phrasing was going to be the common one rather than the edge case.
+ */
 function gapOf(slot: Slot, measure: Measure): string {
-  if (measure.result && measure.target) return `${slot.name} — ${measure.result} against an agreed ${measure.target}`;
-  if (measure.target) return `${slot.name} — missed against an agreed ${measure.target}`;
+  if (measure.result && measure.target) return `${slot.name} — ${measure.result} against a target of ${measure.target}`;
+  if (measure.target) return `${slot.name} — not met this month, against a target of ${measure.target}`;
   return `${slot.name} — marked not met this month`;
 }
 

@@ -156,6 +156,98 @@ describe('matching a business’s own words to the framework', () => {
   });
 });
 
+/**
+ * ── JBI's own words, verbatim ───────────────────────────────────────────────────────────────────
+ *
+ * Every string below is a real KPI from Kris's business, copied out of the database. It is the
+ * fixture that matters, because the framework's words are nobody's words: the matching was written
+ * against "Gross profit margin" and "Staff turnover", and JBI writes "Zero negative turnover" and
+ * "Adherence to contractual work obligations".
+ *
+ * Two of the five HEAVY HITTERS were being missed on his own business — turnover and contractual
+ * breach, thirty of the hundred points — and nothing in this file could see it, because every
+ * fixture in it was written by me from the framework's side.
+ */
+const JBI_KPIS = [
+  'Zero incidents (LTI / MTI)',
+  'Zero workers compensation claims',
+  'Gross profit margin at target',
+  'Weekly gross profit report delivered on time with a proposed improvement',
+  'Zero negative turnover',
+  'Zero negative turnover across the business',
+  'A culture nobody wants to leave — zero regretted departures',
+  'Adherence to contractual work obligations',
+  'Zero breaches (licensing, procedures, golden rules)',
+  'Monthly revenue at or above target',
+  'Controllable cash net profit at or above target',
+  'Debtor days within target',
+  'Billable utilisation above target',
+  'Team trained, confident and capable for their tasks',
+  'Supervisor development pathway fulfilled',
+  'Client net promoter score at or above target',
+  'Quote-to-win conversion ratio at target (segmented by sector once data allows)',
+  'Department 100% staffed (hires or AI-covered roles)',
+  'Job notes and timesheets complete same day',
+];
+
+describe('against the words a real business actually uses', () => {
+  const met = (texts: readonly string[]) => powerReading(texts.map(t => measure(t, 'Y')));
+
+  it('FINDS ALL FIVE HEAVY HITTERS IN JBI’S OWN KPIS', () => {
+    const reading = met(JBI_KPIS);
+    const missed = reading.heavy.filter(h => h.state === 'not_measured').map(h => h.slot.name);
+    expect(missed, `SPEC cannot see these in JBI's own words: ${missed.join(', ')}`).toEqual([]);
+  });
+
+  /*
+    Named one at a time, because a count passing tells you nothing about WHICH one broke when
+    somebody edits a matcher later.
+  */
+  it('and reads "Zero negative turnover" as the turnover heavy hitter', () => {
+    expect(readSlot(FRAMEWORK.find(s => s.id === 'turnover')!, [measure('Zero negative turnover', 'Y')]).state).toBe('met');
+    expect(readSlot(FRAMEWORK.find(s => s.id === 'turnover')!,
+      [measure('A culture nobody wants to leave — zero regretted departures', 'Y')]).state).toBe('met');
+  });
+
+  it('and "Adherence to contractual work obligations" as the contract heavy hitter', () => {
+    expect(readSlot(FRAMEWORK.find(s => s.id === 'contract_breach')!,
+      [measure('Adherence to contractual work obligations', 'Y')]).state).toBe('met');
+  });
+
+  it('and picks up the smaller ones it has slots for', () => {
+    const reading = met(JBI_KPIS);
+    const seen = (id: string) => reading.shared.find(r => r.slot.id === id)!.state;
+    expect(seen('revenue_budget'), 'Monthly revenue at or above target').toBe('met');
+    expect(seen('training_done'), 'Team trained, confident and capable').toBe('met');
+    expect(seen('dev_plans'), 'Supervisor development pathway fulfilled').toBe('met');
+    expect(seen('regulatory'), 'Zero breaches (licensing, procedures, golden rules)').toBe('met');
+    expect(seen('debtor_days')).toBe('met');
+    expect(seen('productivity'), 'Billable utilisation above target').toBe('met');
+    expect(seen('net_margin'), 'Controllable cash net profit').toBe('met');
+  });
+
+  /*
+    And it still refuses what it should. A business whose KPIs SPEC cannot place does not get a
+    generous reading — widening the matchers must never turn into matching everything.
+  */
+  it('AND STILL SEES NOTHING IN THE ONES IT HAS NO SLOT FOR', () => {
+    const reading = met([
+      'Client net promoter score at or above target',
+      'Quote-to-win conversion ratio at target (segmented by sector once data allows)',
+      'Department 100% staffed (hires or AI-covered roles)',
+      'Job notes and timesheets complete same day',
+    ]);
+    expect(reading.measured).toBe(0);
+    expect(reading.score).toBeNull();
+  });
+
+  it('and gives JBI a real reading rather than a shrug', () => {
+    const reading = met(JBI_KPIS);
+    expect(reading.score).toBe(100);
+    expect(reading.measured).toBeGreaterThanOrEqual(12);
+  });
+});
+
 describe('the reading', () => {
   it('IS 100 WHEN EVERYTHING MEASURED WENT WELL', () => {
     const reading = powerReading(everythingMet());
@@ -256,18 +348,38 @@ describe('when it refuses to put a number up', () => {
   });
 
   /*
-    And beside the NUMBER, not only inside the breakdown.
+    ── Where the caveat lives, and why it moved ──────────────────────────────────────────────
 
-    Drawn on JBI's real data this read 100% from eight of the twenty-four — every one of the eight
-    genuinely met, and a board member who never opened the breakdown would have walked away
-    believing the business was perfect on all of it. The headline is what gets remembered, so the
-    headline carries the caveat.
+    It used to be printed inside the pill beside the number. That was mine, not the design's: the
+    drawing's pill holds four things — the ring, the label, the percentage and "Hack Your Power" —
+    and adding a fifth is what grew a corner instrument into a slab. Kris, 19 September: *"just do
+    what the design says and make it perfectly"*.
+
+    So the pill is the design's and the caveat is one click away, in the breakdown the pill opens.
+    What must never happen is the caveat disappearing altogether, which is what this now holds.
   */
-  it('AND THE HEADLINE CARRIES ITS OWN CAVEAT', () => {
+  it('AND THE COVERAGE IS NEVER MORE THAN ONE CLICK FROM THE NUMBER', () => {
     const page = readFileSync('src/components/power-meter.tsx', 'utf8');
-    const header = page.slice(page.indexOf('data-power-score'), page.indexOf('Hack Your Power'));
-    expect(header).toContain('reading.measured');
-    expect(header).toContain('reading.total');
+    // The pill is the control that opens the breakdown, so the two are always reachable together.
+    expect(page).toContain('data-power-toggle');
+    const breakdown = page.slice(page.indexOf('export function PowerBreakdown'));
+    expect(breakdown).toContain('coverageLine(reading)');
+    expect(breakdown).toContain('data-power-coverage');
+  });
+
+  /*
+    And the pill stays the four things the design draws. Held here because the temptation to add a
+    fifth is exactly what happened the first time.
+  */
+  it('AND THE PILL STAYS THE FOUR THINGS THE DESIGN DRAWS', () => {
+    const page = readFileSync('src/components/power-meter.tsx', 'utf8');
+    const pill = page.slice(page.indexOf('const inside = ('), page.indexOf('const shell ='));
+    expect(pill).toContain('Virtual GM Power Meter');
+    expect(pill).toContain('Hack Your Power');
+    expect(pill).toContain('data-power-score');
+    // Not the coverage, not a button, not the month. Those belong in the breakdown.
+    expect(pill).not.toContain('reading.measured');
+    expect(pill).not.toContain('coverageLine');
   });
 });
 
@@ -280,12 +392,23 @@ describe('the sentence under the number', () => {
     const all = everythingMet().map(m => (m.text === 'Gross profit margin'
       ? { ...m, answer: 'N' as const, result: '33%', target: '40%' }
       : m));
-    expect(powerReading(all).cause).toBe('Gross profit margin — 33% against an agreed 40%');
+    expect(powerReading(all).cause).toBe('Gross profit margin — 33% against a target of 40%');
   });
 
   it('and says what it can when no figure was entered', () => {
     const all = everythingMet().map(m => (m.text === 'Safety incidents' ? { ...m, answer: 'N' as const } : m));
     expect(powerReading(all).cause).toContain('marked not met this month');
+  });
+
+  /*
+    A target of ZERO is the normal case here, not the edge: zero incidents, zero claims, zero
+    negative turnover. The first wording read "missed against an agreed 0", which is not a sentence
+    anybody says, and it was going to be the one this line printed most often.
+  */
+  it('AND A TARGET OF ZERO STILL READS LIKE ENGLISH', () => {
+    const all = everythingMet().map(m => (m.text === 'Negative staff turnover'
+      ? { ...m, answer: 'N' as const, target: '0' } : m));
+    expect(powerReading(all).cause).toBe('Negative staff turnover — not met this month, against a target of 0');
   });
 
   it('and there is no cause when nothing heavy was missed', () => {
@@ -327,6 +450,42 @@ describe('whose numbers the reading is of', () => {
   it('AND IT KEEPS NO COPY OF ANY NUMBER', () => {
     const source = readFileSync('src/lib/power-meter-data.ts', 'utf8');
     expect(source).not.toMatch(/db\.(insert|update|delete)/);
-    expect(source).toContain('input.periodId');
+    expect(source).toContain('schema.assessments');
+  });
+
+  /*
+    ── The month it reads, which is the fault that made this useless ─────────────────────────
+
+    The first version read whatever the newest period was. On JBI that is the month that opened
+    four days ago with NOT ONE MARK IN IT — so the meter said "Not enough to read" on Kris's own
+    business, on the day he opened it. Kris: *"fix this problem - it makes this really
+    frustrating"*.
+
+    It was not wrong. It was useless, which is worse for a feature whose whole job is to say
+    something at a glance. A month is scored at its END, so a meter tied to the open month is blank
+    for most of every month and worth looking at for about three days.
+
+    So it walks back to the most recent month anybody marked, stops there, and says which.
+  */
+  it('READS THE LAST MONTH ANYBODY MARKED, NOT AN OPEN MONTH NOBODY HAS SCORED', () => {
+    const source = readFileSync('src/lib/power-meter-data.ts', 'utf8');
+    expect(source).toContain('desc(schema.periods.period)');
+    // Walks candidates and skips the ones with nothing in them.
+    expect(source).toContain('if (!marks.length) continue;');
+    // And says which month, because a number with no date on it is an argument waiting to happen.
+    expect(source).toContain('period: candidate.period');
+    expect(source).toContain('stale:');
+    const page = readFileSync('src/components/power-meter.tsx', 'utf8');
+    expect(page).toContain('data-power-month');
+  });
+
+  /*
+    A reading from eighteen months ago is not a power meter, it is an anecdote. Dressing one up as
+    the current state of a business is the stale-number fault this product keeps finding.
+  */
+  it('but never walks back further than a year', () => {
+    const source = readFileSync('src/lib/power-meter-data.ts', 'utf8');
+    expect(source).toContain('const WINDOW = 12');
+    expect(source).toContain('periods.slice(0, WINDOW)');
   });
 });

@@ -6,8 +6,7 @@ import { Shell, PILLAR_META, pct } from '@/components/ui';
 import { TodoList, AskPanel, ChangeList, MeetingLog, TrainingPath } from '@/components/today-blocks';
 import { ImprovementBox, ImprovementRegister } from '@/components/improvement-register';
 import { MailBlock } from '@/components/mail-block';
-import { snapScore } from '@/lib/register';
-import { WhereYouSit, NobodyBelow, MyWeek, AskBar, WhoAndWhen, SnapBand } from '@/components/my-page-blocks';
+import { WhereYouSit, NobodyBelow, MyWeek, AskBar, WhoAndWhen } from '@/components/my-page-blocks';
 import { rhythm, rhythmLine } from '@/lib/rhythm';
 import { myMail } from '@/lib/mail';
 import { registerFor } from '@/lib/register-data';
@@ -22,7 +21,7 @@ import { doSignOut } from '@/app/signin/actions';
 import { light, pillarNote, clearToWork, LIGHT_COLOUR, LIGHT_LABEL, type Light } from '@/lib/today';
 import type { Pillar, RoleScore } from '@/lib/scoring';
 import { Problems } from '@/components/problems';
-import { PowerMeter } from '@/components/power-meter';
+import { PowerMeter, PowerBreakdown } from '@/components/power-meter';
 import { powerMeterFor } from '@/lib/power-meter-data';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { startHere } from '@/lib/start-here';
@@ -83,8 +82,6 @@ export default async function MyPage({
   const canWrite = !(await currentLook().catch(() => null));
   const teamNames = team.map(m => m.holder).filter((n): n is string => !!n);
   const register = await registerFor(user.tenantId, user.name, teamNames);
-  // The same read the register below prints as a pill; the band wants it at the top of the page.
-  const snap = snapScore(register);
   const mail = await myMail(user.tenantId, user.id);
 
   // Every door out of this page. The group view only appears for somebody actually in a group, and
@@ -120,15 +117,13 @@ export default async function MyPage({
     the name and their own four pillars, which are the things they can actually act on.
   */
   const scope = await getScope(user);
-  const power = await powerMeterFor({
-    tenantId: user.tenantId,
-    periodId: data.period.id,
-    visible: scope.visible,
-  });
+  const power = await powerMeterFor({ tenantId: user.tenantId, visible: scope.visible });
   // Manages somebody: their scope reaches past their own role. The same population the design gives
   // the number to, worked out from the chart rather than from a flag anybody sets.
   const runsAnything = scope.visible.size > 1;
   const showing = arrival.power === 'all' ? 'all' : arrival.power === 'open' ? 'open' : 'closed';
+  const meterHref = (next: 'closed' | 'open' | 'all') =>
+    (next === 'closed' ? '/my-page#power' : `/my-page?power=${next}#power`);
 
   const ways = doors({
     businesses: (await myBusinesses().catch(() => [])).length,
@@ -182,14 +177,36 @@ export default async function MyPage({
         everybody in the business, and the first question it has to answer is which of my roles am I
         looking at.
       */}
-      <WhoAndWhen name={user.name} role={data.myRole.title} businessName={tenant.name} date={today} />
+      {/*
+        ── The header line, as the design draws it ───────────────────────────────────────────────
 
-      <PowerMeter
-        reading={power}
+        Kris, 19 September: *"just use this as an example - i gave you this"*, with
+        `SPEC My Page.dc.html` open beside the built page.
+
+        The meter is `margin-left: auto` on this row — a corner instrument beside the page's own
+        heading, not a banner above it. The first version was a full-width block, which made the
+        meter the subject of the page. The four pillar cards are the subject.
+      */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <WhoAndWhen name={user.name} role={data.myRole.title} businessName={tenant.name} date={today} />
+        <PowerMeter
+          reading={power.reading}
+          canRead={runsAnything}
+          period={power.period}
+          showing={showing}
+          hrefFor={meterHref}
+        />
+      </div>
+
+      {/* Full width, above the pillars — `grid-column: 1 / -1; order: -1` in the design. */}
+      <PowerBreakdown
+        reading={power.reading}
         canRead={runsAnything}
         topOfChart={isTopOfChart(scope)}
+        period={power.period}
+        stale={power.stale}
         showing={showing}
-        hrefFor={next => (next === 'closed' ? '/my-page#power' : `/my-page?power=${next}#power`)}
+        hrefFor={meterHref}
       />
 
       <p className="mb-8 max-w-2xl text-sm text-ink-light">
@@ -199,14 +216,23 @@ export default async function MyPage({
       </p>
 
       {/*
-        The Snap Score across the page, with the one button that starts something — the design's
-        band. It was a pill in the corner of the register below, smaller than the word beside it.
+        ── One reading of the business per page ──────────────────────────────────────────────────
+
+        Kris, 19 September: *"the snap score shouldn't be there on the my page"*.
+
+        It was worse than one score too many. This band was a promoted COPY of a pill that is still
+        on the improvement register further down — so the page said that number twice before the
+        Power Meter arrived, and three readings deep afterwards: a percentage at the top, a grey 0
+        in the middle, and the same 0 again below. Somebody opening this to find out how they are
+        doing had to work out which of three numbers was about them.
+
+        The Snap Score is a read of the improvement REGISTER — how fast problems get closed — and it
+        belongs on that register, where it says what it is about. A band at the top of the page made
+        it look like a reading of the business, which it is not.
+
+        The band also carried a jump link to the Improvement opportunity box. That box is still here
+        at #improvement under its own heading, so what went is a shortcut, not a capability.
       */}
-      {scored && (
-        <SnapBand pct={snap.pct} early={snap.early}>
-          <a href="#improvement" className="btn-primary shrink-0">Improvement opportunity</a>
-        </SnapBand>
-      )}
 
       {/*
         The first thirty seconds of being a customer.

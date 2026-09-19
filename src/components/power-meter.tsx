@@ -6,31 +6,32 @@ import {
 } from '@/lib/power-meter';
 
 /**
- * The Virtual GM Power Meter, on the screen.
+ * The Virtual GM Power Meter, drawn as `SPEC My Page.dc.html` draws it.
  *
- * Kris, 19 September: *"add the Virtual GM power meter - HACC your power - to the my page ... to
- * give an instant percentage to the business leaders and the board on how well the business is
- * tracking"*. `SPEC My Page.dc.html` draws it: a ring in the header, the label, and **Hack Your
- * Power** underneath.
+ * Kris, 19 September: *"add the Virtual GM power meter - HACC your power - to the my page"*, then,
+ * with the drawing open beside the built page: *"just use this as an example - i gave you this"*,
+ * *"close but actually not what i asked for"*, and *"everything - colours, function, design"*.
  *
- * ── One departure from the drawing, and why ─────────────────────────────────────────────────────
+ * ── What the first version got wrong ────────────────────────────────────────────────────────────
  *
- * The design opens the breakdown on a **double-click**. It is not built that way here.
+ * The arithmetic followed the brief. The PAGE did not follow the drawing, and I had the drawing.
  *
- * A double-click cannot be discovered — nothing on a screen has ever indicated one — it cannot be
- * reached from a keyboard, and it does not exist on a phone, which is where half of this business's
- * people will open this page. The design's own panel has a "See breakdown" control inside it, which
- * is only reachable once the panel everybody has to guess at is already open.
+ *   The design puts this top RIGHT, on the header line, `margin-left: auto` — a corner instrument
+ *   you glance at. I built a full-width banner across the top, which makes the meter the subject of
+ *   the page. The four pillar cards are the subject; the meter is the glance.
  *
- * So it is an ordinary link that says what it does. Everything else — the ring, the bands, the
- * weighting, the words — is the design's.
+ *   The design's pill holds four things and no more: the ring, the label, the percentage and
+ *   **Hack Your Power**. I had added a button and a coverage line inside it, which is why it grew
+ *   into a slab.
  *
- * ── Who sees the number ─────────────────────────────────────────────────────────────────────────
+ *   The ring's track is `--color-accent-100`, which is `rust-100` here. I had used the surface
+ *   colour, so the unfilled part of the ring was the wrong warmth against the pill.
  *
- * Everybody sees the ring; the percentage and the breakdown are for people who manage somebody,
- * which is the design's rule and the product's. A reading of a branch is only useful to the person
- * who can do something about the branch, and an electrician shown a red number for a business they
- * cannot move is being handed a worry rather than a lever.
+ * ── The one deliberate difference, stated ───────────────────────────────────────────────────────
+ *
+ * The design opens the breakdown on a **double-click** on the pill. The pill is the control here
+ * too — same element, same shape, same cursor — but a single click, because a double-click cannot
+ * be discovered, cannot be reached from a keyboard, and does not exist on a phone.
  */
 
 export interface PowerMeterProps {
@@ -38,70 +39,75 @@ export interface PowerMeterProps {
   /** True for somebody who manages anyone. The percentage and the breakdown are theirs. */
   canRead: boolean;
   topOfChart: boolean;
+  /** The month the reading is OF. A number with no date on it is an argument waiting to happen. */
+  period: string | null;
+  stale: boolean;
   /** 'open' draws the breakdown; 'all' also lists the nineteen. */
   showing: 'closed' | 'open' | 'all';
-  /** Where this page lives, so the toggle keeps whatever else is in the address. */
   hrefFor: (showing: 'closed' | 'open' | 'all') => string;
 }
 
 const colourOf = (reading: PowerReading): string =>
   (reading.band === 'unknown' ? LIGHT_COLOUR.pending : LIGHT_COLOUR[reading.band]);
 
-export function PowerMeter({ reading, canRead, topOfChart, showing, hrefFor }: PowerMeterProps) {
+/** "2026-08" the way a person says it. */
+export function monthWords(period: string | null): string {
+  if (!period) return '';
+  const [year, month] = period.split('-').map(Number);
+  if (!year || !month) return period;
+  return new Date(year, month - 1, 1).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+}
+
+/**
+ * The pill. Goes on the header row, pushed right.
+ *
+ * `padding: 10px 22px 10px 10px` and `border-radius: 999px` are the design's, kept exactly: the
+ * ring sits tight to the left edge and the words have room on the right.
+ */
+export function PowerMeter({ reading, canRead, period, showing, hrefFor }: Omit<PowerMeterProps, 'topOfChart' | 'stale'>) {
   const colour = colourOf(reading);
   const open = showing !== 'closed';
 
-  return (
-    /* `id` is the anchor the toggle returns to, so opening the breakdown does not throw somebody
-       back to the top of a long page on a phone. */
-    <section id="power" aria-label="Virtual GM Power Meter" className="mb-8" data-power-meter>
-      {/* The design's pill: the meter reads as one object rather than as loose text on the page. */}
-      <div className="flex flex-wrap items-center gap-4 rounded-[28px] bg-surface-raised p-2.5 pr-6 shadow-[0_1px_2px_rgba(32,30,29,.05),0_10px_24px_-20px_rgba(32,30,29,.45)] sm:inline-flex">
-        <Dial reading={reading} colour={colour} />
-        <div className="grid gap-0.5">
-          <span className="label-caps">Virtual GM Power Meter</span>
-          {canRead && (
-            <span className="font-serif text-2xl leading-none text-ink" data-power-score>
-              {reading.score === null ? 'Not enough to read' : `${reading.score}%`}
-            </span>
-          )}
-          {/*
-            The coverage beside the number, not only inside the breakdown.
-
-            Drawn on JBI's real data this read **100%** from eight of the twenty-four — every one of
-            those eight genuinely met, and a board member who never opens the breakdown would walk
-            away believing the business was perfect on all of it. The headline is what gets
-            remembered, so the headline carries the caveat.
-          */}
-          {canRead && reading.score !== null && (
-            <span className="text-[11px] text-ink-light" data-power-of>
-              read from {reading.measured} of {reading.total}
-            </span>
-          )}
-          <span className="text-[10.5px] italic text-rust-700">Hack Your Power</span>
-        </div>
-
+  const inside = (
+    <>
+      <Dial reading={reading} colour={colour} />
+      <span className="grid gap-0.5">
+        <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.05em] text-ink-light">
+          Virtual GM Power Meter
+        </span>
         {/*
-          Said out loud rather than left to a tooltip. Somebody who cannot see the number should
-          know that is a rule and not a fault on their screen — the alternative is an empty space
-          where other people evidently have something.
+          The percentage is for people who manage somebody — the design's rule (`gm.showLabel`) and
+          the product's. An electrician shown a red number for a business they cannot move is being
+          handed a worry rather than a lever.
         */}
-        {canRead ? (
-          <Link
-            href={hrefFor(open ? 'closed' : 'open')}
-            className="btn-secondary shrink-0 px-3 py-1.5 text-xs"
-            data-power-toggle
-          >
-            {open ? 'Hide the breakdown' : 'See how it is made up'}
-          </Link>
-        ) : (
-          <p className="max-w-[46ch] text-xs text-ink-light">
-            The reading is for whoever runs a part of the business. Yours is the four pillars below.
-          </p>
+        {canRead && (
+          <span className="font-serif text-[22px] leading-none text-ink" data-power-score>
+            {reading.score === null ? '—' : `${reading.score}%`}
+          </span>
         )}
-      </div>
+        <span className="whitespace-nowrap text-[10.5px] italic text-rust-700">Hack Your Power</span>
+      </span>
+    </>
+  );
 
-      {canRead && open && <Breakdown reading={reading} colour={colour} topOfChart={topOfChart} showing={showing} hrefFor={hrefFor} />}
+  const shell = 'flex items-center gap-3.5 rounded-full bg-surface-raised py-2.5 pl-2.5 pr-[22px] shadow-sm';
+
+  return (
+    /* `id` is the anchor the toggle comes back to, so opening the breakdown does not throw somebody
+       to the top of a long page on a phone. */
+    <section id="power" aria-label="Virtual GM Power Meter" data-power-meter>
+      {canRead ? (
+        <Link
+          href={hrefFor(open ? 'closed' : 'open')}
+          className={`${shell} transition-colors hover:bg-cream`}
+          title={`Virtual GM Power Meter${period ? ` · ${monthWords(period)}` : ''} — open to see how each part is tracking`}
+          data-power-toggle
+        >
+          {inside}
+        </Link>
+      ) : (
+        <span className={shell}>{inside}</span>
+      )}
     </section>
   );
 }
@@ -109,9 +115,10 @@ export function PowerMeter({ reading, canRead, topOfChart, showing, hrefFor }: P
 /**
  * The ring.
  *
- * An unknown reading draws no arc at all. A ring stuck at zero and a ring with nothing to say look
- * identical on a screen and mean opposite things — and of the two, the one that is wrong is the one
- * that would have a board asking why the business is at nothing.
+ * Track in `rust-100` — `--color-accent-100` in the design system, the same value. An unknown
+ * reading draws no arc at all: a ring stuck at zero and a ring with nothing to say look identical
+ * on a screen and mean opposite things, and of the two the wrong one has a board asking why the
+ * business is at nothing.
  */
 function Dial({ reading, colour }: { reading: PowerReading; colour: string }) {
   return (
@@ -120,7 +127,7 @@ function Dial({ reading, colour }: { reading: PowerReading; colour: string }) {
         ? 'Virtual GM Power Meter — not enough is measured yet to give a reading'
         : `Virtual GM Power Meter — ${reading.score} out of 100, ${reading.verdict}`}
     >
-      <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-surface)" strokeWidth="14" />
+      <circle cx="50" cy="50" r="42" fill="none" stroke="#fff2eb" strokeWidth="14" />
       {reading.score !== null && (
         <circle
           cx="50" cy="50" r="42" fill="none" stroke={colour} strokeWidth="14" strokeLinecap="round"
@@ -132,17 +139,44 @@ function Dial({ reading, colour }: { reading: PowerReading; colour: string }) {
   );
 }
 
-function Breakdown({ reading, colour, topOfChart, showing, hrefFor }: {
-  reading: PowerReading; colour: string; topOfChart: boolean;
-  showing: 'closed' | 'open' | 'all';
-  hrefFor: (showing: 'closed' | 'open' | 'all') => string;
-}) {
+/**
+ * The working, full width, above the four pillar cards — `grid-column: 1 / -1; order: -1` in the
+ * design.
+ *
+ * A separate export because the meter belongs in a corner and its working does not fit in one:
+ * twenty-four rows squeezed into a right-hand column would be unreadable on a laptop and
+ * impossible on a phone.
+ */
+export function PowerBreakdown({ reading, canRead, topOfChart, period, stale, showing, hrefFor }: PowerMeterProps) {
+  if (!canRead || showing === 'closed') return null;
+  const colour = colourOf(reading);
+
   return (
-    <div className="card mt-4 border-l-4" style={{ borderLeftColor: colour }} data-power-breakdown>
-      <span className="label-caps">Virtual GM Power Meter · {scopeLabel(topOfChart)}</span>
-      <p className="mt-1 font-serif text-xl text-ink">
-        {reading.score === null ? reading.verdict : `${reading.score}% — ${reading.verdict}`}
-      </p>
+    <div className="card mb-6 border-l-4" style={{ borderLeftColor: colour }} data-power-breakdown>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="grid gap-1">
+          <span className="label-caps">Virtual GM Power Meter · {scopeLabel(topOfChart)}</span>
+          <p className="font-serif text-xl text-ink">
+            {reading.score === null ? reading.verdict : `${reading.score}% — ${reading.verdict}`}
+          </p>
+        </div>
+        <Link href={hrefFor('closed')} className="btn-secondary shrink-0 px-3 py-1.5 text-xs">Close</Link>
+      </div>
+
+      {/*
+        Which month this is a reading OF.
+
+        The meter reads the last month anybody marked, because a month is scored at its end and one
+        tied to the open month is blank for most of every month. That is only honest if the screen
+        says which month — see lib/power-meter-data.
+      */}
+      {period && (
+        <p className="mt-1 text-sm text-ink-light" data-power-month>
+          Read from {monthWords(period)}
+          {stale ? ', the last month anybody marked. This month has nothing in it yet.' : '.'}
+        </p>
+      )}
+
       {/*
         The cause, and only ever a heavy hitter. Fifteen points is the largest single move this
         reading can make, so it is the one sentence worth putting under the number.
@@ -202,10 +236,10 @@ function SlotRow({ reading, quiet = false }: { reading: SlotReading; quiet?: boo
     <div
       className={quiet
         ? 'flex items-center justify-between gap-3 text-[13px] leading-[22px] text-ink-light'
-        : 'flex items-center justify-between gap-3 rounded-xl bg-cream px-3.5 py-2.5'}
+        : 'flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-cream px-3.5 py-2.5'}
       data-power-slot={reading.slot.id}
     >
-      <span className="flex items-center gap-2.5 text-sm text-ink">
+      <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm text-ink">
         {!quiet && (
           <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: tone }} aria-hidden />
         )}
