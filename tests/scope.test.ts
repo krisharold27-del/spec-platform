@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { mayShapeChart, reachDown } from '../src/lib/scope';
+import { mayShapeChart, reachDown, scoredRolesInScope } from '../src/lib/scope';
+import { isScored } from '../src/lib/today-data';
 
 /**
  * ── The founder must not be locked out of their own chart ────────────────────────────────────────
@@ -117,5 +118,52 @@ describe('how far somebody can see', () => {
       { id: 'b', reportsToRoleId: 'a' },
     ];
     expect([...reachDown(['a'], looped)].sort()).toEqual(['a', 'b']);
+  });
+});
+
+/*
+  ── The set a month is marked from has to agree with what counts as scored ──────────────────────
+
+  Kris, having built a team on the chart: *"how do i sign off the team kpi's"*.
+
+  He could not, anywhere in the product. A team node is a role with `isTeam` set, sitting at
+  `staff` level because everybody in one is on a team seat — and TWO separate filters excluded
+  `staff`: `isScored`, which decides whether a role carries a scorecard, and `scoredRolesInScope`,
+  which is the set `/scoring` lists and the roll-up averages over.
+
+  So a team's KPIs could be written on the org chart and then never marked, never rolled up and
+  never signed off. Every unit test passed, because they all tested the team layer, which worked.
+  Nothing asked whether the rest of the product could see what it produced.
+
+  These two rules are the same question asked of one role and of a set, so they are held to the
+  same answer here. A team that is scored but not listed is a scorecard nobody can reach.
+*/
+describe('which roles a month is marked from', () => {
+  const team = { id: 't', title: 'Technicians', level: 'staff', isTeam: true };
+  const member = { id: 'm', title: 'Electrician', level: 'staff', isTeam: false };
+  const boss = { id: 'b', title: 'Site Supervisor', level: 'supervisor', isTeam: false };
+  const scope = {
+    roles: [team, member, boss],
+    visible: new Set(['t', 'm', 'b']),
+  } as unknown as Parameters<typeof scoredRolesInScope>[0];
+
+  it('INCLUDES A TEAM, which is the whole reason a team node exists', () => {
+    expect(scoredRolesInScope(scope).map(r => r.id).sort()).toEqual(['b', 't']);
+  });
+
+  it('and still leaves an individual team member out — they have a checklist, not a percentage', () => {
+    expect(scoredRolesInScope(scope).map(r => r.id)).not.toContain('m');
+  });
+
+  /*
+    The two rules, side by side. `isScored` says whether a role HAS a scorecard;
+    `scoredRolesInScope` says which roles get listed. They disagreed for a day, and the disagreement
+    was invisible because each was tested on its own.
+  */
+  it('AND AGREES WITH isScored ON EVERY ROLE, which is where the two drifted apart', () => {
+    const listed = new Set(scoredRolesInScope(scope).map(r => r.id));
+    for (const r of [team, member, boss]) {
+      expect(listed.has(r.id), `${r.title}`).toBe(isScored(r.level, 4, r.isTeam));
+    }
   });
 });

@@ -76,7 +76,7 @@ export async function getMeeting(user: CurrentUser, at: Date = new Date()): Prom
     const previousScore = lastClosed ? (await getScorecard(r.id, lastClosed.id)).score : null;
     team.push({
       roleId: r.id, title: r.title, holder: r.holder?.name ?? r.pencilled ?? null,
-      score, previous: previousScore, rows, scored: isScored(r.level, rows.length),
+      score, previous: previousScore, rows, scored: isScored(r.level, rows.length, r.isTeam),
     });
   }
 

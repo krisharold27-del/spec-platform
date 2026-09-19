@@ -57,7 +57,7 @@ async function shapeOf(tenantId: string): Promise<CascadeRole[]> {
       untargeted: own
         .filter(c => c.kpi && !c.target?.trim())
         .map(c => ({ pillar: c.pillar as Pillar, text: c.text })),
-      scored: isScored(r.level, own.length),
+      scored: isScored(r.level, own.length, r.isTeam),
     };
   });
 }

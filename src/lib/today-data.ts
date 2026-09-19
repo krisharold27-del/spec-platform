@@ -55,8 +55,19 @@ export interface TeamMember {
  * A flag rather than a fifth `level` value on purpose. `level` is read by training provisioning,
  * default access, the seat rules and the frontline-leader test, and inventing a new value would
  * have meant finding every one of those and hoping.
+ *
+ * ── And it is REQUIRED, which it was not for a day ──────────────────────────────────────────────
+ *
+ * It arrived as `isTeam = false`, and a default is how a new argument reaches exactly one caller.
+ * Twelve places ask this question; the org chart was updated and the other eleven went on quietly
+ * answering it the old way — so a team drew a shared score on the chart and read as a checklist
+ * role on every other screen in the product, including the one where a month is marked.
+ *
+ * Kris found it the way customers find things: *"how do i sign off the team kpi's"*. He could not.
+ *
+ * Required, so the compiler names every call site the next time this question grows a condition.
  */
-export const isScored = (level: string, criteriaCount: number, isTeam = false): boolean =>
+export const isScored = (level: string, criteriaCount: number, isTeam: boolean): boolean =>
   (isTeam || level !== 'staff') && criteriaCount > 0;
 
 export interface FeedLine {
@@ -237,7 +248,7 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
     const { rows, score } = await getScorecard(r.id, period.id);
     team.push({
       roleId: r.id, title: r.title, holder: r.holder?.name ?? null, pencilled: r.pencilled,
-      rows, score, scored: isScored(r.level, rows.length),
+      rows, score, scored: isScored(r.level, rows.length, r.isTeam),
     });
   }
 
@@ -292,7 +303,7 @@ export async function getToday(user: CurrentUser): Promise<TodayData> {
       .map(c => ({ id: c.id, category: categoryName(c.category), status: c.status })),
   });
 
-  const scored = isScored(myRole.level, mine.rows.length);
+  const scored = isScored(myRole.level, mine.rows.length, myRole.isTeam);
   const ace = await aceFor(user.tenantId, myRole.id, training, scored);
 
   return {

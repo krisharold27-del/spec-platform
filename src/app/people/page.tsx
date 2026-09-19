@@ -118,7 +118,7 @@ export default async function People({ searchParams }: { searchParams: Promise<R
   const people: (PersonRow & { scored: boolean; hasPath: boolean; pathComplete: boolean; signedOff: boolean })[] = [];
   for (const r of visible) {
     const own = criteria.filter(c => c.roleId === r.id && c.active);
-    const scored = isScored(r.level, own.length);
+    const scored = isScored(r.level, own.length, r.isTeam);
     const assignment = assignments.find(a => a.roleId === r.id);
     const name = r.holder?.name ?? r.pencilled ?? null;
 

@@ -45,7 +45,7 @@ export default async function Setup() {
   const seats = await db.select().from(schema.users).where(eq(schema.users.tenantId, user.tenantId));
 
   const roles = scope.roles;
-  const scored = roles.filter(r => isScored(r.level, criteria.filter(c => c.roleId === r.id && c.active).length));
+  const scored = roles.filter(r => isScored(r.level, criteria.filter(c => c.roleId === r.id && c.active).length, r.isTeam));
   const withKpis = scored.filter(r => {
     const own = criteria.filter(c => c.roleId === r.id && c.active);
     return PILLARS.every(p => own.filter(c => c.pillar === p && c.kpi).length >= 2);

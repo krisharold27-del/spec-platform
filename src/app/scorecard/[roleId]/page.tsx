@@ -85,7 +85,7 @@ export default async function Scorecard({ params, searchParams }: {
   }
 
   const { rows, score } = await getScorecard(roleId, period.id);
-  const scored = isScored(role.level, rows.length);
+  const scored = isScored(role.level, rows.length, role.isTeam);
   const marks = rows.filter(r => r.answer !== '').length;
   const weightProblems = validateWeights(rows.map(r => ({ id: r.criterionId, pillar: r.pillar, text: r.text, weight: r.weight })));
 
@@ -111,7 +111,7 @@ export default async function Scorecard({ params, searchParams }: {
     staff.push({
       roleId: r.id, title: r.title,
       person: r.holder?.name ?? r.pencilled ?? null,
-      scored: isScored(r.level, theirRows.length),
+      scored: isScored(r.level, theirRows.length, r.isTeam),
       score: theirScore,
     });
   }

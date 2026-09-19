@@ -618,6 +618,37 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                   />
                 ))}
               </div>
+
+              {/*
+                ── Where a team's month is marked and signed off ─────────────────────────────
+
+                Kris, having built one: *"how do i sign off the team kpi's"*.
+
+                The answer was "nowhere", and that was a bug — a team is `staff` level, and both
+                `isScored` and `scoredRolesInScope` filtered `staff` out, so a team's KPIs could be
+                written here and then never marked, never rolled up and never signed off. Fixed in
+                lib/today-data and lib/scope.
+
+                But the fix alone would have left him in the same place: knowing it works somewhere
+                and not where. A team is marked and signed off exactly like every other scorecard —
+                which is the point of building it as a role — so the honest thing is to say that in
+                one line and put the two doors next to it, rather than explain a process.
+              */}
+              <div className="mt-5 rounded-xl bg-cream p-4">
+                <p className="text-[13.5px] leading-[22px] text-ink">
+                  This team is scored like any other card on the chart: mark it each month with
+                  everything else, and it is signed off in the same pass. One score for the crew,
+                  not one each.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2.5">
+                  <Link href={`/scorecard/${openTeam.id}`} className="btn-secondary">
+                    Open the team&rsquo;s scorecard
+                  </Link>
+                  <Link href="/scoring" className="btn-secondary">
+                    Mark and sign off this month
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         ) : (

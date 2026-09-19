@@ -226,10 +226,20 @@ describe('a team node', () => {
   it('IS SCORED, even though it sits at staff level', () => {
     // This is the whole point of a team node, and the one thing a flag was needed for: a `staff`
     // role is a checklist and carries no percentage, and a team is a `staff` role that does.
+    /*
+      The flag is REQUIRED, not defaulted. It arrived as `isTeam = false`, and a default is how a
+      new argument reaches exactly one caller: twelve places ask this question, the org chart was
+      updated and the other eleven went on answering it the old way. So a team drew a shared score
+      on the chart and read as a checklist role everywhere else — including `/scoring`, which is
+      where a month is marked and signed off.
+
+      Kris found it the way a customer does: "how do i sign off the team kpi's". He could not.
+    */
+    expect(isScored.length, 'isTeam must be required, so the compiler finds every caller').toBe(3);
     expect(isScored('staff', 4, true), 'a team with KPIs is scored').toBe(true);
     expect(isScored('staff', 4, false), 'an ordinary staff role still is not').toBe(false);
     expect(isScored('staff', 0, true), 'but not before it has anything to score').toBe(false);
-    expect(isScored('manager', 4), 'and nothing else changed').toBe(true);
+    expect(isScored('manager', 4, false), 'and nothing else changed').toBe(true);
   });
 
   it('is named, or called Team rather than refusing', () => {

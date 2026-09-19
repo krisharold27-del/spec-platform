@@ -76,7 +76,7 @@ export default async function MonthlyScoring({ searchParams }: {
     const { rows, score } = await getScorecard(r.id, period.id);
     roles.push({
       roleId: r.id, title: r.title, holder: r.holder?.name ?? r.pencilled ?? null,
-      rows, score, scored: isScored(r.level, rows.length),
+      rows, score, scored: isScored(r.level, rows.length, r.isTeam),
       canEdit: scope.canEdit(r.id) && status !== 'locked',
     });
   }

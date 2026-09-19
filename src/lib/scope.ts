@@ -170,9 +170,25 @@ export async function getScope(user: CurrentUser): Promise<Scope> {
   };
 }
 
-/** Roles this user may see, minus read-only staff rows — the set the team rollup averages over. */
+/**
+ * Roles this user may see that carry a scorecard — the set the team roll-up averages over, and the
+ * set `/scoring` lists for marking.
+ *
+ * ── Teams are `staff` level and ARE scored ──────────────────────────────────────────────────────
+ *
+ * `staff` is excluded because an individual team member has a checklist, not a percentage. A TEAM
+ * node sits at that same level — everybody in one is on a team seat — and carries a shared S/P/E/C
+ * for the group, which is the entire reason it exists.
+ *
+ * Without this clause a team never reached this list, so its KPIs could be added on the org chart
+ * and then never marked, never rolled up and never signed off. Kris, having built one:
+ * *"how do i sign off the team kpi's"*. He could not, anywhere in the product.
+ *
+ * The rule about what is scored lives in `isScored` (lib/today-data). This is the same rule applied
+ * to a set, and the two have to say the same thing — `tests/scope.test.ts` holds them to it.
+ */
 export function scoredRolesInScope(scope: Scope): RoleView[] {
-  return scope.roles.filter(r => scope.visible.has(r.id) && r.level !== 'staff');
+  return scope.roles.filter(r => scope.visible.has(r.id) && (r.isTeam || r.level !== 'staff'));
 }
 
 /**

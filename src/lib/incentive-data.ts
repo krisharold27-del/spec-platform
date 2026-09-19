@@ -93,7 +93,7 @@ async function chainBeneath(tenantId: string, roleId: string, periodId: string) 
     if (role) {
       const criteria = await db.select().from(schema.criteria)
         .where(and(eq(schema.criteria.roleId, id), eq(schema.criteria.active, true)));
-      if (isScored(role.level, criteria.length)) {
+      if (isScored(role.level, criteria.length, role.isTeam)) {
         const { score } = await getScorecard(id, periodId);
         out.push({ role, pillars: score.pillars });
       }

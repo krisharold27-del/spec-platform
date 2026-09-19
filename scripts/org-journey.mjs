@@ -1337,6 +1337,44 @@ if (await addTeamItem.count()) {
 
     const nodes = await page.locator('[data-team-node]').count();
     check('  and the team is drawn as a team node, not as an ordinary card', nodes > 0);
+
+    /*
+      ── AND THE TEAM REACHES THE SCREEN WHERE A MONTH IS SIGNED OFF ────────────────────────
+
+      Kris, having built one: *"how do i sign off the team kpi's"*.
+
+      He could not, anywhere. A team is `staff` level, and both `isScored` and
+      `scoredRolesInScope` filtered `staff` out — so its KPIs could be written on the chart and
+      then never marked, never rolled up and never signed off. Every unit test passed: they were
+      testing the team layer, which worked, and nothing asked whether the rest of the product
+      could see what it produced.
+
+      This asks the other end. Add a measure to the team, then open /scoring — the screen where a
+      month is marked and handed up — and look for the team by name. It is the only check here
+      that would have failed on the build Kris was given.
+    */
+    await page.goto(`${BASE}/org?team=${encodeURIComponent(await page.locator('[data-team-node]').first().getAttribute('data-team-node'))}`, { waitUntil: 'domcontentloaded' });
+    const teamKpi = page.locator('[data-team-layer] [data-add-kpi="safety"]').first();
+    if (await teamKpi.count()) {
+      const measure = `Crew toolbox talk ${stamp}`;
+      await teamKpi.fill(measure);
+      await page.locator('[data-team-layer] [data-pillar-card="safety"] button[aria-label^="Add this KPI"]').first().click();
+      await page.waitForFunction(text => document.body.innerText.includes(text), measure, { timeout: 15000 })
+        .catch(() => {});
+
+      await page.goto(`${BASE}/scoring`, { waitUntil: 'domcontentloaded' });
+      const onScoring = await page.evaluate(name => document.body.innerText.includes(name), teamName)
+        .catch(() => false);
+      check('  AND THE TEAM APPEARS ON /scoring, so its month can be marked and signed off', onScoring,
+            (await page.evaluate(() => document.body.innerText)).slice(0, 240).replace(/\n/g, ' '));
+
+      const measured = await page.evaluate(text => document.body.innerText.includes(text), measure)
+        .catch(() => false);
+      check('    with the measure that was typed into the team on it', measured);
+    } else {
+      check('  AND THE TEAM APPEARS ON /scoring, so its month can be marked and signed off', false,
+            'no add-a-KPI box in the team layer');
+    }
   }
 } else {
   check('ADDING A TEAM OPENS THE TEAM LAYER', false, '"Add a team" is not on the card menu');

@@ -41,7 +41,7 @@ export default async function OnSite() {
     let blocked: string[] = [];
     if (period) {
       const { rows } = await getScorecard(r.id, period.id);
-      if (isScored(r.level, rows.length)) {
+      if (isScored(r.level, rows.length, r.isTeam)) {
         blocked = rows.filter(x => x.pillar === 'compliance' && x.answer === 'N').map(x => x.text);
       }
     }
