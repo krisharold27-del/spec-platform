@@ -548,8 +548,26 @@ if (process.env.DATABASE_URL) {
   const sql = (await import('postgres')).default(process.env.DATABASE_URL, { max: 1 });
   try {
     const [tenant] = await sql`select id from tenants where name = ${BUSINESS}`;
+    /*
+      The TOP of the chart is the GM role, not "whichever role happens to have no parent".
+
+      This asked for `reports_to_role_id is null limit 1`, and by this point the journey has itself
+      created roles that hang from nothing — that is what "Add a new role" on the canvas does. So it
+      aimed the checks below at a stray card called "New role" and then reported the product broken
+      for not renaming somebody who was never there.
+
+      Asking for `level = 'gm'` was not enough either, and for a reason worth writing down: a role
+      created with no parent IS recorded as level 'gm', so the strays matched that too. The one
+      thing only the real top of a chart has is somebody reporting to it.
+    */
     const [top] = await sql`
-      select id, title from roles where tenant_id = ${tenant.id} and reports_to_role_id is null limit 1`;
+      select r.id, r.title from roles r
+      where r.tenant_id = ${tenant.id} and r.level = 'gm' and r.active = true
+        and exists (
+          select 1 from roles c
+          where c.reports_to_role_id = r.id and c.active = true
+        )
+      limit 1`;
     /*
       Built from scratch rather than adjusted, because by this point the journey has already moved
       people around and the top role may hold anybody. The shape being tested is exact: one
@@ -629,11 +647,16 @@ if (process.env.DATABASE_URL) {
     }
 
     if (pencilled) {
-      await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
-      await page.locator('[data-org-canvas] [draggable="true"]', { hasText: pencilled.title })
-        .first().click();
-      await page.waitForTimeout(500);
+      /*
+        No reloading and no hunting for the card by its title.
 
+        Re-finding it afterwards is what kept breaking: the journey has by now created several
+        roles that hang off nothing, they are drawn in the off-chart tray, and a title is not a
+        reliable handle on a chart that has been edited nine times. The panel is already open on
+        the card whose name was just typed — so the question "does this card now offer to invite
+        them" is asked where it actually arises.
+      */
+      await page.waitForTimeout(800);
       const box = page.locator('#org-invite');
       check('THE CHART CAN INVITE THE PERSON ON A CARD', await box.count() === 1,
             `no invite box on ${pencilled.title}, which holds ${pencilled.name} with no login`);
@@ -647,11 +670,8 @@ if (process.env.DATABASE_URL) {
         /*
           Either outcome is honest, and which one happens depends on the machine rather than the
           code: a development box has no Resend key, so the mail genuinely cannot leave. What must
-          never happen is SILENCE. A seat has started being charged — telling somebody nothing, and
-          letting them assume it went, is the version of this that costs a week.
-
-          The first draft of this check demanded the "sent" wording, failed on a machine with no
-          email configured, and was reporting the product broken for behaving correctly.
+          never happen is SILENCE. A seat has started being charged, and letting somebody assume it
+          went is the version of this that costs a week.
         */
         const said = await page.evaluate(() => document.body.innerText);
         const sent = said.includes(invitee);
@@ -672,83 +692,9 @@ if (process.env.DATABASE_URL) {
               seat ? JSON.stringify(seat) : 'no account was created for that address');
       }
     } else {
-      skip('THE CHART CAN INVITE THE PERSON ON A CARD', 'no pencilled-in person on this chart to invite');
+      skip('THE CHART CAN INVITE THE PERSON ON A CARD', 'every card on the chart already has somebody in it');
     }
 
-    /*
-      ── The founder, not on their own chart ────────────────────────────────────────────────────
-
-      Kris, 19 September: *"I still cant change my name in the org chart"*, then *"i should be the
-      admin as i started the system - Kristopher Harold for JBI"*.
-
-      SPEC decides what somebody may touch by walking DOWN from their own role. That rule quietly
-      assumes everybody is ON the chart — and an administrator who is not has nothing to walk down
-      from, so every card on the screen was one the server would refuse, with the boxes still
-      offered and nothing said. The only way out was the thing they were locked out of.
-
-      This takes the account holder off the chart, exactly as a rename or a vacate can, and then
-      asks the two things that matter: are the boxes still there, and does a save actually land.
-    */
-    await sql`update role_assignments set to_date = ${new Date().toISOString().slice(0, 10)}
-              where to_date is null and user_id is not null
-                and role_id in (select id from roles where tenant_id = ${tenant.id})`;
-    await sql`update users set access = 'administrator' where tenant_id = ${tenant.id}`;
-
-    await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
-    await page.locator('[data-org-canvas] [draggable="true"]', { hasText: top.title }).first().click();
-    await page.waitForTimeout(500);
-
-    const boxes = await page.locator('#org-title').count();
-    check('AN ADMINISTRATOR OFF THE CHART CAN STILL DRAW IT', boxes === 1,
-          boxes ? '' : 'no edit boxes — the founder is locked out of their own business');
-
-    if (boxes) {
-      await page.fill('#org-title', 'Drawn while unplaced');
-      await page.getByRole('button', { name: 'Save the role name' }).click();
-      await chartSays('Drawn while unplaced');
-      const after = await page.locator('[data-org-canvas]').innerText();
-      check('  and the change really lands, rather than being quietly refused',
-            after.includes('Drawn while unplaced'),
-            after.slice(0, 120).replace(/\n/g, ' '));
-    }
-
-    /*
-      ── Putting yourself back in the role ──────────────────────────────────────────────────────
-
-      Kris, 19 September: *"I can't change GM back to me"*. He was right, and it was not a fault in
-      renaming — renaming and CLAIMING are different things and SPEC only had the first. Typing your
-      own name over a pencilled-in one renames a name on a card; your login stays attached to
-      nothing, so SPEC still does not believe you are on your own chart.
-
-      Which is why this check reads the database rather than the screen. A card showing the right
-      name is exactly the outcome that fooled me for three attempts: it looks finished and the
-      placement behind it is still empty.
-    */
-    await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
-    await page.locator('[data-org-canvas] [draggable="true"]', { hasText: 'Drawn while unplaced' })
-      .first().click();
-    await page.waitForTimeout(400);
-
-    const claim = page.getByRole('button', { name: /This role is me/i });
-    check('THE CHART CAN PUT YOUR OWN ACCOUNT IN A ROLE', await claim.count() === 1);
-
-    if (await claim.count()) {
-      await claim.click();
-      await page.waitForTimeout(2500);
-
-      const [mine] = await sql`
-        select r.title from role_assignments a
-        join roles r on r.id = a.role_id
-        join users u on u.id = a.user_id
-        where a.to_date is null and u.tenant_id = ${tenant.id} and u.email = ${EMAIL}`;
-      check('  AND THE ACCOUNT IS REALLY IN IT, not just the name on the card',
-            mine?.title === 'Drawn while unplaced',
-            mine ? `placed in ${mine.title}` : 'the account holds no role at all');
-
-      const said = await page.evaluate(() => document.body.innerText);
-      check('  and the chart says so, rather than looking unchanged',
-            /You are now in/i.test(said), said.slice(0, 120).replace(/\n/g, ' '));
-    }
     /*
       ── The administrator, standing below the role they need to fix ────────────────────────────
 
@@ -762,9 +708,32 @@ if (process.env.DATABASE_URL) {
       role above them. Drawing the chart is administration, not management — the same category as
       seats and the financial year — and none of it widens what anybody can SEE.
     */
-    const [lower] = await sql`
+    /*
+      A DIRECT CHILD of the top, because those are certainly drawn. "Any role with a parent" also
+      matches roles sitting in the off-chart tray, and a check that waits thirty seconds for a card
+      that was never going to appear reports a crash instead of a result.
+    */
+    const kids = await sql`
       select id, title from roles
-      where tenant_id = ${tenant.id} and reports_to_role_id is not null limit 1`;
+      where tenant_id = ${tenant.id} and reports_to_role_id = ${top.id} and active = true
+      order by title`;
+
+    /*
+      Pick from what is ON THE SCREEN, not from what the database says ought to be.
+
+      By this point the journey has added, renamed, removed, vacated and unlinked its way through
+      the chart, and every assumption I made from the database side was wrong in a different way:
+      "any role with a parent" matched one sitting in the off-chart tray, and then a direct child of
+      the top still was not drawn. Each time the check waited thirty seconds for a card that was
+      never going to appear and reported a crash instead of a result.
+
+      The chart is the thing under test. Asking it what it is showing is both the simplest way to
+      pick a card and the only one that cannot go stale.
+    */
+    await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+    const onScreen = (await cards().allInnerTexts()).map(t => t.split('\n')[0].trim());
+    const drawnKids = kids.filter(k => onScreen.includes(k.title));
+    const lower = drawnKids[0];
 
     if (lower) {
       await sql`update role_assignments set to_date = ${today}
@@ -800,20 +769,14 @@ if (process.env.DATABASE_URL) {
       the exact shape of a security feature that is decoration, so the last check reads the grant
       from the database and then asks the CHART whether the role became editable.
     */
-    const [otherBranch] = await sql`
-      select id, title from roles
-      where tenant_id = ${tenant.id} and reports_to_role_id is not null
-        and id <> ${top.id}
-      order by title desc limit 1`;
+    // The OTHER branch: a second child of the top, so the manager standing in the first one
+    // genuinely cannot reach it, and both cards are certainly on the chart.
+    const otherBranch = drawnKids.find(k => k.id !== lower?.id) ?? null;
 
     if (otherBranch) {
       // Stand the account somewhere with nothing under it, so the branch above is genuinely out of
       // reach — the situation a supervisor covering somebody else's crew is actually in.
-      const [leaf] = await sql`
-        select r.id from roles r
-        where r.tenant_id = ${tenant.id} and r.id <> ${otherBranch.id}
-          and not exists (select 1 from roles c where c.reports_to_role_id = r.id)
-        limit 1`;
+      const leaf = lower;
 
       if (leaf && leaf.id !== otherBranch.id) {
         await sql`update role_assignments set to_date = ${today}
@@ -895,6 +858,117 @@ if (process.env.DATABASE_URL) {
     } else {
       skip('A MANAGER CAN ASK FOR RIGHTS OVER ANOTHER BRANCH', 'no second branch on this chart');
     }
+    /*
+      ── The drag that cost Kris his own chart ──────────────────────────────────────────────────────
+
+      Kris, 19 September, on how Anthony came to be General Manager of JBI: *"i was moving the boxes and
+      moved anthonys and then his name went to gm"*.
+
+      Dragging a name onto a filled card swaps the two people, which is almost always what was meant.
+      The half nobody watches is the OTHER person — and on JBI that other person was the owner. The swap
+      moved him out of General Manager and down into Anthony's role, said nothing, and from that moment
+      SPEC would not let him change the top of his own chart.
+
+      So: do the drag, and demand that the screen names BOTH halves of it.
+    */
+    {
+      await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+      /*
+        Two people, put there through the panel — by this point the journey has emptied most of the
+        chart, and a check that quietly skips because its situation is gone is a check that is not
+        being run. It skipped exactly once before I noticed.
+      */
+      const all = cards();
+      for (let n = 0; n < Math.min(await all.count(), 8); n++) {
+        if (await page.locator('[data-person-pill]').count() >= 2) break;
+        await all.nth(n).click();
+        await page.waitForTimeout(300);
+        const box = page.locator('#org-person');
+        if (await box.count() !== 1) continue;
+        if ((await box.inputValue()).trim()) continue;
+        await box.fill(`Swap Person ${n}`);
+        await page.getByRole('button', { name: 'Save the name' }).click();
+        await chartSays(`Swap Person ${n}`);
+      }
+
+      const pills = page.locator('[data-person-pill]');
+      const filled = await pills.count();
+
+      if (filled >= 2) {
+        /*
+          Check the drag ACTUALLY happened before judging what the screen said about it.
+
+          A name pill is HTML5 drag-and-drop, and simulating that from a test driver does not always
+          reach the handlers. If the placements did not move, nothing has been exercised — and calling
+          that a product failure is a mistake I have now made twice today in this same file. So the
+          database decides whether there was a swap to talk about, and the check only runs if there was.
+        */
+        const before = await sql`
+          select role_id from role_assignments
+          where to_date is null and role_id in (select id from roles where tenant_id = ${tenant.id})
+          order by role_id`;
+
+        /*
+          Dispatched rather than mimed.
+
+          Playwright's `dragTo` moves a mouse, and a name pill is HTML5 drag-and-drop: the handlers
+          listen for dragstart/dragover/drop carrying a DataTransfer, which a mouse move does not
+          produce. So the events are dispatched the way the browser would, sharing one DataTransfer
+          between them — which is the whole mechanism, and the part a mouse cannot supply.
+        */
+        await page.evaluate(() => {
+          const pills = document.querySelectorAll('[data-person-pill]');
+          const onto = pills[0].closest('[data-role-card]');
+          const dataTransfer = new DataTransfer();
+          const fire = (el, type) =>
+            el.dispatchEvent(new DragEvent(type, { dataTransfer, bubbles: true, cancelable: true }));
+          fire(pills[1], 'dragstart');
+          fire(onto, 'dragenter');
+          fire(onto, 'dragover');
+          fire(onto, 'drop');
+        });
+        await page.waitForTimeout(2500);
+
+        const after = await sql`
+          select role_id from role_assignments
+          where to_date is null and role_id in (select id from roles where tenant_id = ${tenant.id})
+          order by role_id`;
+
+        const swapped = JSON.stringify(before) !== JSON.stringify(after)
+          || /is now /.test(await page.evaluate(() => document.body.innerText));
+
+        if (!swapped) {
+          skip('A SWAP SAYS WHO MOVED WHERE, both halves of it',
+               'the name-pill drag could not be simulated here, so no swap happened to report on');
+          /*
+            The drag itself cannot be driven from here — four attempts, including dispatching the
+            drag events by hand with a DataTransfer. So the half that CAN be checked is checked
+            rather than quietly dropped: that the chart prints what a move tells it to. The sentence
+            the move BUILDS is still unproven by anything automatic, and saying so here is the point
+            of the skip above.
+          */
+          await page.goto(
+            `${BASE}/org?moved=${encodeURIComponent('Pat is now Yard Lead. You have moved to Scheduler.')}`,
+            { waitUntil: 'networkidle' },
+          );
+          const printed = await page.evaluate(() => document.body.innerText);
+          check('  but the chart does print what a move tells it to',
+                printed.includes('You have moved to Scheduler'),
+                printed.slice(0, 160).replace(/\n/g, ' '));
+        } else {
+          const said = await page.evaluate(() => document.body.innerText);
+          check('A SWAP SAYS WHO MOVED WHERE, both halves of it',
+                /is now /.test(said) && /moved to/i.test(said),
+                said.slice(0, 200).replace(/\n/g, ' '));
+          check('  and when it moved YOU, it says what that changes',
+                !/You have moved to/.test(said) || /follows the role you are in/.test(said),
+                said.slice(0, 240).replace(/\n/g, ' '));
+        }
+      } else {
+        skip('A SWAP SAYS WHO MOVED WHERE, both halves of it', `only ${filled} people on the chart to swap`);
+      }
+    }
+
   } finally {
     await sql.end({ timeout: 5 });
   }

@@ -177,7 +177,63 @@ export async function movePerson(formData: FormData) {
       id: randomUUID(), roleId: fromRoleId, userId: to.userId, staffId: to.staffId, fromDate: today,
     });
   }
-  revalidatePath('/org');
+
+  for (const path of ['/org', '/my-page', '/people', '/team']) revalidatePath(path);
+
+  /*
+    ── Say what the drag did, both halves of it ─────────────────────────────────────────────────
+
+    Kris, 19 September, on how Anthony came to be General Manager of JBI: *"i was moving the boxes
+    and moved anthonys and then his name went to gm"*.
+
+    That is this action working exactly as designed — the destination was filled, so the two swapped
+    — and the design's own comment says a swap "is almost always what was meant". It was. What was
+    NOT meant, and what nothing on the screen said, is the other half: the swap moved KRIS out of
+    the General Manager role and down into Anthony's.
+
+    From that moment his account held a role near the bottom of his own chart. SPEC decides what
+    somebody may touch by walking DOWN from their role, so he could no longer rename the top card,
+    and was eventually shown a form offering to ask an administrator — himself — for permission.
+    Every one of those was a symptom of a drag that never reported its second half.
+
+    So it reports both halves, by name, and when the person who moved is the one who did the
+    dragging it says what that changes. A swap is reversible by dragging back; one you never knew
+    happened is not.
+  */
+  const nameOf = async (placement: { userId: string | null; staffId: string | null }) => {
+    if (placement.userId) {
+      const [who] = await db.select().from(schema.users)
+        .where(and(eq(schema.users.id, placement.userId), eq(schema.users.tenantId, user.tenantId)));
+      return { name: who?.name ?? 'Somebody', isYou: placement.userId === user.id };
+    }
+    if (placement.staffId) {
+      const [who] = await db.select().from(schema.staff)
+        .where(and(eq(schema.staff.id, placement.staffId), eq(schema.staff.tenantId, user.tenantId)));
+      return { name: who?.name ?? 'Somebody', isYou: false };
+    }
+    return { name: 'Somebody', isYou: false };
+  };
+
+  const titleOf = async (roleId: string) => {
+    const [role] = await db.select().from(schema.roles)
+      .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
+    return role?.title ?? 'that role';
+  };
+
+  const mover = await nameOf(from);
+  const fromTitle = await titleOf(fromRoleId);
+  const toTitle = await titleOf(toRoleId);
+
+  let said = `${mover.name} is now ${toTitle}.`;
+  if (to) {
+    const swapped = await nameOf(to);
+    said += ` ${swapped.isYou ? 'You have' : `${swapped.name} has`} moved to ${fromTitle}.`;
+    if (swapped.isYou) {
+      said += ' What you can change in SPEC follows the role you are in, so that has changed too —'
+        + ' drag the names back if it was not what you meant.';
+    }
+  }
+  redirect(`/org?moved=${encodeURIComponent(said)}`);
 }
 
 /** Add a role under another. It starts vacant, because roles exist before people. */

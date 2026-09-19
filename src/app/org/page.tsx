@@ -49,6 +49,7 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   const invited = String(sp.invited ?? '').slice(0, 200);
   const claimed = String(sp.claimed ?? '').slice(0, 200);
   const asked = String(sp.asked ?? '').slice(0, 200);
+  const moved = String(sp.moved ?? '').slice(0, 400);
   const cascadeRead = String(sp.cascade ?? '');
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
@@ -241,6 +242,23 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
         of the same fault. Somebody has just spent a seat and started a monthly charge — they should
         not have to go and check whether it happened, and "the page looks the same" is not an answer.
       */}
+      {/*
+        What a drag actually did — including the half nobody watches.
+
+        Dragging a name onto a filled card SWAPS the two people, which is almost always what was
+        meant. The half that is not watched is the other person, and on JBI that other person was
+        the owner: the swap moved him out of General Manager and he found out days later, through
+        a chart that had quietly stopped letting him change anything.
+      */}
+      {moved && (
+        <p
+          role="status"
+          className="mt-6 rounded-lg border-l-4 border-sage bg-surface p-4 text-sm text-ink"
+        >
+          {moved}
+        </p>
+      )}
+
       {asked && (
         <p
           role="status"

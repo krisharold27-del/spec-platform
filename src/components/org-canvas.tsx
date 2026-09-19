@@ -623,6 +623,9 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
 
                 {r.person ? (
                   <span
+                    /* Named so a browser check can take hold of the pill itself rather than the
+                       card it sits on — the two are different drags with different meanings. */
+                    data-person-pill={r.id}
                     draggable={canEdit}
                     onDragStart={e => {
                       if (!canEdit) return;

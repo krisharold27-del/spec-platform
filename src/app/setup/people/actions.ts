@@ -60,6 +60,9 @@ export async function nameRole(formData: FormData) {
   const chart = await chartFor(user.tenantId);
   if (!chart.roles.some(r => r.id === roleId)) redirect('/setup/business');
 
+  const held = await accountHolderOn(roleId, user.tenantId);
+  if (held) heldBySomebody(held, user.id);
+
   const existing = chart.staff.find(s => s.name.toLowerCase() === name.toLowerCase());
   if (existing) {
     const change = roleChangeFor(existing.id, roleId, chart.roles, chart.assignments, chart.staff);
@@ -100,6 +103,9 @@ export async function placeStaff(formData: FormData) {
   const chart = await chartFor(user.tenantId);
   if (!chart.staff.some(s => s.id === staffId) || !chart.roles.some(r => r.id === roleId)) redirect('/setup/business');
 
+  const held = await accountHolderOn(roleId, user.tenantId);
+  if (held) heldBySomebody(held, user.id);
+
   const change = roleChangeFor(staffId, roleId, chart.roles, chart.assignments, chart.staff);
   if (change) redirect(`/setup/business?change=${staffId}&to=${roleId}`);
 
@@ -135,6 +141,61 @@ export async function resolveRoleChange(formData: FormData) {
 }
 
 /** Close whoever is on this role and open a new assignment. History is kept, never overwritten. */
+/**
+ * Who holds this role with their own SPEC login, if anybody.
+ *
+ * ── The write that cost Kris a day ───────────────────────────────────────────────────────────────
+ *
+ * 19 September. He signed JBI up, which puts HIM in the General Manager role with his own account.
+ * He then did the obvious thing on the screen that exists for it — typed a name into the General
+ * Manager row on Setting up → Your business — and `openAssignment` closed **every** open placement
+ * on that role, his own included, and replaced it with a name that has no login behind it.
+ *
+ * Nothing said so. And SPEC decides what somebody may touch by walking down from their own role, so
+ * from that moment he held none: locked out of his own chart, unable to rename the card, and
+ * eventually shown a form offering to ask an administrator — himself — for permission. Every one of
+ * those was a symptom. This was the cause.
+ *
+ * The product already refuses this everywhere else. `renamePerson` will not take a role from
+ * somebody with a login; nor will `claimRole`. The one screen a new customer is actually sent to
+ * did it silently. A person with an account is never displaced by somebody typing a name.
+ */
+async function accountHolderOn(roleId: string, tenantId: string) {
+  const open = await db.select().from(schema.roleAssignments)
+    .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
+  const held = open.find(a => a.userId);
+  if (!held?.userId) return null;
+  const [who] = await db.select().from(schema.users)
+    .where(and(eq(schema.users.id, held.userId), eq(schema.users.tenantId, tenantId)));
+  return who ? { id: who.id, name: who.name } : null;
+}
+
+/** Say no, on the screen they are standing on. */
+function refuseSetup(reason: string): never {
+  redirect(`/setup/business?cannot=${encodeURIComponent(reason)}`);
+}
+
+/**
+ * The sentence for whichever of the two it is — and they are genuinely different situations.
+ *
+ * Taking the role off YOURSELF is the one that did the damage, and the reason it is worth its own
+ * wording is that nobody doing it thinks that is what they are doing. They think they are writing
+ * down who the General Manager is.
+ */
+function heldBySomebody(held: { id: string; name: string }, mine: string): never {
+  if (held.id === mine) {
+    refuseSetup(
+      `You are in that role yourself, with your own login. Typing a name here would take it off you `
+      + `and leave your account on no role at all — which is how you lose the ability to change the `
+      + `chart. If somebody else should hold it, put them in from the org chart instead.`,
+    );
+  }
+  refuseSetup(
+    `${held.name} holds that role with their own SPEC login, so typing a name here will not replace `
+    + `them — that would take a seat off somebody without asking. Move them from People first.`,
+  );
+}
+
 async function openAssignment(roleId: string, staffId: string) {
   await db.update(schema.roleAssignments).set({ toDate: now() })
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
