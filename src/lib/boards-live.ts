@@ -36,7 +36,25 @@ export const cardLabel = (kind: BoardKind): string =>
   BOARD_TYPES.find(t => t.id === kind)?.card ?? 'Board';
 
 export interface Feed { system: string; what: string }
-export interface Row { label: string; source: string; value: string }
+/**
+ * A line on a mirror.
+ *
+ * `label`, `source` and `value` are text somebody wrote. `criterionId` turns the line into a
+ * POINTER at one of the business's real KPIs instead — and when it is set, the value is read again
+ * every time the mirror is opened, for whatever month is being looked at, rather than being the
+ * number that was true on the day somebody typed it.
+ *
+ * Both kinds are legitimate and they are never drawn the same way. See lib/mirror-kpis.
+ */
+export interface Row {
+  label: string;
+  source: string;
+  value: string;
+  /** Set when this line is one of the business's KPIs, read live. */
+  criterionId?: string;
+  /** The role that KPI belongs to — a number means nothing without knowing whose it is. */
+  roleId?: string;
+}
 export interface Step { text: string; owner: string; state: StepState }
 export interface Headline { wasLabel: string; was: string; nowLabel: string; now: string; note: string }
 

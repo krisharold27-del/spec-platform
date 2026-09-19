@@ -2,13 +2,20 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Shell } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
+import { Refused } from '@/components/refused';
+import { refusedReason } from '@/lib/refuse';
 import { getCurrentUser } from '@/lib/auth';
 import {
   BOARD_TYPES, BOARDS_INTRO, EMPTY_BOARD, NOTHING_PINNED, STEP_STATE,
   cardLabel, feedLabel, initials, kindOf, stepStateOf, visible, type BoardKind,
 } from '@/lib/boards-live';
-import { listBoards, getBoard, markViewing } from '@/lib/boards-live-data';
-import { newBoard, sayOnBoard } from './actions';
+import { and, desc, eq, inArray } from 'drizzle-orm';
+import { db, schema } from '@/db';
+import { getScope } from '@/lib/scope';
+import { listBoards, getBoard, markViewing, mirrorKpisFor } from '@/lib/boards-live-data';
+import { kpiStanding, kpiGap } from '@/lib/mirror-kpis';
+import { LIGHT_COLOUR } from '@/lib/today';
+import { newBoard, sayOnBoard, putKpiOnBoard, takeKpiOffBoard } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +45,7 @@ export const dynamic = 'force-dynamic';
  * about to make a decision about money.
  */
 export default async function Boards({ searchParams }: {
-  searchParams: Promise<{ board?: string; type?: string; needs?: string }>;
+  searchParams: Promise<{ board?: string; type?: string; needs?: string; period?: string; cannot?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
@@ -50,12 +57,178 @@ export default async function Boards({ searchParams }: {
     // Being here is what puts you in "Editing now" for the next five minutes.
     await markViewing(user.tenantId, board.id, user.id).catch(() => {});
 
+    /*
+      ── What makes this a live thing rather than a printout ──────────────────────────────────
+
+      Kris, 19 September: mirrors should work *"same as Artifacts in claude"* — *"live and
+      interactive, not a report"* — and *"align to key kpi's in the business"*.
+
+      Every figure on a mirror used to be text stored when somebody made it, under a badge that
+      said **Live**. The badge was true about the CONNECTION and said nothing about the numbers,
+      which had never once been recalculated.
+
+      The months are read here and the chosen one decides what the KPI lines say. Change the month
+      and the mirror changes: nothing is cached, nothing is copied, and there is no version of
+      these numbers that can be out of date, because the mirror does not hold any.
+    */
+    const scope = await getScope(user);
+    const months = await db.select().from(schema.periods)
+      .where(eq(schema.periods.tenantId, user.tenantId))
+      .orderBy(desc(schema.periods.period));
+    const chosen = months.find(m => m.period === sp.period) ?? months[0] ?? null;
+    const { kpis, hidden } = await mirrorKpisFor({
+      tenantId: user.tenantId,
+      rows: board.rows,
+      periodId: chosen?.id ?? null,
+      visible: scope.visible,
+    });
+    /*
+      What this person could add, and nothing else. `canSee` is the same rule the scorecards use —
+      a mirror is shared, so offering a measure from outside somebody's part of the chart would be
+      a way to publish another team's numbers into a room they never agreed to be in.
+    */
+    const mine = scope.roles.filter(r => scope.canSee(r.id));
+    const addable = mine.length
+      ? (await db.select().from(schema.criteria)
+          .where(and(
+            inArray(schema.criteria.roleId, mine.map(r => r.id)),
+            eq(schema.criteria.active, true),
+            eq(schema.criteria.kpi, true),
+          )))
+        .filter(c => !kpis.some(k => k.criterionId === c.id))
+      : [];
+    const titleOf = new Map(mine.map(r => [r.id, r.title]));
+
     return (
       <Shell title={board.title} subtitle={cardLabel(board.kind)}>
         <Link href="/mirrors" className="text-sm text-rust-700 hover:underline">&larr; All mirrors</Link>
 
+        {/* The one component every screen refuses through, so they all answer the same way. I
+            hand-rolled this banner first and tests/refusals.test.ts caught it within a minute. */}
+        <Refused reason={refusedReason(sp)} />
+
         <div className="mt-4 grid items-start gap-6 lg:grid-cols-[1.6fr_1fr]">
           <div className="grid gap-6">
+            {/*
+              ── The month this mirror is being read in ──────────────────────────────────────
+
+              The control that makes a mirror a live thing rather than a printout. Every KPI line
+              below is read against whichever month is chosen — change it and they all change,
+              because none of them is a stored number.
+
+              Only months the business actually has. Offering one that was never opened would be
+              inviting somebody into an empty room and letting them conclude the numbers are gone.
+            */}
+            {months.length > 0 && (
+              <section className="card">
+                <form className="flex flex-wrap items-center gap-2">
+                  <input type="hidden" name="board" value={board.id} />
+                  <label className="label-caps" htmlFor="mirror-period">Reading</label>
+                  <select
+                    id="mirror-period"
+                    name="period"
+                    defaultValue={chosen?.period ?? ''}
+                    className="min-h-[40px] rounded-md border border-ink/15 bg-cream px-3 py-2 text-sm text-ink"
+                  >
+                    {months.map(m => (
+                      <option key={m.id} value={m.period}>
+                        {m.period}{m.status === 'locked' ? ' — closed' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <SubmitButton className="btn-secondary">Show that month</SubmitButton>
+                  <span className="text-xs text-ink-light">
+                    Every measure below is read again for the month you pick. Nothing here is a
+                    stored number.
+                  </span>
+                </form>
+              </section>
+            )}
+
+            {/*
+              The business's own KPIs, read live. This is the half Kris asked for: a mirror that
+              "aligns to key kpi's in the business" and helps somebody decide, rather than a page of
+              figures that were true once.
+            */}
+            {/* Named so a check can read the live lines themselves rather than the whole page —
+                the picker below lists every measure by name, and a check scanning the document
+                cannot tell a line that is DRAWN from an option in a dropdown. */}
+            <section className="card" data-mirror-kpis>
+              <h2 className="font-serif text-xl text-ink">What this mirror is measured on</h2>
+              {kpis.length === 0 ? (
+                <p className="mt-2 text-sm text-ink-light">
+                  No measures on this mirror yet. Add one below and it will be read live every time
+                  anybody opens this &mdash; for whichever month they are looking at.
+                </p>
+              ) : (
+                <ul className="mt-4 grid gap-3" data-mirror-lines>
+                  {kpis.map(k => {
+                    const standing = kpiStanding(k);
+                    const colour = standing.tone === 'green' ? LIGHT_COLOUR.green
+                      : standing.tone === 'red' ? LIGHT_COLOUR.red
+                      : LIGHT_COLOUR.pending;
+                    return (
+                      <li key={k.criterionId} className="rounded-xl bg-cream p-4">
+                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                          <span
+                            className="rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-cream"
+                            style={{ background: colour }}
+                          >
+                            {standing.label}
+                          </span>
+                          <b className="text-sm text-ink">{k.text}</b>
+                          <span className="text-xs text-ink-light">
+                            {k.roleTitle} &middot; {k.pillar}
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-sm text-ink-light">{kpiGap(k)}</p>
+                        <form action={takeKpiOffBoard} className="mt-2">
+                          <input type="hidden" name="boardId" value={board.id} />
+                          <input type="hidden" name="criterionId" value={k.criterionId} />
+                          <SubmitButton className="text-xs text-ink-light underline hover:text-rust">
+                            Take it off this mirror
+                          </SubmitButton>
+                        </form>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {/*
+                Somebody's own numbers can be on a mirror; somebody else's cannot. Said out loud
+                rather than silently dropped — a mirror that shows a different number of lines to
+                different people, without saying so, is its own argument waiting to happen.
+              */}
+              {hidden > 0 && (
+                <p className="mt-3 text-xs text-ink-light">
+                  {hidden} {hidden === 1 ? 'measure is' : 'measures are'} on this mirror from a part
+                  of the chart you cannot see, so {hidden === 1 ? 'it is' : 'they are'} not shown.
+                </p>
+              )}
+
+              {addable.length > 0 && (
+                <form action={putKpiOnBoard} className="mt-4 flex flex-wrap items-end gap-2 border-t border-rust-200 pt-4">
+                  <input type="hidden" name="boardId" value={board.id} />
+                  <div className="min-w-[240px] flex-1">
+                    <label className="label-caps" htmlFor="mirror-kpi">Add one of your measures</label>
+                    <select
+                      id="mirror-kpi"
+                      name="criterionId"
+                      className="mt-1 min-h-[40px] w-full rounded-md border border-ink/15 bg-cream px-3 py-2 text-sm text-ink"
+                    >
+                      {addable.map(c => (
+                        <option key={c.id} value={`${c.id}|${c.roleId}`}>
+                          {titleOf.get(c.roleId)} &mdash; {c.text}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <SubmitButton className="btn-secondary">Put it on the mirror</SubmitButton>
+                </form>
+              )}
+            </section>
+
             {board.feeds.length > 0 && (
               <section className="card">
                 <div className="flex flex-wrap gap-2">
@@ -103,14 +276,27 @@ export default async function Boards({ searchParams }: {
               </section>
             )}
 
-            {board.rows.length > 0 && (
+            {/*
+              The lines somebody TYPED, kept apart from the ones that are read live.
+
+              Both belong on a mirror — a rate built from a supplier's quote is a real number that
+              no system of SPEC's produces. What would be wrong is drawing them identically, so that
+              a figure entered in June and a figure read this morning look like the same kind of
+              claim on the screen a business argues in front of.
+            */}
+            {board.rows.filter(r => !r.criterionId).length > 0 && (
               <section className="card">
-                <table className="table-clean w-full">
+                <h2 className="font-serif text-xl text-ink">Entered by hand</h2>
+                <p className="mt-1 text-sm text-ink-light">
+                  These were typed in and stay as they were until somebody changes them. They are
+                  not read from anywhere.
+                </p>
+                <table className="table-clean mt-4 w-full">
                   <thead>
                     <tr><th>Rate input</th><th>Source</th><th className="text-right">Value</th></tr>
                   </thead>
                   <tbody>
-                    {board.rows.map(r => (
+                    {board.rows.filter(r => !r.criterionId).map(r => (
                       <tr key={r.label}>
                         <td className="text-ink">{r.label}</td>
                         <td className="text-ink-light">{r.source}</td>
@@ -123,7 +309,9 @@ export default async function Boards({ searchParams }: {
             )}
 
             {board.steps.length > 0 && (
-              <section className="card">
+              /* Named so the rule "a plan is never scored with a percentage" can be checked against
+                 the plan itself rather than against everything else on the page. */
+              <section className="card" data-plan-steps>
                 <p className="text-sm text-ink-light">
                   What needs fixing, and who&rsquo;s doing it — the plan the team climbs together.
                 </p>

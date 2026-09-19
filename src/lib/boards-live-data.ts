@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '../db';
 import {
   kindOf, readList, readHeadline, liveAgainst, stillHere, initials, boardMeta,
   type BoardKind, type Feed, type Row, type Step, type Headline,
 } from './boards-live';
+import type { MirrorKpi } from './mirror-kpis';
 
 /**
  * Boards, against the database.
@@ -196,3 +197,139 @@ export async function commentOnBoard(opts: {
 }
 
 export { initials };
+
+/**
+ * Read a mirror's KPI lines, live, for one month.
+ *
+ * ── Why this exists ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Kris, 19 September: mirrors should work *"same as Artifacts in claude"* — *"live and interactive,
+ * not a report"* — and *"align to key kpi's in the business"*.
+ *
+ * Every number on a mirror was stored text, written once. This is the half that is not: a line that
+ * names a criterion is looked up again on every open, against whichever period is being viewed. No
+ * second copy, nothing to refresh, and no way for the mirror to drift away from the scorecard it is
+ * quoting — because it is not quoting it, it is reading it.
+ *
+ * ── The rule that decides what a viewer may see ──────────────────────────────────────────────────
+ *
+ * `visible` is the viewer's scope, from lib/scope. A mirror is a conversation object and people
+ * will put things on it; that must never become a way to read a scorecard belonging to somebody
+ * outside your own part of the chart. So a line whose role is out of scope is dropped here, at the
+ * read, rather than hidden in the page — and the caller is told how many went, because a mirror
+ * that silently shows a different number of rows to different people is its own kind of trouble.
+ */
+export async function mirrorKpisFor(opts: {
+  tenantId: string;
+  rows: Row[];
+  periodId: string | null;
+  visible: Set<string>;
+}): Promise<{ kpis: MirrorKpi[]; hidden: number }> {
+  const named = opts.rows.filter(r => r.criterionId && r.roleId);
+  if (!named.length) return { kpis: [], hidden: 0 };
+
+  const inScope = named.filter(r => opts.visible.has(r.roleId!));
+  const hidden = named.length - inScope.length;
+  if (!inScope.length) return { kpis: [], hidden };
+
+  const criterionIds = [...new Set(inScope.map(r => r.criterionId!))];
+  const roleIds = [...new Set(inScope.map(r => r.roleId!))];
+
+  const criteria = await db.select().from(schema.criteria)
+    .where(inArray(schema.criteria.id, criterionIds));
+  const roles = await db.select().from(schema.roles)
+    .where(and(inArray(schema.roles.id, roleIds), eq(schema.roles.tenantId, opts.tenantId)));
+
+  /*
+    Scoped by TENANT through the roles, not by trusting the criterion id on the row.
+
+    A mirror's rows are JSON that people edit. A criterion id sitting in one is somebody else's text
+    until a query proves it belongs to this business, and `criteria` has no tenant column of its own
+    — it reaches the business through its role. So the role is what is checked, and a line whose
+    role is not in this tenant simply is not there.
+  */
+  const roleById = new Map(roles.map(r => [r.id, r]));
+
+  const answers = opts.periodId
+    ? await db.select().from(schema.assessments)
+        .where(and(
+          eq(schema.assessments.periodId, opts.periodId),
+          inArray(schema.assessments.criterionId, criterionIds),
+        ))
+    : [];
+  const answerFor = new Map(answers.map(a => [a.criterionId, a]));
+
+  const kpis: MirrorKpi[] = [];
+  for (const row of inScope) {
+    const criterion = criteria.find(c => c.id === row.criterionId);
+    const role = roleById.get(row.roleId!);
+    if (!criterion || !role || criterion.roleId !== role.id) continue;
+
+    const answer = answerFor.get(criterion.id);
+    kpis.push({
+      criterionId: criterion.id,
+      roleId: role.id,
+      text: criterion.text,
+      pillar: criterion.pillar as MirrorKpi['pillar'],
+      roleTitle: role.title,
+      target: criterion.target,
+      status: (answer?.status as MirrorKpi['status']) ?? null,
+      result: answer?.result ?? null,
+    });
+  }
+  return { kpis, hidden };
+}
+
+/**
+ * Put one of the business's KPIs onto a mirror.
+ *
+ * Stored as a POINTER — the criterion and its role — and never as the number, which is the whole
+ * point: a copied figure is out of date the moment the month is scored.
+ */
+export async function addKpiToBoard(opts: {
+  tenantId: string;
+  boardId: string;
+  criterionId: string;
+  roleId: string;
+}): Promise<{ added: boolean }> {
+  const [board] = await db.select().from(schema.boards)
+    .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
+  if (!board) return { added: false };
+
+  // The criterion has to belong to a role in THIS business. See the note above about trusting ids.
+  const [role] = await db.select().from(schema.roles)
+    .where(and(eq(schema.roles.id, opts.roleId), eq(schema.roles.tenantId, opts.tenantId)));
+  const [criterion] = await db.select().from(schema.criteria)
+    .where(eq(schema.criteria.id, opts.criterionId));
+  if (!role || !criterion || criterion.roleId !== role.id) return { added: false };
+
+  const rows = readList<Row>(board.rows);
+  if (rows.some(r => r.criterionId === opts.criterionId)) return { added: false };
+
+  rows.push({
+    label: criterion.text,
+    source: role.title,
+    value: '',
+    criterionId: criterion.id,
+    roleId: role.id,
+  });
+
+  await db.update(schema.boards)
+    .set({ rows: JSON.stringify(rows), updatedAt: new Date().toISOString() })
+    .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
+  return { added: true };
+}
+
+/** Take a KPI back off a mirror. The KPI itself is untouched — this is only what the mirror shows. */
+export async function removeKpiFromBoard(opts: {
+  tenantId: string; boardId: string; criterionId: string;
+}): Promise<void> {
+  const [board] = await db.select().from(schema.boards)
+    .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
+  if (!board) return;
+
+  const rows = readList<Row>(board.rows).filter(r => r.criterionId !== opts.criterionId);
+  await db.update(schema.boards)
+    .set({ rows: JSON.stringify(rows), updatedAt: new Date().toISOString() })
+    .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
+}

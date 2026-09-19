@@ -94,7 +94,22 @@ await openBoard('King of the Mountain');
 body = await text();
 check('a plan shows who owns each step', body.includes('Permitting') && body.includes('Anthony'));
 check('and where each one has got to, without scoring it', /Stuck|Being done now|Not started/.test(body));
-check('no percentage anywhere on a plan', !/\d+%/.test(body), body.match(/\d+%/)?.[0] ?? '');
+/*
+  ── Scoped to the plan, because the rule is about the plan ──────────────────────────────────────
+
+  A plan says where each step has got to in words — Stuck, Being done now, Not started — and never
+  as a percentage, because a plan with a number on it becomes a number people manage.
+
+  This scanned the WHOLE PAGE, and went red the day mirrors learned to carry the business's real
+  KPIs: one of them is called "Department 100% staffed", and its name appeared in the add-a-measure
+  picker. Nothing was scoring the plan. The rule was right and the check was looking in the wrong
+  place — so it now reads the plan's own section, and the detail says where a match was found
+  rather than printing the number on its own.
+*/
+const planText = await page.locator('[data-plan-steps]').first().innerText().catch(() => '');
+check('a plan is drawn at all', planText.length > 0);
+check('no percentage anywhere on a plan', !/\d+%/.test(planText),
+      planText.match(/.{0,70}\d+%.{0,70}/s)?.[0]?.replace(/\n/g, ' ') ?? '');
 
 // ── A visitor still writes nothing ───────────────────────────────────────────────────────────────
 const say = page.locator('form:has(textarea[name="text"])').first();
@@ -124,10 +139,105 @@ check(
 
 check('no console errors', errors.length === 0, errors.join(' | '));
 
+/*
+  ── A mirror that reads the numbers instead of remembering them ──────────────────────────────────
+
+  Kris, 19 September: mirrors should work *"same as Artifacts in claude"* — *"live and interactive,
+  not a report"* — and *"align to key kpi's in the business"*.
+
+  Every figure on a mirror was JSON, stored when somebody made it, under a badge reading Live. The
+  badge was true about whether the named systems are CONNECTED and said nothing about the numbers,
+  which had never been recalculated once.
+
+  ── Why this signs a business up, when the rest of this file does not ───────────────────────────
+
+  Everything above walks the LOOK-AROUND, which is read-only on purpose — a visitor writes nothing,
+  and one of the checks above exists to prove it. So the first version of this ran as that visitor,
+  correctly changed nothing, and reported the product broken for obeying its own rule. Putting a
+  measure on a mirror is a write, so it needs somebody who can write.
+*/
+const stamp = Date.now();
+const BUSINESS = `Mirror Test ${stamp}`;
+{
+  await page.goto(`${BASE}/signup`, { waitUntil: 'networkidle' });
+  await page.fill('input[name="name"]', 'Kris Harold');
+  await page.fill('input[name="business"]', BUSINESS);
+  await page.fill('input[name="email"]', `mirror-${stamp}@journey.test`);
+  await page.fill('input[name="password"]', 'a-good-password-123');
+  await page.check('input[name="consent"]').catch(() => {});
+  await page.click('button[type="submit"]');
+  await page.waitForURL(u => !u.pathname.startsWith('/signup'), { timeout: 20000 }).catch(() => {});
+
+  if (page.url().includes('error=busy')) {
+    console.log('  --   sign-up is being throttled — not a fault.');
+  } else {
+    await page.goto(`${BASE}/mirrors`, { waitUntil: 'networkidle' });
+    await page.fill('input[name="title"]', 'Where the quotes go');
+    await page.getByRole('button', { name: /Start (a )?mirror|Create|Add/i }).first().click().catch(() => {});
+    await page.waitForTimeout(2000);
+
+    if (!page.url().includes('board=')) {
+      const made = page.locator('a[href^="/mirrors?board="]').first();
+      if (await made.count()) {
+        await made.click();
+        await page.waitForURL('**/mirrors?board=*', { timeout: 15000 }).catch(() => {});
+      }
+    }
+
+    const picker = page.locator('#mirror-kpi');
+    check('A NEW BUSINESS CAN START A MIRROR', page.url().includes('board='), page.url());
+
+    if (await picker.count()) {
+      const chose = await picker.locator('option').first().innerText();
+      const measure = chose.split('\u2014').pop().trim();
+      await page.getByRole('button', { name: 'Put it on the mirror' }).click();
+      await page.waitForTimeout(2500);
+
+      /*
+        Read the LINES, not the page.
+
+        The picker below lists every measure by name, so a check scanning the whole document cannot
+        tell a line that is drawn from an option in a dropdown — it would have passed on a mirror
+        that showed nothing at all. Same mistake as the plan rule one screen up, found the same way.
+      */
+      const lines = await page.locator('[data-mirror-lines]').innerText().catch(() => '');
+      check('A MIRROR CAN CARRY ONE OF THE BUSINESS’S REAL KPIs', lines.includes(measure),
+            lines ? lines.slice(0, 200).replace(/\n/g, ' ') : 'no live lines are drawn at all');
+      // Case-insensitive, for the same reason the heading check above it is: the standing is drawn
+      // as a label-caps chip, and innerText reports what is RENDERED, not what the code wrote.
+      check('  and says where it stands rather than only naming it',
+            /not marked yet|met|not met|on track|confirmed|watch|pending|not tracked/i.test(lines),
+            lines.slice(0, 200).replace(/\n/g, ' '));
+      check('  and puts it against the agreed target, which is what the conversation is about',
+            /agreed target|no target agreed/i.test(lines),
+            lines.slice(0, 200).replace(/\n/g, ' '));
+
+      /*
+        The month control is what makes it live. A brand-new business has one month, so there is
+        nothing to change to — said out loud rather than passing on a check that never ran.
+      */
+      const months = await page.locator('#mirror-period option').count();
+      if (months >= 2) {
+        const second = await page.locator('#mirror-period option').nth(1).getAttribute('value');
+        await page.selectOption('#mirror-period', second);
+        await page.getByRole('button', { name: 'Show that month' }).click();
+        await page.waitForTimeout(1500);
+        check('  AND THE MONTH CAN BE CHANGED, which is what makes it live',
+              page.url().includes('period='), page.url());
+      } else {
+        console.log(` skip  AND THE MONTH CAN BE CHANGED — a new business has only ${months} month to look at`);
+      }
+    } else {
+      check('A MIRROR CAN CARRY ONE OF THE BUSINESS’S REAL KPIs', false,
+            'no measure picker on the mirror, so nothing can be put on one');
+    }
+  }
+}
+
 await b.close();
 console.log(failed ? `\n${failed} check(s) failed.` : '\nAll checks passed.');
 // Clear up after ourselves. Kris, 17 September: "Make your tests delete the example
 // business they create when they finish."
-await tidyUp(null, { lookSince: RUN_STARTED });
+await tidyUp(BUSINESS, { lookSince: RUN_STARTED });
 
 process.exit(failed ? 1 : 0);

@@ -5,7 +5,9 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
 import { kindOf } from '@/lib/boards-live';
-import { createBoard, commentOnBoard } from '@/lib/boards-live-data';
+import { createBoard, commentOnBoard, addKpiToBoard, removeKpiFromBoard } from '@/lib/boards-live-data';
+import { getScope } from '@/lib/scope';
+import { refuseTo } from '@/lib/refuse';
 
 /**
  * Starting a board, and saying something on one.
@@ -48,4 +50,65 @@ export async function sayOnBoard(form: FormData) {
   await commentOnBoard({ tenantId: user.tenantId, boardId, authorName: user.name, text });
   revalidatePath('/mirrors');
   redirect(`/mirrors?board=${boardId}`);
+}
+
+/**
+ * Put one of the business's KPIs onto a mirror, or take it off again.
+ *
+ * ── Why a KPI on a mirror is a pointer and not a number ──────────────────────────────────────────
+ *
+ * Kris, 19 September: mirrors should work *"same as Artifacts in claude"* — live, not a printout —
+ * and *"align to key kpi's in the business"*.
+ *
+ * So this stores the criterion, not its value. Every open reads it again for whatever month is
+ * being looked at, which is what makes changing the month on a mirror mean something and what stops
+ * a mirror ever disagreeing with the scorecard it is about.
+ *
+ * ── Who may ─────────────────────────────────────────────────────────────────────────────────────
+ *
+ * The role has to be inside the viewer's own part of the chart, checked with the same `canSee` the
+ * scorecards use. A mirror is a conversation object that people share, and without this it would be
+ * a way to publish somebody else's numbers to a room they never agreed to be in.
+ */
+export async function putKpiOnBoard(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+
+  const boardId = String(form.get('boardId') ?? '');
+  /*
+    One control, two facts.
+
+    The picker is a single select, and a measure is only meaningful with the role it belongs to —
+    so the option carries both, joined. Neither is trusted: the action checks the role is in this
+    viewer's scope, and the write checks the criterion really belongs to that role in this business.
+  */
+  const [criterionId = '', roleId = ''] = String(form.get('criterionId') ?? '').split('|');
+  const back = `/mirrors?board=${encodeURIComponent(boardId)}`;
+  if (!boardId || !criterionId || !roleId) redirect(back);
+
+  const scope = await getScope(user);
+  if (!scope.canSee(roleId)) {
+    refuseTo(back, 'That measure belongs to a part of the chart you cannot see, so SPEC will not put it on a mirror.');
+  }
+
+  const { added } = await addKpiToBoard({ tenantId: user.tenantId, boardId, criterionId, roleId });
+  revalidatePath('/mirrors');
+  if (!added) refuseTo(back, 'That measure is already on this mirror.');
+  redirect(back);
+}
+
+export async function takeKpiOffBoard(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+
+  const boardId = String(form.get('boardId') ?? '');
+  const criterionId = String(form.get('criterionId') ?? '');
+  if (!boardId || !criterionId) redirect('/mirrors');
+
+  // Only what the mirror SHOWS is changed. The measure, its target and its history are untouched.
+  await removeKpiFromBoard({ tenantId: user.tenantId, boardId, criterionId });
+  revalidatePath('/mirrors');
+  redirect(`/mirrors?board=${encodeURIComponent(boardId)}`);
 }
