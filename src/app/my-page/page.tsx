@@ -283,13 +283,6 @@ export default async function MyPage({
       )}
 
       {/*
-        The ask bar, across the top. This is what retires the separate chat screen: two screens both
-        claiming to be where you start is the most reliable way a product gets called confusing.
-        The page is the dashboard; the conversation is how you work it.
-      */}
-      <AskBar available href={`/mirrors?ask=1`} />
-
-      {/*
         The four lights, once there is light in them.
 
         On the first visit they are four large cards saying nothing four times, in the best position
@@ -345,6 +338,23 @@ export default async function MyPage({
         })}
       </section>
       )}
+
+      {/*
+        ── The ask bar, under the scoreboard ─────────────────────────────────────────────────────
+
+        Kris, 19 September: *"this ask spec should be under the scoreboard for kpi's"*.
+
+        It was above the four cards, which put the question before the thing being asked about. The
+        two example questions it offers — *"Why is my People light amber?"*, *"What do I take to the
+        weekly meeting?"* — only mean anything once somebody has seen the lights. Underneath, it
+        reads as the next move after looking at them; above, it was furniture between the header and
+        the point of the page.
+
+        This is what retires the separate chat screen: two screens both claiming to be where you
+        start is the most reliable way a product gets called confusing. The page is the scoreboard;
+        the conversation is how you work it.
+      */}
+      <AskBar available href={`/mirrors?ask=1`} />
 
       {/*
         The improvement register, directly under the lights and above everything the day asks.
