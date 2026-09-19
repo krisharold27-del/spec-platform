@@ -121,9 +121,29 @@ export function boardVerdict(averages: Rollup): { title: string; body: string; w
   };
 }
 
-export const SLOT = 216;
-export const ROW = 196;
-const STUB = 28;
+/**
+ * ── Symmetry ────────────────────────────────────────────────────────────────────────────────────
+ *
+ * Kris, 19 September: *"symmetry matters for the org chart design - box sizes all same - links nice
+ * and thick lines like pipes"*.
+ *
+ * So every number below is one number. One card width, one card height, one column, one row, one
+ * pipe thickness — and the rail sits exactly HALFWAY down the gap rather than a fixed distance
+ * below the card, so the run above a child and the run below a parent are the same length at every
+ * level of the chart. Symmetry is not a look here; it is what makes a diagram of forty boxes
+ * readable at a glance, because nothing in it is different unless the difference means something.
+ */
+export const SLOT = 248;
+export const ROW = 232;
+
+/**
+ * How thick a connector is.
+ *
+ * Five pixels read as a wire. These are the reporting lines of a business and they carry the
+ * colour of what they report, so they are drawn as pipes: thick enough to see the state of a branch
+ * from across the room, with domed ends where a pipe finishes and square overlaps where two meet.
+ */
+export const PIPE = 10;
 
 /**
  * ── The card's dimensions, taken from the design file rather than guessed ────────────────────────
@@ -148,13 +168,27 @@ const STUB = 28;
  * Height is DERIVED from those numbers rather than typed in, so the two cannot drift: padding, two
  * lines of title at 1.25, the person pill, and the row of tiles.
  */
-export const CARD = [
-  { w: 210, pad: 18, radius: 28, title: 16, tile: 26 },
-  { w: 176, pad: 16, radius: 26, title: 16, tile: 25 },
-  { w: 148, pad: 13, radius: 24, title: 16, tile: 23 },
-] as const;
+export const CARD = { w: 210, pad: 18, radius: 28, title: 16, tile: 26 } as const;
 
-export const cardStyle = (depth: number) => CARD[Math.min(depth, CARD.length - 1)];
+/**
+ * The ring around a card, and the ring around a selected one.
+ *
+ * Constants because a team node is the same box as a role — Kris: *"symmetry is essential"* — and
+ * it had drifted to its own radius (22 against 28) and its own ring. Two shapes for the same thing
+ * is the difference a reader has to decide is meaningless, which is the cost symmetry is paid to
+ * avoid.
+ */
+export const CARD_RING = 2.5;
+export const CARD_RING_SELECTED = 2;
+
+/**
+ * The card, at every depth.
+ *
+ * `depth` is still taken and still ignored, so every caller reads the same way and nothing had to
+ * be hunted down when the three sizes became one. It is not dead: if a reason to vary by depth ever
+ * returns, it returns here and nowhere else.
+ */
+export const cardStyle = (_depth: number) => CARD;
 
 export const cardWidth = (depth: number) => cardStyle(depth).w;
 
@@ -325,25 +359,70 @@ export function layout(roots: ChartRole[], all: ChartRole[]): Layout {
 
     if (childCentres.length) {
       const bottom = y + h;
-      const railY = bottom + STUB;
+      /*
+        The rail sits HALFWAY between the bottom of this card and the top of the next row.
+
+        It was a fixed 28px below the card, which is only symmetric by accident: the drop from a
+        parent and the rise to a child were different lengths, and they changed every time a card's
+        height did. Half the gap is the same on both sides at every level, for ever, and it follows
+        the cards rather than having to be kept in step with them by hand.
+      */
+      const railY = bottom + (ROW - h) / 2;
       const left = Math.min(...childCentres);
       const right = Math.max(...childCentres);
-      /*
-        Five pixels, not two, and carrying a reading. Two flat pixels is plumbing; the design draws
-        these as rails you can see the state of the business in from across the room.
-      */
+      const half = PIPE / 2;
       // `kids` is the one filtered by `seen` above. Re-deriving it here would pair a riser's colour
       // with the wrong child on a chart that has been dragged into a cycle.
-      lines.push({ kind: 'stub', x: centre - 2.5, y: bottom, w: 5, h: STUB, score: roleAverage(node) });
-      if (childCentres.length > 1) {
+
+      /*
+        ── One child is ONE pipe, not a stub meeting a riser ─────────────────────────────────
+
+        With a single child the stub and the riser are collinear — `centre` is the child's centre —
+        so the old pair drew two segments that touched end to end. Both ends are domed, which is
+        what makes these read as pipes rather than bars, and two domes meeting pinch the join into
+        an hourglass. Harmless on a wire; obvious at ten pixels.
+
+        Drawn as one length of pipe from the parent's bottom edge to the child's top edge. It is
+        also the truer picture: one report is one line, and nothing is being spanned.
+      */
+      if (childCentres.length === 1) {
         lines.push({
-          kind: 'rail', x: left, y: railY - 2.5, w: right - left, h: 5,
+          kind: 'riser', x: centre - half, y: bottom, w: PIPE, h: (y + ROW) - bottom,
+          score: kids[0] ? roleAverage(kids[0]) : null,
+        });
+        return centre;
+      }
+
+      /*
+        ── The trunk reports the BRANCH, not the person above it ────────────────────────────
+
+        The stub carried `roleAverage(node)` — the parent's own score — while the rail it runs into
+        carried the worst of the children. So a green GM above a struggling branch drew a green
+        stub meeting a rust rail: one T-junction in two colours, which at ten pixels reads as two
+        pipes that do not belong together rather than as one.
+
+        The parent's own state is already on the parent's card, in four tiles. What a connector is
+        for is the thing underneath it — these lines are how a branch in trouble becomes visible
+        from across the room — so the trunk says what the rail says, and each riser then diverges to
+        its own child.
+      */
+      lines.push({
+        kind: 'stub', x: centre - half, y: bottom, w: PIPE, h: railY - bottom,
+        score: worstOf(kids.map(roleAverage)),
+      });
+      if (childCentres.length > 1) {
+        /*
+          The rail runs from centre to centre and is extended by half a pipe at each end, so the
+          outermost risers are met squarely rather than being clipped by the rail's rounded cap.
+        */
+        lines.push({
+          kind: 'rail', x: left - half, y: railY - half, w: (right - left) + PIPE, h: PIPE,
           score: worstOf(kids.map(roleAverage)),
         });
       }
       childCentres.forEach((cx, i) => {
         lines.push({
-          kind: 'riser', x: cx - 2.5, y: railY, w: 5, h: y + ROW - railY,
+          kind: 'riser', x: cx - half, y: railY, w: PIPE, h: y + ROW - railY,
           score: kids[i] ? roleAverage(kids[i]) : null,
         });
       });

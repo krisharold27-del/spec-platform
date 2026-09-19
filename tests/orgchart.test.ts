@@ -3,7 +3,7 @@ import {
   layout, rootsOf, branch, isDescendant, canMove, canRemove, collapsedAway, teamSize,
   detachedBranches, stages, boardVerdict,
   parseRoles, resolveImport, parseCsv, SLOT, ROW, cardWidth,
-  cardHeight, cardStyle, SEAT_BADGE_ROW, PERSON_ROW, TILE_ROW_GAP,
+  cardHeight, cardStyle, PIPE, SEAT_BADGE_ROW, PERSON_ROW, TILE_ROW_GAP,
   type ChartRole,
 } from '../src/lib/orgchart';
 
@@ -62,12 +62,29 @@ describe('layout', () => {
     expect(kinds.filter(k => k === 'riser')).toHaveLength(4);
   });
 
-  it('draws no rail for a single child — there is nothing to span', () => {
+  /*
+    ── One child is joined by ONE unbroken pipe ─────────────────────────────────────────────────
+
+    This used to expect a stub and a riser, which is what the code drew: two collinear segments
+    meeting end to end. Both ends of a connector are domed — that is what makes them read as pipes
+    rather than bars, and Kris asked for pipes — so two domes meeting pinched the join into an
+    hourglass. Invisible on a 5px wire, obvious at ten.
+
+    So the rule is stated rather than the old shape: nothing is spanned, and the parent is joined to
+    the child by a single length of pipe that runs the whole way.
+  */
+  it('JOINS A SINGLE CHILD WITH ONE UNBROKEN PIPE, with nothing to span', () => {
     const all = [role('gm'), role('only', 'gm')];
-    const { lines } = layout(rootsOf(all), all);
+    const { lines, cards } = layout(rootsOf(all), all);
     expect(lines.filter(l => l.kind === 'rail')).toHaveLength(0);
-    expect(lines.filter(l => l.kind === 'stub')).toHaveLength(1);
-    expect(lines.filter(l => l.kind === 'riser')).toHaveLength(1);
+    expect(lines, 'one pipe, not a stub meeting a riser').toHaveLength(1);
+
+    const [pipe] = lines;
+    const parent = cards.find(c => c.role.id === 'gm')!;
+    const child = cards.find(c => c.role.id === 'only')!;
+    expect(pipe.y, 'starts at the parent’s bottom edge').toBe(parent.y + parent.h);
+    expect(pipe.y + pipe.h, 'and finishes at the child’s top edge').toBe(child.y);
+    expect(pipe.x + pipe.w / 2, 'dead centre under the parent').toBe(parent.centre);
   });
 
   /*
@@ -427,5 +444,106 @@ describe('boardVerdict — what the chart tells the board', () => {
   it('judges on the pillars that HAVE a score, not on the missing ones', () => {
     // Three green and one not yet marked is not a business in trouble.
     expect(boardVerdict(at(0.92, 0.9, null, 0.88)).title).toBe('All four green');
+  });
+});
+
+/*
+  ── Symmetry ────────────────────────────────────────────────────────────────────────────────────
+
+  Kris, 19 September: *"remember that symmetry matters for the org chart design - box sizes all same
+  - links nice and thick lines like pipes"*.
+
+  The chart used to size a card by its DEPTH — three widths, three paddings, three radii, straight
+  from the prototype's `sizes` table — so a row of siblings was even and the chart as a whole was
+  not. These hold the rule now, in the one place it can be broken silently: the geometry.
+*/
+describe('the chart is symmetric', () => {
+  it('EVERY BOX IS THE SAME SIZE, at every depth', () => {
+    const widths = new Set([0, 1, 2, 3, 9].map(cardWidth));
+    const heights = new Set([0, 1, 2, 3, 9].map(cardHeight));
+    expect([...widths], 'one width').toHaveLength(1);
+    expect([...heights], 'one height').toHaveLength(1);
+  });
+
+  it('and a card fits its column with an even gutter on both sides', () => {
+    expect(SLOT).toBeGreaterThan(cardWidth(0));
+    expect((SLOT - cardWidth(0)) % 2, 'an odd gutter puts a half-pixel on one side').toBe(0);
+  });
+
+  /*
+    The rail was a fixed 28px below a card, so the drop from a parent and the rise to a child were
+    different lengths — and both changed whenever a card's height did. Half the gap is the same on
+    both sides at every level, and follows the cards rather than being kept in step by hand.
+  */
+  it('AND THE RAIL SITS HALFWAY, so the drop and the rise are the same length', () => {
+    const all = [role('gm'), role('a', 'gm'), role('b', 'gm')];
+    const { lines, cards } = layout(rootsOf(all), all);
+    const parent = cards.find(c => c.role.id === 'gm')!;
+    const child = cards.find(c => c.role.id === 'a')!;
+
+    const stub = lines.find(l => l.kind === 'stub')!;
+    const riser = lines.filter(l => l.kind === 'riser')[0];
+    const drop = stub.h;
+    const rise = (child.y) - (riser.y);
+
+    expect(drop, 'the run below the parent equals the run above the child').toBe(rise);
+    expect(stub.y, 'the drop starts at the parent’s bottom edge').toBe(parent.y + parent.h);
+  });
+
+  it('and the pipes are thick, and all the same thickness', () => {
+    const all = [role('gm'), role('a', 'gm'), role('b', 'gm')];
+    const { lines } = layout(rootsOf(all), all);
+    expect(PIPE, 'a wire, not a pipe').toBeGreaterThanOrEqual(8);
+    for (const l of lines) {
+      const thickness = l.kind === 'rail' ? l.h : l.w;
+      expect(thickness, `${l.kind}`).toBe(PIPE);
+    }
+  });
+
+  /*
+    A rail whose ends stop at the outermost riser's CENTRE leaves that riser half-covered by a
+    rounded cap. Extended by half a pipe each side, the cap encloses the riser squarely.
+  */
+  it('and the rail reaches past the outermost risers rather than clipping them', () => {
+    const all = [role('gm'), role('a', 'gm'), role('b', 'gm')];
+    const { lines } = layout(rootsOf(all), all);
+    const rail = lines.find(l => l.kind === 'rail')!;
+    const risers = lines.filter(l => l.kind === 'riser');
+    const leftMost = Math.min(...risers.map(r => r.x));
+    const rightMost = Math.max(...risers.map(r => r.x + r.w));
+    expect(rail.x).toBe(leftMost);
+    expect(rail.x + rail.w).toBe(rightMost);
+  });
+
+  /*
+    A T-junction is ONE colour. The stub used to carry the parent's own score while the rail
+    carried the worst of the children, so a green leader above a struggling branch drew a green
+    trunk meeting a rust rail — two pipes that do not belong together.
+  */
+  it('AND A JUNCTION IS ONE COLOUR, because the trunk reports the branch below it', () => {
+    const all = [
+      role('gm', null, { pillars: { safety: 1, people: 1, earnings: 1, compliance: 1 } }),
+      role('a', 'gm', { pillars: { safety: 0.2, people: 0.2, earnings: 0.2, compliance: 0.2 } }),
+      role('b', 'gm', { pillars: { safety: 0.9, people: 0.9, earnings: 0.9, compliance: 0.9 } }),
+    ];
+    const { lines } = layout(rootsOf(all), all);
+    const stub = lines.find(l => l.kind === 'stub')!;
+    const rail = lines.find(l => l.kind === 'rail')!;
+    expect(stub.score, 'the trunk says what the rail says').toBe(rail.score);
+    expect(stub.score, 'and that is the worst of what is below, not the leader’s own score')
+      .toBeLessThan(0.5);
+  });
+
+  /* And the junctions overlap, so no dome shows inside a joint. */
+  it('and the stub and risers run INTO the rail rather than up to it', () => {
+    const all = [role('gm'), role('a', 'gm'), role('b', 'gm')];
+    const { lines } = layout(rootsOf(all), all);
+    const rail = lines.find(l => l.kind === 'rail')!;
+    const stub = lines.find(l => l.kind === 'stub')!;
+    const railMiddle = rail.y + rail.h / 2;
+    expect(stub.y + stub.h, 'the stub ends on the rail’s centre line').toBe(railMiddle);
+    for (const r of lines.filter(l => l.kind === 'riser')) {
+      expect(r.y, 'each riser starts on the rail’s centre line').toBe(railMiddle);
+    }
   });
 });

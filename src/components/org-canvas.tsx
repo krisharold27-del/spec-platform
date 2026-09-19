@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import {
   layout, rootsOf, detachedBranches, canMove, canRemove, collapsedAway, teamSize, boardVerdict,
-  cardStyle, SEAT_BADGE_ROW, type ChartRole, type Rollup,
+  cardStyle, SEAT_BADGE_ROW, CARD_RING, CARD_RING_SELECTED, type ChartRole, type Rollup,
 } from '@/lib/orgchart';
 import { PILLAR_META } from '@/lib/pillars';
 import {
@@ -738,8 +738,12 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
           {/*
             The lines carry the reading, and they are rails rather than hairlines.
 
-            They were 2px of one flat colour — plumbing. The design draws them 5px and rounded,
-            coloured by what they are reporting, so a branch in trouble is visible from the shape of
+            They were 2px of one flat colour — plumbing. Kris, 19 September: *"links nice and thick
+            lines like pipes"*. So they are `PIPE` thick and `rounded-full`, which at this width
+            domes the free ends and leaves the junctions square, because a rail overlaps the stub
+            and risers it meets by half a pipe — see the geometry in lib/orgchart.
+
+            They carry what they are reporting, so a branch in trouble is visible from the shape of
             the chart instead of by reading eight cards. `LIGHT_COLOUR` because these are looked at
             rather than read; a line with nothing scored behind it stays the quiet sand it was.
           */}
@@ -808,10 +812,13 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                   style={{
                     left: c.x, top: c.y, width: c.w, height: c.h,
                     padding: `${z.pad}px ${Math.round(z.pad * 1.3)}px`,
-                    borderRadius: 22,
+                    /* The same box as a role card — same radius, same ring. Only the colour says
+                       it is a team, because colour is the one thing on this chart allowed to
+                       differ. See CARD_RING in lib/orgchart. */
+                    borderRadius: z.radius,
                     boxShadow: selectedId === r.id
-                      ? '0 0 0 2px #7a8a5e, 0 6px 16px -6px rgba(0,0,0,0.22)'
-                      : '0 0 0 2.5px rgba(122,138,94,0.45), 0 6px 16px -8px rgba(0,0,0,0.18)',
+                      ? `0 0 0 ${CARD_RING_SELECTED}px #7a8a5e, 0 6px 16px -6px rgba(0,0,0,0.22)`
+                      : `0 0 0 ${CARD_RING}px rgba(122,138,94,0.45), 0 6px 16px -8px rgba(0,0,0,0.18)`,
                   }}
                 >
                   <span className="font-serif leading-[1.25] text-sage-900" style={{ fontSize: z.title }}>
@@ -906,8 +913,8 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                   boxShadow: isOver
                     ? `0 0 0 3px ${LIGHT_COLOUR.green}, 0 12px 22px -8px rgba(0,0,0,0.28)`
                     : selectedId === r.id
-                      ? '0 0 0 2px #c67139, 0 6px 16px -6px rgba(0,0,0,0.22)'
-                      : '0 0 0 2.5px #f6a06b, 0 6px 16px -8px rgba(0,0,0,0.18)',
+                      ? `0 0 0 ${CARD_RING_SELECTED}px #c67139, 0 6px 16px -6px rgba(0,0,0,0.22)`
+                      : `0 0 0 ${CARD_RING}px #f6a06b, 0 6px 16px -8px rgba(0,0,0,0.18)`,
                   transform: isOver ? 'translateY(-3px)' : selectedId === r.id ? 'translateY(-1px)' : undefined,
                 }}
               >

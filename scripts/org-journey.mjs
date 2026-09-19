@@ -574,6 +574,58 @@ check(
   clipped.join(' | '),
 );
 
+/*
+  ── Symmetry, measured on the rendered chart ──────────────────────────────────────────────────
+
+  Kris, 19 September: *"remember that symmetry matters for the org chart design - box sizes all
+  same - links nice and thick lines like pipes"*, and then, plainly: *"symmetry is essential"*.
+
+  `tests/orgchart.test.ts` holds the GEOMETRY — one width, one height, the rail halfway, one pipe
+  thickness. This asks the browser, because geometry is not the only way a box changes size: a
+  padding, a border, a font that wraps to a third line or a `min-width` in a class name will all
+  make two cards different on screen while every number in the layout stays identical. That is
+  exactly how the three depth sizes survived being "fixed" once before.
+*/
+const uneven = await page.evaluate(() => {
+  const cards = [...document.querySelectorAll('[data-org-canvas] [data-role-card], [data-org-canvas] [data-team-node]')];
+  if (cards.length < 2) return [];
+  const boxes = cards.map(c => {
+    const r = c.getBoundingClientRect();
+    const st = getComputedStyle(c);
+    return {
+      name: (c.querySelector('span[title]')?.textContent || c.textContent || '').trim().slice(0, 20),
+      w: Math.round(r.width), h: Math.round(r.height), radius: st.borderTopLeftRadius,
+    };
+  });
+  const first = boxes[0];
+  return boxes
+    .filter(b => b.w !== first.w || b.h !== first.h || b.radius !== first.radius)
+    .map(b => `${b.name} is ${b.w}x${b.h} r${b.radius}, not ${first.w}x${first.h} r${first.radius}`);
+});
+check('EVERY BOX ON THE CHART IS THE SAME SIZE AND SHAPE', uneven.length === 0, uneven.join(' | '));
+
+/* And the pipes are pipes: one thickness, thick enough to read as one. */
+const pipes = await page.evaluate(() => {
+  const tree = document.querySelector('[data-org-tree]');
+  if (!tree) return { thicknesses: [], rounded: true };
+  const out = [];
+  let rounded = true;
+  for (const el of tree.children) {
+    if (el.hasAttribute('data-role-card') || el.hasAttribute('data-team-node')) continue;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    const thickness = Math.round(Math.min(r.width, r.height));
+    out.push(thickness);
+    if (parseFloat(getComputedStyle(el).borderTopLeftRadius) < thickness / 2 - 0.5) rounded = false;
+  }
+  return { thicknesses: [...new Set(out)], rounded };
+});
+check('  AND EVERY PIPE IS THE SAME THICKNESS', pipes.thicknesses.length <= 1,
+      `thicknesses on screen: ${pipes.thicknesses.join(', ')}`);
+check('  and thick enough to read as a pipe rather than a wire',
+      (pipes.thicknesses[0] ?? 0) >= 8, `${pipes.thicknesses[0] ?? 0}px`);
+check('  and domed at the ends', pipes.rounded);
+
 // ── A refusal is a sentence, never the fault screen ──────────────────────────────────────────────
 /*
   Kris renamed a role on JBI and got "This page did not load. Something went wrong on our end."
