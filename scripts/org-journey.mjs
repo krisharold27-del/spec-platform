@@ -557,16 +557,19 @@ if (process.env.DATABASE_URL) {
       for not renaming somebody who was never there.
 
       Asking for `level = 'gm'` was not enough either, and for a reason worth writing down: a role
-      created with no parent IS recorded as level 'gm', so the strays matched that too. The one
-      thing only the real top of a chart has is somebody reporting to it.
+      created with no parent IS recorded as level 'gm', so the strays matched that too. Nor was
+      "has somebody reporting to it", because the journey hangs a report off a stray as well.
+
+      What the real top of a chart has that a stray does not is a TEAM — most of the business under
+      it. So: the parentless role with the most reports. On a chart with one root that is exact, and
+      it stops mattering at all once a business has drawn itself.
     */
     const [top] = await sql`
-      select r.id, r.title from roles r
-      where r.tenant_id = ${tenant.id} and r.level = 'gm' and r.active = true
-        and exists (
-          select 1 from roles c
-          where c.reports_to_role_id = r.id and c.active = true
-        )
+      select r.id, r.title,
+             (select count(*) from roles c where c.reports_to_role_id = r.id and c.active = true) as kids
+      from roles r
+      where r.tenant_id = ${tenant.id} and r.active = true and r.reports_to_role_id is null
+      order by kids desc
       limit 1`;
     /*
       Built from scratch rather than adjusted, because by this point the journey has already moved
@@ -587,7 +590,16 @@ if (process.env.DATABASE_URL) {
               values (${randomUUID()}, ${top.id}, ${me.id}, ${today})`;
 
     await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
-    const topCard = page.locator('[data-org-canvas] [draggable="true"]', { hasText: top.title }).first();
+    /*
+      Cards are found by their ROLE ID, never by their title.
+
+      Finding them by text cost most of an evening: the journey renames roles as it goes, several of
+      the roles it creates hang off nothing and are drawn in the off-chart tray rather than on the
+      chart, and two cards can carry the same words. Every one of those made a check wait thirty
+      seconds for a card that was never going to appear and then report a crash instead of a result.
+      An id is the one handle that does not move.
+    */
+    const topCard = page.locator(`[data-org-canvas] [data-role-card="${top.id}"]`).first();
     await topCard.click();
     await page.waitForTimeout(400);
     await page.fill('#org-person', 'Kris Harold');
@@ -595,7 +607,7 @@ if (process.env.DATABASE_URL) {
     await chartSays('Kris Harold');
 
     await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
-    const shown = await page.locator('[data-org-canvas] [draggable="true"]', { hasText: top.title })
+    const shown = await page.locator(`[data-org-canvas] [data-role-card="${top.id}"]`)
       .first().innerText();
     check(
       'RENAMING THE PERSON CHANGES THE NAME ON THE CARD',
@@ -696,6 +708,94 @@ if (process.env.DATABASE_URL) {
     }
 
     /*
+      ── The founder, not on their own chart ────────────────────────────────────────────────────
+
+      Kris, 19 September: *"I still cant change my name in the org chart"*, then *"i should be the
+      admin as i started the system - Kristopher Harold for JBI"*.
+
+      SPEC decides what somebody may touch by walking DOWN from their own role. That rule quietly
+      assumes everybody is ON the chart — and an administrator who is not has nothing to walk down
+      from, so every card on the screen was one the server would refuse, with the boxes still
+      offered and nothing said. The only way out was the thing they were locked out of.
+
+      This takes the account holder off the chart, exactly as a rename or a vacate can, and then
+      asks the two things that matter: are the boxes still there, and does a save actually land.
+    */
+    await sql`update role_assignments set to_date = ${new Date().toISOString().slice(0, 10)}
+              where to_date is null and user_id is not null
+                and role_id in (select id from roles where tenant_id = ${tenant.id})`;
+    await sql`update users set access = 'administrator' where tenant_id = ${tenant.id}`;
+
+    await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+    await page.locator(`[data-org-canvas] [data-role-card="${top.id}"]`).first().click();
+    await page.waitForTimeout(500);
+
+    const boxes = await page.locator('#org-title').count();
+    check('AN ADMINISTRATOR OFF THE CHART CAN STILL DRAW IT', boxes === 1,
+          boxes ? '' : 'no edit boxes — the founder is locked out of their own business');
+
+    if (boxes) {
+      await page.fill('#org-title', 'Drawn while unplaced');
+      await page.getByRole('button', { name: 'Save the role name' }).click();
+      await chartSays('Drawn while unplaced');
+      const after = await page.locator('[data-org-canvas]').innerText();
+      check('  and the change really lands, rather than being quietly refused',
+            after.includes('Drawn while unplaced'),
+            after.slice(0, 120).replace(/\n/g, ' '));
+    }
+
+    /*
+      ── Putting yourself back in the role ──────────────────────────────────────────────────────
+
+      Kris, 19 September: *"I can't change GM back to me"*. He was right, and it was not a fault in
+      renaming — renaming and CLAIMING are different things and SPEC only had the first. Typing your
+      own name over a pencilled-in one renames a name on a card; your login stays attached to
+      nothing, so SPEC still does not believe you are on your own chart.
+
+      Which is why this check reads the database rather than the screen. A card showing the right
+      name is exactly the outcome that fooled me for three attempts: it looks finished and the
+      placement behind it is still empty.
+    */
+    await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+    await page.locator('[data-org-canvas] [draggable="true"]', { hasText: 'Drawn while unplaced' })
+      .first().click();
+    await page.waitForTimeout(400);
+
+    const claim = page.getByRole('button', { name: /This role is me/i });
+    check('THE CHART CAN PUT YOUR OWN ACCOUNT IN A ROLE', await claim.count() === 1);
+
+    if (await claim.count()) {
+      await claim.click();
+      await page.waitForTimeout(2500);
+
+      const [mine] = await sql`
+        select r.title from role_assignments a
+        join roles r on r.id = a.role_id
+        join users u on u.id = a.user_id
+        where a.to_date is null and u.tenant_id = ${tenant.id} and u.email = ${EMAIL}`;
+      check('  AND THE ACCOUNT IS REALLY IN IT, not just the name on the card',
+            mine?.title === 'Drawn while unplaced',
+            mine ? `placed in ${mine.title}` : 'the account holds no role at all');
+
+      const said = await page.evaluate(() => document.body.innerText);
+      check('  and the chart says so, rather than looking unchanged',
+            /You are now in/i.test(said), said.slice(0, 120).replace(/\n/g, ' '));
+
+      /*
+        Kris, after putting his account into the General Manager role: *"it didnt add me - anthony
+        is still there"*. He could not tell whether it had worked, because a name on a card says
+        nothing about whose account it is — and two very different situations look identical from
+        the outside: the claim did nothing, or the claim worked and his own account is carrying the
+        wrong name, which renaming used to do.
+      */
+      await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+      const marked = await page.evaluate(() => document.body.innerText);
+      check('  AND THE CARD SAYS WHICH ONE IS YOU',
+            marked.includes('(you)'),
+            'nothing on the chart marks the viewer\u2019s own card');
+    }
+
+    /*
       ── The administrator, standing below the role they need to fix ────────────────────────────
 
       Kris, 19 September, photographing the General Manager card on JBI: it said *"This role is
@@ -743,7 +843,7 @@ if (process.env.DATABASE_URL) {
       await sql`update users set access = 'administrator' where id = ${me.id}`;
 
       await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
-      await page.locator('[data-org-canvas] [draggable="true"]', { hasText: top.title }).first().click();
+      await page.locator(`[data-org-canvas] [data-role-card="${top.id}"]`).first().click();
       await page.waitForTimeout(500);
 
       const said = await page.evaluate(() => document.body.innerText);
@@ -786,7 +886,7 @@ if (process.env.DATABASE_URL) {
                   values (${randomUUID()}, ${leaf.id}, ${me.id}, ${today})`;
 
         await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
-        await page.locator('[data-org-canvas] [draggable="true"]', { hasText: otherBranch.title })
+        await page.locator(`[data-org-canvas] [data-role-card="${otherBranch.id}"]`)
           .first().click();
         await page.waitForTimeout(500);
 
@@ -803,7 +903,7 @@ if (process.env.DATABASE_URL) {
         */
         await sql`update users set access = 'full' where id = ${me.id}`;
         await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
-        await page.locator('[data-org-canvas] [draggable="true"]', { hasText: otherBranch.title })
+        await page.locator(`[data-org-canvas] [data-role-card="${otherBranch.id}"]`)
           .first().click();
         await page.waitForTimeout(500);
 
@@ -845,7 +945,7 @@ if (process.env.DATABASE_URL) {
 
           // And the thing the grant is FOR: the branch is now theirs to work on.
           await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
-          await page.locator('[data-org-canvas] [draggable="true"]', { hasText: otherBranch.title })
+          await page.locator(`[data-org-canvas] [data-role-card="${otherBranch.id}"]`)
             .first().click();
           await page.waitForTimeout(500);
           check('  and the branch is editable afterwards, which is the whole point',

@@ -647,9 +647,31 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                       boxShadow: 'inset 0 0 0 1px #ffe1d0',
                       color: r.pencilled ? 'rgba(32,30,29,0.55)' : 'rgba(32,30,29,0.85)',
                     }}
-                    title={r.pencilled ? `${r.person} — pencilled in, not invited` : r.person}
+                    title={
+                      r.id === myRoleId ? `${r.person} — this is your own account`
+                      : r.pencilled ? `${r.person} — pencilled in, not invited`
+                      : r.person
+                    }
                   >
                     {r.person}
+                    {/*
+                      ── Which card is YOU ───────────────────────────────────────────────────
+
+                      Kris, 19 September, after putting his account back into the General Manager
+                      role: *"it didnt add me - anthony is still there"*.
+
+                      He had no way to tell whether it had worked. Two completely different
+                      situations look identical on this chart — the claim did nothing, or the claim
+                      worked and his own ACCOUNT is carrying the wrong name, which is possible
+                      because renaming the person on a card held by a login used to rename that
+                      login. A name on a card says nothing about whose account it is.
+
+                      SPEC decides everything a person can do from where they sit on this chart, so
+                      "where do I sit" is the one question it should never make somebody guess at.
+                    */}
+                    {r.id === myRoleId && (
+                      <span className="ml-1 opacity-60" style={{ fontSize: '11px' }}>(you)</span>
+                    )}
                   </span>
                 ) : (
                   /* Vacant is not a pill in the design — it is quiet text, because there is no
@@ -976,6 +998,19 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                     />
                     <button className="btn-secondary">Save the name</button>
                   </form>
+
+                  {/*
+                    The same answer in the panel, where the box that can correct it is.
+
+                    If this IS your account and the name on it is wrong, typing over it fixes the
+                    account — which is the situation Kris was in without being able to see it.
+                  */}
+                  {selected.id === myRoleId && (
+                    <p className="mt-1.5 text-[12px] text-ink-light">
+                      This role is <b>your own account</b>. The name above is the name on your
+                      login &mdash; if it is wrong, type over it and save.
+                    </p>
+                  )}
 
                   {/*
                     ── Giving them a login, from the screen where you are thinking about them ──────
