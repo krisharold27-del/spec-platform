@@ -258,28 +258,25 @@ export function mayHoldTeam(parent: { isTeam: boolean } | null | undefined): Nam
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * Who may put a number on a pillar
+ * Who may put a number on a pillar — and why there is no such function here
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * There was one, called `mayScore`: the direct manager or an administrator, and nobody scores their
+ * own card. It had five tests and **no callers**, and it is deleted rather than kept, because a
+ * rule nobody calls is not a safeguard — it is a safeguard-shaped thing that makes a reader stop
+ * looking for the real one.
+ *
+ * It was written for a control this product does not have. Design 15 draws a numeric box on every
+ * pillar card and types a percentage straight into it, with "Only {leaderName} can set this"
+ * underneath — so the design needs a rule about who may type. SPEC has no such box and must not
+ * grow one: a score here is what the KPI results add up to, and a control that set it directly
+ * would make every number the board reads a matter of opinion. That is the one thing in this design
+ * that will not be built.
+ *
+ * What SPEC does instead, and where the equivalent rule really lives:
+ *
+ *   `/scoring` marks RESULTS against a role's KPIs, inside `scope.canEdit` — your own branch.
+ *   The month is then submitted, signed off up the chain and locked (see `signoffTrail`), which is
+ *   the check on a person marking their own month. It is a different shape from the design's gate
+ *   and it is enforced in code that runs, which the deleted function was not.
  * ───────────────────────────────────────────────────────────────────────────── */
-
-/**
- * Scoring is not the same right as adding a KPI.
- *
- * The design gates the PERCENTAGE behind being the direct manager, or an Administrator / SPEC
- * Certified toggle, and says *"Code should replace both with real auth"*. This is that: the
- * manager the role reports to, or an administrator. Adding a KPI stays open to anybody who can
- * shape the chart — deciding what a role is measured on is a conversation, and putting the number
- * on it is a judgement about a person.
- *
- * Nobody scores their own card. That is the rule the whole product is sold on and it is the one
- * place a toggle in a prototype would have quietly become a way around it.
- */
-export function mayScore(opts: {
-  scorerRoleId: string | null;
-  roleReportsTo: string | null;
-  roleId: string;
-  isAdministrator: boolean;
-}): boolean {
-  if (opts.scorerRoleId && opts.scorerRoleId === opts.roleId) return false;
-  if (opts.isAdministrator) return true;
-  return Boolean(opts.scorerRoleId) && opts.scorerRoleId === opts.roleReportsTo;
-}

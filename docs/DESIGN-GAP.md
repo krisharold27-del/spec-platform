@@ -184,6 +184,18 @@ checks in a real browser rather than by unit tests that would pass on a page wit
 - ~~**Readiness chips** at the top of the Role scorecard — a dot and a count per pillar, with one
   line saying which pillars are short~~
 
+**The one thing in this design that will not be built.** Design 15 draws a numeric box on every
+pillar card and types a percentage straight into it, with *"Only {leaderName} can set this"*
+underneath. SPEC has no such box and must not grow one: a score here is what the KPI results add up
+to, and a control that set it directly would make every number the board reads a matter of opinion.
+
+That decision had left a loose end worth naming, because it is the fault this document keeps
+finding in other people's work. `mayScore` in `lib/chart-seats` was the rule about who may type into
+that box — the direct manager or an administrator, nobody scores their own card — with five tests
+and **no callers anywhere in the product**. Five green checks around a rule nothing enforces read
+exactly like the rule being kept. Deleted. What actually governs marking a month is `scope.canEdit`
+on `/scoring` and the sign-off trail above it, and those are tested where they run.
+
 Two faults the browser checks caught that no unit test could have, both the same shape — state
 initialised from a prop and never resynced across the soft navigation a server action redirect
 produces:

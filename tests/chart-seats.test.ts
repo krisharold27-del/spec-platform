@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   MIN_KPIS, LEADER_TITLE, seatKindFor, seatBadges, pillarReadiness, readinessLine,
-  firstWednesdayNextMonth, monthName, cadence, kpiSuggestions, addKpi, mayScore, KPI_EXAMPLES,
+  firstWednesdayNextMonth, monthName, cadence, kpiSuggestions, addKpi, KPI_EXAMPLES,
   teamName, addMember, memberLine, mayHoldTeam, TEAM_DEFAULT_NAME,
 } from '../src/lib/chart-seats';
 import { canMove, type ChartRole } from '../src/lib/orgchart';
@@ -191,40 +191,24 @@ describe('adding a KPI', () => {
   });
 });
 
-describe('who may put a number on a pillar', () => {
-  /*
-    The design gates the percentage behind the direct manager or an Administrator / SPEC Certified
-    toggle, and says Code should replace both with real auth. This is that.
+/*
+  ── The rule about who may put a number on a pillar, and where it went ────────────────────────
 
-    Adding a KPI stays open to anybody who can shape the chart — what a role is measured on is a
-    conversation. Putting the number on it is a judgement about a person, and that is the manager's.
-  */
-  it('IS THE MANAGER THE ROLE REPORTS TO', () => {
-    expect(mayScore({ scorerRoleId: 'boss', roleReportsTo: 'boss', roleId: 'r1', isAdministrator: false })).toBe(true);
-    expect(mayScore({ scorerRoleId: 'someone-else', roleReportsTo: 'boss', roleId: 'r1', isAdministrator: false })).toBe(false);
-  });
+  Five tests used to live here, for a `mayScore` in lib/chart-seats: the direct manager or an
+  administrator, and nobody scores their own card. Every one of them passed, and the function had
+  **no callers anywhere in the product**.
 
-  it('or an administrator', () => {
-    expect(mayScore({ scorerRoleId: 'anyone', roleReportsTo: 'boss', roleId: 'r1', isAdministrator: true })).toBe(true);
-  });
+  It was written for a control SPEC does not have. Design 15 draws a numeric box on each pillar and
+  types a percentage into it, with "Only {leaderName} can set this" underneath — so the design needs
+  a rule about who may type. SPEC has no such box and will not grow one: a score here is what the
+  KPI results add up to, and a control that set it directly would make every number the board reads
+  a matter of opinion.
 
-  /*
-    The rule the whole product is sold on, and the one place a toggle in a prototype would have
-    quietly become a way around it. An administrator does not get to score themselves either.
-  */
-  it('AND NOBODY SCORES THEIR OWN CARD, administrator or not', () => {
-    expect(mayScore({ scorerRoleId: 'r1', roleReportsTo: 'boss', roleId: 'r1', isAdministrator: false })).toBe(false);
-    expect(mayScore({ scorerRoleId: 'r1', roleReportsTo: 'boss', roleId: 'r1', isAdministrator: true })).toBe(false);
-  });
-
-  it('and somebody with no role on the chart scores nothing', () => {
-    expect(mayScore({ scorerRoleId: null, roleReportsTo: 'boss', roleId: 'r1', isAdministrator: false })).toBe(false);
-  });
-
-  it('and the top of the chart is not scored by a stray null reportsTo', () => {
-    expect(mayScore({ scorerRoleId: null, roleReportsTo: null, roleId: 'gm', isAdministrator: false })).toBe(false);
-  });
-});
+  So the function is gone and so are its tests. Five green checks around a rule nothing enforces are
+  worse than none: they read exactly like the rule being kept, which is how a claim nobody checks
+  quietly stops being true. What actually governs marking a month is `scope.canEdit` on /scoring and
+  the sign-off trail above it, and those are tested where they run.
+*/
 
 describe('a team node', () => {
   /*
