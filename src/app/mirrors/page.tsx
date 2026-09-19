@@ -13,7 +13,7 @@ import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getScope } from '@/lib/scope';
 import { listBoards, getBoard, markViewing, mirrorKpisFor } from '@/lib/boards-live-data';
-import { kpiStanding, kpiGap } from '@/lib/mirror-kpis';
+import { kpiStanding, kpiGap, kpiWorking } from '@/lib/mirror-kpis';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { newBoard, sayOnBoard, putKpiOnBoard, takeKpiOffBoard, moveStepOnBoard, addStepToBoard } from './actions';
 
@@ -80,6 +80,7 @@ export default async function Boards({ searchParams }: {
       tenantId: user.tenantId,
       rows: board.rows,
       periodId: chosen?.id ?? null,
+      periodLabel: chosen?.period ?? null,
       visible: scope.visible,
     });
     /*
@@ -210,7 +211,8 @@ export default async function Boards({ searchParams }: {
                             {k.roleTitle} &middot; {k.pillar}
                           </span>
                         </div>
-                        <p className="mt-1.5 text-sm text-ink-light">{kpiGap(k)}</p>
+                        <p className="mt-1.5 text-sm text-ink">{kpiWorking(k)}</p>
+                        <p className="mt-0.5 text-sm text-ink-light">{kpiGap(k)}</p>
                         <form action={takeKpiOffBoard} className="mt-2">
                           <input type="hidden" name="boardId" value={board.id} />
                           <input type="hidden" name="criterionId" value={k.criterionId} />

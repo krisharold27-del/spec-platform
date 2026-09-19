@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { kpiStanding, kpiGap, isLive, type MirrorKpi } from '../src/lib/mirror-kpis';
+import { kpiStanding, kpiGap, kpiWorking, isLive, type MirrorKpi } from '../src/lib/mirror-kpis';
 
 /**
  * One function's body, from its own line to the next export.
@@ -43,6 +43,8 @@ const line = (over: Partial<MirrorKpi> = {}): MirrorKpi => ({
   target: '11.3%',
   status: 'met',
   result: '12.1%',
+  source: 'Xero, plain actual',
+  period: '2026-09',
   ...over,
 });
 
@@ -74,6 +76,29 @@ describe('what a live KPI line says', () => {
 
   it('and says so plainly when a month was marked with no figure', () => {
     expect(kpiGap(line({ result: null }))).toContain('no figure was entered');
+  });
+
+  /*
+    Kris, 19 September: *"theres a comment there about 40 leads so mirror should be focused on
+    showing 40 and the working out how many there are - eg in jbi simpro showed we had 14 leads as
+    of friday"*.
+
+    The argument in front of a mirror is almost never about whether forty beats fourteen. It is
+    about WHICH forty — counted when, out of what, by whom. A bare number invites somebody to
+    dispute the number, which is the one conversation a mirror exists to avoid.
+  */
+  it('SAYS WHERE THE FIGURE CAME FROM AND WHAT MONTH IT IS TRUE OF', () => {
+    expect(kpiWorking(line({ result: '14 leads', source: 'Simpro', period: '2026-09' })))
+      .toBe('14 leads, as at 2026-09, from Simpro.');
+  });
+
+  it('and admits it when nobody said where a number came from', () => {
+    expect(kpiWorking(line({ result: '14 leads', source: null })))
+      .toContain('nobody has said where this came from');
+  });
+
+  it('and does not dress up an empty month as a figure', () => {
+    expect(kpiWorking(line({ result: null }))).toContain('Nothing entered');
   });
 
   /*

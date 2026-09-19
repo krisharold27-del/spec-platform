@@ -72,10 +72,23 @@ export function guessCategory(name: string): CategoryId {
   return 'other';
 }
 
+/**
+ * What a connection's state MEANS, in words that are true today.
+ *
+ * `live` used to read "Live — numbers arriving automatically". Nothing arrives automatically:
+ * there is no connector anywhere in this repository, and `tests/no-false-feed.test.ts` exists
+ * because that exact claim was printed across four screens on 18 September and had to be torn out.
+ * It survived here because it is a LABEL in a lookup table rather than a sentence in a page, which
+ * is precisely where a claim goes to hide.
+ *
+ * What `live` honestly means today: the business has done its side — the system is named, the
+ * board has approved it where the board has to, and it is ready for SPEC's connector. The moment a
+ * real one lands this wording should change again, and the ban in that test lifts by itself.
+ */
 export const STATUS_LABEL: Record<string, string> = {
   requested: 'Waiting to be connected',
   invited: 'Invite sent to the person who manages it',
-  live: 'Live — numbers arriving automatically',
+  live: 'Approved and ready — SPEC is not reading from it yet',
   broken: 'Reconnecting',
 };
 
@@ -90,6 +103,37 @@ const SENSITIVE: CategoryId[] = ['financials', 'payroll'];
 
 export const isSensitive = (category: string): boolean =>
   SENSITIVE.includes(category as CategoryId);
+
+/**
+ * The category a connection is FILED under — which is not always the one somebody chose.
+ *
+ * ── The hole this closes ─────────────────────────────────────────────────────────────────────────
+ *
+ * Kris, 19 September, before connecting JBI to anything: *"be very careful with connectors
+ * especially xero and financials - how are we controlling this - not everyone should be able to
+ * connect Xero"*.
+ *
+ * The control was real and had one way round it. Sensitivity is decided by CATEGORY — deliberately,
+ * because the alternative is a vendor list and a business on a product SPEC has never heard of
+ * would route around the board by existing. But the category came **straight off the form**.
+ * `guessCategory` knows perfectly well that "Xero" is financials; it was only ever used to
+ * pre-select the dropdown, and the dropdown could be changed. Type Xero, pick "Something else", and
+ * the ledger connects on an administrator's say-so with no board request raised — and `markLive`
+ * agrees, because it asks the STORED category.
+ *
+ * So the guard defended against a vendor nobody knows and not against a vendor everybody knows,
+ * filed under the wrong heading. One dropdown between the board and the P&L.
+ *
+ * A category may now be made MORE sensitive than the person chose, never less. Calling Xero
+ * "something else" is still allowed as a description; it stops being a way to skip the board.
+ */
+export function fileUnder(chosen: string, name: string): CategoryId {
+  const guessed = guessCategory(name);
+  // Only ever upgrades. A business calling its job system "financial reporting" is filed as
+  // financials and goes to the board, which is the safe direction to be wrong in.
+  if (isSensitive(guessed) && !isSensitive(chosen)) return guessed;
+  return (CATEGORIES.some(c => c.id === chosen) ? chosen : guessed) as CategoryId;
+}
 
 /** What the board is being asked to allow, in plain words. Always read only. */
 export const SENSITIVE_NOTE =

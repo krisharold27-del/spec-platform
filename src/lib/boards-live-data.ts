@@ -223,6 +223,8 @@ export async function mirrorKpisFor(opts: {
   tenantId: string;
   rows: Row[];
   periodId: string | null;
+  /** The month in the business's own words, so every figure can say what it is true of. */
+  periodLabel?: string | null;
   visible: Set<string>;
 }): Promise<{ kpis: MirrorKpi[]; hidden: number }> {
   const named = opts.rows.filter(r => r.criterionId && r.roleId);
@@ -275,6 +277,9 @@ export async function mirrorKpisFor(opts: {
       target: criterion.target,
       status: (answer?.status as MirrorKpi['status']) ?? null,
       result: answer?.result ?? null,
+      // The working, not just the number. See kpiWorking in lib/mirror-kpis.
+      source: answer?.source ?? null,
+      period: opts.periodLabel ?? null,
     });
   }
   return { kpis, hidden };

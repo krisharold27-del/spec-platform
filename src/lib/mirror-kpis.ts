@@ -47,6 +47,13 @@ export interface MirrorKpi {
   status: Status | null;
   /** The value as reported — "$827,172 (94.0%)", "16 invoices over 90 days". */
   result: string | null;
+  /**
+   * WHERE the figure came from — "Simpro", "Accounts package, plain actual", "Manual — GM
+   * confirmation". Null when nobody said.
+   */
+  source: string | null;
+  /** The month it is true of. A number with no date on it is an argument waiting to happen. */
+  period: string | null;
 }
 
 /**
@@ -75,6 +82,31 @@ export function kpiGap(kpi: MirrorKpi): string {
   if (!kpi.status) return `Agreed target: ${kpi.target}. This month is not marked yet.`;
   if (!kpi.result) return `Agreed target: ${kpi.target}. Marked, but no figure was entered.`;
   return `${kpi.result} against an agreed ${kpi.target}.`;
+}
+
+/**
+ * Where the figure came from, and what it is true OF.
+ *
+ * ── Why a mirror has to say this ─────────────────────────────────────────────────────────────────
+ *
+ * Kris, 19 September: *"theres a comment there about 40 leads so mirror should be focused on
+ * showing 40 and the working out how many there are - eg in jbi simpro showed we had 14 leads as of
+ * friday"*.
+ *
+ * A mirror is the screen two people argue in front of, and the argument is almost never about
+ * whether forty is more than fourteen. It is about **which forty** — counted when, out of what,
+ * by whom. A number with nothing behind it invites the other person to dispute the number, which is
+ * the one conversation a mirror exists to avoid.
+ *
+ * So every figure says where it came from and what month it belongs to. When SPEC does not know,
+ * it says that too: "nobody has said where this came from" is a useful sentence, and far better
+ * than a bare figure that looks authoritative because it is on a screen.
+ */
+export function kpiWorking(kpi: MirrorKpi): string {
+  const when = kpi.period ? `as at ${kpi.period}` : 'with no month against it';
+  if (!kpi.result) return `Nothing entered for this measure ${when}.`;
+  if (!kpi.source) return `${kpi.result}, ${when} — nobody has said where this came from.`;
+  return `${kpi.result}, ${when}, from ${kpi.source}.`;
 }
 
 /**

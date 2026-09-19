@@ -7,7 +7,7 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getScope, assertAdministrator } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
-import { guessCategory, categoryName, isSensitive } from '@/lib/systems';
+import { fileUnder, categoryName, isSensitive } from '@/lib/systems';
 import { refuseTo } from '@/lib/refuse';
 
 /**
@@ -29,7 +29,11 @@ export async function connectSystem(formData: FormData) {
   const user = await administrator();
   const name = String(formData.get('name') ?? '').trim();
   if (!name) return;
-  const category = String(formData.get('category') ?? '') || guessCategory(name);
+  /*
+    Filed, not merely chosen. A name that says financials or payroll cannot be stored under a
+    lighter category — see `fileUnder`. That was one dropdown between the board and the ledger.
+  */
+  const category = fileUnder(String(formData.get('category') ?? ''), name);
   const ownerName = String(formData.get('ownerName') ?? '').trim() || null;
   const ownerEmail = String(formData.get('ownerEmail') ?? '').trim() || null;
 
@@ -119,8 +123,18 @@ export async function markLive(formData: FormData) {
     }
   }
 
+  /*
+    `lastSyncAt` stays NULL, because nothing has been read.
+
+    It used to be stamped with the moment somebody pressed this button, and My Page printed it as
+    "last read <date>" — a date that meant "when a person clicked", presented as when a number
+    arrived. The wording was torn out on 18 September; the write that produced it was not, so the
+    column still held a plausible-looking lie waiting for the next screen to print.
+
+    The first real connector is what sets this, when it has actually read something.
+  */
   await db.update(schema.systemConnections)
-    .set({ status: 'live', lastSyncAt: new Date().toISOString() })
+    .set({ status: 'live' })
     .where(eq(schema.systemConnections.id, id));
   revalidatePath('/connections');
   revalidatePath('/my-page');
