@@ -308,6 +308,17 @@ export const PACKAGES: Record<Package, PackageSpec> = {
     A$1,007 → A$1,502 on 18 September. Kris: *"One-to-one is the premium format, and the old number
     priced it like a freelancer hour ($250/hr) — too cheap for training delivered at your level."*
 
+    ── And design 15 still says 1,007 ───────────────────────────────────────────────────────────
+
+    `designs/SPEC Pricing.dc.html` was drawn before that decision and carries the old figure. On 19
+    September, asked directly, Kris: **"training is 1502"**. The product is right and the design is
+    stale on this one number.
+
+    It is written here because it cannot be caught by a rule: BOTH numbers reduce to 8, so the
+    digit-root check that stopped the AI seats going out wrong is blind to this one. The only thing
+    standing between 1,502 and somebody "fixing" it back to match the drawing is this note and the
+    two tests that assert 1502 by name.
+
     The old figure divided into four sessions at about A$250 each, which is what an hour of
     somebody's time costs. This is not an hour of somebody's time; it is Kris teaching one person to
     run a business the way he runs one. 1+5+0+2 = 8, so the rule holds.

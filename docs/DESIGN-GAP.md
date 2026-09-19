@@ -89,7 +89,13 @@ differences of that kind are decided, and are not defects:
 - the Power Meter opens its breakdown on a **click** where the design uses a double-click, which
   cannot be discovered, reached from a keyboard, or done on a phone;
 - the **Snap Score** sits inside the Power Meter as the twenty-fifth measure rather than in a band of
-  its own, which is Kris's own instruction of 19 September.
+  its own, which is Kris's own instruction of 19 September;
+- **SPEC sessions are A$1,502, where design 15 still draws A$1,007.** The design was made before the
+  18 September decision to raise it — *"the old number priced it like a freelancer hour, too cheap
+  for training delivered at your level"* — and Kris re-confirmed it on 19 September: **"training is
+  1502"**. The product is right and the drawing is stale. Worth writing down because no rule can
+  catch it: both figures reduce to 8, so the check that stopped the AI seats going out wrong is
+  blind to this one.
 
 ---
 

@@ -45,7 +45,7 @@ describe('the rule of 8, on every published figure', () => {
     }
   });
 
-  it('including the new training price, which is why it is 1502 and not 1500', () => {
+  it('INCLUDING THE TRAINING PRICE, which is 1502 and not the 1,007 the design still draws', () => {
     // A$1,007 → A$1,502 on 18 September. 1+5+0+2 = 8; 1500 would be 6.
     expect(PACKAGES.sessions.aud).toBe(1502);
     expect(digitSum(1500)).not.toBe(8);
