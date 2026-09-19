@@ -28,6 +28,52 @@ export interface Scope {
    * administrator never widens what you can SEE, and scope still limits what you can manage.
    */
   canAdminister: boolean;
+  /**
+   * May this person draw the chart — move, rename, add and place roles?
+   *
+   * ── Why this is NOT canEdit ──────────────────────────────────────────────────────────────────
+   *
+   * Kris, 19 September: *"I still cant change my name in the org chart"*, then *"i should be the
+   * admin as i started the system"*. He is right, and both were the same fault.
+   *
+   * SPEC works out what somebody may touch by walking DOWN from their own role. That is the rule
+   * the product is sold on and it is correct — except that it quietly assumes everybody IS on the
+   * chart. An administrator who holds no role has nothing to walk down from, so their scope is
+   * EMPTY: they cannot change a single card, including the one they should be sitting in, and the
+   * only way to fix it is the thing they are locked out of. The founder of the business, on day
+   * one, is exactly that person.
+   *
+   * So: an administrator with no placement may shape the chart. Nothing else widens. `canEdit`
+   * still governs scorecards, KPIs and training, because those carry other people's numbers and
+   * "I am an administrator" was never meant to be a key to them — that separation is the whole
+   * point of keeping this as its own question rather than loosening the one next to it.
+   *
+   * The moment they place themselves, this collapses back to the ordinary rule.
+   */
+  canShapeChart(roleId: string): boolean;
+}
+
+/**
+ * The chart-shaping rule itself, with nothing around it.
+ *
+ * Pulled out of `getScope` so it can be tested. A permission rule that only exists inside a
+ * database call is a permission rule nobody checks, and this one has exactly the shape that goes
+ * wrong quietly: three conditions, each of which looks optional until it is removed.
+ *
+ * `tests/scope.test.ts` takes each clause away in turn.
+ */
+export function mayShapeChart(
+  access: string,
+  myRoleId: string | null,
+  visible: Set<string>,
+  inThisBusiness: (roleId: string) => boolean,
+  roleId: string,
+): boolean {
+  // The ordinary rule: your own role and everything beneath it, if you can write at all.
+  if ((access === 'full' || access === 'administrator') && visible.has(roleId)) return true;
+  // The founder's case: an administrator with nowhere to walk down from, so they can draw the
+  // chart that will place them. Never anybody else, and never a role outside this business.
+  return access === 'administrator' && !myRoleId && inThisBusiness(roleId);
 }
 
 export async function getScope(user: CurrentUser): Promise<Scope> {
@@ -60,6 +106,13 @@ export async function getScope(user: CurrentUser): Promise<Scope> {
     // administration on top, never sight of, or authority over, anybody outside their chain.
     canEdit: (roleId: string) => (user.access === 'full' || user.access === 'administrator') && visible.has(roleId),
     canAdminister: user.access === 'administrator',
+    /*
+      Narrow on purpose, and every clause is load-bearing: an ADMINISTRATOR, with NO placement at
+      all, and only for a role that really is in THIS business. Somebody who is on the chart gets
+      the ordinary rule, so this can never be a way around it.
+    */
+    canShapeChart: (roleId: string) =>
+      mayShapeChart(user.access, myRoleId, visible, id => roles.some(r => r.id === id), roleId),
   };
 }
 

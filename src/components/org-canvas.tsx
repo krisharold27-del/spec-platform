@@ -12,7 +12,7 @@ import { AcePips, AceStar } from '@/components/ace-pips';
 import { ChartKey, ChartKeyDetail } from '@/components/chart-key';
 import {
   moveRole, movePerson, breakLink, vacateRole, addRole, removeRole, renameRole, renamePerson,
-  invitePerson,
+  invitePerson, claimRole,
 } from '@/app/org/actions';
 
 /**
@@ -68,12 +68,24 @@ const place = (x: number, y: number) => ({
 
 const PILLARS = ['safety', 'people', 'earnings', 'compliance'] as const;
 
-export function OrgCanvas({ roles, rootId, canEdit, averages }: {
+export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], myRoleId = null, readOnlyReason = null }: {
   roles: ChartRole[];
   rootId: string | null;
   canEdit: boolean;
   averages: Rollup;
+  /*
+    The roles this person can really change — worked out on the server by the same `scope.canEdit`
+    the actions call, so the screen and the rule cannot disagree. Offering a box the server is
+    always going to refuse is how "I still cant change my name" happens with nothing on screen to
+    explain it.
+  */
+  editableIds?: string[];
+  /** The role this viewer's own account holds, if any — so the chart can offer "this is me". */
+  myRoleId?: string | null;
+  /** Why NOTHING is editable, when that is the situation. Null when it is simply somebody else's branch. */
+  readOnlyReason?: string | null;
 }) {
+  const editable = new Set(editableIds);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -932,7 +944,7 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                 finished thinking is how a role gets renamed "Operations Manage" because a colleague
                 walked past.
               */}
-              {canEdit ? (
+              {canEdit && editable.has(selected.id) ? (
                 <>
                   <form action={renameRole} className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
                     <input type="hidden" name="roleId" value={selected.id} />
@@ -980,6 +992,38 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     A seat that quietly begins being billed from a control that never said so is the
                     kind of surprise that ends a trial.
                   */}
+                  {/*
+                    ── "This role is me" ─────────────────────────────────────────────────────
+
+                    Kris, 19 September, four times over: *"i am the GM but it wont let me change
+                    from anthony to my name"*, then *"I can't change GM back to me"*.
+
+                    Renaming the person and claiming the role are different things, and SPEC only
+                    had the first. Typing your own name over a pencilled-in one renames a NAME —
+                    the card reads correctly and your login is still attached to nothing, so SPEC
+                    still does not believe you are on your own chart. Every rule that works by
+                    walking down from your role still finds nowhere to start.
+
+                    Offered on any role the viewer can shape that is not already theirs. It is
+                    deliberately a button and not a box: it is one decision with one outcome, and
+                    a decision that reads as typing is how somebody does it by accident.
+                  */}
+                  {myRoleId !== selected.id && (
+                    <form action={claimRole} className="mt-2">
+                      <input type="hidden" name="roleId" value={selected.id} />
+                      <button className="btn-secondary w-full sm:w-auto">
+                        This role is me &mdash; put my account in it
+                      </button>
+                      {selected.person && selected.pencilled && (
+                        <p className="mt-1.5 text-[12px] text-ink-light">
+                          {selected.person} is pencilled in here and comes off the role. They have
+                          no login, so nothing is lost &mdash; type the name onto another card to
+                          put them back.
+                        </p>
+                      )}
+                    </form>
+                  )}
+
                   {selected.person && selected.pencilled && (
                     <form action={invitePerson} className="mt-3 rounded-xl bg-cream p-3">
                       <input type="hidden" name="roleId" value={selected.id} />
@@ -1008,6 +1052,23 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                 <div className="mt-4">
                   <p className="font-serif text-[19px] text-ink">{selected.title}</p>
                   <p className="mt-1 text-sm text-ink-light">{selected.person ?? 'Vacant'}</p>
+                  {/*
+                    ── Why there is no box here ────────────────────────────────────────────────
+
+                    Kris, 19 September: *"I still cant change my name in the org chart"*.
+
+                    Until now this was simply static text, and a reader had to infer from an absence
+                    that SPEC had decided something about them. That is the worst kind of refusal:
+                    one nobody is told about, on a screen that looks like it is merely being quiet.
+
+                    `readOnlyReason` covers the two cases where NOTHING is editable — no write
+                    access, or not placed on the chart at all, which is the one that silently locks
+                    an owner out of their own business. Otherwise this is simply somebody else's
+                    branch, and that is worth saying too.
+                  */}
+                  <p className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-ink-light">
+                    {readOnlyReason ?? 'This role is outside your part of the chart, so SPEC will not let you change it. You can change your own role and everybody who reports up to you.'}
+                  </p>
                 </div>
               )}
 

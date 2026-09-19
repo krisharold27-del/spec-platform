@@ -47,6 +47,7 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   const cannot = String(sp.cannot ?? '').slice(0, 300);
   // Same length cap and the same reasoning: it arrives in the address, so it is somebody else's text.
   const invited = String(sp.invited ?? '').slice(0, 200);
+  const claimed = String(sp.claimed ?? '').slice(0, 200);
   const cascadeRead = String(sp.cascade ?? '');
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
@@ -151,6 +152,36 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
       .filter((v): v is number => v !== null && v !== undefined);
     averages[p] = values.length ? values.reduce((s, v) => s + v, 0) / values.length : null;
   }
+
+  /*
+    ── What this person can actually change, worked out the same way the server works it out ───────
+
+    Kris, 19 September: *"I still cant change my name in the org chart"*.
+
+    The chart offered an edit box on EVERY card whenever somebody's access level was full — and the
+    server then allowed the save only inside that person's own branch, which is a different question
+    entirely. SPEC works out your branch by walking DOWN from your own role, so somebody who is not
+    placed on the chart has no branch at all: every box on the screen, on every card, was one the
+    server was always going to refuse.
+
+    A control that cannot work is worse than no control. It is also invisible as a fault — it looks
+    like the product quietly ignoring you, which is exactly what Kris described twice.
+
+    So the page asks `scope.canEdit` — the same function the actions call — for every role, and the
+    panel offers a box only where a save will really land. Where it will not, it says why.
+  */
+  const editableIds = scope.roles.filter(r => scope.canShapeChart(r.id)).map(r => r.id);
+  /*
+    Only when there is NOTHING they can change. Somebody who can shape part of the chart is not
+    read-only, and telling them they are would be its own lie — that case is somebody else's
+    branch, which the panel says on the card itself.
+  */
+  const readOnlyReason = editableIds.length > 0
+    ? null
+    : !manage
+      ? 'Your account can see this chart but not change it. An administrator can give you edit access from Admin.'
+      : 'You are not in a role on this chart yet, so SPEC cannot tell which part of it is yours — that is why nothing here will save. Put yourself in a role from People, then come back.';
+
   const journey = stages(roles, detached, averages);
 
   return (
@@ -209,6 +240,16 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
         of the same fault. Somebody has just spent a seat and started a monthly charge — they should
         not have to go and check whether it happened, and "the page looks the same" is not an answer.
       */}
+      {claimed && (
+        <p
+          role="status"
+          className="mt-6 rounded-lg border-l-4 border-sage bg-surface p-4 text-sm text-ink"
+        >
+          You are now in <b>{claimed}</b>. SPEC works out what you can change by looking at where
+          you sit on this chart, so everything under that role is yours from here.
+        </p>
+      )}
+
       {invited && (
         <p
           role="status"
@@ -238,6 +279,9 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
             roles={roles}
             rootId={rootId}
             canEdit={manage}
+            editableIds={editableIds}
+            myRoleId={scope.myRoleId}
+            readOnlyReason={readOnlyReason}
             averages={{
               safety: averages.safety ?? null,
               people: averages.people ?? null,

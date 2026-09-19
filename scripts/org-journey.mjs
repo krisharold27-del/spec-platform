@@ -582,13 +582,29 @@ if (process.env.DATABASE_URL) {
       read from the database rather than from the screen, because a confirmation banner is the
       easiest thing in the world to print without having done anything.
     */
-    const [pencilled] = await sql`
-      select r.id, r.title, s.id as staff_id, s.name
-      from roles r
-      join role_assignments a on a.role_id = r.id and a.to_date is null
-      join staff s on s.id = a.staff_id
-      where r.tenant_id = ${tenant.id} and s.user_id is null
-      limit 1`;
+    /*
+      Built, not hunted for.
+
+      The first draft picked any pencilled-in person on the chart and found one on a role that had
+      fallen OFF it, where the panel correctly offers nothing — a role outside your branch is not
+      yours to change. The check went red at the product for obeying its own rule. A role directly
+      under the top is unambiguously inside the caller's branch, so the only thing left being tested
+      is the invitation.
+    */
+    const [child] = await sql`
+      select id, title from roles
+      where tenant_id = ${tenant.id} and reports_to_role_id = ${top.id} limit 1`;
+
+    let pencilled = null;
+    if (child) {
+      const theirId = randomUUID();
+      await sql`insert into staff (id, tenant_id, name, created_at)
+                values (${theirId}, ${tenant.id}, 'Pat Nguyen', ${new Date().toISOString()})`;
+      await sql`delete from role_assignments where role_id = ${child.id} and to_date is null`;
+      await sql`insert into role_assignments (id, role_id, staff_id, from_date)
+                values (${randomUUID()}, ${child.id}, ${theirId}, ${today})`;
+      pencilled = { id: child.id, title: child.title, staff_id: theirId, name: 'Pat Nguyen' };
+    }
 
     if (pencilled) {
       await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
@@ -635,6 +651,81 @@ if (process.env.DATABASE_URL) {
       }
     } else {
       skip('THE CHART CAN INVITE THE PERSON ON A CARD', 'no pencilled-in person on this chart to invite');
+    }
+
+    /*
+      ── The founder, not on their own chart ────────────────────────────────────────────────────
+
+      Kris, 19 September: *"I still cant change my name in the org chart"*, then *"i should be the
+      admin as i started the system - Kristopher Harold for JBI"*.
+
+      SPEC decides what somebody may touch by walking DOWN from their own role. That rule quietly
+      assumes everybody is ON the chart — and an administrator who is not has nothing to walk down
+      from, so every card on the screen was one the server would refuse, with the boxes still
+      offered and nothing said. The only way out was the thing they were locked out of.
+
+      This takes the account holder off the chart, exactly as a rename or a vacate can, and then
+      asks the two things that matter: are the boxes still there, and does a save actually land.
+    */
+    await sql`update role_assignments set to_date = ${new Date().toISOString().slice(0, 10)}
+              where to_date is null and user_id is not null
+                and role_id in (select id from roles where tenant_id = ${tenant.id})`;
+    await sql`update users set access = 'administrator' where tenant_id = ${tenant.id}`;
+
+    await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+    await page.locator('[data-org-canvas] [draggable="true"]', { hasText: top.title }).first().click();
+    await page.waitForTimeout(500);
+
+    const boxes = await page.locator('#org-title').count();
+    check('AN ADMINISTRATOR OFF THE CHART CAN STILL DRAW IT', boxes === 1,
+          boxes ? '' : 'no edit boxes — the founder is locked out of their own business');
+
+    if (boxes) {
+      await page.fill('#org-title', 'Drawn while unplaced');
+      await page.getByRole('button', { name: 'Save the role name' }).click();
+      await chartSays('Drawn while unplaced');
+      const after = await page.locator('[data-org-canvas]').innerText();
+      check('  and the change really lands, rather than being quietly refused',
+            after.includes('Drawn while unplaced'),
+            after.slice(0, 120).replace(/\n/g, ' '));
+    }
+
+    /*
+      ── Putting yourself back in the role ──────────────────────────────────────────────────────
+
+      Kris, 19 September: *"I can't change GM back to me"*. He was right, and it was not a fault in
+      renaming — renaming and CLAIMING are different things and SPEC only had the first. Typing your
+      own name over a pencilled-in one renames a name on a card; your login stays attached to
+      nothing, so SPEC still does not believe you are on your own chart.
+
+      Which is why this check reads the database rather than the screen. A card showing the right
+      name is exactly the outcome that fooled me for three attempts: it looks finished and the
+      placement behind it is still empty.
+    */
+    await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+    await page.locator('[data-org-canvas] [draggable="true"]', { hasText: 'Drawn while unplaced' })
+      .first().click();
+    await page.waitForTimeout(400);
+
+    const claim = page.getByRole('button', { name: /This role is me/i });
+    check('THE CHART CAN PUT YOUR OWN ACCOUNT IN A ROLE', await claim.count() === 1);
+
+    if (await claim.count()) {
+      await claim.click();
+      await page.waitForTimeout(2500);
+
+      const [mine] = await sql`
+        select r.title from role_assignments a
+        join roles r on r.id = a.role_id
+        join users u on u.id = a.user_id
+        where a.to_date is null and u.tenant_id = ${tenant.id} and u.email = ${EMAIL}`;
+      check('  AND THE ACCOUNT IS REALLY IN IT, not just the name on the card',
+            mine?.title === 'Drawn while unplaced',
+            mine ? `placed in ${mine.title}` : 'the account holds no role at all');
+
+      const said = await page.evaluate(() => document.body.innerText);
+      check('  and the chart says so, rather than looking unchanged',
+            /You are now in/i.test(said), said.slice(0, 120).replace(/\n/g, ' '));
     }
   } finally {
     await sql.end({ timeout: 5 });

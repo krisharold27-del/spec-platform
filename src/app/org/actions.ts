@@ -95,7 +95,7 @@ export async function moveRole(formData: FormData) {
   const roleId = String(formData.get('roleId') ?? '');
   const ontoId = String(formData.get('ontoId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) outside(scope, user.access);
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
 
   const chart = await chartOf(user.tenantId);
   const check = canMove(roleId, ontoId, chart);
@@ -120,7 +120,7 @@ export async function breakLink(formData: FormData) {
   const user = await editor();
   const roleId = String(formData.get('roleId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) outside(scope, user.access);
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
   await db.update(schema.roles).set({ reportsToRoleId: null })
     .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
   revalidatePath('/org');
@@ -139,7 +139,7 @@ export async function movePerson(formData: FormData) {
   if (!fromRoleId || !toRoleId || fromRoleId === toRoleId) return;
 
   const scope = await getScope(user);
-  if (!scope.canEdit(fromRoleId) || !scope.canEdit(toRoleId)) {
+  if (!scope.canShapeChart(fromRoleId) || !scope.canShapeChart(toRoleId)) {
     refuse('Both roles have to be inside your part of the chart.');
   }
 
@@ -188,7 +188,7 @@ export async function addRole(formData: FormData) {
   if (!title) return;
 
   const scope = await getScope(user);
-  if (parentId && !scope.canEdit(parentId)) outside(scope, user.access);
+  if (parentId && !scope.canShapeChart(parentId)) outside(scope, user.access);
 
   let stream = 'operations';
   let level = 'manager';
@@ -230,7 +230,7 @@ export async function renameRole(formData: FormData) {
   if (!title) return;
 
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) outside(scope, user.access);
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
 
   await db.update(schema.roles).set({ title })
     .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
@@ -264,7 +264,7 @@ export async function renamePerson(formData: FormData) {
   if (!name) return;
 
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) outside(scope, user.access);
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
 
   const [role] = await db.select().from(schema.roles)
     .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
@@ -369,7 +369,7 @@ export async function invitePerson(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim();
 
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) outside(scope, user.access);
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
 
   const openRows = await db.select().from(schema.roleAssignments)
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
@@ -406,7 +406,7 @@ export async function removeRole(formData: FormData) {
   const user = await editor();
   const roleId = String(formData.get('roleId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) outside(scope, user.access);
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
 
   const open = await db.select().from(schema.roleAssignments)
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
@@ -422,12 +422,85 @@ export async function removeRole(formData: FormData) {
   revalidatePath('/org');
 }
 
+/**
+ * "This role is me." Put the signed-in account into it.
+ *
+ * ── The thing that was missing, not the thing that was broken ────────────────────────────────────
+ *
+ * Kris, 19 September, four times: *"i am the GM but it wont let me change from anthony to my name"*,
+ * *"I still cant change my name in the org chart"*, *"I can't change GM back to me"*.
+ *
+ * I kept looking for a fault in renaming, and fixed two real ones. Neither was this. **Renaming the
+ * person and claiming the role are different things, and SPEC only had the first.** Typing your own
+ * name over a pencilled-in one renames a STAFF row — a name on a card, with no account behind it.
+ * The card then says "Kristopher Harold" and your login is still attached to nothing, so SPEC still
+ * does not believe you are on your own chart, and every rule that walks down from your role still
+ * finds nowhere to start.
+ *
+ * So he was right every time, and right about a feature rather than a bug. There was no way, from
+ * anywhere in the product, to say *that role is me*.
+ *
+ * ── The rules it keeps ───────────────────────────────────────────────────────────────────────────
+ *
+ * One person, one role: taking this role closes whatever placement the claimer already held, so
+ * claiming can never quietly leave somebody holding two.
+ *
+ * A pencilled-in name is displaced and SAID so — they have no account, nothing is lost, and typing
+ * their name onto another card puts them back.
+ *
+ * Somebody with their own LOGIN is never displaced by this. That is a move between two real people,
+ * with a seat and a scorecard attached, and it belongs to the screen that can ask about both of
+ * them rather than to a button that takes one silently.
+ *
+ * Access is deliberately NOT changed. Kris's rule, 19 September: *"if rights are needed then the
+ * admin must approve this"* — so claiming a role gives you the role, never a level of access you
+ * did not already have.
+ */
+export async function claimRole(formData: FormData) {
+  const user = await editor();
+  const roleId = String(formData.get('roleId') ?? '');
+
+  const scope = await getScope(user);
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
+
+  const [role] = await db.select().from(schema.roles)
+    .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
+  if (!role) refuse('That role is not in this business.');
+
+  const openRows = await db.select().from(schema.roleAssignments)
+    .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
+  const held = placementShown(openRows);
+
+  if (held?.userId === user.id) refuse(`You are already in ${role.title}.`);
+  if (held?.userId) {
+    const [them] = await db.select().from(schema.users)
+      .where(and(eq(schema.users.id, held.userId), eq(schema.users.tenantId, user.tenantId)));
+    refuse(`${them?.name ?? 'Somebody'} holds ${role.title} with their own SPEC login. Move them from People first, so SPEC can ask where they are going.`);
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Whoever was pencilled in comes off this role, and the claimer comes off wherever they were.
+  // Placements are closed and never deleted, so the chart can still answer who held what in March.
+  await db.update(schema.roleAssignments).set({ toDate: today })
+    .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
+  await db.update(schema.roleAssignments).set({ toDate: today })
+    .where(and(eq(schema.roleAssignments.userId, user.id), isNull(schema.roleAssignments.toDate)));
+
+  await db.insert(schema.roleAssignments).values({
+    id: randomUUID(), roleId, userId: user.id, staffId: null, fromDate: today,
+  });
+
+  for (const path of ['/org', '/my-page', '/people', '/team', '/setup/business']) revalidatePath(path);
+  redirect(`/org?claimed=${encodeURIComponent(role.title)}`);
+}
+
 /** Make a role vacant: the person leaves, the role and its KPIs stay exactly as they are. */
 export async function vacateRole(formData: FormData) {
   const user = await editor();
   const roleId = String(formData.get('roleId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) outside(scope, user.access);
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
   await db.update(schema.roleAssignments).set({ toDate: new Date().toISOString().slice(0, 10) })
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
   revalidatePath('/org');
