@@ -26,8 +26,17 @@ import { tidyUp } from './test-cleanup.mjs';
  */
 export function reportCrashes({ browser = () => null, business = null, since = null } = {}) {
   const crashed = async error => {
-    const first = String(error?.stack ?? error).split('\n')[0];
-    console.log(` FAIL  the journey crashed before it could finish — ${first.slice(0, 220)}`);
+    const text = String(error?.stack ?? error);
+    const first = text.split('\n')[0];
+    /*
+      Playwright's first line names the CALL and not the thing it was waiting for: "page.fill:
+      Timeout 30000ms exceeded" is true and useless, because a journey fills half a dozen boxes. The
+      selector is further down, in the call log. CI's first report of a crash said exactly that
+      first line and left me guessing which box — so the locator comes along with it.
+    */
+    const waiting = text.split('\n').find(l => /waiting for (locator|element)/i.test(l));
+    const said = waiting ? `${first} — ${waiting.trim()}` : first;
+    console.log(` FAIL  the journey crashed before it could finish — ${said.slice(0, 300)}`);
     // Both of these are best effort. Failing to tidy up must never hide the thing that went wrong.
     try { await browser()?.close(); } catch { /* it may already be gone */ }
     if (business) {

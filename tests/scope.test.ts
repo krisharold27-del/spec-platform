@@ -25,40 +25,42 @@ const VISIBLE = new Set(['mine', 'below']);
 const ours = (id: string) => ['mine', 'below', 'elsewhere'].includes(id);
 
 describe('who may draw the org chart', () => {
-  it('the ordinary rule: your own role and the ones beneath it', () => {
-    expect(mayShapeChart('full', 'mine', VISIBLE, ours, 'mine')).toBe(true);
-    expect(mayShapeChart('full', 'mine', VISIBLE, ours, 'below')).toBe(true);
+  it('a manager: their own role and the ones beneath it', () => {
+    expect(mayShapeChart('full', VISIBLE, ours, 'mine')).toBe(true);
+    expect(mayShapeChart('full', VISIBLE, ours, 'below')).toBe(true);
   });
 
-  it('and never somebody else’s branch', () => {
-    expect(mayShapeChart('full', 'mine', VISIBLE, ours, 'elsewhere')).toBe(false);
-    expect(mayShapeChart('administrator', 'mine', VISIBLE, ours, 'elsewhere')).toBe(false);
-  });
-
-  it('AN ADMINISTRATOR WITH NO ROLE CAN DRAW THE CHART — the founder on day one', () => {
-    expect(mayShapeChart('administrator', null, new Set(), ours, 'mine')).toBe(true);
-    expect(mayShapeChart('administrator', null, new Set(), ours, 'elsewhere')).toBe(true);
+  it('AND NEVER SOMEBODY ELSE’S BRANCH — "managers only have rights to their staff"', () => {
+    expect(mayShapeChart('full', VISIBLE, ours, 'elsewhere')).toBe(false);
   });
 
   /*
-    Each of these is one clause of the rule taken away. If any of them starts passing, the founder's
-    exemption has quietly become something else.
+    Kris, 19 September, photographing the General Manager card on JBI — "This role is outside your
+    part of the chart", above a button offering to ask an administrator for permission: **"i am the
+    GM - so how can i ask"**. He IS the administrator. SPEC was inviting him to petition himself.
   */
-  it('  but only an ADMINISTRATOR — "full" with no role still gets nothing', () => {
-    expect(mayShapeChart('full', null, new Set(), ours, 'mine')).toBe(false);
+  it('AN ADMINISTRATOR DRAWS THE WHOLE CHART, including roles above their own', () => {
+    expect(mayShapeChart('administrator', VISIBLE, ours, 'elsewhere')).toBe(true);
+    expect(mayShapeChart('administrator', new Set(), ours, 'mine')).toBe(true);
   });
 
-  it('  and only while they are UNPLACED — once on the chart, the ordinary rule returns', () => {
-    expect(mayShapeChart('administrator', 'mine', VISIBLE, ours, 'elsewhere')).toBe(false);
+  /*
+    Each of these is one clause taken away. If any starts passing, the rule has quietly become
+    something else.
+  */
+  it('  but only an ADMINISTRATOR — "full" off its own branch still gets nothing', () => {
+    expect(mayShapeChart('full', new Set(), ours, 'mine')).toBe(false);
+    expect(mayShapeChart('full', VISIBLE, ours, 'elsewhere')).toBe(false);
   });
 
   it('  and never a role outside this business', () => {
-    expect(mayShapeChart('administrator', null, new Set(), ours, 'another-company')).toBe(false);
+    expect(mayShapeChart('administrator', new Set(), ours, 'another-company')).toBe(false);
+    expect(mayShapeChart('administrator', VISIBLE, ours, 'another-company')).toBe(false);
   });
 
   it('  and read-only is still read-only', () => {
-    expect(mayShapeChart('readonly', null, new Set(), ours, 'mine')).toBe(false);
-    expect(mayShapeChart('readonly', 'mine', VISIBLE, ours, 'mine')).toBe(false);
+    expect(mayShapeChart('readonly', new Set(), ours, 'mine')).toBe(false);
+    expect(mayShapeChart('readonly', VISIBLE, ours, 'mine')).toBe(false);
   });
 });
 

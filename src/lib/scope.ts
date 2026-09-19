@@ -64,16 +64,36 @@ export interface Scope {
  */
 export function mayShapeChart(
   access: string,
-  myRoleId: string | null,
   visible: Set<string>,
   inThisBusiness: (roleId: string) => boolean,
   roleId: string,
 ): boolean {
-  // The ordinary rule: your own role and everything beneath it, if you can write at all.
-  if ((access === 'full' || access === 'administrator') && visible.has(roleId)) return true;
-  // The founder's case: an administrator with nowhere to walk down from, so they can draw the
-  // chart that will place them. Never anybody else, and never a role outside this business.
-  return access === 'administrator' && !myRoleId && inThisBusiness(roleId);
+  // A manager: their own role and everything beneath it. Kris's rule — "managers only have rights
+  // to their staff" — and the one this function existed for in the first place.
+  if (access === 'full' && visible.has(roleId)) return true;
+
+  /*
+    An administrator: the whole chart of their own business.
+
+    This started narrower — an administrator only where they could already reach, plus an exemption
+    for one who was not on the chart at all. Kris, 19 September, sent a photograph of the General
+    Manager card on JBI saying *"This role is outside your part of the chart"*, under a button
+    offering to ask an administrator for permission, with the words: **"i am the GM - so how can i
+    ask"**. He is the administrator. SPEC was inviting him to petition himself.
+
+    The narrow version was wrong about what kind of thing drawing a chart IS. Administration and
+    management are already separate in SPEC — seats, the financial year, entities and grants are
+    administration, and none of them widen what anybody can SEE. The shape of the business belongs
+    in that list: `getScope` says in as many words that the chart's structure is not a secret, every
+    role in the business is already returned to every viewer, and somebody has to be able to fix a
+    chart that has the wrong person at the top of it. That somebody is the administrator, and on day
+    one they are the only person there.
+
+    What this does NOT widen is the part that matters: `canEdit` and `canSee` are untouched, so an
+    administrator still cannot read or score a scorecard outside their own branch. They can move the
+    Cobram Supervisor; they cannot see what the Cobram Supervisor scored.
+  */
+  return access === 'administrator' && inThisBusiness(roleId);
 }
 
 /**
@@ -146,7 +166,7 @@ export async function getScope(user: CurrentUser): Promise<Scope> {
       the ordinary rule, so this can never be a way around it.
     */
     canShapeChart: (roleId: string) =>
-      mayShapeChart(user.access, myRoleId, visible, id => roles.some(r => r.id === id), roleId),
+      mayShapeChart(user.access, visible, id => roles.some(r => r.id === id), roleId),
   };
 }
 

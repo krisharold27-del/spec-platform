@@ -599,27 +599,33 @@ if (process.env.DATABASE_URL) {
       easiest thing in the world to print without having done anything.
     */
     /*
-      Built, not hunted for.
+      ── Set up the way a person would, through the screen ──────────────────────────────────────
 
-      The first draft picked any pencilled-in person on the chart and found one on a role that had
-      fallen OFF it, where the panel correctly offers nothing — a role outside your branch is not
-      yours to change. The check went red at the product for obeying its own rule. A role directly
-      under the top is unambiguously inside the caller's branch, so the only thing left being tested
-      is the invitation.
+      Two earlier drafts built this situation with raw SQL and both were wrong in their own way: the
+      first hunted the chart for a pencilled-in person and found one on a role that had fallen OFF
+      it, where the panel correctly offers nothing; the second inserted a role and a staff row
+      directly and then could not explain why the card would not offer the box.
+
+      Both were me asserting the state instead of creating it. A person pencils somebody in by
+      typing a name into the panel and pressing Save — which this journey has already proved works,
+      two checks above. Doing it that way means the only thing left under test is the invitation.
     */
-    const [child] = await sql`
-      select id, title from roles
-      where tenant_id = ${tenant.id} and reports_to_role_id = ${top.id} limit 1`;
-
     let pencilled = null;
-    if (child) {
-      const theirId = randomUUID();
-      await sql`insert into staff (id, tenant_id, name, created_at)
-                values (${theirId}, ${tenant.id}, 'Pat Nguyen', ${new Date().toISOString()})`;
-      await sql`delete from role_assignments where role_id = ${child.id} and to_date is null`;
-      await sql`insert into role_assignments (id, role_id, staff_id, from_date)
-                values (${randomUUID()}, ${child.id}, ${theirId}, ${today})`;
-      pencilled = { id: child.id, title: child.title, staff_id: theirId, name: 'Pat Nguyen' };
+    const all = cards();
+    for (let n = 0; n < Math.min(await all.count(), 6); n++) {
+      const card = all.nth(n);
+      const title = (await card.innerText()).split('\n')[0].trim();
+      await card.click();
+      await page.waitForTimeout(350);
+      const box = page.locator('#org-person');
+      if (await box.count() !== 1) continue;
+      if ((await box.inputValue()).trim()) continue;          // somebody is already in it
+
+      await box.fill('Pat Nguyen');
+      await page.getByRole('button', { name: 'Save the name' }).click();
+      await chartSays('Pat Nguyen');
+      pencilled = { title, name: 'Pat Nguyen' };
+      break;
     }
 
     if (pencilled) {
@@ -744,6 +750,45 @@ if (process.env.DATABASE_URL) {
             /You are now in/i.test(said), said.slice(0, 120).replace(/\n/g, ' '));
     }
     /*
+      ── The administrator, standing below the role they need to fix ────────────────────────────
+
+      Kris, 19 September, photographing the General Manager card on JBI: it said *"This role is
+      outside your part of the chart"*, above a button offering to ask an administrator for
+      permission — **"i am the GM - so how can i ask"**. He IS the administrator. SPEC was inviting
+      him to petition himself, and the one control that would have fixed it, "This role is me", was
+      hidden behind the very permission he was missing.
+
+      So: stand the administrator in a role BELOW the top and ask whether they can still work on the
+      role above them. Drawing the chart is administration, not management — the same category as
+      seats and the financial year — and none of it widens what anybody can SEE.
+    */
+    const [lower] = await sql`
+      select id, title from roles
+      where tenant_id = ${tenant.id} and reports_to_role_id is not null limit 1`;
+
+    if (lower) {
+      await sql`update role_assignments set to_date = ${today}
+                where to_date is null and user_id = ${me.id}`;
+      await sql`insert into role_assignments (id, role_id, user_id, from_date)
+                values (${randomUUID()}, ${lower.id}, ${me.id}, ${today})`;
+      await sql`update users set access = 'administrator' where id = ${me.id}`;
+
+      await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+      await page.locator('[data-org-canvas] [draggable="true"]', { hasText: top.title }).first().click();
+      await page.waitForTimeout(500);
+
+      const said = await page.evaluate(() => document.body.innerText);
+      check('AN ADMINISTRATOR CAN WORK ON THE ROLE ABOVE THEM',
+            await page.locator('#org-title').count() === 1,
+            'the top of the chart is refused to the person who administers the business');
+      check('  and is never asked to petition themselves for it',
+            !/Ask the administrator for rights/i.test(said),
+            'the administrator is being offered a request form addressed to themselves');
+    } else {
+      skip('AN ADMINISTRATOR CAN WORK ON THE ROLE ABOVE THEM', 'no role below the top on this chart');
+    }
+
+    /*
       ── Rights: asked for, approved, and really in force ───────────────────────────────────────
 
       Kris's rule, 19 September: *"managers only have rights to their staff - if rights are needed
@@ -782,6 +827,23 @@ if (process.env.DATABASE_URL) {
           .first().click();
         await page.waitForTimeout(500);
 
+        /*
+          One account wearing two hats, in order.
+
+          Asking is a MANAGER's act — an administrator draws the whole chart and has nothing to ask
+          for, which is the point of the check above this one. So the account is set to 'full' to
+          ask, and back to 'administrator' to decide. Doing it in one journey is a compromise; not
+          doing it at all would leave the request untested from the only side that ever uses it.
+
+          This check went red the moment the administrator rule changed, which is the check working:
+          it was set up as a manager and silently became an administrator.
+        */
+        await sql`update users set access = 'full' where id = ${me.id}`;
+        await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+        await page.locator('[data-org-canvas] [draggable="true"]', { hasText: otherBranch.title })
+          .first().click();
+        await page.waitForTimeout(500);
+
         const ask = page.getByRole('button', { name: /Ask the administrator for rights/i });
         check('A MANAGER CAN ASK FOR RIGHTS OVER ANOTHER BRANCH', await ask.count() === 1);
 
@@ -797,6 +859,8 @@ if (process.env.DATABASE_URL) {
                 asked?.state === 'waiting' && /Covering while Dave/.test(asked?.detail ?? ''),
                 asked ? `${asked.state}: ${asked.detail}` : 'no approval was written');
 
+          // Back to the administrator's hat: only they may decide it.
+          await sql`update users set access = 'administrator' where id = ${me.id}`;
           await page.goto(`${BASE}/inbox`, { waitUntil: 'networkidle' });
           const queued = await page.evaluate(() => document.body.innerText);
           check('  and the administrator can see it waiting',
