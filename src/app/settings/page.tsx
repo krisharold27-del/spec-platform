@@ -14,7 +14,7 @@ import { PERMISSIONS, LEVELS, stateOf, STATE_LABEL, levelOf } from '@/lib/permis
 import { cadenceOf, CADENCE } from '@/lib/governance';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { adminActivity } from '@/lib/admin-activity';
-import { setCadence, setCeilings, resetCeilings, setTrainingSeat } from './actions';
+import { setCadence, setCeilings, resetCeilings, setTrainingSeat, revokeRights } from './actions';
 import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsFor, usesOwnCeilings } from '@/lib/ceilings';
 import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_AT_OR_BELOW } from '@/lib/incentive';
 
@@ -75,6 +75,20 @@ export default async function Settings({ searchParams }: { searchParams: Promise
       eq(schema.systemConnections.tenantId, user.tenantId),
       isNull(schema.systemConnections.personalFor),
     ));
+
+  /*
+    Live grants, with the person and the branch named. Read here rather than in a helper because it
+    is three joins on small tables and a helper would only hide that.
+  */
+  const grantRows = await db.select().from(schema.roleGrants)
+    .where(and(eq(schema.roleGrants.tenantId, user.tenantId), isNull(schema.roleGrants.revokedAt)));
+  const grants = grantRows.map(g => ({
+    id: g.id,
+    who: seats.find(s => s.id === g.userId)?.name ?? 'Somebody',
+    branch: scope.roles.find(r => r.id === g.roleId)?.title ?? 'a role that has since gone',
+    grantedBy: g.grantedBy,
+    grantedAt: g.grantedAt,
+  }));
 
   const activity = adminActivity({
     seats, directors, packs, connections,
@@ -391,6 +405,53 @@ export default async function Settings({ searchParams }: { searchParams: Promise
         actually bring to it — "did somebody change something?" — because the answer "no" looks
         identical to the feature not existing. Saying nothing has happened is an answer.
       */}
+      {/*
+        ── Rights over somebody else's branch ────────────────────────────────────────────────────
+
+        Kris's rule, 19 September: *"managers only have rights to their staff - if rights are needed
+        then the admin must approve this"*.
+
+        The approving happens in the queue, where the request arrives. This is the other half, and
+        without it the feature would be a one-way door: rights that can be given and never taken
+        back are worse than rights that were never given, because everybody assumes somebody is
+        keeping track. This is the list, in one place, with the name of whoever granted each one and
+        the day they did.
+
+        Revoking stamps a date rather than deleting the row — "who could see the Cobram scorecards
+        in March" is a question a business eventually has to answer, and a deleted row cannot.
+      */}
+      <section className="card mt-6">
+        <h2 className="font-serif text-xl text-ink">Rights over another branch</h2>
+        <p className="mt-1 text-sm text-ink-light">
+          Everybody reaches their own role and the people under it without being given anything.
+          These are the people who were granted more, and who granted it.
+        </p>
+        {grants.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-light">
+            Nobody has been given rights beyond their own part of the chart.
+          </p>
+        ) : (
+          <ul className="mt-4 grid gap-3">
+            {grants.map(g => (
+              <li key={g.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-cream p-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-ink">
+                    <b>{g.who}</b> manages <b>{g.branch}</b> and everybody under it
+                  </p>
+                  <p className="mt-0.5 text-xs text-ink-light">
+                    Granted by {g.grantedBy} on {g.grantedAt.slice(0, 10)}
+                  </p>
+                </div>
+                <form action={revokeRights}>
+                  <input type="hidden" name="grantId" value={g.id} />
+                  <SubmitButton className="btn-secondary">Take it back</SubmitButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section className="card mt-6">
         <h2 className="font-serif text-xl text-ink">Recent admin activity</h2>
         <p className="mt-1 text-sm text-ink-light">

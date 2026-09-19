@@ -495,6 +495,79 @@ export async function claimRole(formData: FormData) {
   redirect(`/org?claimed=${encodeURIComponent(role.title)}`);
 }
 
+/**
+ * Ask the administrator for rights over a branch you do not sit above.
+ *
+ * ── Kris's rule, in full ─────────────────────────────────────────────────────────────────────────
+ *
+ * 19 September: *"first person to start is admin rights - then managers only have rights to their
+ * staff - if rights are needed then the admin must approve this"*.
+ *
+ * The middle clause was already true and needed no storing: SPEC works out what somebody may touch
+ * by walking down the chart from their own role. The last clause had nowhere to go. Somebody who
+ * needed to cover another supervisor's crew for a fortnight had exactly two options — do without,
+ * or be handed an administrator account, which is the whole rule thrown away to solve a fortnight.
+ *
+ * So the chart asks, and the administrator decides. It goes into the SAME queue as every other
+ * approval, because a request that waits in a place nobody looks is a request nobody answers.
+ *
+ * ── Two things it deliberately does not do ───────────────────────────────────────────────────────
+ *
+ * It grants nothing on its own. The request is a row saying somebody asked; the rights appear when
+ * an administrator approves it, in lib/rights, and not one moment before.
+ *
+ * And it never asks for an ACCESS LEVEL. Rights over a branch and being an administrator are
+ * different things, and a screen that blurs them is how every manager ends up an administrator
+ * within a year.
+ */
+export async function requestRights(formData: FormData) {
+  const user = await editor();
+  const roleId = String(formData.get('roleId') ?? '');
+  const why = String(formData.get('why') ?? '').trim().slice(0, 500);
+
+  const [role] = await db.select().from(schema.roles)
+    .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
+  if (!role) refuse('That role is not in this business.');
+
+  const scope = await getScope(user);
+  if (scope.canSee(roleId)) refuse(`You already have ${role.title} and everybody under it.`);
+
+  /*
+    One open request per person per branch. Asking twice is the most natural thing in the world when
+    nothing has happened yet, and it must not turn the administrator's queue into a pile of the same
+    sentence — which is how a queue stops being read at all.
+  */
+  const waiting = await db.select().from(schema.approvals).where(and(
+    eq(schema.approvals.tenantId, user.tenantId),
+    eq(schema.approvals.kind, 'rights'),
+    eq(schema.approvals.refId, roleId),
+    eq(schema.approvals.state, 'waiting'),
+  ));
+  if (waiting.some(a => a.requestedBy === user.name)) {
+    refuse(`You have already asked for ${role.title}. It is with the administrator.`);
+  }
+
+  await db.insert(schema.approvals).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    kind: 'rights',
+    title: `Rights over ${role.title}`,
+    detail: why
+      ? `${user.name} is asking to manage ${role.title} and everybody under it. Their reason: ${why}`
+      : `${user.name} is asking to manage ${role.title} and everybody under it.`,
+    blocks: `${user.name} cannot see or score anybody in that branch until this is decided.`,
+    decidedByLevel: 'administrator',
+    requestedBy: user.name,
+    requestedAt: new Date().toISOString(),
+    state: 'waiting',
+    refId: roleId,
+  });
+
+  revalidatePath('/inbox');
+  revalidatePath('/org');
+  redirect(`/org?asked=${encodeURIComponent(role.title)}`);
+}
+
 /** Make a role vacant: the person leaves, the role and its KPIs stay exactly as they are. */
 export async function vacateRole(formData: FormData) {
   const user = await editor();

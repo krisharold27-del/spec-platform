@@ -727,6 +727,94 @@ if (process.env.DATABASE_URL) {
       check('  and the chart says so, rather than looking unchanged',
             /You are now in/i.test(said), said.slice(0, 120).replace(/\n/g, ' '));
     }
+    /*
+      ── Rights: asked for, approved, and really in force ───────────────────────────────────────
+
+      Kris's rule, 19 September: *"managers only have rights to their staff - if rights are needed
+      then the admin must approve this"*.
+
+      Three things have to be true and all three are easy to fake: the ASK reaches the
+      administrator's queue, the APPROVAL is recorded, and — the one that matters — the branch
+      actually opens afterwards. A screen that says "granted" over a scope that did not change is
+      the exact shape of a security feature that is decoration, so the last check reads the grant
+      from the database and then asks the CHART whether the role became editable.
+    */
+    const [otherBranch] = await sql`
+      select id, title from roles
+      where tenant_id = ${tenant.id} and reports_to_role_id is not null
+        and id <> ${top.id}
+      order by title desc limit 1`;
+
+    if (otherBranch) {
+      // Stand the account somewhere with nothing under it, so the branch above is genuinely out of
+      // reach — the situation a supervisor covering somebody else's crew is actually in.
+      const [leaf] = await sql`
+        select r.id from roles r
+        where r.tenant_id = ${tenant.id} and r.id <> ${otherBranch.id}
+          and not exists (select 1 from roles c where c.reports_to_role_id = r.id)
+        limit 1`;
+
+      if (leaf && leaf.id !== otherBranch.id) {
+        await sql`update role_assignments set to_date = ${today}
+                  where to_date is null and user_id is not null
+                    and role_id in (select id from roles where tenant_id = ${tenant.id})`;
+        await sql`insert into role_assignments (id, role_id, user_id, from_date)
+                  values (${randomUUID()}, ${leaf.id}, ${me.id}, ${today})`;
+
+        await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+        await page.locator('[data-org-canvas] [draggable="true"]', { hasText: otherBranch.title })
+          .first().click();
+        await page.waitForTimeout(500);
+
+        const ask = page.getByRole('button', { name: /Ask the administrator for rights/i });
+        check('A MANAGER CAN ASK FOR RIGHTS OVER ANOTHER BRANCH', await ask.count() === 1);
+
+        if (await ask.count()) {
+          await page.fill('#org-why', 'Covering while Dave is on leave');
+          await ask.click();
+          await page.waitForTimeout(2000);
+
+          const [asked] = await sql`
+            select state, detail from approvals
+            where tenant_id = ${tenant.id} and kind = 'rights' and ref_id = ${otherBranch.id}`;
+          check('  and it lands in the administrator’s queue, with the reason',
+                asked?.state === 'waiting' && /Covering while Dave/.test(asked?.detail ?? ''),
+                asked ? `${asked.state}: ${asked.detail}` : 'no approval was written');
+
+          await page.goto(`${BASE}/inbox`, { waitUntil: 'networkidle' });
+          const queued = await page.evaluate(() => document.body.innerText);
+          check('  and the administrator can see it waiting',
+                queued.includes(`Rights over ${otherBranch.title}`),
+                queued.slice(0, 160).replace(/\n/g, ' '));
+
+          const approveBtn = page.getByRole('button', { name: /^Approve/ }).first();
+          if (await approveBtn.count()) {
+            await approveBtn.click();
+            await page.waitForTimeout(2500);
+          }
+
+          const [grant] = await sql`
+            select role_id, granted_by, revoked_at from role_grants
+            where tenant_id = ${tenant.id} and user_id = ${me.id} and revoked_at is null`;
+          check('  APPROVING IT REALLY GRANTS THE BRANCH',
+                grant?.role_id === otherBranch.id,
+                grant ? JSON.stringify(grant) : 'no grant was written');
+
+          // And the thing the grant is FOR: the branch is now theirs to work on.
+          await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+          await page.locator('[data-org-canvas] [draggable="true"]', { hasText: otherBranch.title })
+            .first().click();
+          await page.waitForTimeout(500);
+          check('  and the branch is editable afterwards, which is the whole point',
+                await page.locator('#org-title').count() === 1,
+                'the grant was recorded but the chart still refuses');
+        }
+      } else {
+        skip('A MANAGER CAN ASK FOR RIGHTS OVER ANOTHER BRANCH', 'no leaf role to stand the account in');
+      }
+    } else {
+      skip('A MANAGER CAN ASK FOR RIGHTS OVER ANOTHER BRANCH', 'no second branch on this chart');
+    }
   } finally {
     await sql.end({ timeout: 5 });
   }

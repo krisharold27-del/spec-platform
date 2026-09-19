@@ -656,6 +656,46 @@ export const gates = pgTable('gates', {
  * somebody remembered to create. Deriving what can be derived is what stops the queue drifting out
  * of step with the business.
  */
+/**
+ * Rights over a branch of the chart that somebody does not sit above.
+ *
+ * ── Why this table has to exist at all ───────────────────────────────────────────────────────────
+ *
+ * Kris, 19 September: *"managers only have rights to their staff - if rights are needed then the
+ * admin must approve this"*.
+ *
+ * The first half was already true and needed nothing: SPEC works out what somebody may touch by
+ * walking DOWN the chart from their own role, so a manager reaches their own people and nobody
+ * else's. That rule is derived from the chart itself, which is why it has never needed storing and
+ * can never drift out of step with the business.
+ *
+ * The second half has nowhere to live. "This person may also manage that branch" is not a fact
+ * about the chart — it is a decision somebody made, on a date, that somebody else has to be able to
+ * see and take back. Derived state cannot hold it, so it is stored, and stored with the two things
+ * that make it accountable: WHO granted it and WHEN.
+ *
+ * A grant is never deleted. It is revoked, with a date, for the same reason a placement is closed
+ * rather than removed — "who could see the Cobram scorecards in March" is a question a business
+ * will eventually have to answer.
+ *
+ * What it grants is exactly what holding the role would: that role and everything beneath it. There
+ * is deliberately no way to grant less, or to grant something other than a branch. A permission
+ * model somebody has to reason about is a permission model that gets it wrong.
+ */
+export const roleGrants = pgTable('role_grants', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** Who may now reach the branch. */
+  userId: text('user_id').notNull().references(() => users.id),
+  /** The top of the branch they may reach — that role and everybody under it. */
+  roleId: text('role_id').notNull().references(() => roles.id),
+  /** The administrator who approved it, by name, so the record reads without a join. */
+  grantedBy: text('granted_by').notNull(),
+  grantedAt: text('granted_at').notNull(),
+  /** Set when it is taken back. Never deleted — see above. */
+  revokedAt: text('revoked_at'),
+}, t => [index('role_grants_tenant_user').on(t.tenantId, t.userId)]).enableRLS();
+
 export const approvals = pgTable('approvals', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),

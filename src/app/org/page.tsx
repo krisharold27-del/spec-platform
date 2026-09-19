@@ -48,6 +48,7 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   // Same length cap and the same reasoning: it arrives in the address, so it is somebody else's text.
   const invited = String(sp.invited ?? '').slice(0, 200);
   const claimed = String(sp.claimed ?? '').slice(0, 200);
+  const asked = String(sp.asked ?? '').slice(0, 200);
   const cascadeRead = String(sp.cascade ?? '');
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
@@ -240,6 +241,16 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
         of the same fault. Somebody has just spent a seat and started a monthly charge — they should
         not have to go and check whether it happened, and "the page looks the same" is not an answer.
       */}
+      {asked && (
+        <p
+          role="status"
+          className="mt-6 rounded-lg border-l-4 border-sage bg-surface p-4 text-sm text-ink"
+        >
+          Your request for <b>{asked}</b> is with the administrator. It is in their Approvals, with
+          the reason you gave. Nothing changes until they decide.
+        </p>
+      )}
+
       {claimed && (
         <p
           role="status"

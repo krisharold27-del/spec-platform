@@ -8,6 +8,7 @@ import { requireManager } from '@/lib/guard';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { refuseTo } from '@/lib/refuse';
+import { grantBranch } from '@/lib/rights';
 
 /**
  * Deciding an approval.
@@ -57,8 +58,48 @@ async function decide(formData: FormData, state: 'approved' | 'declined') {
       ));
   }
 
+  /*
+    ── An approved rights request is the other kind that changes something elsewhere ─────────────
+
+    Kris, 19 September: *"if rights are needed then the admin must approve this"*. Until the
+    administrator presses Approve, the request is a row saying somebody asked and nothing more.
+    This is the moment it becomes real, and it is the only place in SPEC where one person's reach
+    over another's scorecards widens.
+
+    The requester is matched by NAME because that is what an approval stores, and a business can
+    have two people with the same one. So it grants only when exactly one account matches: two
+    matches is ambiguous and the wrong guess hands somebody else's crew to the wrong person, which
+    is precisely the mistake this whole feature exists to prevent. The approval still records the
+    decision, and the administrator is told rather than left believing it landed.
+  */
+  if (state === 'approved' && approval.kind === 'rights' && approval.refId) {
+    const named = (await db.select().from(schema.users)
+      .where(eq(schema.users.tenantId, user.tenantId)))
+      .filter(u => u.name === approval.requestedBy);
+
+    if (named.length !== 1) {
+      refuseTo('/inbox', named.length === 0
+        ? `SPEC cannot find an account for ${approval.requestedBy}, so no rights were given. The decision is recorded.`
+        : `More than one account is named ${approval.requestedBy}, so SPEC will not guess which one asked. Give the rights from Admin instead. The decision is recorded.`);
+    }
+
+    // The role has to be in this business. A refId is free-form and never dereferenced blindly.
+    const [role] = await db.select().from(schema.roles)
+      .where(and(eq(schema.roles.id, approval.refId), eq(schema.roles.tenantId, user.tenantId)));
+    if (role) {
+      await grantBranch({
+        tenantId: user.tenantId,
+        userId: named[0].id,
+        roleId: role.id,
+        grantedBy: user.name,
+      });
+    }
+  }
+
   revalidatePath('/inbox');
   revalidatePath('/connections');
+  revalidatePath('/org');
+  revalidatePath('/team');
 }
 
 export async function approve(formData: FormData) { await decide(formData, 'approved'); }

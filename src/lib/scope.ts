@@ -76,6 +76,31 @@ export function mayShapeChart(
   return access === 'administrator' && !myRoleId && inThisBusiness(roleId);
 }
 
+/**
+ * Everything reachable by walking DOWN from a set of starting roles.
+ *
+ * Pure, and exported so it can be tested. This is the function that decides who can see whose
+ * scorecard, which makes it the last place in SPEC that should only exist inside a database call.
+ *
+ * `seen` doubles as the visited set, so a chart that somehow reports to itself cannot spin here —
+ * a cycle is a bug in the data, and the right behaviour is to stop, not to hang the page.
+ */
+export function reachDown(
+  startIds: readonly string[],
+  roles: readonly { id: string; reportsToRoleId: string | null }[],
+): Set<string> {
+  const seen = new Set<string>();
+  const known = new Set(roles.map(r => r.id));
+  const queue = startIds.filter(id => known.has(id));
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    for (const r of roles) if (r.reportsToRoleId === id) queue.push(r.id);
+  }
+  return seen;
+}
+
 export async function getScope(user: CurrentUser): Promise<Scope> {
   const roles = await getRoles(user.tenantId);
 
@@ -83,18 +108,27 @@ export async function getScope(user: CurrentUser): Promise<Scope> {
     .where(and(eq(schema.roleAssignments.userId, user.id), isNull(schema.roleAssignments.toDate)));
   const myRoleId = assignments[0]?.roleId ?? null;
 
-  const visible = new Set<string>();
-  if (myRoleId && roles.some(r => r.id === myRoleId)) {
-    // Walk down the reporting tree. `visible` doubles as the seen-set so a bad
-    // reportsTo cycle can never spin here.
-    const queue: string[] = [myRoleId];
-    while (queue.length > 0) {
-      const id = queue.shift()!;
-      if (visible.has(id)) continue;
-      visible.add(id);
-      for (const r of roles) if (r.reportsToRoleId === id) queue.push(r.id);
-    }
-  }
+  /*
+    ── Where somebody's sight of the business starts ────────────────────────────────────────────
+
+    Their own role, and any branch an administrator has GRANTED them. Kris's rule, 19 September:
+    *"managers only have rights to their staff - if rights are needed then the admin must approve
+    this"*. The first half is the walk; the second half is this join.
+
+    A grant is read live rather than baked into the account, so taking one back takes effect on the
+    next page load rather than whenever somebody next signs in. Revoked grants are excluded here and
+    kept in the table, because "who could see the Cobram scorecards in March" is a question a
+    business eventually has to answer.
+  */
+  const grants = await db.select({ roleId: schema.roleGrants.roleId }).from(schema.roleGrants)
+    .where(and(
+      eq(schema.roleGrants.userId, user.id),
+      eq(schema.roleGrants.tenantId, user.tenantId),
+      isNull(schema.roleGrants.revokedAt),
+    ));
+
+  const starts = [...(myRoleId ? [myRoleId] : []), ...grants.map(g => g.roleId)];
+  const visible = reachDown(starts, roles);
 
   return {
     roles,

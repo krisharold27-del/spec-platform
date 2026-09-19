@@ -14,7 +14,7 @@
  * more honest for saying so.
  */
 
-export type InboxKind = 'Scoring' | 'Training' | 'Connection' | 'Spend' | 'KPI change' | 'Structure' | 'Other';
+export type InboxKind = 'Scoring' | 'Training' | 'Connection' | 'Spend' | 'KPI change' | 'Structure' | 'Rights' | 'Other';
 
 /** Who is entitled to decide. Two things are never delegable: a sensitive connector, and a period. */
 export type DecideLevel = 'board' | 'administrator' | 'manager';
@@ -73,6 +73,15 @@ const KIND: Record<string, InboxKind> = {
   connection: 'Connection',
   spend: 'Spend',
   kpi_change: 'KPI change',
+  /*
+    Somebody asking to manage a branch they do not sit above. Kris's rule, 19 September: *"if
+    rights are needed then the admin must approve this"*.
+
+    It is its own kind rather than "Other" because of what it costs to get wrong: every other item
+    in this queue affects the business, and this one affects who can SEE other people's scorecards.
+    An administrator scanning the queue should be able to tell those apart at a glance.
+  */
+  rights: 'Rights',
 };
 
 export function fromStored(a: StoredApproval, at: Date): InboxItem {

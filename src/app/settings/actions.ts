@@ -7,6 +7,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getScope, assertAdministrator } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsToStore } from '@/lib/ceilings';
+import { revokeGrant } from '@/lib/rights';
 
 /**
  * Company settings.
@@ -119,4 +120,27 @@ export async function setTrainingSeat(formData: FormData) {
   revalidatePath('/settings');
   revalidatePath('/training');
   revalidatePath('/journey');
+}
+
+/**
+ * Take back rights over somebody else's branch.
+ *
+ * The other half of Kris's rule, 19 September: *"if rights are needed then the admin must approve
+ * this"*. An approval that can never be undone is not a decision, it is a one-way door — and the
+ * person who granted it is usually not the person who eventually needs to close it.
+ *
+ * `revokeGrant` stamps a date rather than deleting the row, and is tenant-scoped on every clause: a
+ * grant id arriving from a form is somebody else's text until the query proves otherwise, and this
+ * is the table that decides who reads whose numbers.
+ */
+export async function revokeRights(form: FormData) {
+  const user = await administrator();
+  const grantId = String(form.get('grantId') ?? '');
+  if (!grantId) return;
+
+  await revokeGrant(user.tenantId, grantId);
+
+  // Everywhere that asks scope a question. A right taken back has to stop working on the next page
+  // somebody opens, not whenever a cache happens to expire.
+  for (const path of ['/settings', '/org', '/team', '/inbox', '/my-page']) revalidatePath(path);
 }

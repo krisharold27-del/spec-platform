@@ -151,15 +151,28 @@ export const HELP: HelpGroup[] = [
         go: { href: '/setup/business', label: 'Your business on one page' },
         press: 'Send invite',
       },
+      /*
+        Rewritten on 19 September, the same hour the rights request was built.
+
+        The old answer said "there is no switch, on purpose" and was true when it was written. It
+        stopped being true the moment an administrator could grant a branch, and a help page that
+        confidently describes a product that has moved on is worse than no help page — somebody
+        following it concludes they are the problem rather than that the instructions are old.
+
+        It is still not a switch, and the first paragraph is kept word for word because that part
+        never changed: access follows the chart. What is new is the one case the chart cannot
+        express — covering somebody else's crew for a fortnight — and it is an ASK, not a setting.
+      */
       {
         ask: 'How do I change what someone can see?',
-        also: ['change access', 'permissions', 'make them an admin', 'access level'],
+        also: ['change access', 'permissions', 'make them an admin', 'access level', 'cover for someone'],
         cannot: true,
         say:
-          'There is no switch, on purpose. What somebody can see is decided by where they sit on the chart — move them '
-          + 'to a different role and it moves with them, the same minute, in both directions. So the answer to "give '
-          + 'Sarah more access" is "put Sarah in the role that has it".',
-        go: { href: '/org', label: 'Move them on the chart' },
+          'There is no switch, on purpose. What somebody can see follows where they sit on the chart — move them to a '
+          + 'different role and it moves with them, both ways, the same minute. For covering somebody else\u2019s crew '
+          + 'while they are away, press that role on the chart and ask the administrator for rights over it. They '
+          + 'decide in Approvals, and it is taken back from Company settings when the cover ends.',
+        go: { href: '/org', label: 'Move them, or ask on the chart' },
       },
       {
         ask: 'Somebody has left — what do I do?',

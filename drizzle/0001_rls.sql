@@ -151,7 +151,12 @@ begin
     -- Boards, and the two tables that hang off them. All three carry their own tenant_id — a
     -- comment and a viewer are scoped by the business, not only by the board, so that a board id
     -- guessed from a shared link still reaches nothing.
-    'boards', 'board_comments', 'board_viewers'
+    'boards', 'board_comments', 'board_viewers',
+    -- Rights over a branch somebody does not sit above, granted by an administrator. It carries its
+    -- own tenant_id rather than reaching the business through the role it points at, for the same
+    -- reason connection_credentials does: this table decides who can see whose scorecards, and a
+    -- policy that depends on a join is a policy with one more way to be wrong.
+    'role_grants'
   ]
   loop
     continue when to_regclass(t) is null;

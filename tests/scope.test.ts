@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mayShapeChart } from '../src/lib/scope';
+import { mayShapeChart, reachDown } from '../src/lib/scope';
 
 /**
  * ── The founder must not be locked out of their own chart ────────────────────────────────────────
@@ -59,5 +59,61 @@ describe('who may draw the org chart', () => {
   it('  and read-only is still read-only', () => {
     expect(mayShapeChart('readonly', null, new Set(), ours, 'mine')).toBe(false);
     expect(mayShapeChart('readonly', 'mine', VISIBLE, ours, 'mine')).toBe(false);
+  });
+});
+
+/**
+ * ── Rights over a branch somebody does not sit above ─────────────────────────────────────────────
+ *
+ * Kris's rule in full, 19 September: *"first person to start is admin rights - then managers only
+ * have rights to their staff - if rights are needed then the admin must approve this"*.
+ *
+ * The middle clause is `reachDown` from your own role. The last clause adds a second starting
+ * point: a branch an administrator granted. This is the function that decides who can read whose
+ * scorecard, so it is tested on the shape that matters — that a grant reaches exactly one branch
+ * and stops.
+ */
+describe('how far somebody can see', () => {
+  const CHART = [
+    { id: 'gm', reportsToRoleId: null },
+    { id: 'ops', reportsToRoleId: 'gm' },
+    { id: 'crew-a', reportsToRoleId: 'ops' },
+    { id: 'commercial', reportsToRoleId: 'gm' },
+    { id: 'estimator', reportsToRoleId: 'commercial' },
+    { id: 'off-chart', reportsToRoleId: null },
+  ];
+
+  it('your own role and everybody under it', () => {
+    expect([...reachDown(['ops'], CHART)].sort()).toEqual(['crew-a', 'ops']);
+  });
+
+  it('A GRANTED BRANCH IS REACHED TOO, and nothing beside it', () => {
+    expect([...reachDown(['ops', 'commercial'], CHART)].sort())
+      .toEqual(['commercial', 'crew-a', 'estimator', 'ops']);
+  });
+
+  it('a grant never reaches UP — managing a branch is not managing the business', () => {
+    expect(reachDown(['estimator'], CHART).has('commercial')).toBe(false);
+    expect(reachDown(['estimator'], CHART).has('gm')).toBe(false);
+  });
+
+  it('no role, no grants, nothing at all', () => {
+    expect(reachDown([], CHART).size).toBe(0);
+  });
+
+  it('a role that is not in this business is ignored rather than trusted', () => {
+    expect(reachDown(['another-company'], CHART).size).toBe(0);
+  });
+
+  /*
+    A chart that reports to itself is a bug in the data. The right behaviour is to stop, not to
+    hang the page somebody was trying to open.
+  */
+  it('and a chart that loops does not spin', () => {
+    const looped = [
+      { id: 'a', reportsToRoleId: 'b' },
+      { id: 'b', reportsToRoleId: 'a' },
+    ];
+    expect([...reachDown(['a'], looped)].sort()).toEqual(['a', 'b']);
   });
 });

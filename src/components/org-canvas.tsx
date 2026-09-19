@@ -12,7 +12,7 @@ import { AcePips, AceStar } from '@/components/ace-pips';
 import { ChartKey, ChartKeyDetail } from '@/components/chart-key';
 import {
   moveRole, movePerson, breakLink, vacateRole, addRole, removeRole, renameRole, renamePerson,
-  invitePerson, claimRole,
+  invitePerson, claimRole, requestRights,
 } from '@/app/org/actions';
 
 /**
@@ -1069,6 +1069,39 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                   <p className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-ink-light">
                     {readOnlyReason ?? 'This role is outside your part of the chart, so SPEC will not let you change it. You can change your own role and everybody who reports up to you.'}
                   </p>
+
+                  {/*
+                    ── Asking, rather than being stuck ────────────────────────────────────────
+
+                    Kris's rule, 19 September: *"managers only have rights to their staff - if
+                    rights are needed then the admin must approve this"*.
+
+                    Without this the sentence above is a wall. Somebody covering another
+                    supervisor's crew for a fortnight had two options — do without, or be handed an
+                    administrator account, which throws the whole rule away to solve a fortnight.
+
+                    Only offered where asking makes sense: a role that really is outside their part
+                    of the chart. Somebody who is read-only, or not placed at all, has a different
+                    problem and a different sentence, and a button here would be answering the
+                    wrong question.
+                  */}
+                  {canEdit && !readOnlyReason && (
+                    <form action={requestRights} className="mt-2 rounded-xl bg-cream p-3">
+                      <input type="hidden" name="roleId" value={selected.id} />
+                      <label className="block text-[13px] text-ink-light" htmlFor="org-why">
+                        Need to manage {selected.title} and everybody under it?
+                      </label>
+                      <input
+                        id="org-why"
+                        name="why"
+                        className="mt-1.5 min-h-[40px] w-full rounded-md border border-ink/15 bg-surface-raised px-3 py-2 text-sm text-ink"
+                        placeholder="Why, in a line — it goes to the administrator"
+                      />
+                      <button className="btn-secondary mt-2 w-full sm:w-auto">
+                        Ask the administrator for rights
+                      </button>
+                    </form>
+                  )}
                 </div>
               )}
 
