@@ -10,6 +10,7 @@ import { WhereYouSit, NobodyBelow, MyWeek, AskBar, WhoAndWhen } from '@/componen
 import { rhythm, rhythmLine } from '@/lib/rhythm';
 import { myMail } from '@/lib/mail';
 import { registerFor } from '@/lib/register-data';
+import { snapScore } from '@/lib/register';
 import { currentLook } from '@/lib/look';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById, PILLARS } from '@/lib/queries';
@@ -117,7 +118,17 @@ export default async function MyPage({
     the name and their own four pillars, which are the things they can actually act on.
   */
   const scope = await getScope(user);
-  const power = await powerMeterFor({ tenantId: user.tenantId, visible: scope.visible });
+  /*
+    The Snap Score goes IN to the meter as the twenty-fifth measure rather than sitting beside it
+    as a second opinion — Kris, 19 September: *"snap score can be added to the Virtual GM power
+    meter and be the 25th data point"*. Computed from the same register read the page draws below,
+    so the two can never disagree.
+  */
+  const power = await powerMeterFor({
+    tenantId: user.tenantId,
+    visible: scope.visible,
+    snap: snapScore(register),
+  });
   // Manages somebody: their scope reaches past their own role. The same population the design gives
   // the number to, worked out from the chart rather than from a flag anybody sets.
   const runsAnything = scope.visible.size > 1;

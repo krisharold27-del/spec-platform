@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
   FRAMEWORK, HEAVY_SLOTS, SHARED_SLOTS, HEAVY_POINTS, SHARED_POINTS, ENOUGH_SLOTS,
   powerReading, readSlot, bandOf, ringOffset, coverageLine, scopeLabel, sourcesOf,
+  readSnapSlot, SNAP_MET_AT,
   type Measure, type Slot,
 } from '../src/lib/power-meter';
 import { PILLARS } from '../src/lib/scoring';
@@ -29,14 +30,21 @@ const measure = (text: string, answer: Measure['answer'], over: Partial<Measure>
   ...over,
 });
 
-/** A business measuring everything, all of it going well. */
+/**
+ * A business measuring everything, all of it going well.
+ *
+ * The Snap Score is not in here and cannot be: it is the one slot no business writes down, so it
+ * is handed to `powerReading` separately. `GOOD_SNAP` is what a business that closes things out
+ * looks like.
+ */
 const everythingMet = (): Measure[] => FRAMEWORK.map(s => measure(s.name, 'Y'));
+const GOOD_SNAP = { pct: 88, early: false };
 
 describe('the framework itself', () => {
-  it('IS TWENTY-FOUR MEASURES: five heavy hitters and nineteen others', () => {
+  it('IS TWENTY-FIVE MEASURES: five heavy hitters and twenty others', () => {
     expect(HEAVY_SLOTS).toBe(5);
-    expect(SHARED_SLOTS).toBe(19);
-    expect(FRAMEWORK).toHaveLength(24);
+    expect(SHARED_SLOTS).toBe(20);
+    expect(FRAMEWORK).toHaveLength(25);
   });
 
   /*
@@ -191,7 +199,7 @@ const JBI_KPIS = [
 ];
 
 describe('against the words a real business actually uses', () => {
-  const met = (texts: readonly string[]) => powerReading(texts.map(t => measure(t, 'Y')));
+  const met = (texts: readonly string[]) => powerReading(texts.map(t => measure(t, 'Y')), GOOD_SNAP);
 
   it('FINDS ALL FIVE HEAVY HITTERS IN JBI’S OWN KPIS', () => {
     const reading = met(JBI_KPIS);
@@ -231,12 +239,13 @@ describe('against the words a real business actually uses', () => {
     generous reading — widening the matchers must never turn into matching everything.
   */
   it('AND STILL SEES NOTHING IN THE ONES IT HAS NO SLOT FOR', () => {
-    const reading = met([
+    // No Snap Score handed in either, so this really is only the text matching being asked.
+    const reading = powerReading([
       'Client net promoter score at or above target',
       'Quote-to-win conversion ratio at target (segmented by sector once data allows)',
       'Department 100% staffed (hires or AI-covered roles)',
       'Job notes and timesheets complete same day',
-    ]);
+    ].map(t => measure(t, 'Y')));
     expect(reading.measured).toBe(0);
     expect(reading.score).toBeNull();
   });
@@ -250,10 +259,10 @@ describe('against the words a real business actually uses', () => {
 
 describe('the reading', () => {
   it('IS 100 WHEN EVERYTHING MEASURED WENT WELL', () => {
-    const reading = powerReading(everythingMet());
+    const reading = powerReading(everythingMet(), GOOD_SNAP);
     expect(reading.score).toBe(100);
     expect(reading.band).toBe('green');
-    expect(reading.measured).toBe(24);
+    expect(reading.measured).toBe(25);
   });
 
   /*
@@ -261,25 +270,25 @@ describe('the reading', () => {
     criterion is not failing TRIFR — SPEC simply cannot see it, and counting an absence as a miss
     would make the meter a punishment for not having bought more software.
   */
-  it('AND IS SCORED OUT OF WHAT IT CAN SEE, NOT OUT OF TWENTY-FOUR', () => {
+  it('AND IS SCORED OUT OF WHAT IT CAN SEE, NOT OUT OF TWENTY-FIVE', () => {
     const half = FRAMEWORK.slice(0, 12).map(s => measure(s.name, 'Y'));
     const reading = powerReading(half);
     expect(reading.score).toBe(100);
     expect(reading.measured).toBe(12);
-    expect(coverageLine(reading)).toContain('12 of the 24');
+    expect(coverageLine(reading)).toContain('12 of the 25');
   });
 
   it('and one heavy hitter missed costs fifteen of the hundred', () => {
     const all = everythingMet();
     const withMiss = all.map(m => (m.text === 'Gross profit margin' ? { ...m, answer: 'N' as const } : m));
-    expect(powerReading(withMiss).score).toBe(85);
+    expect(powerReading(withMiss, GOOD_SNAP).score).toBe(85);
   });
 
   it('and one of the nineteen costs a point and a third', () => {
     const all = everythingMet();
     const withMiss = all.map(m => (m.text === 'Debtor days' ? { ...m, answer: 'N' as const } : m));
-    // 25 - 25/19 = 23.68 of 100 → 99 once rounded. A small measure moves the number a small amount.
-    expect(powerReading(withMiss).score).toBe(99);
+    // 25 - 25/20 = 23.75 of 100 → 99 once rounded. A small measure moves the number a small amount.
+    expect(powerReading(withMiss, GOOD_SNAP).score).toBe(99);
   });
 
   it('and the bands are the design’s: green from 85, amber from 60', () => {
@@ -289,6 +298,98 @@ describe('the reading', () => {
     expect(bandOf(60)).toBe('amber');
     expect(bandOf(59)).toBe('red');
     expect(bandOf(null)).toBe('unknown');
+  });
+});
+
+describe('the twenty-fifth measure — the Snap Score', () => {
+  /*
+    Kris, 19 September: *"snap score can be added to the Virtual GM power meter and be the 25th
+    data point"*.
+
+    Every other slot is matched against a KPI somebody wrote down. This one is computed from the
+    improvement register — how much of what the business finds it actually closes out. It is the
+    only measure here that no business has to remember to create.
+  */
+  const snapSlot = () => FRAMEWORK.find(s => s.id === 'snap_score')!;
+
+  it('IS ONE OF THE TWENTY SHARING THE 25, NOT A SIXTH HEAVY HITTER', () => {
+    expect(snapSlot().weight).toBe('shared');
+    expect(FRAMEWORK.filter(s => s.weight === 'heavy')).toHaveLength(5);
+  });
+
+  /*
+    Seventy-five is the product's OWN green line for the Snap Score, the one the register's pill
+    has always used. A different number here would give a business two official opinions about the
+    same score on two screens, and the argument would be about SPEC rather than about the business.
+  */
+  it('IS MET AT THE PRODUCT’S OWN GREEN LINE, NOT A NEW ONE', () => {
+    expect(SNAP_MET_AT).toBe(75);
+    expect(readSnapSlot({ pct: 75, early: false }).state).toBe('met');
+    expect(readSnapSlot({ pct: 74, early: false }).state).toBe('not_met');
+    expect(readSnapSlot({ pct: 97, early: false }).state).toBe('met');
+  });
+
+  /*
+    Three problems is not a pattern. A business that has only just started logging them has not
+    failed at closing things out — it has nothing to close yet, which is not the same thing and
+    must not cost it points.
+  */
+  it('AND A REGISTER TOO YOUNG TO READ IS NOT A FAILURE', () => {
+    expect(readSnapSlot({ pct: null, early: true }).state).toBe('not_measured');
+    expect(readSnapSlot(null).state).toBe('not_measured');
+    expect(readSnapSlot(undefined).state).toBe('not_measured');
+  });
+
+  /*
+    It has no criterion behind it, so it cannot list one — and a row with no provenance at all is
+    the one thing this list refuses to draw. Every other row says where it came from; the one that
+    did not would be the one nobody could argue with.
+  */
+  it('AND STILL SAYS WHERE IT CAME FROM', () => {
+    expect(readSnapSlot({ pct: 88, early: false }).note).toContain('improvement register');
+    expect(readSnapSlot({ pct: 88, early: false }).note).toContain('88');
+    expect(readSnapSlot({ pct: null, early: true }).note).toContain('too few problems logged');
+    const page = readFileSync('src/components/power-meter.tsx', 'utf8');
+    expect(page).toContain('reading.note');
+  });
+
+  /*
+    The guard that stops a business feeding this slot by naming a KPI after it. Every other slot is
+    matched on text; this one must never be, or "Snap Score at target" on somebody's scorecard
+    would quietly overwrite the computed reading with an opinion.
+  */
+  it('AND CANNOT BE FED BY A KPI THAT SIMPLY NAMES IT', () => {
+    const reading = powerReading([
+      measure('Snap Score at or above target', 'Y'),
+      measure('Problems closed out (Snap Score)', 'Y'),
+      measure('Improvement register kept up to date', 'Y'),
+    ], null);
+    const snap = reading.shared.find(r => r.slot.id === 'snap_score')!;
+    expect(snap.state).toBe('not_measured');
+    expect(snap.from).toEqual([]);
+  });
+
+  it('and it moves the reading like any other of the twenty', () => {
+    const all = everythingMet();
+    const good = powerReading(all, { pct: 90, early: false });
+    const bad = powerReading(all, { pct: 40, early: false });
+    expect(good.score).toBe(100);
+    // One of twenty sharing 25 points is 1.25 of 100 — small, and real.
+    expect(bad.score).toBe(99);
+    expect(good.measured).toBe(25);
+    expect(bad.measured).toBe(25);
+  });
+
+  it('and names itself when it is the thing that slipped', () => {
+    const reading = powerReading(everythingMet(), { pct: 40, early: false });
+    const snap = reading.shared.find(r => r.slot.id === 'snap_score')!;
+    expect(snap.cause).toContain('Snap Score 40');
+    /*
+      But it is never the headline cause. That line is reserved for the five heavy hitters: fifteen
+      points is the largest single move the reading can make, and naming a measure worth 1.25 as
+      the reason would be true and useless.
+    */
+    expect(reading.cause).toBeNull();
   });
 });
 
@@ -344,7 +445,7 @@ describe('when it refuses to put a number up', () => {
   });
 
   it('and the coverage is stated on every reading, not only the bad ones', () => {
-    expect(coverageLine(powerReading(everythingMet()))).toContain('24 of the 24');
+    expect(coverageLine(powerReading(everythingMet(), GOOD_SNAP))).toContain('25 of the 25');
   });
 
   /*
@@ -392,12 +493,12 @@ describe('the sentence under the number', () => {
     const all = everythingMet().map(m => (m.text === 'Gross profit margin'
       ? { ...m, answer: 'N' as const, result: '33%', target: '40%' }
       : m));
-    expect(powerReading(all).cause).toBe('Gross profit margin — 33% against a target of 40%');
+    expect(powerReading(all, GOOD_SNAP).cause).toBe('Gross profit margin — 33% against a target of 40%');
   });
 
   it('and says what it can when no figure was entered', () => {
     const all = everythingMet().map(m => (m.text === 'Safety incidents' ? { ...m, answer: 'N' as const } : m));
-    expect(powerReading(all).cause).toContain('marked not met this month');
+    expect(powerReading(all, GOOD_SNAP).cause).toContain('marked not met this month');
   });
 
   /*
@@ -408,11 +509,11 @@ describe('the sentence under the number', () => {
   it('AND A TARGET OF ZERO STILL READS LIKE ENGLISH', () => {
     const all = everythingMet().map(m => (m.text === 'Negative staff turnover'
       ? { ...m, answer: 'N' as const, target: '0' } : m));
-    expect(powerReading(all).cause).toBe('Negative staff turnover — not met this month, against a target of 0');
+    expect(powerReading(all, GOOD_SNAP).cause).toBe('Negative staff turnover — not met this month, against a target of 0');
   });
 
   it('and there is no cause when nothing heavy was missed', () => {
-    expect(powerReading(everythingMet()).cause).toBeNull();
+    expect(powerReading(everythingMet(), GOOD_SNAP).cause).toBeNull();
   });
 });
 

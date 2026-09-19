@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { answerFor } from './status';
-import { powerReading, type Measure, type PowerReading } from './power-meter';
+import { powerReading, type Measure, type PowerReading, type SnapReading } from './power-meter';
 
 /**
  * The Power Meter, against the database.
@@ -37,6 +37,15 @@ export interface PowerMeterInput {
   tenantId: string;
   /** The roles this viewer may see — their own and everything beneath it. */
   visible: ReadonlySet<string>;
+  /**
+   * The twenty-fifth measure, computed rather than matched.
+   *
+   * Handed in rather than read here, deliberately: the Snap Score is a read of the improvement
+   * REGISTER, and the page already has exactly that read for the register it draws below. Querying
+   * it a second time from in here would be a second definition of the same number, one refactor
+   * away from the two screens disagreeing.
+   */
+  snap?: SnapReading | null;
 }
 
 export interface PowerMeterResult {
@@ -49,7 +58,7 @@ export interface PowerMeterResult {
 
 export async function powerMeterFor(input: PowerMeterInput): Promise<PowerMeterResult> {
   const roleIds = [...input.visible];
-  const empty = { reading: powerReading([]), period: null, stale: false };
+  const empty = { reading: powerReading([], input.snap), period: null, stale: false };
   if (!roleIds.length) return empty;
 
   /*
@@ -127,7 +136,7 @@ export async function powerMeterFor(input: PowerMeterInput): Promise<PowerMeterR
     });
 
     return {
-      reading: powerReading(measures),
+      reading: powerReading(measures, input.snap),
       period: candidate.period,
       stale: candidate.period !== periods[0].period,
     };

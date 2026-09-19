@@ -234,6 +234,7 @@ function SlotRow({ reading, quiet = false }: { reading: SlotReading; quiet?: boo
 
   return (
     <div
+      title={quiet ? reading.note : undefined}
       className={quiet
         ? 'flex items-center justify-between gap-3 text-[13px] leading-[22px] text-ink-light'
         : 'flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-cream px-3.5 py-2.5'}
@@ -256,6 +257,13 @@ function SlotRow({ reading, quiet = false }: { reading: SlotReading; quiet?: boo
             from {sourcesOf(reading).map(s => (s.roles > 1 ? `${s.text} (${s.roles} roles)` : s.text)).join('; ')}
           </span>
         )}
+        {/*
+          The twenty-fifth measure has no criterion behind it — the Snap Score is computed from the
+          improvement register — so it carries its own provenance. A row with no provenance at all
+          is the one thing this list refuses to draw: every other row says where it came from, and
+          the one that did not would be the one nobody could argue with.
+        */}
+        {!quiet && reading.note && <span className="text-xs text-ink-light">{reading.note}</span>}
       </span>
       <span className="shrink-0 text-xs font-semibold" style={{ color: tone }}>{said}</span>
     </div>

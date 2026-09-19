@@ -9,10 +9,15 @@ import type { Pillar, Answer } from './scoring';
  *
  * ── The framework ───────────────────────────────────────────────────────────────────────────────
  *
- * Twenty-four measures, and they are not equally important. Five are heavy hitters carrying 15
+ * Twenty-five measures, and they are not equally important. Five are heavy hitters carrying 15
  * points each — the ones that end a business rather than dent it: somebody hurt, a workers' comp
  * claim, gross profit below the line, a contract breached, people leaving faster than they arrive.
- * The other nineteen share the remaining 25 between them.
+ * The other twenty share the remaining 25 between them.
+ *
+ * Twenty-four of them are the business's own KPIs. The twenty-fifth is the **Snap Score** — how
+ * much of what this business finds, it actually closes out — which SPEC computes from the
+ * improvement register rather than reading off anybody's scorecard. Kris, 19 September: *"snap
+ * score can be added to the Virtual GM power meter and be the 25th data point"*.
  *
  * That weighting IS the opinion the meter exists to express. A business with immaculate debtor days
  * and an injured apprentice is not doing well, and an average that says otherwise is worse than no
@@ -30,7 +35,7 @@ import type { Pillar, Answer } from './scoring';
  *
  * A business's KPIs are its own words. "Gross profit margin at or above target", "GP%", "Margin
  * holding on solar" — the framework slot is the same one. So SPEC matches its own criteria to the
- * twenty-four, and the match is SHOWN rather than hidden, because a mapping somebody can see is a
+ * framework, and the match is SHOWN rather than hidden, because a mapping somebody can see is a
  * mapping somebody can correct.
  *
  * What it must never do is **count a slot it has no measure for**. A business with no TRIFR
@@ -58,7 +63,7 @@ export interface Slot {
 
 /** Each of the five. Five times fifteen is seventy-five. */
 export const HEAVY_POINTS = 15;
-/** Shared equally by the nineteen. */
+/** Shared equally by the twenty. */
 export const SHARED_POINTS = 25;
 
 /**
@@ -91,10 +96,19 @@ const HEAVY: Slot[] = [
 ];
 
 /**
- * The nineteen, in the framework's own order and grouped by pillar.
+ * A pattern that cannot match anything, for the one slot that is computed rather than matched.
  *
- * "Negative turnover" above and "absenteeism" here are different questions — one is people leaving,
- * the other is people not turning up — and a business that conflates them loses the early warning.
+ * `(?!)` is a negative lookahead on the empty string, which always fails. Written as a named
+ * constant so it reads as a decision rather than as a typo somebody will helpfully "fix".
+ */
+const NEVER_MATCHES = /(?!)/;
+
+/**
+ * The twenty, in the framework's own order and grouped by pillar.
+ *
+ * "Negative turnover" among the five above and "absenteeism" here are different questions — one is
+ * people leaving, the other is people not turning up — and a business that conflates them loses the
+ * early warning.
  */
 const SHARED: Slot[] = [
   { id: 'trifr', name: 'TRIFR', pillar: 'safety', weight: 'shared', matches: /\btrifr\b|total recordable/i },
@@ -119,6 +133,26 @@ const SHARED: Slot[] = [
   { id: 'audit', name: 'Audit pass rate', pillar: 'compliance', weight: 'shared', matches: /audit/i },
   { id: 'corrective', name: 'Corrective actions closed on time', pillar: 'compliance', weight: 'shared', matches: /corrective action|non[- ]?conformance|\bncr\b/i },
   { id: 'licensing', name: 'Licensing currency', pillar: 'compliance', weight: 'shared', matches: /licen[cs]|ticket|accredit|certificat|registration current/i },
+
+  /*
+    ── The twenty-fifth, and the only one no business writes down ──────────────────────────────
+
+    Kris, 19 September: *"snap score can be added to the Virtual GM power meter and be the 25th
+    data point"*.
+
+    Every other slot is matched against a KPI somebody wrote. This one is COMPUTED — from the
+    improvement register, by `snapScore` in lib/register: how much of what the business finds it
+    actually closes out, less a hard penalty for reopens and recurrences. "Not a count of problems
+    — a read of the engine."
+
+    It never matches text, and `NEVER_MATCHES` is how that is enforced rather than promised: a
+    business with a KPI reading "snap score" must not be able to feed this slot by naming it.
+
+    Filed under compliance because that is where "did the fix hold" already lives, next to
+    corrective actions. It is the one slot that genuinely spans all four pillars, and compliance is
+    the least wrong home rather than the right one.
+  */
+  { id: 'snap_score', name: 'Problems closed out (Snap Score)', pillar: 'compliance', weight: 'shared', matches: NEVER_MATCHES },
 ];
 
 export const FRAMEWORK: Slot[] = [...HEAVY, ...SHARED];
@@ -147,6 +181,13 @@ export interface SlotReading {
   state: SlotState;
   /** Why it was missed, in the business's own figures. Null unless it was. */
   cause: string | null;
+  /**
+   * Where a COMPUTED slot came from, in place of `from`.
+   *
+   * Only the Snap Score has one: it is not matched to anybody's KPI, so there is nothing to list —
+   * but a row with no provenance at all is the thing this file refuses to draw. See `readSnapSlot`.
+   */
+  note?: string;
 }
 
 /**
@@ -218,6 +259,50 @@ function gapOf(slot: Slot, measure: Measure): string {
 }
 
 /**
+ * The line at which "closing things out" counts as met.
+ *
+ * Seventy-five, which is the product's OWN green line for the Snap Score — the same number the
+ * register's pill has always used. Taking a different one here would give a business two official
+ * opinions about the same score, on two screens, and the argument would be about SPEC rather than
+ * about the business.
+ */
+export const SNAP_MET_AT = 75;
+
+/** The Snap Score, as `lib/register` computes it: null and `early` until there is enough to read. */
+export interface SnapReading {
+  pct: number | null;
+  early: boolean;
+}
+
+/**
+ * The twenty-fifth slot, which no business writes down.
+ *
+ * Three states like every other. `early` — fewer than three problems logged — is **not measured**
+ * rather than a fail: three problems is not a pattern, and a business that has only just started
+ * logging them has not failed at closing things out, it simply has nothing to close yet.
+ */
+export function readSnapSlot(snap: SnapReading | null | undefined): SlotReading {
+  const slot = FRAMEWORK.find(s => s.id === 'snap_score')!;
+  if (!snap || snap.early || snap.pct === null) {
+    return {
+      slot,
+      from: [],
+      state: 'not_measured',
+      cause: null,
+      note: 'from the improvement register — too few problems logged yet to read',
+    };
+  }
+  const met = snap.pct >= SNAP_MET_AT;
+  return {
+    slot,
+    from: [],
+    state: met ? 'met' : 'not_met',
+    cause: met ? null : `${slot.name} — Snap Score ${snap.pct}, against ${SNAP_MET_AT} for a business that closes things out`,
+    note: `from the improvement register — Snap Score ${snap.pct}`,
+  };
+}
+
+/**
  * How much of itself the meter has to see before it will put a number up.
  *
  * Six of twenty-four, and at least one of the five heavy hitters. Stated here rather than buried,
@@ -271,9 +356,14 @@ const VERDICT: Record<Band, string> = {
  * leaves both sides of the fraction, so a business that measures six things well reads well and is
  * told plainly that it is a reading of six things.
  */
-export function powerReading(measures: readonly Measure[]): PowerReading {
+export function powerReading(measures: readonly Measure[], snap?: SnapReading | null): PowerReading {
   const heavy = HEAVY.map(s => readSlot(s, measures));
-  const shared = SHARED.map(s => readSlot(s, measures));
+  /*
+    Every shared slot is matched against the business's own KPIs except one. The Snap Score is
+    computed from the improvement register, so it is read from that instead — and it is placed in
+    the same list, in the same order, because on the screen it is simply the twentieth measure.
+  */
+  const shared = SHARED.map(s => (s.id === 'snap_score' ? readSnapSlot(snap) : readSlot(s, measures)));
 
   const heavyMeasured = heavy.filter(r => r.state !== 'not_measured').length;
   const heavyMet = heavy.filter(r => r.state === 'met').length;
