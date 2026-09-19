@@ -14,147 +14,160 @@ Nothing here needs me. Every step is a screen you log into.
 
 ## What the product actually needs
 
-Four settings. There is no publishable key — SPEC uses Stripe's hosted Checkout and never
-renders a card field, so there is nothing for a browser-side key to do.
+**Two settings.** That is the whole list.
+
+There is no publishable key — SPEC uses Stripe's hosted Checkout and never renders a card field, so
+there is nothing for a browser-side key to do. And there are no price IDs to set any more: they are
+facts about the live account, so they live in `src/lib/pricing.ts` beside the amounts they name,
+where the two cannot drift apart one at a time.
 
 | Setting | What it is |
 |---|---|
 | `STRIPE_SECRET_KEY` | `sk_test_…`, then `sk_live_…` |
-| `STRIPE_PRICE_SEAT_MONTHLY` | The **AUD** seat price ID, `price_…` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…`, from the endpoint you create in step 5 |
-| `STRIPE_PRICE_SEAT_TRAINING_MONTHLY` | The **AUD** price ID for `SPEC seat plus training`, `price_…` |
 
-The fourth is only needed once a business puts a frontline leader on SPEC's training material. Until
-then nothing reads it. The moment one is on it, **checkout refuses rather than charging them the
-A$26 rate** — a subscription quietly A$18 a person short every month is the kind of thing nobody ever
-looks at, and stopping is recoverable where that is not.
+Four more are **read if set and otherwise ignored**, and exist only so a deployment can be pointed
+at test-mode prices without a release. Leave them empty and the live ids below are used:
+`STRIPE_PRICE_SEAT_MONTHLY`, `STRIPE_PRICE_SEAT_TRAINING_MONTHLY`,
+`STRIPE_PRICE_TEAM_SEAT_MONTHLY`, `STRIPE_PRICE_TEAM_SEAT_ADVANCED_MONTHLY`.
 
 ---
 
 ## 1. The account
 
-stripe.com → create an account for **SPEC Business Solutions**, Australia.
+stripe.com → the account for **SPEC Business Solutions**, Australia — `acct_1UCYbyGjbPN3KVS7`.
 
 Complete business verification: ABN, business address, director ID, and the bank account payouts go
-to. **This is the only step with a waiting time** — identity checks can take a day. Start it first
-and do everything else while it clears; test mode works immediately regardless.
+to. **This is the only step with a waiting time** — identity checks can take a day. Test mode works
+immediately regardless.
 
 ## 2. Tax
 
-Settings → Tax → enable **Stripe Tax**, and set your GST registration status.
+Settings → Tax → **Stripe Tax** on, with your GST registration status set.
 
-Worth doing before the first real payment rather than after. Retro-fixing GST on invoices already
+Every SPEC product uses tax code **`txcd_10103101`** (SaaS, business use). AUD, NZD, GBP and EUR
+prices are tax-**inclusive** — the Australian figures include GST — and USD and CAD are
+tax-exclusive, which is Stripe's default for those currencies. The pricing page says so, because
+A$134 and US$134 are the same number and not the same price.
+
+Worth checking before the first real payment rather than after. Retro-fixing GST on invoices already
 issued is an accountant's afternoon.
 
-## 3. Four products
+## 3. The products — already created
 
-SPEC sells four things, and the administrator decides which one a business is on — see
-`PACKAGES` in `src/lib/pricing.ts`.
+**Nothing to do here.** Confirmed against the live account on 19 September 2026. This section is the
+record, so that anybody comparing the code to Stripe has one table to compare it with.
 
-| | What it is | Price | Billed | Sold where |
-|---|---|---|---|---|
-| **Seat** | One person in SPEC | **A$26** | per person, monthly, **first seat free** | anywhere |
-| **Seat plus training** | The same, plus the training built into SPEC, done online | **A$44** | per person, monthly, **first seat free** | anywhere |
-| **SPEC sessions** | Four one-hour sessions a month, delivered by you, built around their roles and how they actually use SPEC | **A$1,007** | flat, monthly | anywhere — delivered from Australia |
-| **Full SPEC control** | One full day a week on site, and the monthly board meeting chaired | **A$20,888** | flat, monthly | **Australia only** |
+| Product | Product ID | Price ID | AUD | NZD | GBP | EUR | USD | CAD |
+|---|---|---|---|---|---|---|---|---|
+| SPEC Leadership seat - Basic | `prod_VHtnsfpPRSp6no` | `price_1UHK06GjbPN3KVS7Erx7Aeum` | 134 | 180 | 88 | 134 | 134 | 180 |
+| SPEC Leadership seat - Advanced | `prod_VHtrdn6wF9T8JM` | `price_1UHK3PGjbPN3KVS7vot0UtCu` | 227 | 305 | 149 | 227 | 227 | 305 |
+| SPEC Team seat - Basic | `prod_VHtt211YPktGXS` | `price_1UHK5hGjbPN3KVS7hzoKltlI` | 17 | 23 | 11 | 17 | 17 | 23 |
+| SPEC Team seat - Advanced | `prod_VHtv5osYcg3Snq` | `price_1UHK7lGjbPN3KVS7EXlND5Xg` | 29 | 39 | 19 | 29 | 29 | 39 |
+| SPEC Training | `prod_VHtwe8HgAnBYdW` | `price_1UHK94GjbPN3KVS7FE5GGzAC` | 1,502 | — | — | — | — | — |
 
-Every one of those reduces to 8 by digit sum. 1008 was the first number for the sessions tier and
-reduces to 9 — `tests/packages.test.ts` records that, so nobody re-introduces it by rounding.
+All amounts are per month. Stripe stores them in minor units, so A$134 is `13400`.
 
-### The two seat products
-
-Products → **Add product** → `SPEC seat`, then `SPEC seat plus training`.
-
-**What the A$44 actually is**, because it was a number with nothing behind it until 16 September:
-the seat, plus **SPEC's own training material for frontline leaders** — twelve modules across the
-four pillars, done online at their own pace. The A$26 seat keeps everything it already had,
-including the training machinery itself: a curriculum per role, paths, progress, sign-off. What it
-does not get is the material, which a business on A$26 writes for itself.
-
-**It is a seat, not a plan.** The administrator puts individual people on it, and only people
-holding a frontline leader role — a supervisor or team leader. Not the stream heads, not the GM, not
-team members. So a business of forty with six supervisors is billed **six at A$44 and thirty-three
-at A$26** (one seat is free), on two lines of one subscription. A single line at one rate would have
-to pick which lie to tell.
-
-Each one gets **six monthly recurring prices on that same product** — not six products. The code
-finds the right currency by looking up other prices *on the same product*, so a second product is
-invisible to it.
-
-### Design 15 — two seats, not one
-
-Kris, 19 September: **"if you lead people, you're a leadership seat. If you're led, you're a team
-seat in a pool."** The single flat seat is gone. So is the A$44 *seat plus training*, which was
-published for months and never sellable; the same slot is now the seat **with the AI on it**.
-
-Which seat a person is on is read from the **org chart** — anybody with a direct report is a
-leadership seat — not from their job title. SPEC never has to guess.
+The same four seat prices by currency, which is the order the pricing page prints them and the
+order `SEAT_PRICES` in `src/lib/pricing.ts` holds them:
 
 | Currency | Leadership seat | Leadership + AI | Team seat | Team + AI |
 |---|---|---|---|---|
-| AUD | 134 | 224 | 17 | 26 |
-| NZD | 179 | 296 | 26 | 44 |
-| GBP | 89 | 152 | 8 | 17 |
-| EUR | 134 | 224 | 17 | 26 |
-| USD | 134 | 224 | 17 | 26 |
-| CAD | 179 | 296 | 26 | 44 |
+| AUD | 134 | 227 | 17 | 29 |
+| NZD | 180 | 305 | 23 | 39 |
+| GBP | 88 | 149 | 11 | 19 |
+| EUR | 134 | 227 | 17 | 29 |
+| USD | 134 | 227 | 17 | 29 |
+| CAD | 180 | 305 | 23 | 39 |
 
-The design draws the AI seats at **$227** and **$29**. Neither reduces to 8, which every published
-price in this product does, so neither could be published. Kris, given the nearest numbers that
-obey the rule: **"224 and 26"**.
+### One price per product, six currencies on it
 
-Copy the **AUD leadership** price ID into `STRIPE_PRICE_SEAT_MONTHLY`, and the **AUD leadership with
-AI** price ID into `STRIPE_PRICE_SEAT_TRAINING_MONTHLY`. The other currencies are found through
-whichever applies, by matching the exact published amount on the same product.
+Each seat is **one Price object** with AUD as its default currency and the other five as
+`currency_options` on that same price — not six prices, and not six products. Checkout passes the
+currency and Stripe reads the matching option.
 
-### What to actually do in Stripe
+That is a change from how this document used to describe the account, and it changed the code with
+it: `/api/stripe/checkout` used to *search* a product for a price in the customer's currency and
+fall back to AUD when it found none. There was never one to find, so the search could only ever
+fail and fall through — right answer, wrong reason, two Stripe round trips to get there. It now
+sets `currency` on the session. If a currency has no option on a price Stripe refuses the session
+rather than quietly charging Australian dollars.
 
-**Four products, not four prices on one.** The checkout route finds a price by currency *and exact
-amount* within a product, so two different amounts on the same product is ambiguous and it could
-charge the wrong one:
+### Which seat a person is on
 
-  `SPEC leadership seat` · `SPEC leadership seat with AI` · `SPEC team seat` · `SPEC team seat with AI`
+Kris, 19 September: **"if you lead people, you're a leadership seat. If you're led, you're a team
+seat in a pool."**
 
-Each gets **six monthly recurring prices on that same product**, one per currency, at the exact
-figures above. A price that drifts from this table is never charged — checkout logs it and falls
-back — which is safe and invisible, so the table has to be right.
+SPEC reads it from the **org chart** and from the title, and a person is a leadership seat if
+**either** says so — somebody reports to their role, or their title contains leader / supervisor /
+manager / director / head of. Title alone lets a business rename its way to cheaper seats; the
+chart alone bills a Site Supervisor as a team seat until somebody draws their crew. See
+`seatKindFor` in `src/lib/chart-seats.ts`, which is now the only copy of that rule.
 
-- **Recurring monthly, per-unit with a quantity.** SPEC sets the quantity as seats change.
-- **One subscription per business with several subscription items**, not several subscriptions —
-  one invoice, one billing cycle.
-- **Archive the old A$26 seat price. Do not delete it.** Live subscriptions reference it and
-  deleting breaks them; archiving only stops new use.
-- **Existing customers do not re-price themselves.** Moving them is a deliberate act on each
-  subscription, and it should be a decision rather than a side effect of this change.
-- **The free first seat stays in SPEC's maths**, not a Stripe coupon — one place owns that rule, and
+A person with a login and no role at all is a **team seat**.
+
+### What a subscription looks like
+
+One subscription per business, with **two line items**: Leadership seat × the number of leaders, and
+Team seat × the number of team members, both on the same tier. A business of forty with six leaders
+pays six leadership seats and thirty-three team seats — the first seat is free, and it comes off a
+team seat because that is the cheaper of the two.
+
+- **Recurring monthly, per-unit with a quantity.** Seat counts change through subscription quantity
+  updates, prorated by Stripe's default behaviour.
+- **Basic and Advanced never mix.** A subscription is one tier across both lines.
+- **The free first seat stays in SPEC's maths**, not a Stripe coupon — one place owns that rule and
   it is `lib/plan`.
-- Price IDs go from the Stripe dashboard **straight into the Vercel settings box**. Never a chat, a
-  file, or a commit.
+- **Existing customers do not re-price themselves.** Moving one is a deliberate act on that
+  subscription, and should be a decision rather than a side effect.
 
-Until those products exist, the pages state the new prices and billing still charges the old seat
-price. That gap is deliberate and Kris's call of 19 September — *"build and publish now"* — and it
-closes the moment the price IDs are in.
+### Advanced is live in Stripe and not yet sellable in SPEC
 
-**The amounts have to match exactly.** `src/app/api/stripe/checkout/route.ts` matches on currency
-*and* the exact amount, so a price that has drifted from this table is never charged — it falls back
-to AUD and logs `no published seat price in Stripe for …`. Safe, and silent.
+All four seat prices are real and a customer could be charged A$227 today. What does not exist is
+the half that decides **who**: nothing in SPEC chooses Advanced, nothing gates the assistant on it,
+and no screen offers the choice. So every business is billed **Basic** until `AI_TIER_ON_SALE` in
+`src/lib/plan.ts` is deliberately switched on.
 
-### The two that are your week, not a seat
+`tenants.tier` is not that switch and must not be pressed into being one. It defaults to
+`advanced` and has not been read since the tiers were collapsed on 18 September, so wiring checkout
+to it would move every existing business onto the dearer seat at once with nobody having chosen
+anything.
 
-Products → **Add product** → `SPEC sessions` (A$1,007/month) and `SPEC full control`
-(A$20,888/month). **One AUD price each. No other currencies.**
+### Training, and the one that is not a product
 
-Not an oversight. Both are a share of one person's week, quoted in Australian dollars wherever the
-customer is, because that is the only number anybody has decided — and a converted price is one that
-moves every time an exchange rate does.
+**SPEC Training** is a flat monthly line item, quantity 1, added only if the customer selects it.
+It is **Australian dollars only** — one price, no `currency_options` — so a customer in any other
+currency is shown *"Speak to us"* rather than a figure Stripe could not charge them.
 
-**Neither is ever multiplied by a headcount.** A full day a week for a business of forty is still one
-day. `monthlyCostOf` enforces that and a test holds it at twenty thousand seats.
+**Consulting has no Stripe product.** It is quote-only: *"Speak to us"*, priced in the
+conversation. `PACKAGES.full_control.aud` is `null` rather than a number kept quietly for
+reference, because `publishPrice: false` only ever governed the marketing page — /admin printed the
+figure regardless.
 
-**Full control is Australia only.** It means somebody on site every week and in the board meeting
-every month, and there is no version of that for a business in another country. Sessions travel
-fine — four hours a month goes down a video call — which is why the two are treated differently in
-`availableTo()` rather than lumped together as "the expensive ones".
+### Archived — do not use
+
+Hidden from new purchases. An archived price still works where a subscription already carries it,
+and still works if a line of code names it, so the ids are written down and
+`tests/pricing.test.ts` holds the list.
+
+| Old product | Product ID | Why |
+|---|---|---|
+| SPEC seat | `prod_VGms7JaCYAmkV3` | replaced by the four seat products |
+| SPEC seat plus training | `prod_VGp2hZXTj5ukFc` | bundle no longer offered |
+| SPEC sessions (A$1,007) | `prod_VGp27IVSeLFMCJ` | replaced by SPEC Training at A$1,502 |
+| SPEC full control (A$20,888) | `prod_VGp3236DAXd8dA` | not part of the current offer |
+
+### The rule of 8
+
+Every published price in SPEC used to reduce to 8 by repeated digit sum, and three tests enforced
+it. **Sixteen of the twenty-four seat prices above do not.** Stripe is the source of truth and a
+page showing a number a card will not be charged is the one outcome nobody recovers from, so the
+table won.
+
+The rule is not gone. `RULE_OF_EIGHT` in `src/lib/pricing.ts` records the three amounts that still
+obey it — 17, 134 and 305 — and a test holds the set to exactly that, so a seventeenth exception
+cannot arrive without somebody adding it on purpose. If these prices are ever corrected in Stripe,
+correct the table and that list together.
 
 ## 4. The customer portal
 

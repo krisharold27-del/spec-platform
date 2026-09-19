@@ -288,7 +288,7 @@ export function lines(f: HealthFacts): HealthLine[] {
 
       key, no price       checkout cannot start. Looks configured. Nobody finds out until somebody
                           tries to pay and lands on an error page.
-      key and price, no webhook secret
+      key, no webhook secret
                           Stripe takes the money and SPEC rejects the notification. The customer is
                           charged AND still locked out. Both dashboards look healthy. The only
                           person who finds out is the one who paid.
@@ -296,12 +296,23 @@ export function lines(f: HealthFacts): HealthLine[] {
     Neither of those can be detected by looking at Stripe, and neither throws an error anywhere.
     This line is the only place they become visible.
   */
+  /*
+    ── Two settings, not three ─────────────────────────────────────────────────────────────────
+
+    The price ID used to be one of them. Kris's Stripe handoff of 19 September makes the price ids
+    facts about the live account rather than something typed into Vercel, so they live in
+    lib/pricing beside the amounts they name and there is nothing to configure.
+
+    Leaving the old three-way check here would have reported "HALF SET UP … anybody clicking
+    upgrade lands on an error" on a deployment that can charge a card perfectly well — a status
+    line that raises a false alarm is how a status page stops being read, which is the same reason
+    `limited` never outranks `working` below.
+  */
   const stripe = {
     key: has('STRIPE_SECRET_KEY'),
-    price: has('STRIPE_PRICE_SEAT_MONTHLY'),
     webhook: has('STRIPE_WEBHOOK_SECRET'),
   };
-  const onCount = Number(stripe.key) + Number(stripe.price) + Number(stripe.webhook);
+  const onCount = Number(stripe.key) + Number(stripe.webhook);
   const TAKING_MONEY = 'Taking a payment';
 
   out.push(
@@ -311,42 +322,33 @@ export function lines(f: HealthFacts): HealthLine[] {
         severity: 'limited',
         says: 'Nobody is being charged. Everything else works — businesses can use SPEC in full, '
           + 'they are just not being billed for it.',
-        fix: `Set STRIPE_SECRET_KEY, STRIPE_PRICE_SEAT_MONTHLY and STRIPE_WEBHOOK_SECRET. ${VERCEL}`,
+        fix: `Set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET. ${VERCEL}`,
       }
-      : onCount === 3
+      : onCount === 2
         ? {
           what: TAKING_MONEY,
           severity: 'working',
           says: 'Working. Checkout can start, and SPEC will hear back from Stripe when somebody pays.',
           fix: null,
         }
-        : !stripe.price
+        : !stripe.webhook
           ? {
             what: TAKING_MONEY,
             severity: 'broken',
-            says: 'HALF SET UP. The key is there but the price is not, so checkout cannot start at all — '
-              + 'anybody clicking upgrade lands on an error.',
-            word: 'Needs attention',
-            fix: `Add STRIPE_PRICE_SEAT_MONTHLY — the AUD seat price ID from Stripe. ${VERCEL}`,
+            says: 'HALF SET UP, AND THE DANGEROUS HALF. Stripe will take the money and SPEC will '
+              + 'refuse the notification, so the customer is charged and still locked out. Nothing '
+              + 'looks wrong from either dashboard.',
+            word: 'Fix before anybody pays',
+            fix: `Add STRIPE_WEBHOOK_SECRET — the signing secret from the webhook endpoint. ${VERCEL}`,
           }
-          : !stripe.webhook
-            ? {
-              what: TAKING_MONEY,
-              severity: 'broken',
-              says: 'HALF SET UP, AND THE DANGEROUS HALF. Stripe will take the money and SPEC will '
-                + 'refuse the notification, so the customer is charged and still locked out. Nothing '
-                + 'looks wrong from either dashboard.',
-              word: 'Fix before anybody pays',
-              fix: `Add STRIPE_WEBHOOK_SECRET — the signing secret from the webhook endpoint. ${VERCEL}`,
-            }
-            : {
-              what: TAKING_MONEY,
-              severity: 'broken',
-              says: 'HALF SET UP. A price and a webhook are configured but the secret key is missing, '
-                + 'so nothing can talk to Stripe at all.',
-              word: 'Needs attention',
-              fix: `Add STRIPE_SECRET_KEY. ${VERCEL}`,
-            },
+          : {
+            what: TAKING_MONEY,
+            severity: 'broken',
+            says: 'HALF SET UP. A webhook is configured but the secret key is missing, so nothing '
+              + 'can talk to Stripe at all.',
+            word: 'Needs attention',
+            fix: `Add STRIPE_SECRET_KEY. ${VERCEL}`,
+          },
   );
 
   return out;

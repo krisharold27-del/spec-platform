@@ -29,9 +29,8 @@ const OPTIONAL = [
   'ANTHROPIC_API_KEY',
   'RESEND_API_KEY',
   'STRIPE_SECRET_KEY',
-  // Billing needs the price ID as well as the key. Reporting only the key meant a deployment could
-  // show Stripe as configured while checkout could not start — see lib/stripe's billingConfigured.
-  'STRIPE_PRICE_SEAT_MONTHLY',
+  // The price ID is no longer a setting: the ids are Stripe's own and live in lib/pricing beside
+  // the amounts they name. Only the key and the webhook secret can be missing now.
   'STRIPE_WEBHOOK_SECRET',
   'ADMIN_EMAILS',
   'NEXT_PUBLIC_TURNSTILE_SITE_KEY',

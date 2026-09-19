@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
   PACKAGES, PACKAGE_KEYS, packageOf, monthlyCostOf, packagePrice, currencyFor,
   availableTo, unavailableBecause, digitRoot, SEAT_PRICES, HOME_CURRENCY, everyPublishedSeatPrice,
+  RULE_OF_EIGHT, pricesObeyingTheRule,
   type Package,
 } from '../src/lib/pricing';
 
@@ -28,36 +29,64 @@ describe('the four packages', () => {
     expect(PACKAGE_KEYS).toEqual(['seat', 'seat_training', 'sessions', 'full_control']);
   });
 
-  it('charges what he said', () => {
+  it('charges what Stripe charges', () => {
     expect(PACKAGES.seat.aud).toBe(SEAT_PRICES.aud.leadership);
     expect(PACKAGES.seat_training.aud).toBe(SEAT_PRICES.aud.leadershipWithAi);
     /*
       A$1,007 → A$1,502 on 18 September. Kris: *"One-to-one is the premium format, and the old
       number priced it like a freelancer hour ($250/hr) — too cheap for training delivered at your
-      level."* Four sessions at 1007 divided out to about A$250 each, which is what an hour of
-      somebody's time costs rather than what this is. 1+5+0+2 = 8, so the rule still holds.
+      level."* Confirmed against the live account on 19 September; the A$1,007 product is archived.
     */
     expect(PACKAGES.sessions.aud).toBe(1502);
-    expect(PACKAGES.full_control.aud).toBe(20888);
   });
 
   /*
-    The rule of 8, which caught this the day the prices were set.
+    ── Consulting has no price, and that is the assertion ───────────────────────────────────────
 
-    1008 was the number first given and it reduces to 9. Every other published price in SPEC reduces
-    to 8 — it is in designs/the-rules.md — so it was worth asking rather than either silently
-    shipping a price that broke the rule or silently changing a price he had chosen. He said 1007.
+    It was A$20,888. Kris's Stripe handoff of 19 September archives that product — *"Not part of
+    the current offer"* — and replaces it with *"Consulting is quote-only — 'Speak to us'. No
+    Stripe product."*
+
+    `publishPrice: false` was never enough on its own: it governs the marketing page, and /admin
+    printed the figure regardless. Null is what makes it unprintable everywhere at once.
   */
-  it('every published price still reduces to 8', () => {
-    for (const key of PACKAGE_KEYS) {
-      expect(digitRoot(PACKAGES[key].aud), `${key} is ${PACKAGES[key].aud}`).toBe(8);
-    }
-    for (const [c, p] of Object.entries(SEAT_PRICES)) {
-      for (const amount of everyPublishedSeatPrice(p)) {
-        expect(digitRoot(amount), `${c} publishes ${amount}`).toBe(8);
-      }
-    }
-    expect(digitRoot(1008), 'the number that started this').toBe(9);
+  it('HAS NO PRICE ON THE ONE THING THAT IS QUOTED, not a hidden one', () => {
+    expect(PACKAGES.full_control.aud).toBeNull();
+    expect(monthlyCostOf('full_control', 'aud', 40)).toBeNull();
+    expect(packagePrice('full_control')).toBe('Speak to us');
+  });
+
+  /*
+    ── The rule of 8, and the sixteen prices that broke it ──────────────────────────────────────
+
+    Every published price in SPEC used to reduce to 8 by repeated digit sum. It was Kris's rule, it
+    was enforced in three tests, and on 19 September it is what stopped design 15's $227 and $29
+    going out — he was given the nearest numbers that obeyed it and said *"224 and 26"*.
+
+    Then the products were created in Stripe at 227 and 29, and the handoff confirms them against
+    the live account. Sixteen of the twenty-four seat prices no longer reduce to 8.
+
+    A displayed price that is not the charged price is the worst outcome available here, so the
+    table matches Stripe. What must not happen is the rule quietly disappearing — so this asserts
+    the exceptions are EXACTLY the ones on record. A seventeenth cannot arrive by accident, and a
+    price moved back onto the rule fails too until `RULE_OF_EIGHT` is updated with it.
+  */
+  it('STILL KNOWS EXACTLY WHICH PRICES OBEY THE RULE OF 8, and which no longer do', () => {
+    expect(pricesObeyingTheRule()).toEqual([...RULE_OF_EIGHT]);
+    for (const amount of RULE_OF_EIGHT) expect(digitRoot(amount), `${amount}`).toBe(8);
+
+    const broken = Object.values(SEAT_PRICES)
+      .flatMap(everyPublishedSeatPrice)
+      .filter(a => digitRoot(a) !== 8);
+    expect(broken.length, 'sixteen of the twenty-four, per the handoff of 19 September').toBe(16);
+  });
+
+  /* The training price still obeys it, and both figures in its history do — so only the note and
+     the assertion by name stand between 1,502 and somebody "correcting" it back to 1,007. */
+  it('and the training price is 1502, which the rule could never have caught either way', () => {
+    expect(PACKAGES.sessions.aud).toBe(1502);
+    expect(digitRoot(1502)).toBe(8);
+    expect(digitRoot(1007), 'the old one obeyed it too').toBe(8);
   });
 });
 
@@ -74,7 +103,9 @@ describe('seats scale; somebody\'s week does not', () => {
   it('NEVER multiplies a per-business package by a headcount', () => {
     for (const seats of [1, 12, 40, 20000]) {
       expect(monthlyCostOf('sessions', 'aud', seats), `${seats} people`).toBe(1502);
-      expect(monthlyCostOf('full_control', 'aud', seats), `${seats} people`).toBe(20888);
+      // And the quote-only one stays null at every headcount rather than becoming a zero, which
+      // would read on a page as "free" instead of "ask".
+      expect(monthlyCostOf('full_control', 'aud', seats), `${seats} people`).toBeNull();
     }
   });
 
@@ -84,7 +115,7 @@ describe('seats scale; somebody\'s week does not', () => {
     stored on businesses and renaming it is a migration; see the note in lib/pricing.
   */
   it('uses the AI price for the AI package, not the plain seat one', () => {
-    expect(monthlyCostOf('seat_training', 'aud', 1)).toBe(224);
+    expect(monthlyCostOf('seat_training', 'aud', 1)).toBe(227);
     expect(monthlyCostOf('seat_training', 'gbp', 1)).toBe(SEAT_PRICES.gbp.leadershipWithAi);
     expect(monthlyCostOf('seat', 'gbp', 1)).toBe(SEAT_PRICES.gbp.leadership);
   });
@@ -102,19 +133,37 @@ describe('what currency each one is sold in', () => {
     expect(currencyFor('seat_training', 'nzd')).toBe('nzd');
   });
 
-  it('quotes the other two in Australian dollars, wherever the business is', () => {
+  it('prices the other two in Australian dollars, because that is the only number anybody chose', () => {
     for (const c of ['gbp', 'usd', 'eur', 'nzd', 'cad'] as const) {
       expect(currencyFor('sessions', c), c).toBe(HOME_CURRENCY);
       expect(currencyFor('full_control', c), c).toBe(HOME_CURRENCY);
     }
-    expect(packagePrice('sessions', 'gbp')).toContain('A$');
-    expect(packagePrice('sessions', 'gbp'), 'never a pound sign on a price nobody chose').not.toContain('£');
+  });
+
+  /*
+    ── And says so rather than quoting a price that cannot be taken ─────────────────────────────
+
+    This used to assert that a British customer was SHOWN "A$1,502" — the Australian figure, with
+    the currency on it so nobody could mistake it. That was the right call while the number was
+    only ever read on a page.
+
+    It is wrong now. Training is one Stripe price in Australian dollars with no `currency_options`
+    on it, so Stripe cannot put it on a GBP subscription at all. Kris's handoff: *"if the
+    customer's currency is not AUD, show Training as 'Speak to us' rather than a price."* A price
+    that is printed and cannot be charged is worse than no price, because somebody budgets on it.
+  */
+  it('BUT SHOWS "SPEAK TO US" RATHER THAN A PRICE STRIPE COULD NOT TAKE', () => {
+    expect(packagePrice('sessions', 'aud')).toContain('A$1502');
+    for (const c of ['gbp', 'usd', 'eur', 'nzd', 'cad'] as const) {
+      expect(packagePrice('sessions', c), c).toBe('Speak to us');
+      expect(packagePrice('sessions', c), 'never a symbol nobody chose').not.toMatch(/[£€$]/);
+    }
   });
 
   it('says whether a price is per person or for the business', () => {
     expect(packagePrice('seat')).toContain('a person a month');
-    expect(packagePrice('full_control')).toContain('a month');
-    expect(packagePrice('full_control'), 'it is not per person').not.toContain('a person');
+    expect(packagePrice('sessions')).toContain('a month');
+    expect(packagePrice('sessions'), 'it is not per person').not.toContain('a person');
   });
 });
 

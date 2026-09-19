@@ -8,39 +8,42 @@
  */
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import type Stripe from 'stripe';
-import { currencyForCountry, seatRate, type Currency } from '@/lib/pricing';
-
-/**
- * The seat price in the business's own currency. Found on the same product as the configured
- * price, by currency AND by the exact amount in BUILD_SPEC §8.1 — so a price in Stripe that has
- * drifted from the published table is never charged. Falls back to the configured (home) price.
- */
-async function seatPriceFor(
-  stripe: Stripe,
-  configuredPriceId: string,
-  currency: Currency,
-  training = false,
-): Promise<string> {
-  const base = await stripe.prices.retrieve(configuredPriceId);
-  const product = typeof base.product === 'string' ? base.product : base.product.id;
-  const want = seatRate(currency, training) * 100;
-  const prices = await stripe.prices.list({ product, currency, active: true, type: 'recurring', limit: 100 });
-  const match = prices.data.find(p => p.unit_amount === want && p.recurring?.interval === 'month');
-  if (!match) {
-    console.error('[checkout] no published', training ? 'training' : 'seat', 'price in Stripe for', currency,
-      '- charging the configured price');
-  }
-  return match?.id ?? configuredPriceId;
-}
 import { eq } from 'drizzle-orm';
+import { currencyForCountry, STRIPE_PRICES } from '@/lib/pricing';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getStripe } from '@/lib/stripe';
 import { currentOrigin } from '@/lib/origin';
-import { countSeats, seatBill } from '@/lib/plan';
-import { countTrainingSeats } from '@/lib/training-seat';
+import { countSeats, countLeadershipSeats, seatBill, AI_TIER_ON_SALE } from '@/lib/plan';
 import { getScope, isTopOfChart } from '@/lib/scope';
+
+/**
+ * ── Why there is no longer a hunt for a price in the customer's currency ────────────────────────
+ *
+ * This route used to take the configured price id, find its product, list every active recurring
+ * price on that product in the customer's currency, and pick the one whose `unit_amount` matched
+ * `lib/pricing` to the cent. If none matched it logged and charged the Australian one.
+ *
+ * That was careful, and it was built on a wrong picture of the account. Kris's Stripe handoff of 19
+ * September: *"Each seat price is a single Stripe Price object with AUD as the default currency and
+ * NZD, GBP, EUR, USD and CAD as currency_options on that same price. Pass currency at Checkout to
+ * charge in the customer's currency — do not create separate prices per currency."*
+ *
+ * There are no per-currency prices to find. The search could only ever come back empty, log an
+ * error nobody reads and fall through to the id it started with — which is right, for the wrong
+ * reason, and only because the fallback happened to exist. Two Stripe round trips per checkout to
+ * arrive back where it began.
+ *
+ * So the ids come from `lib/pricing`, where they sit beside the amounts they name, and the session
+ * is told the CURRENCY. Stripe reads the matching `currency_options` off each price. If a currency
+ * has no option on a price Stripe refuses the session outright, rather than quietly charging
+ * Australian dollars — which is the failure anybody would want.
+ *
+ * The environment variables still win when set, so a deployment can be pointed at test-mode prices
+ * without a release.
+ */
+const priceId = (key: keyof typeof STRIPE_PRICES, envName: string): string =>
+  process.env[envName] || STRIPE_PRICES[key];
 
 export async function POST() {
   /*
@@ -61,9 +64,10 @@ export async function POST() {
   }
 
   const stripe = getStripe();
-  const priceId = process.env.STRIPE_PRICE_SEAT_MONTHLY;
   // Billing not configured yet — say so on the journey page rather than throwing at the user.
-  if (!stripe || !priceId) return NextResponse.redirect(`${here}/journey?billing_error=1`, 303);
+  // The price ids no longer need configuring: they are Stripe's own, in lib/pricing, beside the
+  // amounts they name. Only the secret key can be missing now.
+  if (!stripe) return NextResponse.redirect(`${here}/journey?billing_error=1`, 303);
 
   const tenantRows = await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
   const tenant = tenantRows[0];
@@ -76,41 +80,57 @@ export async function POST() {
     money, so it reads `billable` and never `seats`.
   */
   const seats = await countSeats(user.tenantId);
-  const trainingSeats = await countTrainingSeats(user.tenantId);
-  const bill = seatBill(seats, trainingSeats);
+  const leadershipSeats = await countLeadershipSeats(user.tenantId);
+  const bill = seatBill(seats, leadershipSeats, undefined, AI_TIER_ON_SALE);
   if (bill.billable === 0) return NextResponse.redirect(`${here}/journey?nothing_to_bill=1`, 303);
 
   // Billed in the business's own currency, set by where it is (BUILD_SPEC §8.2).
   const currency = currencyForCountry((await headers()).get('x-vercel-ip-country'));
 
   /*
-    Two rates, so two lines.
+    ── Two seats, so two lines ─────────────────────────────────────────────────────────────────
 
-    A frontline leader on SPEC's training material is a dearer seat than everybody else, and a
-    business is normally a mixture. One line at one rate would have to pick which lie to tell: the
-    training price for people nobody is training, or the plain price for people who are.
+    Kris's handoff: *"A customer's subscription is one Leadership-seat line item (quantity = number
+    of leaders) plus one Team-seat line item (quantity = number of team members), both on the same
+    tier."*
 
-    The training price comes off `STRIPE_PRICE_SEAT_TRAINING_MONTHLY`. Without it, nothing silently
-    falls back to the cheap rate — that would be giving the material away and never noticing. The
-    checkout says so and stops, which is recoverable; a subscription quietly short by A$18 a person
-    a month is not, because nobody ever looks.
+    Both on the same tier is the part worth stating, because it is not enforceable from here: there
+    is one `AI_TIER_ON_SALE` for the whole product, which is false, so every line is Basic. When a
+    business can choose Advanced, the choice has to apply to BOTH lines — mixing Basic leaders with
+    Advanced team seats is not offered, and a bill that mixed them would be selling something that
+    does not exist.
+
+    The old version of this split people a different way — plain seats against SPEC's training
+    seats — and could only ever reach ONE of the four prices, the leadership one. Every team member
+    in every business was counted at A$134. See the note on seatBill.
   */
   const lines: { price: string; quantity: number }[] = [];
-  if (bill.plain > 0) {
-    lines.push({ price: await seatPriceFor(stripe, priceId, currency), quantity: bill.plain });
+  if (bill.leadership > 0) {
+    lines.push({
+      price: AI_TIER_ON_SALE
+        ? priceId('leader_advanced', 'STRIPE_PRICE_SEAT_TRAINING_MONTHLY')
+        : priceId('leader_basic', 'STRIPE_PRICE_SEAT_MONTHLY'),
+      quantity: bill.leadership,
+    });
   }
-  if (bill.training > 0) {
-    const trainingPriceId = process.env.STRIPE_PRICE_SEAT_TRAINING_MONTHLY;
-    if (!trainingPriceId) {
-      console.error('[checkout] somebody is on a training seat and STRIPE_PRICE_SEAT_TRAINING_MONTHLY is not set');
-      return NextResponse.redirect(`${here}/journey?training_price_missing=1`, 303);
-    }
-    lines.push({ price: await seatPriceFor(stripe, trainingPriceId, currency, true), quantity: bill.training });
+  if (bill.team > 0) {
+    lines.push({
+      price: AI_TIER_ON_SALE
+        ? priceId('team_advanced', 'STRIPE_PRICE_TEAM_SEAT_ADVANCED_MONTHLY')
+        : priceId('team_basic', 'STRIPE_PRICE_TEAM_SEAT_MONTHLY'),
+      quantity: bill.team,
+    });
   }
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     line_items: lines,
+    /*
+      The currency, so Stripe reads the right `currency_options` off each price. Without it every
+      customer in the world is charged the price's default currency, which is Australian dollars —
+      and it would look completely normal on the invoice.
+    */
+    currency,
     // client_reference_id is how the webhook maps the completed session back to a tenant —
     // more reliable than matching on customer email, which can differ from the app user's email.
     client_reference_id: tenant.id,

@@ -1,11 +1,27 @@
 /**
  * Seat prices — decided per region, never converted (BUILD_SPEC §8.1). Pure, no I/O.
  *
- * Every published price reduces to 8. A price never moves because an exchange rate did; a new
- * region gets a round local number chosen to obey the rule and checked before it is published.
- * The business is billed in its own currency, set by where it is.
+ * A price never moves because an exchange rate did. The business is billed in its own currency,
+ * set by where it is.
+ *
+ * ── These numbers are Stripe's, not this file's ─────────────────────────────────────────────────
+ *
+ * Kris, 19 September, **"SPEC Pricing — Stripe Handoff for Code"**, confirmed against the live
+ * account `acct_1UCYbyGjbPN3KVS7`: *"This is the single source of truth for pricing. Anything in
+ * the codebase or design files that disagrees with this document is out of date and should be
+ * changed to match."*
+ *
+ * That reverses the direction this file used to run in. It used to CHOOSE the prices, and the setup
+ * document told somebody what to type into Stripe afterwards. The products now exist, live, with
+ * real price IDs, and it is Stripe that charges the card — so when the two disagree it is this file
+ * telling a customer a price they will not be charged. Stripe wins. Hence `STRIPE_PRICES` below:
+ * the amounts and the price IDs are transcribed from one document, together, so they cannot drift
+ * apart one at a time.
  */
 export type Currency = 'aud' | 'nzd' | 'gbp' | 'eur' | 'usd' | 'cad';
+
+/** Every currency a seat can be charged in. AUD is the default currency on each Stripe price. */
+export const SUPPORTED_CURRENCIES = ['aud', 'nzd', 'gbp', 'eur', 'usd', 'cad'] as const;
 
 export interface SeatPrice {
   /** Somebody who leads people. */
@@ -18,44 +34,139 @@ export interface SeatPrice {
 }
 
 /**
- * ── Two seats, not one ──────────────────────────────────────────────────────────────────────────
+ * ── Two seats, two tiers, six currencies ────────────────────────────────────────────────────────
  *
  * Design 15, 19 September, replacing a single flat seat: **"if you lead people, you're a leadership
- * seat. If you're led, you're a team seat in a pool."**
+ * seat. If you're led, you're a team seat in a pool."** Each of the two comes in Basic (no AI) and
+ * Advanced (with AI) — `leadershipWithAi` and `teamWithAi` here, `_advanced` in Stripe.
  *
- * The old table had one `seat` and a `withTraining` beside it. Both are gone: the A$44 training
- * seat was published for months and never sellable — the supervisor pack was never finished — and
- * the design retires it in favour of an AI variant on each of the two real seats.
+ * Every figure below is transcribed from Kris's Stripe handoff of 19 September, which was read off
+ * the live account. Written out currency by currency rather than computed, because the whole point
+ * of this table is that a price is CHOSEN for a region and never converted — a table that derived
+ * its own numbers would agree with any arithmetic mistake it made.
  *
- * ── The two numbers that were drawn and could not be published ──────────────────────────────────
- *
- * The design draws the AI seats at **$227** and **$29**. Neither reduces to 8, and every published
- * price in this product does — it is the rule at the top of this file and two tests enforce it.
- * Kris, 19 September, given the nearest numbers that obey it: **"224 and 26"**.
- *
- * ── And the other five currencies ───────────────────────────────────────────────────────────────
- *
- * The design gives Australian dollars only. Kris: **"fix all pricing"**. These follow the
- * relationship the old table already expressed — New Zealand and Canada above Australia, Britain
- * about two thirds of it — moved to the nearest number that reduces to 8. They are chosen local
- * numbers, not conversions, which is this file's first rule: *a price never moves because an
- * exchange rate did*.
- *
- * `gbp.team` at £8 is the one to look at twice. It is the nearest number to the two-thirds
- * relationship that obeys the rule, and the alternative is £17 — the same figure as Australia.
+ * In Stripe each row is NOT six prices. It is ONE price object with AUD as its default currency and
+ * the other five as `currency_options` on it, which is why `STRIPE_PRICES` has four ids and not
+ * twenty-four. Checkout is told the currency and Stripe picks the option.
  */
 export const SEAT_PRICES: Record<Currency, SeatPrice> = {
-  aud: { leadership: 134, leadershipWithAi: 224, team: 17, teamWithAi: 26, symbol: 'A$' },
-  nzd: { leadership: 179, leadershipWithAi: 296, team: 26, teamWithAi: 44, symbol: 'NZ$' },
-  gbp: { leadership: 89, leadershipWithAi: 152, team: 8, teamWithAi: 17, symbol: '£' },
-  eur: { leadership: 134, leadershipWithAi: 224, team: 17, teamWithAi: 26, symbol: '€' },
-  usd: { leadership: 134, leadershipWithAi: 224, team: 17, teamWithAi: 26, symbol: 'US$' },
-  cad: { leadership: 179, leadershipWithAi: 296, team: 26, teamWithAi: 44, symbol: 'CA$' },
+  aud: { leadership: 134, leadershipWithAi: 227, team: 17, teamWithAi: 29, symbol: 'A$' },
+  nzd: { leadership: 180, leadershipWithAi: 305, team: 23, teamWithAi: 39, symbol: 'NZ$' },
+  gbp: { leadership: 88, leadershipWithAi: 149, team: 11, teamWithAi: 19, symbol: '£' },
+  eur: { leadership: 134, leadershipWithAi: 227, team: 17, teamWithAi: 29, symbol: '€' },
+  usd: { leadership: 134, leadershipWithAi: 227, team: 17, teamWithAi: 29, symbol: 'US$' },
+  cad: { leadership: 180, leadershipWithAi: 305, team: 23, teamWithAi: 39, symbol: 'CA$' },
 };
 
-/** Every number this table publishes, for the rule that they all reduce to 8. */
+/** Every number this table publishes. */
 export const everyPublishedSeatPrice = (p: SeatPrice): number[] =>
   [p.leadership, p.leadershipWithAi, p.team, p.teamWithAi];
+
+/**
+ * ── The rule of 8, and what happened to it ──────────────────────────────────────────────────────
+ *
+ * Every published price in SPEC reduced to 8 by repeated digit sum. It was a real rule of Kris's,
+ * it was enforced in three separate tests, and on 19 September it is what stopped design 15's
+ * **$227** and **$29** going out — he was given the nearest numbers that obeyed it and said
+ * *"224 and 26"*, and those were built and published.
+ *
+ * Then the products were created in Stripe at **227** and **29**, and the handoff confirms them
+ * against the live account. Sixteen of the twenty-four seat prices do not reduce to 8.
+ *
+ * A displayed price that is not the charged price is the worst outcome available here — it is a
+ * chargeback and a support ticket and a customer who stops believing the rest of the page — so the
+ * table matches Stripe and the rule gives way. But it is NOT quietly deleted, because a rule that
+ * disappears without a decision is how the next twenty-four go out unexamined.
+ *
+ * So this is the frozen list of the eight that still obey it. `tests/pricing.test.ts` asserts the
+ * set is exactly this — no more and no fewer — which means a seventeenth exception cannot arrive by
+ * accident: changing a price to one that breaks the rule fails a test until somebody adds it here
+ * on purpose, and changing one BACK to a number that obeys it fails too.
+ *
+ * Kris has been told which sixteen they are. If Stripe is corrected, correct this table and this
+ * list together, in that order.
+ */
+export const RULE_OF_EIGHT: readonly number[] = [17, 134, 305];
+
+/** Repeated digit sum: 26 → 8, 35 → 8, 1,700 → 8. */
+export function digitRoot(n: number): number {
+  let x = Math.abs(Math.round(n));
+  while (x >= 10) x = String(x).split('').reduce((s, d) => s + Number(d), 0);
+  return x;
+}
+
+/** Which of the twenty-four published seat prices still reduce to 8, as a sorted set of amounts. */
+export const pricesObeyingTheRule = (): number[] => [
+  ...new Set(Object.values(SEAT_PRICES)
+    .flatMap(everyPublishedSeatPrice)
+    .filter(amount => digitRoot(amount) === 8)),
+].sort((a, b) => a - b);
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * What these prices ARE, in Stripe
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * The live price objects. From the handoff of 19 September, account `acct_1UCYbyGjbPN3KVS7`.
+ *
+ * ── Why these are in the code and not only in the environment ───────────────────────────────────
+ *
+ * They were environment variables — `STRIPE_PRICE_SEAT_MONTHLY` and one more — and that was right
+ * while the prices were a thing somebody would type into Stripe on the day. It is wrong now. A
+ * price id is not a secret and not a setting: it names a specific product at a specific amount, and
+ * the amount is written twelve lines above. Splitting the two across a deployment settings box is
+ * exactly how a business gets charged 224 on a page that says 227.
+ *
+ * The environment variables are still READ, and still win when set, so a deployment can be pointed
+ * at test-mode prices without a release. These are the fallback, and the fallback is the truth.
+ */
+export const STRIPE_PRICES = {
+  leader_basic: 'price_1UHK06GjbPN3KVS7Erx7Aeum',
+  leader_advanced: 'price_1UHK3PGjbPN3KVS7vot0UtCu',
+  team_basic: 'price_1UHK5hGjbPN3KVS7hzoKltlI',
+  team_advanced: 'price_1UHK7lGjbPN3KVS7EXlND5Xg',
+  /** Flat monthly, quantity 1, Australian dollars only. */
+  training: 'price_1UHK94GjbPN3KVS7FE5GGzAC',
+} as const;
+
+export type StripePriceKey = keyof typeof STRIPE_PRICES;
+
+/** The products those prices hang off, for anybody checking the account against this file. */
+export const STRIPE_PRODUCTS = {
+  leader_basic: 'prod_VHtnsfpPRSp6no',
+  leader_advanced: 'prod_VHtrdn6wF9T8JM',
+  team_basic: 'prod_VHtt211YPktGXS',
+  team_advanced: 'prod_VHtv5osYcg3Snq',
+  training: 'prod_VHtwe8HgAnBYdW',
+} as const;
+
+/**
+ * Stripe's tax code on every SPEC product: SaaS, business use.
+ *
+ * AUD, NZD, GBP and EUR prices are tax-INCLUSIVE (GST 10% inclusive for Australia); USD and CAD are
+ * tax-exclusive, per Stripe's defaults for those currencies. That is a fact about the account
+ * rather than about this code, and it is written here because the A$134 on the pricing page
+ * includes GST and the US$134 does not — which is the sort of thing a page gets wrong once and
+ * argues about for a year.
+ */
+export const STRIPE_TAX_CODE = 'txcd_10103101';
+export const TAX_INCLUSIVE: readonly Currency[] = ['aud', 'nzd', 'gbp', 'eur'];
+export const taxInclusive = (currency: Currency): boolean => TAX_INCLUSIVE.includes(currency);
+
+/**
+ * The products archived on 19 September, by id, so nothing here can quietly start using one again.
+ *
+ * *"These are hidden from new purchases. Remove any references in code."* Hidden is not deleted: an
+ * archived price still works if a subscription already carries it, and still works if a line of
+ * code names it. The ids are written down rather than removed so a test can assert that no shipping
+ * file mentions one — a list of forbidden strings is checkable, and an absence is not.
+ */
+export const ARCHIVED_STRIPE_PRODUCTS: Readonly<Record<string, string>> = {
+  prod_VGms7JaCYAmkV3: 'SPEC seat — replaced by the four seat products',
+  prod_VGp2hZXTj5ukFc: 'SPEC seat plus training — bundle no longer offered',
+  prod_VGp27IVSeLFMCJ: 'SPEC sessions at A$1,007 — replaced by SPEC Training at A$1,502',
+  prod_VGp3236DAXd8dA: 'SPEC full control at A$20,888 — not part of the current offer',
+};
 
 /** SPEC's home market — used when there is no way to tell where a business is. */
 export const HOME_CURRENCY: Currency = 'aud';
@@ -75,27 +186,22 @@ export function currencyForCountry(country: string | null | undefined): Currency
   return 'usd';
 }
 
-/** Repeated digit sum: 26 → 8, 35 → 8, 1,700 → 8. */
-export function digitRoot(n: number): number {
-  let x = Math.abs(Math.round(n));
-  while (x >= 10) x = String(x).split('').reduce((s, d) => s + Number(d), 0);
-  return x;
-}
-
 export type SeatKind = 'leadership' | 'team';
 
 /**
- * Which seat somebody is on, from the chart rather than from their job title.
+ * ── Which seat somebody is on lives in lib/chart-seats, not here ────────────────────────────────
  *
- * The design describes leadership seats by title — "team leader, supervisor, manager +". SPEC does
- * not have to guess: it holds the org chart, and the chart already knows who has somebody reporting
- * to them. A title is what a business calls a person; the chart is what the person actually does,
- * and the two disagree in every business that has ever existed.
+ * There were two functions called `seatKindFor` with different signatures and different answers.
+ * This one took a bare `hasDirectReports` and decided by the chart alone; the one in
+ * `lib/chart-seats` takes the title as well and decides by either.
  *
- * So: anybody with a direct report is a leadership seat. Everybody else is a team seat.
+ * They disagree about a Site Supervisor whose crew has not been drawn yet — this one called that a
+ * team seat and billed A$17 for somebody who leads people. Two rules for the same question, one of
+ * them wrong, both exported, and money riding on which one a caller happened to import. So there is
+ * one now, and it is the richer one: `seatKindFor` in lib/chart-seats.
+ *
+ * `SeatKind` stays here because the PRICES are keyed by it.
  */
-export const seatKindFor = (hasDirectReports: boolean): SeatKind =>
-  (hasDirectReports ? 'leadership' : 'team');
 
 /** What one seat of a kind costs, with or without the AI. */
 export function seatPrice(currency: Currency, kind: SeatKind, withAi = false): number {
@@ -230,8 +336,15 @@ export interface PackageSpec {
   what: string;
   /** Multiplied by the number of people, or one flat monthly fee for the business. */
   per: 'seat' | 'business';
-  /** The Australian price. Every price SPEC publishes reduces to 8 by digit sum. */
-  aud: number;
+  /**
+   * The Australian price, or null for the one thing SPEC does not price at all.
+   *
+   * Null is not "free" and not "we have not decided". Consulting is quote-only — Kris's handoff of
+   * 19 September: *"Consulting is quote-only — 'Speak to us'. No Stripe product."* — and the
+   * A$20,888 that used to sit here is an ARCHIVED Stripe product, not a current offer. A number
+   * kept "for reference" on something that cannot be bought is a number that ends up on a page.
+   */
+  aud: number | null;
   /**
    * Whether it has its own chosen price in every currency.
    *
@@ -286,7 +399,9 @@ export const PACKAGES: Record<Package, PackageSpec> = {
     whom. See `seatKindFor`.
   */
   seat: {
-    label: 'Leadership seat',
+    // Stripe: "SPEC Leadership seat - Basic". Named the same on the page as on the invoice, because
+    // the one place a customer compares the two is when they are already unhappy.
+    label: 'Leadership seat — Basic',
     what: 'One person who leads people. Their scorecard, their page, their part of the chart.',
     per: 'seat',
     aud: 134,
@@ -295,11 +410,12 @@ export const PACKAGES: Record<Package, PackageSpec> = {
     publishPrice: true,
   },
   seat_training: {
-    label: 'Leadership seat with AI',
+    // Stripe: "SPEC Leadership seat - Advanced".
+    label: 'Leadership seat — Advanced',
     what: 'The same seat, with the assistant on it — SPEC reading the numbers with them rather than '
       + 'just holding them.',
     per: 'seat',
-    aud: 224,
+    aud: 227,
     everyCurrency: true,
     availableIn: 'anywhere',
     publishPrice: true,
@@ -307,24 +423,23 @@ export const PACKAGES: Record<Package, PackageSpec> = {
   /*
     A$1,007 → A$1,502 on 18 September. Kris: *"One-to-one is the premium format, and the old number
     priced it like a freelancer hour ($250/hr) — too cheap for training delivered at your level."*
+    Confirmed against the live account on 19 September, where it is `prod_VHtwe8HgAnBYdW` at 1502
+    and the A$1,007 product is archived.
 
     ── And design 15 still says 1,007 ───────────────────────────────────────────────────────────
 
-    `designs/SPEC Pricing.dc.html` was drawn before that decision and carries the old figure. On 19
-    September, asked directly, Kris: **"training is 1502"**. The product is right and the design is
-    stale on this one number.
+    `designs/SPEC Pricing.dc.html` was drawn before that decision and carried the old figure until
+    the handoff, which lists it under *"Design files to update"*. Asked directly on 19 September,
+    Kris: **"training is 1502"**.
 
-    It is written here because it cannot be caught by a rule: BOTH numbers reduce to 8, so the
-    digit-root check that stopped the AI seats going out wrong is blind to this one. The only thing
-    standing between 1,502 and somebody "fixing" it back to match the drawing is this note and the
-    two tests that assert 1502 by name.
-
-    The old figure divided into four sessions at about A$250 each, which is what an hour of
-    somebody's time costs. This is not an hour of somebody's time; it is Kris teaching one person to
-    run a business the way he runs one. 1+5+0+2 = 8, so the rule holds.
+    It is written down here because it cannot be caught by a rule: BOTH numbers reduce to 8, so the
+    digit-root check that used to guard prices was blind to this one either way. The only thing
+    standing between 1,502 and somebody "fixing" it back to match an old drawing is this note and
+    the tests that assert 1502 by name.
   */
   sessions: {
-    label: 'SPEC sessions',
+    // Stripe: "SPEC Training". The key stays `sessions` because it is stored on businesses.
+    label: 'SPEC Training',
     what: 'Training delivered by SPEC rather than by the software. Four one-to-one sessions a month '
       + 'with whoever you choose to set this up and run it — built around the roles the business '
       + 'actually has and how it is actually using SPEC. Delivered from Australia to anywhere in '
@@ -335,15 +450,35 @@ export const PACKAGES: Record<Package, PackageSpec> = {
     availableIn: 'anywhere',
     publishPrice: true,
   },
+  /*
+    ── The A$20,888 is gone, and that is a decision rather than an omission ─────────────────────
+
+    The handoff of 19 September archives `prod_VGp3236DAXd8dA` — *"SPEC full control ($20,888) —
+    Not part of the current offer"* — and replaces it with: *"Consulting is quote-only — 'Speak to
+    us'. No Stripe product."* It also names an internal reference rate for quoting, which is never
+    shown to customers and is therefore not written down anywhere in this repository.
+
+    So there is nothing to charge and nothing to publish. `aud` is null rather than 20888-kept-
+    quietly, because `publishPrice: false` only governs the marketing page: /admin printed the
+    number too, and an archived price shown to whoever is setting a business up is a price somebody
+    will quote. The offer itself stays — a day a week and the board meeting is still the thing at
+    the top of the ladder — it is simply priced in the conversation now.
+
+    The handoff also gives an internal hourly reference for quoting consulting, and it is
+    deliberately NOT written down here. Kris: *"never shown to customers"*.
+    `tests/published-prices.test.ts` scans the whole of src for it — raw, comments included,
+    because a number that must never be shown has no business living one careless
+    `toLocaleString` away from a page.
+  */
   full_control: {
     label: 'Full SPEC control',
     what: 'SPEC runs it. One full day a week on site, and the monthly board meeting attended and chaired. '
       + 'Australia only for now — it is a day of somebody\'s week, in a place they have to be.',
     per: 'business',
-    aud: 20888,
+    aud: null,
     everyCurrency: false,
     availableIn: 'australia',
-    // The one price SPEC does not publish — see `publishPrice`. It is quoted in a conversation.
+    // The one thing SPEC does not price on a page — see `publishPrice`. It is quoted in a conversation.
     publishPrice: false,
   },
 };
@@ -360,8 +495,11 @@ export const packageOf = (value: string | null | undefined): Package =>
  * A per-business package is the same figure whatever the headcount — that is what makes it a share
  * of somebody's week rather than a licence — so `seats` is ignored for those two on purpose.
  */
-export function monthlyCostOf(pkg: Package, currency: Currency, seats: number): number {
+export function monthlyCostOf(pkg: Package, currency: Currency, seats: number): number | null {
   const spec = PACKAGES[pkg];
+  // Null means there is no price, not that it is free — consulting is quoted, never charged from
+  // a table. Every caller has to say what it does about that rather than multiply a zero.
+  if (spec.aud === null) return null;
   if (spec.per === 'business') return spec.aud;
   return seatRate(currency, pkg === 'seat_training') * seats;
 }
@@ -376,14 +514,31 @@ export function monthlyCostOf(pkg: Package, currency: Currency, seats: number): 
 export const currencyFor = (pkg: Package, currency: Currency): Currency =>
   PACKAGES[pkg].everyCurrency ? currency : HOME_CURRENCY;
 
-/** What a package costs, written out. Never a bare number with no currency against it. */
+/**
+ * What a package costs, written out. Never a bare number with no currency against it.
+ *
+ * ── Two ways this comes back as words instead of money ──────────────────────────────────────────
+ *
+ * Consulting has no price at all, so it is **Speak to us** wherever you are.
+ *
+ * SPEC Training has a price and it exists in Australian dollars only — one Stripe price, AUD, no
+ * `currency_options`. Kris's handoff: *"if the customer's currency is not AUD, show Training as
+ * 'Speak to us' rather than a price."* That is a change from what this function used to do, which
+ * was print the Australian figure at a British customer and let them work out what they would
+ * actually be charged. Stripe cannot charge them A$1,502 on a GBP subscription, so the old
+ * behaviour was quoting a price that could not be taken.
+ */
+export const SPEAK_TO_US = 'Speak to us';
+
 export function packagePrice(pkg: Package, currency: Currency = HOME_CURRENCY): string {
   const spec = PACKAGES[pkg];
+  if (spec.aud === null) return SPEAK_TO_US;
   const c = currencyFor(pkg, currency);
-  const amount = spec.per === 'business'
-    ? spec.aud
-    : seatPrice(c, 'leadership', pkg === 'seat_training');
-  return `${moneyLabel(c, amount)}${spec.per === 'seat' ? ' a person a month' : ' a month'}`;
+  if (spec.per === 'business') {
+    if (currency !== HOME_CURRENCY) return SPEAK_TO_US;
+    return `${moneyLabel(c, spec.aud)} a month`;
+  }
+  return `${moneyLabel(c, seatPrice(c, 'leadership', pkg === 'seat_training'))} a person a month`;
 }
 
 /**

@@ -61,15 +61,16 @@ export const VIRTUAL_GM = {
 /**
  * What a general manager actually costs, put beside the consulting price.
  *
- * ── Why the number is not the one in the export ──────────────────────────────────────────────────
+ * ── Why there is no SPEC number in it ────────────────────────────────────────────────────────────
  *
- * The design draws the consulting package at A$20,000. SPEC's published price is **A$20,888**, and
- * that is not a rounding difference: every published price in this product reduces to 8 by digit
- * sum, and 20,888 does (2+0+8+8+8 = 26 → 8) where 20,000 does not (2). The rule outranks the
- * mock-up, so the price stays and only the comparison is new.
+ * There used to be one to compare against. The design drew the consulting package at A$20,000,
+ * SPEC published A$20,888 — the rule of 8 outranked the mock-up — and the claim was arithmetic:
+ * twelve months at A$20,888 is A$250,656 against a loaded GM at about A$300,000.
  *
- * It still holds comfortably, which is the claim being made: twelve months at A$20,888 is
- * A$250,656, against a loaded GM at about A$300,000.
+ * Kris's Stripe handoff of 19 September archives that product — *"Not part of the current offer"* —
+ * and makes consulting quote-only. So the sentence keeps the GM's cost, which is a fact about the
+ * market and still true, and stops naming SPEC's. "This sits comfortably under that" is only an
+ * honest sentence while the other side of it has not been invented.
  */
 export const GM_COMPARISON =
   'A fully-loaded GM runs about A$300,000 a year once you load super, car, bonus and recruitment. '

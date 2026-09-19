@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
-import { SEAT_PRICES, digitRoot, everyPublishedSeatPrice } from '../src/lib/pricing';
+import {
+  SEAT_PRICES, digitRoot, RULE_OF_EIGHT, STRIPE_PRICES, STRIPE_PRODUCTS,
+  ARCHIVED_STRIPE_PRODUCTS,
+} from '../src/lib/pricing';
 
 /*
   ── The setup document has to be true, not just written ──────────────────────────────────────────
@@ -32,9 +35,25 @@ describe('the Stripe setup list matches the code', () => {
     approximate, and then they skim the one that matters.
   */
   it('names every setting the code reads, and nothing it does not', () => {
+    /*
+      ── A setting is something read off the ENVIRONMENT ─────────────────────────────────────
+
+      This used to scan for `/STRIPE_[A-Z_]+/` anywhere in the source, which was fine while every
+      such name was a variable. Kris's Stripe handoff of 19 September put the price ids into the
+      code — `STRIPE_PRICES`, `STRIPE_PRODUCTS`, `STRIPE_TAX_CODE` in lib/pricing — and the old
+      pattern read all three as things somebody had to go and set in Vercel.
+
+      That is the failure mode this whole file exists to prevent, arriving from the other
+      direction: a setup list demanding four settings that do not exist teaches the reader the
+      list is approximate, and then they skim the one that matters. So it matches `process.env.X`
+      only.
+    */
     const inCode = new Set<string>();
     for (const file of walk('src')) {
-      for (const m of src(file).matchAll(/STRIPE_[A-Z_]+/g)) inCode.add(m[0]);
+      for (const m of src(file).matchAll(/process\.env\.(STRIPE_[A-Z_]+)/g)) inCode.add(m[1]);
+      // `priceId('leader_basic', 'STRIPE_PRICE_SEAT_MONTHLY')` reads the environment too — the
+      // name arrives as a string, and a check that missed it would miss the override entirely.
+      for (const m of src(file).matchAll(/'(STRIPE_PRICE_[A-Z_]+)'/g)) inCode.add(m[1]);
     }
     expect(inCode.size, 'no Stripe settings found in the source at all').toBeGreaterThan(0);
 
@@ -56,8 +75,14 @@ describe('the Stripe setup list matches the code', () => {
     for (const m of table.matchAll(/STRIPE_[A-Z_]+/g)) {
       expect(inCode, `the setup list tells him to set ${m[0]}, which nothing reads`).toContain(m[0]);
     }
-    expect([...table.matchAll(/`STRIPE_[A-Z_]+`/g)].length, 'every setting is a row of its own')
-      .toBe(inCode.size);
+    /*
+      The table holds only what somebody MUST set. The four price overrides are read if present and
+      ignored otherwise, so listing them as rows would be asking for four settings a live
+      deployment does not want — they are named in the paragraph under the table instead, which is
+      why this counts rows rather than mentions.
+    */
+    const rows = table.split('\n').filter(l => l.startsWith('|') && /`STRIPE_/.test(l));
+    expect(rows.length, 'two settings, one row each').toBe(2);
   });
 
   /*
@@ -81,12 +106,45 @@ describe('the Stripe setup list matches the code', () => {
     }
   });
 
-  /* And the rule those numbers obey, so a seventh region is not invented carelessly. */
-  it('every published price still reduces to 8', () => {
-    for (const [currency, price] of Object.entries(SEAT_PRICES)) {
-      for (const amount of everyPublishedSeatPrice(price)) {
-        expect(digitRoot(amount), `${currency} publishes ${amount}`).toBe(8);
-      }
+  /*
+    ── And the document has to say what happened to the rule of 8 ─────────────────────────────
+
+    It used to assert that every published price reduces to 8. Sixteen of the twenty-four no longer
+    do — the live account carries 227 and 29 and the rest — and lib/pricing records the survivors
+    in `RULE_OF_EIGHT`.
+
+    Deleting this test was the easy edit. What it checks now is that the document does not quietly
+    go on claiming a rule the prices stopped obeying, because that page is what somebody reads
+    before typing a price into Stripe by hand.
+  */
+  it('says which prices still obey the rule of 8, rather than claiming they all do', () => {
+    expect(doc, 'the setup list still claims every price reduces to 8')
+      .not.toMatch(/every (published )?price[^.]*reduces to 8/i);
+    expect(doc, 'and does not say where the rule now stands').toContain('RULE_OF_EIGHT');
+    for (const amount of RULE_OF_EIGHT) {
+      expect(doc, `${amount} obeys the rule and the document does not name it`)
+        .toContain(String(amount));
+      expect(digitRoot(amount)).toBe(8);
+    }
+  });
+
+  /*
+    The live price and product ids, exactly as lib/pricing holds them.
+
+    They are transcribed by hand in both places from one handoff document, and a wrong character in
+    either is a checkout that charges the wrong product or fails outright. This is the only check
+    that the two transcriptions agree.
+  */
+  it('states every live Stripe id exactly as the code holds it', () => {
+    for (const [key, id] of Object.entries(STRIPE_PRICES)) {
+      expect(doc, `the ${key} price id is not in the setup list`).toContain(id);
+    }
+    for (const [key, id] of Object.entries(STRIPE_PRODUCTS)) {
+      expect(doc, `the ${key} product id is not in the setup list`).toContain(id);
+    }
+    // And the archived ones, so nobody re-creates a product that already exists, hidden.
+    for (const id of Object.keys(ARCHIVED_STRIPE_PRODUCTS)) {
+      expect(doc, `archived product ${id} is not listed as archived`).toContain(id);
     }
   });
 

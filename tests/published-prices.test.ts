@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { PACKAGES, PACKAGE_KEYS, SEAT_PRICES, everyPublishedSeatPrice } from '../src/lib/pricing';
+import {
+  PACKAGES, PACKAGE_KEYS, SEAT_PRICES, RULE_OF_EIGHT, pricesObeyingTheRule,
+} from '../src/lib/pricing';
 
 /**
  * The rules about money that a page may say out loud.
@@ -31,22 +33,41 @@ const code = (p: string) =>
 describe('the rule of 8, on every published figure', () => {
   const digitSum = (n: number): number => (n < 10 ? n : digitSum(String(n).split('').reduce((a, d) => a + Number(d), 0)));
 
-  it('EVERY PACKAGE PRICE REDUCES TO 8', () => {
+  /*
+    ── The two package prices that are left still obey it ───────────────────────────────────────
+
+    Four packages, two of which now have no AUD figure of their own to check: `seat_training` is
+    the AI seat at A$227, which Stripe carries and which does not reduce to 8, and `full_control`
+    is quote-only with no price at all.
+
+    So this checks the ones that DO have a number and are not seat prices — the plain leadership
+    seat and Training — and `tests/pricing.test.ts` holds the seat table to its recorded set of
+    exceptions. Between them nothing is unchecked.
+  */
+  it('EVERY PACKAGE PRICE THAT IS STILL A CHOSEN NUMBER REDUCES TO 8', () => {
     for (const k of PACKAGE_KEYS) {
-      expect(digitSum(PACKAGES[k].aud), `${k} is A$${PACKAGES[k].aud}`).toBe(8);
+      const aud = PACKAGES[k].aud;
+      if (aud === null) continue;                       // quote-only: there is nothing to check
+      if (aud === SEAT_PRICES.aud.leadershipWithAi) continue;  // Stripe's 227 — see RULE_OF_EIGHT
+      expect(digitSum(aud), `${k} is A$${aud}`).toBe(8);
     }
   });
 
-  it('and every seat price in every currency', () => {
-    for (const [currency, p] of Object.entries(SEAT_PRICES)) {
-      for (const amount of everyPublishedSeatPrice(p)) {
-        expect(digitSum(amount), `${currency} publishes ${amount}`).toBe(8);
-      }
-    }
+  /*
+    ── And the seat table's exceptions are the recorded ones ────────────────────────────────────
+
+    This used to read "and every seat price in every currency". Sixteen of the twenty-four no
+    longer reduce to 8 — the Stripe handoff of 19 September — so the check that still bites is
+    that the set of survivors is EXACTLY `RULE_OF_EIGHT`. Deleting the rule would have been the
+    easy edit and would have left nothing at all guarding the next price.
+  */
+  it('and the seat prices obey it in exactly the places on record', () => {
+    expect(pricesObeyingTheRule()).toEqual([...RULE_OF_EIGHT]);
+    for (const amount of RULE_OF_EIGHT) expect(digitSum(amount), `${amount}`).toBe(8);
   });
 
-  it('INCLUDING THE TRAINING PRICE, which is 1502 and not the 1,007 the design still draws', () => {
-    // A$1,007 → A$1,502 on 18 September. 1+5+0+2 = 8; 1500 would be 6.
+  it('INCLUDING THE TRAINING PRICE, which is 1502 and not the 1,007 the old design drew', () => {
+    // A$1,007 → A$1,502 on 18 September, live in Stripe on 19 September. 1+5+0+2 = 8; 1500 is 6.
     expect(PACKAGES.sessions.aud).toBe(1502);
     expect(digitSum(1500)).not.toBe(8);
   });
@@ -59,13 +80,30 @@ describe('which prices may be said out loud', () => {
     expect(PACKAGES.sessions.publishPrice).toBe(true);
   });
 
-  it('THE CONSULTING PRICE IS NOT', () => {
-    /*
-      Not secrecy and not negotiability — it is fixed, and /admin shows it to whoever sets a business
-      up. It is about order: a five-figure monthly number read before anybody has explained what a
-      full day a week buys ends the conversation rather than starting it.
-    */
+  /*
+    ── And the consulting price is not merely unpublished, it is gone ───────────────────────────
+
+    It used to be A$20,888 with `publishPrice: false`, which kept it off the marketing page and
+    printed it on /admin. Kris's Stripe handoff of 19 September archives the product — *"Not part
+    of the current offer"* — and makes consulting quote-only: *"'Speak to us'. No Stripe product.
+    Internal reference rate $500/hr is never shown to customers."*
+
+    Null rather than a hidden number, because "hidden" only ever held on the pages somebody
+    remembered to check.
+  */
+  it('THE CONSULTING PRICE IS NOT — there is no longer one to print', () => {
     expect(PACKAGES.full_control.publishPrice).toBe(false);
+    expect(PACKAGES.full_control.aud).toBeNull();
+  });
+
+  /* The internal A$500/hr reference must not reach the source at all. It is not a price SPEC
+     charges, it is the number behind a quote, and the hourly-rate ban below would not catch it
+     written as a bare 500. */
+  it('AND THE INTERNAL HOURLY REFERENCE IS NOWHERE IN THE SOURCE', () => {
+    for (const file of walk(SRC)) {
+      expect(readFileSync(file, 'utf8'), `${file.replace(SRC, 'src')} names the internal rate`)
+        .not.toMatch(/\$\s?500\s*(?:\/|per\s+|an\s+)\s*h(?:ou)?r/i);
+    }
   });
 
   it('and the public pricing page never prints it', () => {

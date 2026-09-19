@@ -98,9 +98,10 @@ if (!body) {
   if (off.length) notes.push(`Not switched on: ${off.join(', ')}`);
 
   if (optional.RESEND_API_KEY === false) notes.push('Invitations cannot be sent — nobody can be given a seat.');
-  if (optional.STRIPE_SECRET_KEY === false || optional.STRIPE_PRICE_SEAT_MONTHLY === false) {
-    notes.push('Billing is off — nobody can be charged.');
-  }
+  // The price IDs stopped being settings on 19 September — they are Stripe's own, in lib/pricing.
+  // Only the key can be missing now, and asking about a variable /api/health no longer reports
+  // would have made this read `undefined === false`, which is false, and quietly stopped checking.
+  if (optional.STRIPE_SECRET_KEY === false) notes.push('Billing is off — nobody can be charged.');
 }
 
 /*

@@ -80,11 +80,24 @@ export default function Pricing() {
           connecting the systems is where the productivity comes from, and Basic was the tier that
           could not connect anything.
         */}
+        {/*
+          ── "No tier to choose" needed one word of qualification ──────────────────────────────
+
+          Kris removed Basic and Advanced on 18 September because the two tiers cost the same money,
+          so choosing between them only ever took features away for nothing. That decision stands
+          and the sentence below is still the point of the page.
+
+          But the Stripe handoff of 19 September names two tiers again — Basic and Advanced — and
+          this time they are NOT the same money: Advanced is the seat with the assistant on it, at
+          A$227 against A$134. A page that says "no tier to choose" beside a table with two prices
+          per seat is a page arguing with itself, so it says what the one choice actually is.
+        */}
         <section className="mt-10 card">
           <h2 className="font-serif text-2xl text-ink">Everything is in it, from the first minute</h2>
           <p className="mt-2 max-w-2xl text-sm text-ink-light">
-            There is one SPEC. No tier to choose, nothing held back for a bigger plan, and no version
-            of this where you pay the same money for less of it.
+            There is one SPEC. Nothing is held back for a bigger plan, and there is no version of
+            this where you pay the same money for less of it. The only choice is whether the
+            assistant is switched on &mdash; that is what the two prices per seat are.
           </p>
           <ul className="mt-5 grid gap-2 text-sm sm:grid-cols-2">
             {EVERYTHING_IN_IT.map(line => (
@@ -123,22 +136,51 @@ export default function Pricing() {
             Decided rather than converted. A price never moves because an exchange rate did, and you are
             billed in your own currency.
           </p>
+          {/*
+            ── Four columns, because there are four prices ──────────────────────────────────────
+
+            This table had three: Region, "Per seat, per month", and "Frontline leader, with
+            training (not open yet)" — and that third column was printing `SEAT_PRICES[c].team`.
+            When design 15 turned one seat into two, the header was left behind and the cell
+            pointed at the new field, so the page published the TEAM seat price under a heading
+            about a training seat that is not on sale. A wrong number is bad; a right number under
+            the wrong name is worse, because nobody reading it knows to check.
+
+            All four now, named as Stripe names them on the invoice.
+          */}
           <div className="mt-4 overflow-x-auto">
-            <table className="table-clean min-w-[480px]">
+            <table className="table-clean min-w-[560px]">
               <thead>
-                <tr><th>Region</th><th>Per seat, per month</th><th>Frontline leader, with training (not open yet)</th></tr>
+                <tr>
+                  <th>Region</th>
+                  <th>Leadership seat</th>
+                  <th>Leadership, with AI</th>
+                  <th>Team seat</th>
+                  <th>Team, with AI</th>
+                </tr>
               </thead>
               <tbody>
                 {ORDER.map(c => (
                   <tr key={c}>
                     <td className="text-ink">{REGION[c]}</td>
                     <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].leadership}</td>
+                    <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].leadershipWithAi}</td>
                     <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].team}</td>
+                    <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].teamWithAi}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {/*
+            Which of these include tax, because A$134 and US$134 are the same number and not the
+            same price. Stripe's defaults for these currencies — see TAX_INCLUSIVE in lib/pricing.
+          */}
+          <p className="mt-3 text-xs text-ink-light">
+            Australian, New Zealand, British and euro prices include tax &mdash; the Australian
+            figures include GST. United States and Canadian prices are before tax, which is added
+            at checkout.
+          </p>
         </section>
 
         {/*
@@ -149,9 +191,10 @@ export default function Pricing() {
           published — with "someone will be in contact" rather than a checkout, because these are a
           share of one person's week and there are only so many Tuesdays.
 
-          The prices are SPEC's, not the mock-up's: the design draws A$1,000 and A$20,000, and every
-          published price in this product reduces to 8 by digit sum. A$1,007 does and A$1,000 does
-          not. See lib/pricing.
+          Training is published; consulting is not. That is not coyness about the second one — it
+          has no price. Kris's Stripe handoff of 19 September archives the A$20,888 product and
+          makes consulting quote-only, so there is no number to show and `packagePrice` says
+          "Speak to us" instead of inventing one. See lib/pricing.
         */}
         <section className="mt-12">
           <h2 className="font-serif text-2xl text-ink">Beyond software — how much support you want running it</h2>
@@ -167,10 +210,12 @@ export default function Pricing() {
                     monthly number read before anybody has explained what a full day a week buys
                     ends the conversation rather than starting it.
                   */}
-                  {pkg.publishPrice ? (
+                  {pkg.publishPrice && pkg.aud !== null ? (
                     <>
                       <p className="mt-3 font-serif text-3xl text-ink">A${pkg.aud.toLocaleString('en-AU')}</p>
-                      <p className="mt-1.5 text-sm text-ink-light">a month · sign up now</p>
+                      <p className="mt-1.5 text-sm text-ink-light">
+                        a month, in Australian dollars · sign up now
+                      </p>
                     </>
                   ) : (
                     <>

@@ -18,17 +18,22 @@ describe('seat-based plan', () => {
   /*
     The first seat is free — Kris, 16 September: "yes do the first seat free".
 
-    The worked example in the brief said five people cost A$130. It now costs A$104, and the count
-    of PEOPLE is still five: `seats` is the truth about the business and `billable` is the invoice.
-    Collapsing the two is what produced a page telling a one-person business it was free while
-    charging it A$26.
+    The count of PEOPLE is five whatever the bill says: `seats` is the truth about the business and
+    `billable` is the invoice. Collapsing the two is what produced a page telling a one-person
+    business it was free while charging it.
+
+    Five people, one of whom leads the other four — the shape of a small business — so the bill is
+    one leadership seat and three team seats, with the free one taken off the cheaper kind.
   */
-  it('bills A$26 per person AFTER THE FIRST, who is free', () => {
-    const s = planState(t('basic'), 5);
+  it('bills per person AFTER THE FIRST, who is free', () => {
+    const s = planState(t('basic'), 5, 'aud', 1);
     expect(s.seats, 'five people are in it').toBe(5);
     expect(s.billable, 'four of them are charged for').toBe(4);
-    expect(s.monthlyCost).toBe(4 * SEAT_PRICE_MONTHLY);
-    expect(costLabel(s)).toBe(`A$${4 * SEAT_PRICE_MONTHLY} a month · 5 people, first seat free`);
+    expect(s.leadershipSeats).toBe(1);
+    expect(s.teamSeats).toBe(3);
+    const total = SEAT_PRICE_MONTHLY + 3 * SEAT_PRICES.aud.team;
+    expect(s.monthlyCost).toBe(total);
+    expect(costLabel(s)).toBe(`A$${total} a month · 5 people, first seat free`);
   });
 
   it('A BUSINESS OF ONE PAYS NOTHING, and is not told it is empty', () => {
@@ -37,15 +42,28 @@ describe('seat-based plan', () => {
     expect(s.billing).toBe(false);
     expect(s.monthlyCost).toBe(0);
     expect(s.needsCheckout, 'and is never sent to a checkout for nothing').toBe(false);
-    // The wrong sentence here is "Free — nobody in it yet", said to the person who is in it.
-    expect(costLabel(s))
-      .toBe(`Free — the first seat is, and so far it is just you. A$${SEAT_PRICE_MONTHLY} a month for each person you add`);
+    /*
+      The wrong sentence here is "Free — nobody in it yet", said to the person who is in it.
+
+      And the second wrong one, until design 15's prices landed: quoting the LEADERSHIP price for
+      "each person you add". A GM about to invite an electrician was being shown A$134 for a seat
+      that costs A$17, on the page where they decide whether to invite anybody at all.
+    */
+    expect(costLabel(s)).toBe(
+      'Free — the first seat is, and so far it is just you. '
+      + `A$${SEAT_PRICES.aud.team} a month for each person you add, `
+      + `A$${SEAT_PRICE_MONTHLY} if they lead a team`,
+    );
   });
 
   it('starts charging at the second person, not the first', () => {
     expect(planState(t('trial'), 1).billing).toBe(false);
     expect(planState(t('trial'), 2).billing).toBe(true);
-    expect(planState(t('trial'), 2).monthlyCost).toBe(SEAT_PRICE_MONTHLY);
+    // A leader and somebody they lead: the free seat comes off the cheaper one, so the bill is
+    // the leadership seat.
+    expect(planState(t('trial'), 2, 'aud', 1).monthlyCost).toBe(SEAT_PRICE_MONTHLY);
+    // And two people who lead nobody is two team seats, one of them free.
+    expect(planState(t('trial'), 2).monthlyCost).toBe(SEAT_PRICES.aud.team);
   });
 
   it('never bills a negative number of seats', () => {
@@ -56,12 +74,14 @@ describe('seat-based plan', () => {
   });
 
   it('holds at twenty thousand seats', () => {
-    expect(planState(t('basic'), 20_000).monthlyCost).toBe(19_999 * SEAT_PRICE_MONTHLY);
+    // Two thousand of them leading somebody, which is about the ratio a business of that size has.
+    expect(planState(t('basic'), 20_000, 'aud', 2_000).monthlyCost)
+      .toBe(2_000 * SEAT_PRICE_MONTHLY + 17_999 * SEAT_PRICES.aud.team);
   });
 
   it('bills in the business’s own currency, at the regional price — never converted', () => {
-    const s = planState(t('basic'), 5, 'gbp');
-    const four = 4 * SEAT_PRICES.gbp.leadership;
+    const s = planState(t('basic'), 5, 'gbp', 1);
+    const four = SEAT_PRICES.gbp.leadership + 3 * SEAT_PRICES.gbp.team;
     expect(s.monthlyCost).toBe(four);
     expect(costLabel(s)).toBe(`£${four} a month · 5 people, first seat free`);
   });

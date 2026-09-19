@@ -16,7 +16,7 @@
  * what the system will do — before spending a cent or entering a card.
  */
 
-import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatRate, type Currency } from './pricing';
+import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatPrice, type Currency } from './pricing';
 
 /** Per active named seat, per month, in the home currency (AUD). Other regions: see lib/pricing. */
 /** The leadership seat, which is the one the free-first-seat rule is about. */
@@ -115,8 +115,10 @@ export interface PlanState {
   seats: number;
   /** How many of them are charged for: everyone after the first. See FREE_SEATS. */
   billable: number;
-  /** How many of THOSE are on a training seat, at the higher price. See seatBill. */
-  trainingSeats: number;
+  /** How many of THOSE are leadership seats, at the higher price. See seatBill. */
+  leadershipSeats: number;
+  /** And how many are team seats. The two add up to `billable`, never to `seats`. */
+  teamSeats: number;
   /** The business's own currency — prices are decided per region, never converted. */
   currency: Currency;
   /** billable seats × the seat price in that currency — NOT every person in the business. */
@@ -220,34 +222,144 @@ export const FREE_SEATS = 1;
 export const billableSeats = (seats: number) => Math.max(0, seats - FREE_SEATS);
 
 /**
+ * Is the Advanced tier — the seat with the assistant on it — sellable yet?
+ *
+ * ── Why this is false, with four live prices in Stripe ──────────────────────────────────────────
+ *
+ * Kris's Stripe handoff of 19 September creates all four seat products, Basic and Advanced, and
+ * they are real: a customer could be charged A$227 today. What does not exist is the other half —
+ * nothing in SPEC decides which businesses are on Advanced, nothing gates the assistant on it, and
+ * no screen offers the choice.
+ *
+ * `tenants.tier` is not that switch and must not be pressed into being one. It defaults to
+ * **'advanced'** and has not been read since Kris collapsed the two tiers on 18 September, so
+ * wiring checkout to it would move every existing business onto the dearer seat at once, with
+ * nobody having chosen anything. That is the exact shape of a billing incident.
+ *
+ * So the prices are published — they are Stripe's, and the pricing page shows all four — and
+ * everybody is billed Basic until this is switched on deliberately. Same arrangement, and the same
+ * reasoning, as `TRAINING_SEAT_ON_SALE` in lib/pricing: one flag, read at the point the number
+ * becomes money, rather than a half-built feature that bills.
+ *
+ * Turning it on needs the thing this flag is standing in for: somewhere a business chooses, and
+ * something that reads the choice.
+ */
+export const AI_TIER_ON_SALE = false;
+
+/**
+ * How many of the people with a login lead somebody.
+ *
+ * ── Why this asks the chart rather than a column ────────────────────────────────────────────────
+ *
+ * There is no "is a leader" field and there should not be one: it would be a second answer to a
+ * question the org chart already answers, and the two would disagree within a week of somebody
+ * being promoted. Which seat a person is on is `seatKindFor` in lib/chart-seats — their title says
+ * they lead, or somebody reports to their role — and it is read here at the point the count becomes
+ * money.
+ *
+ * A person with a login and no role on the chart is a TEAM seat. They are not leading anybody in
+ * SPEC, and billing the leadership rate for somebody the product cannot even place would be
+ * charging A$134 for a row in a table.
+ */
+export async function countLeadershipSeats(tenantId: string): Promise<number> {
+  const { db, schema } = await import('../db');
+  const { eq, and, isNull, inArray } = await import('drizzle-orm');
+  const { seatKindFor } = await import('./chart-seats');
+
+  const people = (await db.select().from(schema.users).where(eq(schema.users.tenantId, tenantId)))
+    .filter(u => u.invitedAt || u.acceptedAt || u.authUserId);
+  if (!people.length) return 0;
+
+  const roles = await db.select({
+    id: schema.roles.id, title: schema.roles.title, reportsTo: schema.roles.reportsToRoleId,
+  }).from(schema.roles).where(eq(schema.roles.tenantId, tenantId));
+  if (!roles.length) return 0;
+
+  const byId = new Map(roles.map(r => [r.id, r]));
+  const leads = new Set(roles.map(r => r.reportsTo).filter((x): x is string => Boolean(x)));
+
+  const placements = await db.select().from(schema.roleAssignments)
+    .where(and(
+      inArray(schema.roleAssignments.roleId, roles.map(r => r.id)),
+      isNull(schema.roleAssignments.toDate),
+    ));
+
+  /*
+    A person can be on the chart two ways: an assignment carrying their user id, or one carrying a
+    staff row that was later linked to their account. Both are read, and the user-id assignment
+    wins — it is the one `placementShown` draws the card from, and a bill that disagrees with the
+    chart is a bill nobody can check.
+  */
+  const staffOwner = new Map((await db.select().from(schema.staff)
+    .where(eq(schema.staff.tenantId, tenantId)))
+    .filter(s => s.userId)
+    .map(s => [s.id, s.userId as string]));
+
+  const roleOf = new Map<string, string>();
+  for (const a of placements) {
+    if (a.staffId) { const uid = staffOwner.get(a.staffId); if (uid) roleOf.set(uid, a.roleId); }
+  }
+  for (const a of placements) if (a.userId) roleOf.set(a.userId, a.roleId);
+
+  let leadership = 0;
+  for (const person of people) {
+    const role = byId.get(roleOf.get(person.id) ?? '');
+    if (!role) continue;
+    if (seatKindFor({ title: role.title, hasDirectReports: leads.has(role.id) }) === 'leadership') {
+      leadership += 1;
+    }
+  }
+  return leadership;
+}
+
+/**
  * A bill made of two kinds of seat.
  *
- * Most people are a plain seat. Frontline leaders the administrator has put on training are a
- * training seat, at the higher price, and a business is normally a mixture — a business of forty
- * with six supervisors pays for six of one and thirty-three of the other, not forty of either.
- * Multiplying everybody by the training price is what the old per-business `seat_training` would
- * have done, and it would have charged thirty-four people for something nobody is giving them.
+ * ── What the two kinds are now, and why it had to change ────────────────────────────────────────
  *
- * **The free seat comes off a plain seat first.** It is the cheaper of the two, which is the less
- * generous reading, and it is the right one: the free seat exists so a business of one pays nothing
- * to get started, and the person who starts a business is its GM, who cannot be on a training seat
- * at all. Taking it off the dearer seat would be giving away A$44 of training to make a point about
- * A$26. If a business somehow has only training seats, the free one comes off those instead, because
- * "the first seat is free" has to be true however the business is shaped.
+ * They used to be PLAIN and TRAINING: everybody at one rate, and frontline leaders an administrator
+ * had put on SPEC's training material at a higher one.
+ *
+ * Design 15 replaced that model with leadership and team seats, and the table in lib/pricing
+ * followed — but this function did not. So for a day the product held four seat prices and could
+ * charge exactly one of them: `seatRate(currency, false)` is the LEADERSHIP price, and every person
+ * in every business was being counted at it. A business of forty with six leaders would have been
+ * billed 39 × A$134 = A$5,226 a month instead of 5 × A$134 + 34 × A$17 = A$1,248. Four times over,
+ * on the screen a customer reads before they press pay.
+ *
+ * Nothing had gone wrong in the arithmetic. The table grew a second kind of seat and the bill was
+ * still asking the old question, which is why the number looked reasonable and was not.
+ *
+ * ── The free seat comes off a TEAM seat first ───────────────────────────────────────────────────
+ *
+ * The cheaper of the two, which is the less generous reading, and it is the same choice the old
+ * version made for the same reason: "the first seat is free" is a rule about money, not about which
+ * person. Taking it off a leadership seat would hand back A$134 to make a point about A$17.
+ *
+ * If a business has only leadership seats — a business of one, which is every business on its first
+ * day — the free one comes off those instead, because the rule has to hold however the business is
+ * shaped. That is the case that matters: it is what makes a business of one pay nothing at all.
  */
-export function seatBill(seats: number, trainingSeats: number, currency: Currency = HOME_CURRENCY) {
-  const training = Math.max(0, Math.min(trainingSeats, seats));
-  const plain = seats - training;
+export function seatBill(
+  seats: number,
+  leadershipSeats: number,
+  currency: Currency = HOME_CURRENCY,
+  /** Whether this business is on the Advanced tier — the seat with the assistant on it. */
+  withAi = false,
+) {
+  const leadership = Math.max(0, Math.min(leadershipSeats, seats));
+  const team = Math.max(0, seats) - leadership;
 
-  const freeFromPlain = Math.min(FREE_SEATS, plain);
-  const billablePlain = plain - freeFromPlain;
-  const billableTraining = Math.max(0, training - (FREE_SEATS - freeFromPlain));
+  const freeFromTeam = Math.min(FREE_SEATS, team);
+  const billableTeam = team - freeFromTeam;
+  const billableLeadership = Math.max(0, leadership - (FREE_SEATS - freeFromTeam));
 
   return {
-    plain: billablePlain,
-    training: billableTraining,
-    billable: billablePlain + billableTraining,
-    monthlyCost: billablePlain * seatRate(currency, false) + billableTraining * seatRate(currency, true),
+    leadership: billableLeadership,
+    team: billableTeam,
+    billable: billableLeadership + billableTeam,
+    monthlyCost: billableLeadership * seatPrice(currency, 'leadership', withAi)
+      + billableTeam * seatPrice(currency, 'team', withAi),
   };
 }
 
@@ -255,19 +367,20 @@ export function planState(
   tenant: TenantPlan,
   seats: number,
   currency: Currency = HOME_CURRENCY,
-  /** How many of those people are on a training seat. Defaults to none, which is every business today. */
-  trainingSeats = 0,
+  /** How many of those people lead somebody. Defaults to none, which prices a business at its floor. */
+  leadershipSeats = 0,
 ): PlanState {
   const program = tenant.plan === 'program';
   const beta = tenant.plan === 'beta';
   const lapsed = tenant.plan === 'lapsed';
   const subscribed = Boolean(tenant.stripeSubscriptionId);
-  const bill = seatBill(seats, trainingSeats, currency);
+  const bill = seatBill(seats, leadershipSeats, currency, AI_TIER_ON_SALE);
   const billable = bill.billable;
   return {
     seats,
     billable,
-    trainingSeats: bill.training,
+    leadershipSeats: bill.leadership,
+    teamSeats: bill.team,
     currency,
     // What it WOULD cost, kept even on a beta. A free arrangement somebody cannot see the value of
     // is one they have no reason to be glad of, and one nobody can price when it ends.
@@ -308,7 +421,24 @@ export function costLabel(state: PlanState): string {
     the sort of small wrongness that makes everything beside it suspect.
   */
   if (state.seats === 0) return 'Free — nobody in it yet';
-  if (state.free) return `Free — the first seat is, and so far it is just you. ${seatLabel(state.currency)} a month for each person you add`;
+  /*
+    ── Which of the four prices this sentence names ──────────────────────────────────────────────
+
+    It used to say `seatLabel(currency)` — the LEADERSHIP price — full stop: "A$134 a month for
+    each person you add". Since design 15 that is the dearest of the four, and it is the wrong one
+    for almost everybody a business adds next. A GM about to invite an electrician was being quoted
+    A$134 for a seat that costs A$17, on the page where they decide whether to invite anybody at
+    all.
+
+    So it names both, cheapest first, and says what makes the difference. A price that is too high
+    stops somebody using the product; a price that is too low is an argument on the first invoice.
+    Neither is worth having when both numbers fit in a sentence.
+  */
+  if (state.free) {
+    return 'Free — the first seat is, and so far it is just you. '
+      + `${seatLabel(state.currency, 'team')} a month for each person you add, `
+      + `${seatLabel(state.currency, 'leadership')} if they lead a team`;
+  }
   const people = `${state.seats} ${state.seats === 1 ? 'person' : 'people'}`;
   return `${moneyLabel(state.currency, state.monthlyCost)} a month · ${people}, first seat free`;
 }
@@ -348,7 +478,6 @@ export async function countSeats(tenantId: string): Promise<number> {
 export async function planStateFor(tenantId: string, currency: Currency = HOME_CURRENCY): Promise<PlanState> {
   const { db, schema } = await import('../db');
   const { eq } = await import('drizzle-orm');
-  const { countTrainingSeats } = await import('./training-seat');
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, tenantId)))[0];
   if (!tenant) throw new Error('Business not found.');
   return planState({
@@ -356,7 +485,7 @@ export async function planStateFor(tenantId: string, currency: Currency = HOME_C
     // Without this the page cannot tell a business that has paid from one that never could, which
     // is exactly the gap that left the product with no way to start a subscription at all.
     stripeSubscriptionId: tenant.stripeSubscriptionId,
-  }, await countSeats(tenantId), currency, await countTrainingSeats(tenantId));
+  }, await countSeats(tenantId), currency, await countLeadershipSeats(tenantId));
 }
 
 /**

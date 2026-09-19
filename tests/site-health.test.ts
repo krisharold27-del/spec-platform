@@ -319,32 +319,37 @@ describe('whether SPEC can actually take a payment', () => {
     expect(verdict(lines(stripe({})))).not.toBe('broken');
   });
 
-  it('says working only when all three are set', () => {
-    const l = billing(stripe({
-      STRIPE_SECRET_KEY: true, STRIPE_PRICE_SEAT_MONTHLY: true, STRIPE_WEBHOOK_SECRET: true,
-    }));
+  /*
+    ── Two settings now, not three ──────────────────────────────────────────────────────────────
+
+    The price ID was the third, and these tests held the line to it hard: a key with no price meant
+    checkout could not start, and that state had to read as broken.
+
+    Kris's Stripe handoff of 19 September removes the question. The price IDs are facts about the
+    live account, so they live in lib/pricing beside the amounts they name and there is nothing to
+    configure. Keeping the old check would have reported a deployment that can charge a card as
+    "HALF SET UP … anybody clicking upgrade lands on an error" — a false alarm on the page somebody
+    reads at seven in the morning, which is how a status page stops being read at all.
+  */
+  it('says working when both are set', () => {
+    const l = billing(stripe({ STRIPE_SECRET_KEY: true, STRIPE_WEBHOOK_SECRET: true }));
     expect(l.severity).toBe('working');
     expect(l.fix).toBeNull();
   });
 
-  /*
-    A key with no price: checkout cannot start. Looks configured from Stripe's side. The first
-    person to find out is a customer landing on an error page after clicking upgrade.
-  */
-  it('catches a key with no price, which looks configured and is not', () => {
+  it('AND DOES NOT ASK FOR A PRICE ID, which is no longer a setting', () => {
     const l = billing(stripe({ STRIPE_SECRET_KEY: true, STRIPE_WEBHOOK_SECRET: true }));
-    expect(l.severity).toBe('broken');
-    expect(l.says).toContain('checkout cannot start');
-    expect(l.fix).toContain('STRIPE_PRICE_SEAT_MONTHLY');
+    const said = `${l.says} ${l.fix ?? ''}`;
+    expect(said, 'a status page asking for something nothing reads').not.toContain('STRIPE_PRICE');
   });
 
   /*
-    THE EXPENSIVE ONE. Key and price but no webhook secret: Stripe takes the money, SPEC rejects the
+    THE EXPENSIVE ONE. A key but no webhook secret: Stripe takes the money, SPEC rejects the
     notification, and the customer is charged AND still locked out. Both dashboards look healthy.
     The only person who finds out is the one who paid.
   */
   it('SHOUTS about a missing webhook secret, which charges a customer and locks them out', () => {
-    const l = billing(stripe({ STRIPE_SECRET_KEY: true, STRIPE_PRICE_SEAT_MONTHLY: true }));
+    const l = billing(stripe({ STRIPE_SECRET_KEY: true }));
     expect(l.severity).toBe('broken');
     expect(l.says).toContain('charged and still locked out');
     expect(l.says, 'and that nothing else will reveal it').toContain('Nothing looks wrong');
@@ -352,16 +357,16 @@ describe('whether SPEC can actually take a payment', () => {
     expect(l.fix).toContain('STRIPE_WEBHOOK_SECRET');
   });
 
-  it('catches a price and webhook with no key', () => {
-    const l = billing(stripe({ STRIPE_PRICE_SEAT_MONTHLY: true, STRIPE_WEBHOOK_SECRET: true }));
+  it('catches a webhook with no key', () => {
+    const l = billing(stripe({ STRIPE_WEBHOOK_SECRET: true }));
     expect(l.severity).toBe('broken');
     expect(l.fix).toContain('STRIPE_SECRET_KEY');
   });
 
   /* Every partial state is broken. None of them may quietly read as fine. */
   it('treats every half-configured combination as broken', () => {
-    const keys = ['STRIPE_SECRET_KEY', 'STRIPE_PRICE_SEAT_MONTHLY', 'STRIPE_WEBHOOK_SECRET'];
-    for (let mask = 1; mask < 7; mask++) {
+    const keys = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'];
+    for (let mask = 1; mask < 3; mask++) {
       const over = Object.fromEntries(keys.map((k, i) => [k, Boolean(mask & (1 << i))]));
       expect(billing(stripe(over)).severity, JSON.stringify(over)).toBe('broken');
     }

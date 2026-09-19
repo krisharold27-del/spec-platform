@@ -17,8 +17,22 @@ export function getStripe(): Stripe | null {
   return client;
 }
 
+/**
+ * Can SPEC take a payment?
+ *
+ * ── One setting now, not two ────────────────────────────────────────────────────────────────────
+ *
+ * This used to require `STRIPE_PRICE_SEAT_MONTHLY` as well as the key, which was right while the
+ * price ids were something somebody typed into Vercel on the day. Kris's Stripe handoff of 19
+ * September makes them facts about the live account, so they live in `lib/pricing` beside the
+ * amounts they name and there is nothing left to configure.
+ *
+ * Leaving the old condition here would have been worse than untidy: /status reads this, and it
+ * would have reported billing as switched OFF on a deployment that could charge a card perfectly
+ * well — the quietly-wrong answer docs/STRIPE_SETUP.md exists to stop.
+ */
 export function billingConfigured() {
-  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_SEAT_MONTHLY);
+  return Boolean(process.env.STRIPE_SECRET_KEY);
 }
 
 /**
