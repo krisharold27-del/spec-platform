@@ -3,6 +3,7 @@ import {
   layout, rootsOf, branch, isDescendant, canMove, canRemove, collapsedAway, teamSize,
   detachedBranches, stages, boardVerdict,
   parseRoles, resolveImport, parseCsv, SLOT, ROW, cardWidth,
+  cardHeight, cardStyle, SEAT_BADGE_ROW, PERSON_ROW, TILE_ROW_GAP,
   type ChartRole,
 } from '../src/lib/orgchart';
 
@@ -69,11 +70,39 @@ describe('layout', () => {
     expect(lines.filter(l => l.kind === 'riser')).toHaveLength(1);
   });
 
-  it('sizes the canvas to the tree, with a floor for a small one', () => {
+  /*
+    ── Tall enough for the bottom row, asserted as the RULE rather than as a number ────────────
+
+    This used to read `2 * ROW + 130`, which is the formula the code had — copied, so the two could
+    only ever agree. And they agreed on something wrong: 130 was a typed-in guess at the height of
+    the last row, and cards are 140–162px, so the bottom row of every chart in the product was
+    clipped. Kris photographed the result once the seat badge made it half the S/P/E/C tiles.
+
+    A test that restates the implementation cannot catch the implementation being wrong. This one
+    asks what the canvas is FOR: the deepest card has to fit inside it.
+  */
+  it('SIZES THE CANVAS SO THE BOTTOM ROW OF CARDS FITS INSIDE IT', () => {
     const one = layout(rootsOf([role('gm')]), [role('gm')]);
     expect(one.width).toBe(680);
+
     const all = tree();
-    expect(layout(rootsOf(all), all).height).toBe(2 * ROW + 130);
+    const { cards, height } = layout(rootsOf(all), all);
+    const deepest = cards.reduce((m, c) => Math.max(m, c.depth), 0);
+    const lowest = cards.reduce((m, c) => Math.max(m, c.y + c.h), 0);
+
+    expect(height, 'the bottom card hangs below the chart it is drawn on').toBeGreaterThanOrEqual(lowest);
+    expect(height).toBe(deepest * ROW + cardHeight(deepest) + 12);
+  });
+
+  /* And the card's own height counts every row the card draws, which is what went wrong. */
+  it('and a card is tall enough for the title, the seat badge, the person and the tiles', () => {
+    for (const depth of [0, 1, 2, 5]) {
+      const z = cardStyle(depth);
+      const parts = z.pad * 2 + Math.ceil(z.title * 1.4 * 2) + SEAT_BADGE_ROW + PERSON_ROW + TILE_ROW_GAP + z.tile;
+      expect(cardHeight(depth), `depth ${depth}`).toBe(parts);
+      // Two full lines of title have to survive everything else on the card.
+      expect(cardHeight(depth) - (parts - Math.ceil(z.title * 1.4 * 2))).toBeGreaterThanOrEqual(z.title * 1.4 * 2);
+    }
   });
 
   // A chart dragged into a cycle must never recurse for ever, and must never render blank either:

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import {
   layout, rootsOf, detachedBranches, canMove, canRemove, collapsedAway, teamSize, boardVerdict,
-  cardStyle, type ChartRole, type Rollup,
+  cardStyle, SEAT_BADGE_ROW, type ChartRole, type Rollup,
 } from '@/lib/orgchart';
 import { PILLAR_META } from '@/lib/pillars';
 import {
@@ -700,7 +700,10 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
         {/* pt-4 so the count badge, which hangs off the top-left corner of a card, is not clipped
             by the frame the chart now sits in. */}
         <div className="mt-4 overflow-x-auto pt-4">
-        <div className="relative mx-auto" style={{ width, height }}>
+        {/* Marked so a browser check can measure the cards against the tree they sit on — the
+            chart's height is derived from the bottom row's card, and that arithmetic has drifted
+            before. See the note on `layout`'s height in lib/orgchart. */}
+        <div data-org-tree className="relative mx-auto" style={{ width, height }}>
           {/*
             The lines carry the reading, and they are rails rather than hairlines.
 
@@ -968,7 +971,15 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                 */}
                 {r.badges.length > 0 && (
                   <span
+                    /*
+                      The line-height is EXPLICIT and matches `SEAT_BADGE_ROW`, which is what
+                      `cardHeight` reserves for this row. Left to inherit, it was ~15px of line the
+                      card's arithmetic knew nothing about — the title lost a line to make room and
+                      "Head of Commercial" came out as "Head of". A row the layout has to allow for
+                      may not be a size only the browser knows.
+                    */
                     className="mt-1 block text-[10px] font-medium uppercase tracking-[0.06em] text-ink-light"
+                    style={{ lineHeight: `${SEAT_BADGE_ROW - 4}px` }}
                     data-role-seat={r.id}
                   >
                     {r.badges.join(' · ')}

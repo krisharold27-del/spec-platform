@@ -505,6 +505,75 @@ check(
   tightTitles.join(' | '),
 );
 
+/*
+  ── AND THE TITLE BOX REALLY HAS THE TWO LINES THE CARD PROMISES IT ────────────────────────────
+
+  Kris, 19 September, photographing JBI: two cards reading **"Head of"**. The roles are "Head of
+  Commercial" and "Head of Operations", and the second word was simply gone.
+
+  Both checks above passed on that build, and neither was wrong — they were asking the wrong
+  question. The card did not overflow and the line-height was generous. What had happened is the
+  opposite of overflow: design 15 added the LEADERSHIP SEAT row, `cardHeight` was never told about
+  it, so the card was ~18px short of its own contents and the layout took the room out of the
+  title. The clamp box was squeezed from two lines to one and then did what a clamp does.
+
+  Nothing spilled, because nothing was allowed to. A check that only asks "does anything stick out"
+  cannot see text that was quietly dropped instead.
+
+  So this asks the card to keep its own promise: the title is clamped to TWO lines, so its box must
+  be at least two line-heights tall. It cannot fire on a legitimately long title — a three-line role
+  name still gets its two lines and clamps honestly — and it fires immediately on anything that
+  squeezes the title to make room for something new. Which is the mistake that was made, and the
+  one most likely to be made again the next time a row is added to a card.
+*/
+const squeezed = await page.evaluate(() => {
+  const out = [];
+  for (const card of document.querySelectorAll('[data-org-canvas] [data-role-card]')) {
+    const title = card.querySelector('span[title]');
+    if (!title) continue;
+    const st = getComputedStyle(title);
+    const lines = Number(st.webkitLineClamp);
+    if (!lines) continue;                       // not clamped, nothing promised
+    const lineHeight = parseFloat(st.lineHeight);
+    const box = title.getBoundingClientRect().height;
+    if (box < lineHeight * lines - 1) {
+      out.push(`"${title.textContent.trim().slice(0, 28)}" has ${(box / lineHeight).toFixed(1)} of its ${lines} lines`);
+    }
+  }
+  return out;
+});
+check(
+  '  AND THE TITLE BOX HAS THE TWO LINES THE CARD PROMISES, so no word is silently dropped',
+  squeezed.length === 0,
+  squeezed.join(' | '),
+);
+
+/*
+  ── And the canvas is tall enough for the bottom row of cards ─────────────────────────────────
+
+  Found while fixing the squeezed titles: the tree's height was `maxDepth * ROW + 130`, where 130
+  was a typed-in guess at how tall the last row is. Cards are 140–162px, so the bottom row of every
+  chart in the product was being clipped — a little before the seat badge, and by half the S/P/E/C
+  tiles after it.
+
+  Same shape as the fault above, one level up: an arithmetic that has to agree with the card, kept
+  somewhere the card cannot reach. Measured here against the tree the cards are actually placed on.
+*/
+const clipped = await page.evaluate(() => {
+  const canvas = document.querySelector('[data-org-canvas]');
+  const tree = canvas?.querySelector('[data-org-tree]');
+  if (!tree) return ['no tree to measure'];
+  const floor = tree.getBoundingClientRect().bottom;
+  return [...canvas.querySelectorAll('[data-role-card], [data-team-node]')]
+    .filter(c => c.getBoundingClientRect().bottom > floor + 1)
+    .map(c => `${(c.querySelector('span[title]')?.textContent || c.textContent || '').trim().slice(0, 24)} hangs ${Math.round(c.getBoundingClientRect().bottom - floor)}px below the chart`);
+});
+check(
+  '  and the chart is tall enough for its own bottom row',
+  clipped.length === 0,
+  clipped.join(' | '),
+);
+
 // ── A refusal is a sentence, never the fault screen ──────────────────────────────────────────────
 /*
   Kris renamed a role on JBI and got "This page did not load. Something went wrong on our end."

@@ -159,6 +159,36 @@ export const cardStyle = (depth: number) => CARD[Math.min(depth, CARD.length - 1
 export const cardWidth = (depth: number) => cardStyle(depth).w;
 
 /**
+ * The seat badge's row — "LEADERSHIP SEAT" under the title. 14px of line plus its 4px margin.
+ *
+ * A named constant because `cardHeight` has to count it and the component has to draw it at exactly
+ * this size. See the note on `cardHeight` for what happened when only one of the two knew about it.
+ */
+export const SEAT_BADGE_ROW = 18;
+
+/**
+ * The person's row — the name pill, or "Vacant" where there is nobody.
+ *
+ * 18px of line, 4px of the pill's own vertical padding, and the 5px margin above it.
+ *
+ * ── Why this was 23, and why 23 was wrong all along ─────────────────────────────────────────────
+ *
+ * 23 is the VACANT case: plain text, 18px of line and the 5px margin, no padding. A filled card
+ * draws a pill, and a pill has `py-0.5` — 4px this function never counted. So every card with a
+ * person on it, which is most of them, had been 4px short since the pill was drawn.
+ *
+ * It did not show, because the card had slack elsewhere to absorb it. The seat badge took that
+ * slack, and then the missing 4px landed on the title and cost it a line.
+ *
+ * Written from the taller of the two on purpose: an empty role gets 4px of air, and no card loses
+ * a word.
+ */
+export const PERSON_ROW = 27;
+
+/** The gap above the four S/P/E/C tiles. */
+export const TILE_ROW_GAP = 10;
+
+/**
  * ONE height per depth, whatever the role count or the title length.
  *
  * Export 5 made this explicit: "one fixed height for every card at every depth — the title is
@@ -167,14 +197,33 @@ export const cardWidth = (depth: number) => cardStyle(depth).w;
  *
  * Worked out from the parts rather than declared: the padding top and bottom, two lines of title at
  * 1.4 — which is where the descenders' room lives, since a clamp box will not draw padding — the
- * person pill at 18px with its 5px margin,
- * and the tiles with the 10px above them. Kris photographed names cut in half on 18 September
- * because this was a number somebody had typed; now it cannot be too small without the card spec
- * itself being wrong.
+ * seat badge's row, the person pill at 18px with its 5px margin, and the tiles with the 10px above
+ * them. Kris photographed names cut in half on 18 September because this was a number somebody had
+ * typed; now it cannot be too small without the card spec itself being wrong.
+ *
+ * ── Which is exactly what went wrong when the seat badge arrived ────────────────────────────────
+ *
+ * Design 15 added "LEADERSHIP SEAT" under every title. The component drew it; this function was
+ * never told. So every card was ~18px short of its own contents, and the title — a flex child with
+ * a two-line clamp — was squeezed to ONE line to make room. The clamp then did what a clamp does
+ * and hid the rest.
+ *
+ * Kris photographed the result the next morning: **"Head of Commercial" reading "Head of"**, on the
+ * chart that is the centre of the product. Not truncated with an ellipsis, not overflowing, not
+ * warned about — a whole word silently gone, on a diagram whose entire job is saying who does what.
+ *
+ * Nothing overflowed, which is why every check passed. The card was the right size for the space it
+ * had been given; the CONTENTS were bigger than the card, and the layout resolved that by taking
+ * the room out of the title. So the lesson is not "add 18" — it is that this arithmetic is the
+ * card's contract, and anything the component draws has to appear here on the same day.
  */
 export const cardHeight = (depth: number) => {
   const z = cardStyle(depth);
-  return z.pad * 2 + Math.ceil(z.title * 1.4 * 2) + 23 + z.tile + 10;
+  return z.pad * 2
+    + Math.ceil(z.title * 1.4 * 2)   // two lines of title, descenders included
+    + SEAT_BADGE_ROW                 // "LEADERSHIP SEAT"
+    + PERSON_ROW                     // the name pill, or "Vacant"
+    + TILE_ROW_GAP + z.tile;         // S P E C
 };
 
 export interface PlacedCard {
@@ -315,7 +364,19 @@ export function layout(roots: ChartRole[], all: ChartRole[]): Layout {
     cards,
     lines,
     width: Math.max(slot * SLOT, 680),
-    height: maxDepth * ROW + 130,
+    /*
+      ── Derived from the last row's CARD, not from a number somebody typed ────────────────────
+
+      This was `maxDepth * ROW + 130`, and 130 was a guess at how tall the bottom row is. Cards are
+      140–162px depending on depth, so the bottom row of every chart in the product was being
+      clipped by the canvas — a little before the seat badge arrived, and by half the S/P/E/C tiles
+      after it.
+
+      The same fault as `cardHeight` forgetting the badge, one level up: an arithmetic that has to
+      agree with the card, kept somewhere the card cannot reach. `cardHeight` is right there, so it
+      is asked. The 12 is breathing room under the last row, and is the only part still a choice.
+    */
+    height: maxDepth * ROW + cardHeight(maxDepth) + 12,
   };
 }
 
