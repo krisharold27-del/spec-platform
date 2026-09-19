@@ -568,6 +568,74 @@ if (process.env.DATABASE_URL) {
       shown.includes('Kris Harold'),
       shown.replace(/\n/g, ' · '),
     );
+
+    /*
+      ── Inviting somebody from the chart ───────────────────────────────────────────────────────
+
+      Kris, 19 September: *"i need to know how to invite new people - add their email and send to
+      them"*. The invitation itself was already built and already proven end to end by
+      `scripts/seat-journey.mjs`. What was missing was any way to reach it from the org chart, which
+      is where a leader is actually thinking about who works for them.
+
+      So this asks the two things that matter and nothing else: is the box THERE, on a card with a
+      pencilled-in person, and does pressing it really give that person a seat. The second half is
+      read from the database rather than from the screen, because a confirmation banner is the
+      easiest thing in the world to print without having done anything.
+    */
+    const [pencilled] = await sql`
+      select r.id, r.title, s.id as staff_id, s.name
+      from roles r
+      join role_assignments a on a.role_id = r.id and a.to_date is null
+      join staff s on s.id = a.staff_id
+      where r.tenant_id = ${tenant.id} and s.user_id is null
+      limit 1`;
+
+    if (pencilled) {
+      await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+      await page.locator('[data-org-canvas] [draggable="true"]', { hasText: pencilled.title })
+        .first().click();
+      await page.waitForTimeout(500);
+
+      const box = page.locator('#org-invite');
+      check('THE CHART CAN INVITE THE PERSON ON A CARD', await box.count() === 1,
+            `no invite box on ${pencilled.title}, which holds ${pencilled.name} with no login`);
+
+      if (await box.count()) {
+        const invitee = `invited-${stamp}@journey.test`;
+        await box.fill(invitee);
+        await page.getByRole('button', { name: /^Invite / }).click();
+        await page.waitForTimeout(2500);
+
+        /*
+          Either outcome is honest, and which one happens depends on the machine rather than the
+          code: a development box has no Resend key, so the mail genuinely cannot leave. What must
+          never happen is SILENCE. A seat has started being charged — telling somebody nothing, and
+          letting them assume it went, is the version of this that costs a week.
+
+          The first draft of this check demanded the "sent" wording, failed on a machine with no
+          email configured, and was reporting the product broken for behaving correctly.
+        */
+        const said = await page.evaluate(() => document.body.innerText);
+        const sent = said.includes(invitee);
+        const couldNot = /did not send/i.test(said);
+        check('  and it says which of the two happened, rather than leaving you guessing',
+              sent || couldNot, said.slice(0, 160).replace(/\n/g, ' '));
+        if (couldNot) {
+          check('  and when the mail cannot go, it says where to find the link',
+                /Setting up/i.test(said), said.slice(0, 200).replace(/\n/g, ' '));
+        }
+
+        const [seat] = await sql`
+          select u.email, u.seat_token, u.invited_at, s.user_id
+          from users u join staff s on s.user_id = u.id
+          where u.tenant_id = ${tenant.id} and u.email = ${invitee}`;
+        check('  AND THE SEAT IS REALLY THERE, with a link to send',
+              !!seat && !!seat.seat_token && !!seat.invited_at && !!seat.user_id,
+              seat ? JSON.stringify(seat) : 'no account was created for that address');
+      }
+    } else {
+      skip('THE CHART CAN INVITE THE PERSON ON A CARD', 'no pencilled-in person on this chart to invite');
+    }
   } finally {
     await sql.end({ timeout: 5 });
   }
@@ -578,6 +646,7 @@ if (process.env.DATABASE_URL) {
     a check reports the same green as a run that made it.
   */
   skip('RENAMING THE PERSON CHANGES THE NAME ON THE CARD', 'needs DATABASE_URL to set up two placements');
+  skip('THE CHART CAN INVITE THE PERSON ON A CARD', 'needs DATABASE_URL to read the seat back');
 }
 
 check('no page threw', faults.length === 0, faults.join(' | '));

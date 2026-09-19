@@ -12,6 +12,7 @@ import { AcePips, AceStar } from '@/components/ace-pips';
 import { ChartKey, ChartKeyDetail } from '@/components/chart-key';
 import {
   moveRole, movePerson, breakLink, vacateRole, addRole, removeRole, renameRole, renamePerson,
+  invitePerson,
 } from '@/app/org/actions';
 
 /**
@@ -960,6 +961,48 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     />
                     <button className="btn-secondary">Save the name</button>
                   </form>
+
+                  {/*
+                    ── Giving them a login, from the screen where you are thinking about them ──────
+
+                    Kris, 19 September: *"i need to know how to invite new people - add their email
+                    and send to them"*. All of it was built and all of it was proven end to end; the
+                    only door was Setting up → Your business, and this screen — the one where a
+                    leader actually thinks about who works for them — had none. So he could not find
+                    it, and a feature nobody can find is not a feature.
+
+                    It appears only where it means something: somebody is pencilled onto this card
+                    and has no account yet. A vacant role has nobody to invite and a person who
+                    already has a login has nothing to send — both would be a button that does
+                    nothing, on every card in the business.
+
+                    What it costs is written beside it, because pressing it starts a monthly charge.
+                    A seat that quietly begins being billed from a control that never said so is the
+                    kind of surprise that ends a trial.
+                  */}
+                  {selected.person && selected.pencilled && (
+                    <form action={invitePerson} className="mt-3 rounded-xl bg-cream p-3">
+                      <input type="hidden" name="roleId" value={selected.id} />
+                      <label className="block text-[13px] text-ink-light" htmlFor="org-invite">
+                        {selected.person} has no SPEC login yet. Send them one:
+                      </label>
+                      <div className="mt-1.5 grid gap-2 sm:grid-cols-[1fr_auto]">
+                        <input
+                          id="org-invite"
+                          name="email"
+                          type="email"
+                          autoComplete="off"
+                          className="min-h-[40px] w-full rounded-md border border-ink/15 bg-surface-raised px-3 py-2 text-sm text-ink"
+                          placeholder="their@email.com"
+                        />
+                        <button className="btn-secondary">Invite {selected.person.split(' ')[0]}</button>
+                      </div>
+                      <p className="mt-2 text-[12px] text-ink-light">
+                        They set their own password when they arrive and land on their own My Page.
+                        The link works once and only for that address.
+                      </p>
+                    </form>
+                  )}
                 </>
               ) : (
                 <div className="mt-4">

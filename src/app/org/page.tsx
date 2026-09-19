@@ -45,6 +45,8 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
     customer was told the product was broken. See `refuse` in ./actions.
   */
   const cannot = String(sp.cannot ?? '').slice(0, 300);
+  // Same length cap and the same reasoning: it arrives in the address, so it is somebody else's text.
+  const invited = String(sp.invited ?? '').slice(0, 200);
   const cascadeRead = String(sp.cascade ?? '');
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
@@ -197,6 +199,23 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
           className="mt-6 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm text-ink"
         >
           {cannot}
+        </p>
+      )}
+
+      {/*
+        An invitation that went, said out loud.
+
+        A refusal already gets a sentence here; a success that gives nothing back is the other half
+        of the same fault. Somebody has just spent a seat and started a monthly charge — they should
+        not have to go and check whether it happened, and "the page looks the same" is not an answer.
+      */}
+      {invited && (
+        <p
+          role="status"
+          className="mt-6 rounded-lg border-l-4 border-sage bg-surface p-4 text-sm text-ink"
+        >
+          Invitation sent to <b>{invited}</b>. They set their own password when they arrive and land
+          on their own My Page. The link works once, and only for that address.
         </p>
       )}
 

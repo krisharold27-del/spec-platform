@@ -5,6 +5,8 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
+import { emailConfirmed } from '@/lib/auth';
+import { inviteToSeat } from '@/lib/invite';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { getRoles, placementShown } from '@/lib/queries';
@@ -339,6 +341,64 @@ export async function renamePerson(formData: FormData) {
 
   revalidatePath('/org');
   revalidatePath('/people');
+}
+
+/**
+ * Give the person on this card a login.
+ *
+ * ── Why this is on the chart ─────────────────────────────────────────────────────────────────────
+ *
+ * Kris, 19 September: *"i need to know how to invite new people - add their email and send to them"*.
+ *
+ * The whole invitation was already built and already proven end to end — the link, the password set
+ * on arrival, landing on their own My Page, single use, bound to that address. The only door to it
+ * was **Setting up → Your business**, and the screen where a leader actually thinks about who works
+ * for them had none. So he could not find it, and a feature nobody can find is not a feature.
+ *
+ * The rule itself is `lib/invite`, shared with that Setup screen. What belongs HERE is who may press
+ * it: the role has to be inside the caller's own branch — *"only managers can change staff in their
+ * business unit"* — which `canEdit` already means, and which is why this cannot simply take a staff
+ * id from the form. It takes the ROLE, and finds the person on it the same way the card does.
+ */
+export async function invitePerson(formData: FormData) {
+  const user = await editor();
+  // Security arrives when it matters: the first seat given out needs the giver's own email confirmed.
+  if (!(await emailConfirmed())) redirect('/account/verify?next=/org');
+
+  const roleId = String(formData.get('roleId') ?? '');
+  const email = String(formData.get('email') ?? '').trim();
+
+  const scope = await getScope(user);
+  if (!scope.canEdit(roleId)) outside(scope, user.access);
+
+  const openRows = await db.select().from(schema.roleAssignments)
+    .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
+  const placement = placementShown(openRows);
+
+  if (!placement) refuse('There is nobody in that role yet. Put a name on the card first, then invite them.');
+  if (placement.userId) refuse('They already have a SPEC login, so there is nothing to send.');
+  if (!placement.staffId) refuse('SPEC cannot tell who is in that role. Put the name on the card again.');
+
+  const outcome = await inviteToSeat(user.tenantId, placement.staffId, email);
+  if (!outcome.ok) {
+    refuse(
+      outcome.reason === 'no-email' ? 'That does not look like an email address.'
+      : outcome.reason === 'already-has-an-account' ? 'They already have a SPEC login, so there is nothing to send.'
+      : 'SPEC could not send that invitation. Nothing has been charged.',
+    );
+  }
+
+  for (const path of ['/org', '/setup/business', '/people', '/team', '/journey']) revalidatePath(path);
+
+  /*
+    A seat has started being charged either way, so the leader is told which of the two happened.
+    "Invited" for an email that never left is the version of this that costs somebody a week — they
+    wait, the new person waits, and the bill arrives regardless.
+  */
+  if (!outcome.sent) {
+    refuse(`${outcome.name} has a seat, but the email did not send. Their invitation is on Setting up → Your business — send them the link yourself.`);
+  }
+  redirect(`/org?invited=${encodeURIComponent(outcome.email)}`);
 }
 
 /** Take a role off the chart for good. Never used on a role with anybody in it. */

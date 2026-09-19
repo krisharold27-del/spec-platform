@@ -7,9 +7,8 @@ import { db, schema } from '@/db';
 import { emailConfirmed } from '@/lib/auth';
 import { requireManager } from '@/lib/guard';
 import { assertWritable } from '@/lib/plan';
-import { sendInviteEmail } from '@/lib/email';
-import { newSeatToken, seatTokenExpiry } from '@/lib/seat';
 import { roleChangeFor, type AssignmentRow, type RoleRow, type StaffRow } from '@/lib/staff';
+import { inviteToSeat } from '@/lib/invite';
 
 const now = () => new Date().toISOString();
 
@@ -165,62 +164,20 @@ export async function invite(formData: FormData) {
   const user = await requireLeader();
   // Security arrives when it matters: the first seat given out needs the giver's email confirmed.
   if (!(await emailConfirmed())) redirect('/account/verify?next=/setup/business');
+
   const staffId = String(formData.get('staffId') ?? '');
-  const email = String(formData.get('email') ?? '').trim().toLowerCase();
-  if (!staffId || !email) redirect('/setup/business?error=email');
+  const email = String(formData.get('email') ?? '');
 
-  const chart = await chartFor(user.tenantId);
-  const person = chart.staff.find(s => s.id === staffId);
-  const assignment = chart.assignments.find(a => !a.toDate && a.staffId === staffId);
-  if (!person || !assignment) redirect('/setup/business');
-  if (person.userId) redirect('/setup/business');   // already has an account; nothing to do
-
-  const role = chart.roles.find(r => r.id === assignment.roleId)!;
-  const roleRow = (await db.select().from(schema.roles).where(eq(schema.roles.id, role.id)))[0]!;
-
-  // Reuse an existing account for this email rather than creating a second one for the same person.
-  const existing = (await db.select().from(schema.users)
-    .where(and(eq(schema.users.tenantId, user.tenantId), eq(schema.users.email, email))))[0];
-
-  const userId = existing?.id ?? randomUUID();
-  if (!existing) {
-    await db.insert(schema.users).values({
-      id: userId, tenantId: user.tenantId, email, name: person.name,
-      access: roleRow.defaultAccess, authUserId: null, invitedAt: now(), acceptedAt: null,
-    });
-  } else if (!existing.invitedAt) {
-    await db.update(schema.users).set({ invitedAt: now() }).where(eq(schema.users.id, userId));
-  }
-
-  await db.update(schema.staff).set({ userId }).where(eq(schema.staff.id, staffId));
-
-  // Every open assignment for this person becomes a live one — a merged role holder is invited once.
-  await db.update(schema.roleAssignments).set({ userId })
-    .where(and(eq(schema.roleAssignments.staffId, staffId), isNull(schema.roleAssignments.toDate)));
-
-  const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0];
-  if (tenant && !existing?.invitedAt) {
-    // A fresh token per invitation: single use, expiring, bound to this address. See lib/seat.
-    const token = newSeatToken();
-    await db.update(schema.users)
-      .set({ seatToken: token, seatTokenExpires: seatTokenExpiry() })
-      .where(eq(schema.users.id, userId));
-    /*
-      If it cannot be sent, SAY SO. The row stays — the account, the token and the seat are all
-      real, and a resend works — but the leader is told the email did not go and is given the link
-      to pass on by hand. Reporting "invited" for an email that never left, on a seat that has
-      started being charged, is the version of this that costs somebody a week.
-    */
-    try {
-      await sendInviteEmail({
-        to: email, name: person.name, businessName: tenant.name, roleTitle: roleRow.title, token,
-      });
-    } catch {
-      done(['/setup/business', '/org', '/journey', '/team']);
-      redirect(`/setup/business?notsent=${encodeURIComponent(email)}`);
-    }
-  }
+  /*
+    The rule itself lives in lib/invite, because the org chart gives out seats too and two copies
+    of "make an account, spend a seat, send the link" drifting apart is how somebody ends up billed
+    for a seat that was never sent. This screen keeps what is its own: who may press the button,
+    and where they end up afterwards.
+  */
+  const outcome = await inviteToSeat(user.tenantId, staffId, email);
+  if (!outcome.ok) redirect(outcome.reason === 'no-email' ? '/setup/business?error=email' : '/setup/business');
 
   done(['/setup/business', '/org', '/journey', '/team']);
+  if (!outcome.sent) redirect(`/setup/business?notsent=${encodeURIComponent(outcome.email)}`);
   redirect('/setup/business?invited=1');
 }
