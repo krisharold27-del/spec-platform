@@ -1082,11 +1082,21 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                       Open scorecard
                     </Link>
                   </div>
+                  {/*
+                    This line used to end "Invitations are sent from People", which was wrong before
+                    the invite box was built — they were sent from Setting up, not People — and is
+                    now wrong twice, because they are sent from the box immediately above it. A
+                    sentence pointing somewhere else, printed under the control that does the job,
+                    is worse than no sentence: it sends somebody hunting.
+
+                    What it still has to say is the part that is easy to get wrong and expensive to
+                    discover: typing a name costs nothing and emails nobody. That is what makes it
+                    safe to draw the whole business on this screen before deciding who gets a seat.
+                  */}
                   <p className="mt-3 text-xs leading-5 text-ink-light">
-                    A name typed here is pencilled in: free, and nobody is emailed. Invitations are sent
-                    from <Link href="/people" className="underline hover:text-rust">People</Link>. Clearing
-                    the box changes nothing — use <span className="italic">Make this role vacant</span> to
-                    empty a role.
+                    A name typed here is pencilled in: free, and nobody is emailed until you press
+                    Invite. Clearing the box changes nothing — use{' '}
+                    <span className="italic">Make this role vacant</span> to empty a role.
                   </p>
                 </>
               )}
