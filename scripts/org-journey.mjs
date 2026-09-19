@@ -1135,6 +1135,19 @@ if (await kpiBox.count()) {
   await kpiBox.scrollIntoViewIfNeeded();
   await kpiBox.fill(measure);
   /*
+    ── Where the page IS when the measure lands ───────────────────────────────────────────────
+
+    Kris, 19 September: *"when i add kpi it takes me back to the org chart"*. It did: the action
+    ended in a `redirect`, which is a fresh request for a new address, so the browser landed at the
+    top of the page. The Role scorecard sits a long way down the chart, so adding a measure
+    scrolled him away from what he was doing — every single time, on the screen whose whole job is
+    entering sixteen of them.
+
+    Remembered here and checked below, because "does it still work" and "does it throw you across
+    the page while it works" are two different questions and only the first one was being asked.
+  */
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  /*
     The + button rather than Enter.
 
     The box carries a `datalist` of the design's own examples, and in Chromium a keypress with a
@@ -1154,6 +1167,11 @@ if (await kpiBox.count()) {
   ).then(() => true).catch(() => false);
   check('A KPI TYPED ON THE CHART LANDS ON THE ROLE', landed,
         `${page.url()} :: panel=[${(await page.locator('[data-pillar-card="safety"]').first().innerText().catch(() => 'none')).replace(/\n/g, ' / ')}] cards=${await page.locator('[data-pillar-card]').count()}`);
+
+  const scrollAfter = await page.evaluate(() => window.scrollY);
+  check('  AND THE PAGE DOES NOT JUMP BACK TO THE TOP OF THE CHART',
+        Math.abs(scrollAfter - scrollBefore) < 80,
+        `was ${Math.round(scrollBefore)}px down, now ${Math.round(scrollAfter)}px`);
 
   // And the same measure again is refused in words, not with a fault screen.
   await page.locator('[data-add-kpi="safety"]').first().fill(measure.toUpperCase());
@@ -1200,8 +1218,26 @@ if (await addTeamItem.count()) {
   check('ADDING A TEAM OPENS THE TEAM LAYER', inTeam, page.url());
 
   if (inTeam) {
+    /*
+      The team's name. There was no way to give one: the design names a team with a
+      `window.prompt` at creation, which is not built, so every team was created called "Team" and
+      stayed called "Team". Kris: *"how do i give the team a team name"*.
+    */
+    const teamName = `Solar crew ${stamp}`;
+    await page.locator('#team-name').fill(teamName);
+    await page.getByRole('button', { name: 'Save the team name' }).click();
+    const named = await page.waitForFunction(
+      text => document.body.innerText.includes(text),
+      teamName, { timeout: 15000 },
+    ).then(() => true).catch(() => false);
+    check('  AND THE TEAM CAN BE GIVEN A NAME, from inside the team', named,
+          (await page.locator('[data-team-layer]').innerText().catch(() => 'no layer')).slice(0, 160).replace(/\n/g, ' / '));
+    const stillIn = await page.locator('[data-team-layer]').count();
+    check('    and naming it does not close the team', stillIn > 0);
+
     const member = `Casey Nguyen ${stamp}`;
     await page.locator('#team-add').fill(member);
+    const teamScrollBefore = await page.evaluate(() => window.scrollY);
     await page.getByRole('button', { name: '+ Add to team' }).click();
     const joined = await page.waitForFunction(
       text => document.body.innerText.includes(text),
@@ -1209,6 +1245,9 @@ if (await addTeamItem.count()) {
     ).then(() => true).catch(() => false);
     check('  and somebody typed into it joins the team', joined,
           (await page.evaluate(() => document.body.innerText)).slice(0, 200).replace(/\n/g, ' '));
+    const teamScrollAfter = await page.evaluate(() => window.scrollY);
+    check('    without throwing the page back to the top', Math.abs(teamScrollAfter - teamScrollBefore) < 80,
+          `was ${Math.round(teamScrollBefore)}px down, now ${Math.round(teamScrollAfter)}px`);
 
     /*
       The shared score, which is the whole reason a team is a node rather than four more cards. Four

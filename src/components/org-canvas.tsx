@@ -9,6 +9,7 @@ import {
 import { PILLAR_META } from '@/lib/pillars';
 import {
   pillarReadiness, MIN_KPIS, cadence, memberLine, kpiSuggestions, seatKindFor, readinessLine,
+  TEAM_DEFAULT_NAME, TEAM_NAME_EXAMPLES,
 } from '@/lib/chart-seats';
 import { LIGHT_COLOUR, LIGHT_INK, light } from '@/lib/today';
 import { AcePips, AceStar } from '@/components/ace-pips';
@@ -152,6 +153,8 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
     if (openRoleId && selectedId !== openRoleId) setSelectedId(openRoleId);
   }
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  /** What is currently typed in the team's name box. Controlled, for the reason below. */
+  const [teamDraft, setTeamDraft] = useState<{ id: string; title: string } | null>(null);
   /*
     What is CURRENTLY TYPED in the rename panel, held in React rather than left in the DOM.
 
@@ -458,6 +461,10 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
         with its own frame reads as a thing; the same diagram loose on a page reads as decoration.
       */}
       <section
+        /* The anchor `addTeam` comes back to. Creating a team IS a navigation — the browser has to
+           be told the new team's id — so without somewhere to land it would drop to the top of the
+           page and leave the crew it just made off screen. */
+        id="chart"
         data-org-canvas
         className="rounded-2xl bg-surface p-5 shadow-sm sm:p-8"
         onContextMenu={e => openMenu(e, null)}
@@ -483,10 +490,52 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
               &larr; Back to org chart
             </button>
             <span className="label-caps block text-rust-700">Team layer</span>
-            <h2 className="mt-1 font-serif text-2xl text-ink">
-              {openTeam.title}
-              {teamLeader && <span className="text-ink-light"> · under {teamLeader.title}</span>}
-            </h2>
+            {/*
+              ── The team's name, as a box rather than a heading ──────────────────────────────
+
+              Kris, 19 September: *"how do i give the team a team name"*.
+
+              There was no way. The design names a team with a `window.prompt` at the moment it is
+              created; I did not build that — a system dialog cannot be styled, cannot be cancelled
+              back to anything useful, and on a phone lands over a page nobody has finished reading
+              — and then did not build the thing that replaces it either. So every team was created
+              called "Team" and stayed called "Team". The rename lived on the card's right-click
+              menu, which is the last place somebody looks when they are already inside the team.
+
+              So the name is a box, here, at the top of the crew it belongs to. Prefilled, saved on
+              purpose rather than as you type, and focused automatically while the team is still
+              called "Team" — which is only ever true on the one screen after it was made, and is
+              exactly the moment naming it is the next thing to do.
+            */}
+            {canEdit && editable.has(openTeam.id) ? (
+              <form action={renameRole} className="mt-1.5 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <input type="hidden" name="roleId" value={openTeam.id} />
+                <label className="sr-only" htmlFor="team-name">Team name</label>
+                <input
+                  id="team-name"
+                  name="title"
+                  /*
+                    Controlled, like the panel's two boxes and for the same reason: this component
+                    re-renders whenever any action on the page finishes, and an uncontrolled input
+                    loses whatever is in it the moment React replaces the element.
+                  */
+                  value={teamDraft?.id === openTeam.id ? teamDraft.title : openTeam.title}
+                  onChange={e => setTeamDraft({ id: openTeam.id, title: e.target.value })}
+                  autoFocus={openTeam.title === TEAM_DEFAULT_NAME}
+                  placeholder={TEAM_NAME_EXAMPLES.join(', ')}
+                  className="min-h-[44px] w-full rounded-md border border-ink/15 bg-cream px-3 py-2 font-serif text-2xl text-ink"
+                />
+                <button className="btn-secondary">Save the team name</button>
+              </form>
+            ) : (
+              <h2 className="mt-1 font-serif text-2xl text-ink">{openTeam.title}</h2>
+            )}
+            <p className="mt-1.5 text-sm text-ink-light">
+              {teamLeader ? `Under ${teamLeader.title}.` : 'Not reporting to anybody yet.'}
+              {openTeam.title === TEAM_DEFAULT_NAME
+                ? ' Give it the name the business actually uses — Technicians, Apprentices, the Solar crew.'
+                : ''}
+            </p>
 
             <div className="mt-5 grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
               {(openTeam.members ?? []).map(m => (

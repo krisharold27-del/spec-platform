@@ -701,15 +701,32 @@ export async function addRoleKpi(formData: FormData) {
   });
   await reweigh(roleId, pillar);
 
-  for (const path of ['/org', '/setup/kpis', '/my-page', '/scoring', `/scorecard/${roleId}`]) revalidatePath(path);
   /*
-    Back to the ROLE, not to the chart.
+    ── No redirect. The measure appears where it was typed, and the page does not move ──────────
 
-    Without the id the panel reopens on whichever card it started on, so adding a measure to a
-    supervisor put somebody back on the General Manager with the line they had just typed nowhere
-    on screen — a write that worked and looked exactly like one that had not.
+    Kris, 19 September: *"when i add kpi it takes me back to the org chart"*.
+
+    It did. This used to end `redirect('/org?role=…&kpi=…')`, which is a NAVIGATION — a fresh
+    request for a new address, so the browser lands at the top of the page. The Role scorecard sits
+    a long way down the chart, so adding a measure scrolled him away from the thing he was doing
+    and he had to find his way back for every single KPI. On a screen whose whole job is entering
+    sixteen of them, that is not a wrinkle.
+
+    The redirect was there to fix the version of this fault BEFORE it: without one, the panel
+    reopened on whichever card it started on. But that only happened BECAUSE of the navigation —
+    the address changed, the chart re-mounted, and its "which card is open" state went back to its
+    starting value.
+
+    Revalidating and returning is the answer to both. There is no navigation, so nothing re-mounts,
+    the panel stays on the role and the page stays where it was; `revalidatePath` re-renders the
+    chart in place, so the new measure appears in the list under the box it was typed into. That
+    list IS the confirmation, and a better one than a sentence at the top of a page nobody is
+    looking at.
+
+    A REFUSAL still redirects — see `refuse`. That is rare, it has to be read, and it carries the
+    role so it lands on the right card.
   */
-  redirect(`/org?role=${encodeURIComponent(roleId)}&kpi=${encodeURIComponent(`${added.text} — added to ${pillar}.`)}`);
+  for (const path of ['/org', '/setup/kpis', '/my-page', '/scoring', `/scorecard/${roleId}`]) revalidatePath(path);
 }
 
 /**
@@ -737,9 +754,9 @@ export async function removeRoleKpi(formData: FormData) {
   await db.update(schema.criteria).set({ active: false }).where(eq(schema.criteria.id, row.id));
   await reweigh(row.roleId, row.pillar as Pillar);
 
+  // In place, for the same reason `addRoleKpi` does not redirect: the measure disappearing from
+  // the list is the confirmation, and it is read where the × was pressed.
   for (const path of ['/org', '/setup/kpis', '/my-page', '/scoring', `/scorecard/${row.roleId}`]) revalidatePath(path);
-  // Back to the role it was taken off, for the same reason `addRoleKpi` does.
-  redirect(`/org?role=${encodeURIComponent(row.roleId)}`);
 }
 
 /**
@@ -801,8 +818,13 @@ export async function addTeam(formData: FormData) {
     reportsToRoleId: parentId, isTeam: true, sortOrder: 99,
   });
 
+  /*
+    The one team action that DOES navigate, because it has to: the browser cannot know the id of a
+    team that did not exist a moment ago. `#chart` is the anchor on the canvas, so it lands on the
+    new crew rather than at the top of the page with the thing it just made off screen.
+  */
   revalidatePath('/org');
-  redirect(`/org?team=${encodeURIComponent(id)}`);
+  redirect(`/org?team=${encodeURIComponent(id)}#chart`);
 }
 
 /**
@@ -857,9 +879,12 @@ export async function addTeamMember(formData: FormData) {
     id: randomUUID(), roleId, staffId, fromDate: new Date().toISOString().slice(0, 10),
   });
 
+  /*
+    No redirect: the team layer is open, and a navigation would close it and drop the page to the
+    top. The name appearing in the grid is the confirmation. Same reasoning as `addRoleKpi`.
+  */
   revalidatePath('/org');
   revalidatePath('/people');
-  redirect(`/org?team=${encodeURIComponent(roleId)}`);
 }
 
 /**
@@ -893,7 +918,6 @@ export async function removeTeamMember(formData: FormData) {
 
   revalidatePath('/org');
   revalidatePath('/people');
-  redirect(`/org?team=${encodeURIComponent(row.roleId)}`);
 }
 
 /** Everybody currently in a team, with the placement id so one of them can be taken out again. */
