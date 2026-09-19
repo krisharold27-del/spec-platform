@@ -22,6 +22,9 @@ import { doSignOut } from '@/app/signin/actions';
 import { light, pillarNote, clearToWork, LIGHT_COLOUR, LIGHT_LABEL, type Light } from '@/lib/today';
 import type { Pillar, RoleScore } from '@/lib/scoring';
 import { Problems } from '@/components/problems';
+import { PowerMeter } from '@/components/power-meter';
+import { powerMeterFor } from '@/lib/power-meter-data';
+import { getScope, isTopOfChart } from '@/lib/scope';
 import { startHere } from '@/lib/start-here';
 
 export const dynamic = 'force-dynamic';
@@ -41,7 +44,7 @@ export const dynamic = 'force-dynamic';
 export default async function MyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ welcome?: string; kept?: string }>;
+  searchParams: Promise<{ welcome?: string; kept?: string; power?: string }>;
 }) {
   const arrival = await searchParams;
   const user = await getCurrentUser();
@@ -101,6 +104,32 @@ export default async function MyPage({
     rolesWithKpis: myRows.filter(r => r.kpi).length > 0 ? 1 : 0,
   });
 
+  /*
+    ── The Virtual GM Power Meter ────────────────────────────────────────────────────────────────
+
+    Kris, 19 September: *"add the Virtual GM power meter - HACC your power - to the my page - this
+    is the power meter gathering information through the spec system to give an instant percentage
+    to the business leaders and the board on how well the business is tracking"*.
+
+    Read over this person's own scope, so a manager's meter is their branch and the top of the
+    chart gets the business. That is not a nicety: this is a reading of a whole part of an
+    organisation, and the rule the product is sold on is that nobody sees above or sideways.
+
+    The percentage is for people who manage somebody. An electrician shown a red number for a
+    business they cannot move is being handed a worry rather than a lever — so they get the ring,
+    the name and their own four pillars, which are the things they can actually act on.
+  */
+  const scope = await getScope(user);
+  const power = await powerMeterFor({
+    tenantId: user.tenantId,
+    periodId: data.period.id,
+    visible: scope.visible,
+  });
+  // Manages somebody: their scope reaches past their own role. The same population the design gives
+  // the number to, worked out from the chart rather than from a flag anybody sets.
+  const runsAnything = scope.visible.size > 1;
+  const showing = arrival.power === 'all' ? 'all' : arrival.power === 'open' ? 'open' : 'closed';
+
   const ways = doors({
     businesses: (await myBusinesses().catch(() => [])).length,
     runsSpec: isAdminEmail(user.email),
@@ -154,6 +183,14 @@ export default async function MyPage({
         looking at.
       */}
       <WhoAndWhen name={user.name} role={data.myRole.title} businessName={tenant.name} date={today} />
+
+      <PowerMeter
+        reading={power}
+        canRead={runsAnything}
+        topOfChart={isTopOfChart(scope)}
+        showing={showing}
+        hrefFor={next => (next === 'closed' ? '/my-page#power' : `/my-page?power=${next}#power`)}
+      />
 
       <p className="mb-8 max-w-2xl text-sm text-ink-light">
         {scored
