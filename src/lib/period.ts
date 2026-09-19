@@ -13,6 +13,7 @@
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '../db';
+import { MIN_KPIS } from './chart-seats';
 
 const PILLARS = ['safety', 'people', 'earnings', 'compliance'] as const;
 
@@ -23,7 +24,13 @@ export async function hasSomethingToScore(tenantId: string): Promise<boolean> {
   for (const r of roles.filter(r => r.level !== 'staff')) {
     const crit = await db.select().from(schema.criteria)
       .where(and(eq(schema.criteria.roleId, r.id), eq(schema.criteria.active, true)));
-    if (PILLARS.every(p => crit.filter(c => c.pillar === p && c.kpi).length >= 2)) return true;
+    /*
+      The same minimum the org chart's readiness dots use — see lib/chart-seats.
+
+      It was the literal 2 here and the literal 2 there, which is how a chart goes green on a
+      pillar against a month that will not open on it.
+    */
+    if (PILLARS.every(p => crit.filter(c => c.pillar === p && c.kpi).length >= MIN_KPIS)) return true;
   }
   return false;
 }
