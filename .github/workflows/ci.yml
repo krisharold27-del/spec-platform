@@ -295,6 +295,11 @@ jobs:
           XERO_CLIENT_ID: offline-client-id
           XERO_CLIENT_SECRET: offline-client-secret
           TOKEN_ENCRYPTION_KEY: offline-only-key-for-the-fake-xero-server
+          # CI sets all of the above, so a missing one HERE means the wiring broke — and the Xero
+          # journey exits 0 when it cannot run, which would make that silent. With this set it
+          # fails instead. The run came back green once already without my being able to tell
+          # whether the journey had run at all, because the log host is not always reachable.
+          JOURNEY_XERO_REQUIRED: '1'
         run: |
           # ── Why each journey is timed and fenced ────────────────────────────────────────────
           #

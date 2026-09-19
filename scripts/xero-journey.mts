@@ -81,11 +81,24 @@ const missing = [
   !offlineXero && 'scripts/fake-xero.mjs running',
 ].filter(Boolean);
 if (missing.length) {
-  console.log(` skip  THE XERO LINK WAS NOT EXERCISED — this run has no ${missing.join(', ')}.`);
+  /*
+    ── Skipping is fine on a laptop and is a FAILURE in CI ─────────────────────────────────────
+
+    CI sets all three and starts the offline server, so a missing one there means the wiring broke
+    — and a journey that exits 0 for that reason is the exact shape this codebase keeps finding: a
+    check whose failure mode is silence. It went in green, and I could not tell from outside
+    whether it had run at all, because the log host is not reachable from here.
+
+    `JOURNEY_XERO_REQUIRED` is set in the workflow and nowhere else. Somebody running this on their
+    own machine without a Xero client id still gets a skip and a plain sentence.
+  */
+  const required = process.env.JOURNEY_XERO_REQUIRED === '1';
+  const said = `THE XERO LINK WAS NOT EXERCISED — this run has no ${missing.join(', ')}.`;
+  console.log(required ? `FAIL ${said}` : ` skip  ${said}`);
   console.log('  --   nothing here passed. A connector nobody walked is a connector nobody has proven.');
   await browser.close();
   await tidyUp(BUSINESS, { lookSince: RUN_STARTED });
-  process.exit(0);
+  process.exit(required ? 1 : 0);
 }
 
 // ── The ledger is named, and goes to the board ───────────────────────────────────────────────────
