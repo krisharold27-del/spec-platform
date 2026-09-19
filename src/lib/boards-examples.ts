@@ -63,8 +63,15 @@ export async function addExampleBoards(tenantId: string): Promise<void> {
     {
       id: rateId,
       tenantId,
-      title: 'Rate Board — Labour Sell Rate',
-      summary: 'Sell rate inputs, live from Simpro and Xero. Fixed our rate: $115 → $105.',
+      /*
+        A name, and the explainer underneath it — the first of the artifact rules Kris asked for on
+        19 September. Both of these worked examples were written the other way round, as a name with
+        a dash and a second title after it, and a visitor's first idea of what a mirror is called
+        comes from exactly here. `readTitle` splits one typed that way; these are simply written
+        right, and `tests/mirror-rules.test.ts` holds this file to it.
+      */
+      title: 'Rate Board',
+      summary: 'Labour sell rate, built from Simpro and Xero actuals: $115 → $105.',
       kind: 'live',
       /*
         Stored false, and the page works it out anyway.
@@ -87,8 +94,8 @@ export async function addExampleBoards(tenantId: string): Promise<void> {
     {
       id: mountainId,
       tenantId,
-      title: 'King of the Mountain — Solar Fix Plan',
-      summary: 'What needs fixing on the solar install line, and who owns each piece.',
+      title: 'King of the Mountain',
+      summary: 'The solar install fix plan — what needs doing, and who owns each piece.',
       kind: 'plans',
       live: false,
       feeds: '[]',

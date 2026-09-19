@@ -7,6 +7,7 @@ import { assertWritable } from '@/lib/plan';
 import { kindOf, stepStateOf } from '@/lib/boards-live';
 import { createBoard, commentOnBoard, addKpiToBoard, removeKpiFromBoard, moveStep, addStep } from '@/lib/boards-live-data';
 import { getScope } from '@/lib/scope';
+import { readTitle } from '@/lib/mirror-rules';
 import { refuseTo } from '@/lib/refuse';
 
 /**
@@ -23,15 +24,40 @@ export async function newBoard(form: FormData) {
   if (!user) redirect('/signin');
   await assertWritable(user.tenantId);
 
-  const title = String(form.get('title') ?? '').trim();
-  // A board with no name is a board nobody will ever find again. Nothing is created.
-  if (!title) redirect('/mirrors?needs=title');
+  /*
+    ── A mirror is made to the same rules as an artifact ──────────────────────────────────────────
+
+    Kris, 19 September: *"exactly same as an artifact - bring the same rules claude has for
+    generating an artiifact"*.
+
+    The first of those rules is that the title is a NAME and not a name with an explainer stuck on
+    the end of it. Almost nobody types it that way — both of SPEC's own worked examples were
+    "King of the Mountain — Solar Fix Plan" — so `readTitle` splits rather than refuses, and the
+    explainer becomes the line under the name instead of being thrown away.
+
+    What it refuses is the part it cannot decide: a name still too long after the split, and a
+    mirror with no line under it at all. Cutting somebody's words to fit would be the quiet kind of
+    damage, and writing the line for them would put SPEC's sentence under their name.
+  */
+  const read = readTitle(String(form.get('title') ?? ''), String(form.get('summary') ?? ''));
+  if (read.fault) {
+    // Their words go back with them. A form that clears itself on a refusal is a form nobody
+    // corrects twice — they retype it differently and the rule teaches nothing.
+    const kept = new URLSearchParams({
+      needs: read.fault.field,
+      said: read.fault.said,
+      title: String(form.get('title') ?? ''),
+      summary: String(form.get('summary') ?? ''),
+      kind: String(form.get('kind') ?? ''),
+    });
+    redirect(`/mirrors?${kept.toString()}`);
+  }
 
   const id = await createBoard({
     tenantId: user.tenantId,
-    title,
+    title: read.name,
     kind: kindOf(String(form.get('kind') ?? '')),
-    summary: String(form.get('summary') ?? '').trim(),
+    summary: read.description,
     createdBy: user.name,
   });
   revalidatePath('/mirrors');

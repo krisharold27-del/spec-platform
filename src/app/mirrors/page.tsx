@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Shell } from '@/components/ui';
@@ -14,10 +15,36 @@ import { db, schema } from '@/db';
 import { getScope } from '@/lib/scope';
 import { listBoards, getBoard, markViewing, mirrorKpisFor } from '@/lib/boards-live-data';
 import { kpiStanding, kpiGap, kpiWorking } from '@/lib/mirror-kpis';
+import { NAME_WORDS, atRest, signifier, tabName } from '@/lib/mirror-rules';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { newBoard, sayOnBoard, putKpiOnBoard, takeKpiOffBoard, moveStepOnBoard, addStepToBoard } from './actions';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * The name in the browser tab, when a mirror is open.
+ *
+ * Kris, 19 September: *"exactly same as an artifact - bring the same rules claude has for
+ * generating an artiifact"*. A tab is where an artifact's name earns its length limit: "King of the
+ * Mountain" fits and "King of the Mountain — Solar Fix Plan" is a truncated stub in every tab strip
+ * in the world. With `?full=1` the SPEC furniture is gone and the tab is the ONLY thing still
+ * carrying the mirror's name.
+ *
+ * One column of one row, deliberately — `getBoard` runs half a dozen queries and this needs a word.
+ * It is tenant-scoped in the query like every other read, because a title is a fact about a business
+ * and metadata is not a place a leak would be noticed.
+ */
+export async function generateMetadata({ searchParams }: {
+  searchParams: Promise<{ board?: string }>;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  const user = await getCurrentUser();
+  if (!sp.board || !user) return { title: 'SPEC — mirrors' };
+  const [row] = await db.select({ title: schema.boards.title }).from(schema.boards)
+    .where(and(eq(schema.boards.tenantId, user.tenantId), eq(schema.boards.id, sp.board)))
+    .limit(1);
+  return { title: row ? tabName(row.title) : 'SPEC — mirrors' };
+}
 
 /**
  * Boards — the live artifacts a team pins, builds on and discusses.
@@ -45,7 +72,10 @@ export const dynamic = 'force-dynamic';
  * about to make a decision about money.
  */
 export default async function Boards({ searchParams }: {
-  searchParams: Promise<{ board?: string; type?: string; needs?: string; period?: string; cannot?: string; full?: string }>;
+  searchParams: Promise<{
+    board?: string; type?: string; needs?: string; said?: string; period?: string;
+    cannot?: string; full?: string; title?: string; summary?: string; kind?: string;
+  }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
@@ -124,10 +154,28 @@ export default async function Boards({ searchParams }: {
       <article className="overflow-hidden rounded-2xl border border-ink/12 bg-surface-raised shadow-[0_1px_2px_rgba(32,30,29,.05),0_18px_40px_-28px_rgba(32,30,29,.45)]">
         {/* The header bar: what this is, and everything you can do to it. */}
         <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-ink/10 bg-cream px-5 py-3">
+          {/*
+            ── Name, then the line under it, then the facts about it ──────────────────────────────
+
+            Three separate things, and the artifact rules are about keeping them separate. The name
+            is a name; the description is the one line that says what this is for and was nowhere on
+            the open mirror until now — it only ever appeared on the card in the grid, which is the
+            one place somebody has already decided to open the thing.
+
+            The type is one generic word — `signifier`, not `cardLabel` — for the same reason an
+            artifact's icon is a plain signifier and never a brand: "Improvement opportunity · 3
+            editors · updated today" is a line nobody finishes reading.
+          */}
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-serif text-xl leading-tight text-ink">{board.title}</h1>
+            {/* Named, because the page around it has a heading of its own — "Mirrors", the room
+                these live in. The artifact's name is this one, and a check reading `h1` finds the
+                room's name first, which is how it reported a title fault that was not there. */}
+            <h1 data-mirror-name className="truncate font-serif text-xl leading-tight text-ink">{board.title}</h1>
+            {board.summary && (
+              <p className="mt-0.5 max-w-[68ch] text-sm text-ink" data-mirror-description>{board.summary}</p>
+            )}
             <p className="mt-0.5 text-xs text-ink-light">
-              {cardLabel(board.kind)}
+              {signifier(board.kind)}
               {board.meta ? ` · ${board.meta}` : ''}
               {board.editingNow.length > 0 ? ` · ${board.editingNow.join(', ')} here now` : ''}
             </p>
@@ -186,10 +234,29 @@ export default async function Boards({ searchParams }: {
             <section className="p-5" data-mirror-kpis>
               <h2 className="font-serif text-xl text-ink">What this mirror is measured on</h2>
               {kpis.length === 0 ? (
-                <p className="mt-2 text-sm text-ink-light">
-                  No measures on this mirror yet. Add one below and it will be read live every time
-                  anybody opens this &mdash; for whichever month they are looking at.
-                </p>
+                /*
+                  ── Nothing on it yet is a state, not a blank ────────────────────────────────
+
+                  The artifact rule Kris asked for: everything visible at rest, and a new one opens
+                  in a working state rather than as a shell somebody has to guess how to fill.
+
+                  This used to read "Add one below" — and when the person had no measures of their
+                  own, there was nothing below. A screen pointing at a control that is not there is
+                  worse than one that says nothing, because somebody hunts for it. So the sentence
+                  is per kind, and the case where there is genuinely nothing to add says where to
+                  go instead.
+                */
+                <>
+                  <p className="mt-2 max-w-[62ch] text-sm text-ink-light">{atRest(board.kind)}</p>
+                  {addable.length === 0 && (
+                    <p className="mt-2 max-w-[62ch] text-sm text-ink-light">
+                      There are no measures in your part of the chart to put on it yet. They come
+                      from the scorecards:{' '}
+                      <Link href="/scorecard" className="text-rust-700 underline">set one up</Link>{' '}
+                      and it can go on a mirror the same day.
+                    </p>
+                  )}
+                </>
               ) : (
                 <ul className="mt-4 grid gap-3" data-mirror-lines>
                   {kpis.map(k => {
@@ -438,11 +505,19 @@ export default async function Boards({ searchParams }: {
               </section>
             )}
 
-            {!board.rows.length && !board.steps.length && !board.headline && (
+            {/*
+              The design's own sentence for a mirror with nothing on it — kept, and narrowed.
+
+              It used to print the summary in front of it, which was right when the summary appeared
+              nowhere else. It is now the line under the name in the header, where an artifact's
+              description belongs, and saying it twice on one surface reads as a page that has lost
+              track of itself. And when there are no measures either, the KPI section above is
+              already saying what this KIND of mirror is for — two empty-state paragraphs, one after
+              the other, is worse than one.
+            */}
+            {kpis.length > 0 && !board.rows.length && !board.steps.length && !board.headline && (
               <section className="p-5">
-                <p className="text-sm text-ink-light">
-                  {board.summary ? `${board.summary} ` : ''}{EMPTY_BOARD}
-                </p>
+                <p className="max-w-[62ch] text-sm text-ink-light">{EMPTY_BOARD}</p>
               </section>
             )}
           </div>
@@ -589,17 +664,45 @@ export default async function Boards({ searchParams }: {
         ))}
       </div>
 
+      {/*
+        ── The two boxes, made to the artifact rules ──────────────────────────────────────────────
+
+        Kris, 19 September: *"exactly same as an artifact - bring the same rules claude has for
+        generating an artiifact"*.
+
+        A name of at most four words, and a line under it that is not optional — because there is no
+        screen for editing either one afterwards, and a card with a blank line under the name tells
+        nobody whether to open it. The rule is written above the boxes rather than sprung on
+        somebody after they submit, and when it IS sprung, their words come back with them.
+      */}
       <section className="card mt-8 max-w-2xl">
         <h2 className="font-serif text-xl text-ink">New mirror</h2>
-        {sp.needs === 'title' && (
-          <p className="mt-2 text-sm text-rust-800">It needs a name — a board nobody can find again is not one.</p>
-        )}
+        <p className="mt-1 text-sm text-ink-light">
+          A short name — what the room calls it out loud, {NAME_WORDS} words at most — and one line
+          saying what it is for. Put a dash in the name and SPEC moves everything after it into the
+          line underneath.
+        </p>
+        {sp.said && <p className="mt-3 text-sm text-rust-800">{sp.said}</p>}
         <form action={newBoard} className="mt-3 grid gap-2">
-          <input name="title" placeholder="What is this board about?" autoComplete="off" className="input" />
-          <select name="kind" className="input" defaultValue="improve">
+          <input
+            name="title"
+            defaultValue={sp.title ?? ''}
+            autoFocus={sp.needs === 'name'}
+            placeholder="Name it — e.g. King of the Mountain"
+            autoComplete="off"
+            className="input"
+          />
+          <select name="kind" className="input" defaultValue={kindOf(sp.kind ?? '') ?? 'improve'}>
             {BOARD_TYPES.map(t => <option key={t.id} value={t.id}>{t.card}</option>)}
           </select>
-          <input name="summary" placeholder="One line, so the card says something (optional)" autoComplete="off" className="input" />
+          <input
+            name="summary"
+            defaultValue={sp.summary ?? ''}
+            autoFocus={sp.needs === 'description'}
+            placeholder="One line — what this mirror is for"
+            autoComplete="off"
+            className="input"
+          />
           <SubmitButton className="btn-primary justify-self-start" pending="Creating…">+ New mirror</SubmitButton>
         </form>
       </section>

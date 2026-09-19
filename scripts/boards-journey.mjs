@@ -88,6 +88,34 @@ check('the discussion sits next to the numbers', body.includes('Discussion') && 
 // Case-insensitive: it is a label-caps heading, and innerText reports what is RENDERED.
 check('and it says who is in the room, honestly', /editing now/i.test(body));
 
+/*
+  ── On a phone, which is where half of a site visit happens ──────────────────────────────────────
+
+  Kris, 19 September: *"exactly same as an artifact - bring the same rules claude has for generating
+  an artiifact"*. One of those rules is about the shape rather than the words: an artifact works at
+  phone width, with a gutter down the side and nothing running off the edge.
+
+  The Rate Board is the one to test it on — it is the mirror with a table on it, and a table is what
+  pushes a page sideways. A page that scrolls horizontally on a phone is one where half the numbers
+  are off-screen while the screen looks fine.
+*/
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(400);
+const shape = await page.evaluate(() => {
+  const el = document.querySelector('article');
+  const box = el?.getBoundingClientRect();
+  return {
+    over: document.documentElement.scrollWidth - window.innerWidth,
+    left: box ? Math.round(box.left) : -1,
+    right: box ? Math.round(window.innerWidth - box.right) : -1,
+  };
+});
+check('A MIRROR WORKS AT PHONE WIDTH, with nothing running off the side',
+      shape.over <= 1, `${shape.over}px wider than the screen`);
+check('  and keeps a gutter down both edges rather than going to the glass',
+      shape.left >= 12 && shape.right >= 12, `${shape.left}px left, ${shape.right}px right`);
+await page.setViewportSize({ width: 1280, height: 1200 });
+
 // ── The plan board ───────────────────────────────────────────────────────────────────────────────
 await page.goto(`${BASE}/mirrors`, { waitUntil: 'networkidle' });
 await openBoard('King of the Mountain');
@@ -190,22 +218,65 @@ const BUSINESS = `Mirror Test ${stamp}`;
     console.log('  --   sign-up is being throttled — not a fault.');
   } else {
     await page.goto(`${BASE}/mirrors`, { waitUntil: 'networkidle' });
-    await page.fill('input[name="title"]', 'Where the quotes go');
+
+    /*
+      ── A mirror is made to the same rules as an artifact ─────────────────────────────────────
+
+      Kris, 19 September: *"exactly same as an artifact - bring the same rules claude has for
+      generating an artiifact"*.
+
+      First rule first: a name longer than four words is handed back rather than quietly cut to
+      fit, and the words the person typed come back with them. A form that empties itself on a
+      refusal is a form nobody corrects twice — they retype it differently and learn nothing.
+    */
+    const newMirror = page.getByRole('button', { name: '+ New mirror' });
+    await page.fill('input[name="title"]', 'Solar install rework rate by crew');
+    await page.fill('input[name="summary"]', 'The rework we keep paying for.');
+    await newMirror.click();
+    await page.waitForTimeout(2000);
+    let after = await text();
+    check('A NAME LONGER THAN FOUR WORDS IS HANDED BACK, NOT CUT TO FIT',
+          /6 words/.test(after) && !page.url().includes('board='),
+          after.split('\n').find(l => /words/.test(l)) ?? page.url());
+    check('  and the words they typed come back with them',
+          (await page.inputValue('input[name="title"]')) === 'Solar install rework rate by crew',
+          await page.inputValue('input[name="title"]'));
+
+    /*
+      And the shape everybody actually types — a name, a dash, and the explanation. SPEC splits it:
+      the name is what the room calls the thing, the rest becomes the line underneath. Nothing
+      typed is thrown away and nothing is invented.
+    */
+    await page.fill('input[name="title"]', 'Where the quotes go — the fix plan for quoting');
+    await page.fill('input[name="summary"]', '');
     // Made as a PLAN, so the plan half of a mirror is exercised too.
     await page.selectOption('select[name="kind"]', 'plans').catch(() => {});
-    await page.getByRole('button', { name: /Start (a )?mirror|Create|Add/i }).first().click().catch(() => {});
-    await page.waitForTimeout(2000);
-
-    if (!page.url().includes('board=')) {
-      const made = page.locator('a[href^="/mirrors?board="]').first();
-      if (await made.count()) {
-        await made.click();
-        await page.waitForURL('**/mirrors?board=*', { timeout: 15000 }).catch(() => {});
-      }
-    }
+    await newMirror.click();
+    await page.waitForTimeout(2500);
 
     const picker = page.locator('#mirror-kpi');
     check('A NEW BUSINESS CAN START A MIRROR', page.url().includes('board='), page.url());
+
+    /*
+      The mirror's OWN name, not the page's. The page around it is headed "Mirrors" — the room these
+      live in — so the first `h1` in the document is the room, and reading that reported a title
+      fault that did not exist.
+    */
+    const heading = await page.locator('[data-mirror-name]').first().innerText().catch(() => '');
+    check('  AND ITS TITLE IS A NAME, with the explainer taken out of it',
+          heading.trim() === 'Where the quotes go', heading.replace(/\n/g, ' '));
+    const described = await page.locator('[data-mirror-description]').first().innerText().catch(() => '');
+    check('  and the explainer is the line underneath, not lost',
+          /the fix plan for quoting/i.test(described), described || 'no description on the open mirror');
+
+    /*
+      Everything visible at rest. A brand-new mirror has no measures on it, and used to say "add one
+      below" whether or not there was anything below. An artifact never opens as an empty shell.
+    */
+    const atRest = await page.locator('[data-mirror-kpis]').first().innerText().catch(() => '');
+    check('  AND IT OPENS SAYING SOMETHING TRUE, rather than as an empty shell',
+          atRest.length > 120 && !/add one below/i.test(atRest),
+          atRest.slice(0, 160).replace(/\n/g, ' ') || 'nothing drawn at rest');
 
     if (await picker.count()) {
       const chose = await picker.locator('option').first().innerText();
