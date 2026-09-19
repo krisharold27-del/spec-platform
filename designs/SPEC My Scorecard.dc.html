@@ -62,7 +62,7 @@
 
     <header style="padding: clamp(28px,4vw,44px) 0 24px;">
       <a href="SPEC My Page.dc.html" style="font-size: 13.5px;">← Back to my page</a>
-      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,48px); line-height: 1.1; margin: 18px 0 0;">GM SPEC Scorecard</h1>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,48px); line-height: 1.1; margin: 18px 0 0;">{{ scorecardTitle }}</h1>
       <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 62ch;">Safety · People · Earnings · Compliance — the four things this business is run on, in that order, every month.</p>
     </header>
 
@@ -70,7 +70,7 @@
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 22px clamp(20px,3vw,40px);">
         <div>
           <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Prepared by</p>
-          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px; margin: 8px 0 0;">Kristopher Harold, GM</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px; line-height: 22px; margin: 8px 0 0;">{{ preparedBy }}</p>
         </div>
         <div>
           <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">For sign-off by</p>
@@ -375,6 +375,9 @@ class Component extends DCLogic {
   state = { pillar: 'Safety', draft: '', added: {}, oneToOnes: {}, locked: false, removedKpi: {}, addedKpi: {}, kpiName: '', kpiTarget: '' };
 
   renderVals() {
+    const target = (() => { try { return JSON.parse(localStorage.getItem('spec_scorecard_target') || '{}'); } catch (e) { return {}; } })();
+    const scorecardTitle = target.title ? target.title + ' SPEC Scorecard' : 'GM SPEC Scorecard';
+    const preparedBy = target.person && target.title ? target.person + ', ' + target.title : 'Kristopher Harold, GM';
     const active = this.state.pillar;
     const data = PILLARS[active];
     const comments = (this.state.added[active] || []).concat(data.comments);
@@ -382,6 +385,8 @@ class Component extends DCLogic {
       + 'background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
 
     return {
+      scorecardTitle,
+      preparedBy,
       lockLine: this.state.locked ? 'Locked and archived · 1–31 Aug 2026' : 'Period: 1–31 Aug 2026',
       lockLabel: this.state.locked ? 'Locked ✓' : 'Lock & Archive',
       lock: () => this.setState(s => ({ locked: !s.locked })),

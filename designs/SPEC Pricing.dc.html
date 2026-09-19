@@ -66,16 +66,21 @@
 
     <header style="padding: clamp(20px,3vw,28px) 0 26px;">
       <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Pricing</span>
-      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">Per seat, per month, in your own currency</h1>
-      <p style="font-size: 17px; line-height: 28px; max-width: 58ch; margin: 18px 0 0;">A price is set for your region and does not move because an exchange rate did. Building the business and setting the KPIs is free — you pay when you start scoring.</p>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 22ch;">Priced by who leads and who's led, in your own currency</h1>
+      <p style="font-size: 17px; line-height: 28px; max-width: 58ch; margin: 18px 0 0;">A leadership seat for anyone who leads people; a team seat for everyone in their pool. Building the business and setting the KPIs is free &mdash; you pay when you start scoring.</p>
+      <p style="font-size: 14px; line-height: 22px; max-width: 58ch; margin: 10px 0 0; color: var(--color-accent-700); font-weight: 600;">The rule: if you lead people, you're a leadership seat. If you're led, you're a team seat in a pool.</p>
     </header>
 
     <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); margin-bottom: clamp(20px,3vw,28px);">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: clamp(20px,3vw,36px); align-items: start;">
         <div style="display: grid; gap: 18px;">
           <label style="display: grid; gap: 8px;">
-            <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ seatsLabel }}</span>
-            <input type="range" min="3" max="200" value="{{ seatsValue }}" onChange="{{ setSeats }}" onInput="{{ setSeats }}" aria-label="Seats" style="width: 100%; accent-color: var(--color-accent);" />
+            <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ leadersLabel }}</span>
+            <input type="range" min="1" max="60" value="{{ leadersValue }}" onChange="{{ setLeaders }}" onInput="{{ setLeaders }}" aria-label="Leadership seats" style="width: 100%; accent-color: var(--color-accent);" />
+          </label>
+          <label style="display: grid; gap: 8px;">
+            <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ teamLabel }}</span>
+            <input type="range" min="0" max="180" value="{{ teamValue }}" onChange="{{ setTeam }}" onInput="{{ setTeam }}" aria-label="Team seats" style="width: 100%; accent-color: var(--color-accent);" />
           </label>
           <label style="display: grid; gap: 8px;">
             <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ labourLabel }}</span>
@@ -114,8 +119,8 @@
           <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">SPEC Basic</p>
           <span style="{{ basicChip }}">No AI support</span>
         </div>
-        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 44px; line-height: 1.1; margin: 14px 0 0;">{{ basicPrice }}</p>
-        <p style="font-size: 14px; line-height: 24px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">per seat, per month · {{ basicTotal }} a year at {{ seatsPlain }} seats</p>
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 36px; line-height: 1.15; margin: 14px 0 0;">{{ basicPrice }}</p>
+        <p style="font-size: 14px; line-height: 24px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">leadership seat / team seat, per month &middot; {{ basicTotal }} a year at {{ leadersPlain }} leaders + {{ teamPlain }} team</p>
         <div style="display: grid; gap: 10px; margin-top: 22px;">
           <sc-for list="{{ basicFeatures }}" as="bf" hint-placeholder-count="5">
             <div style="display: flex; align-items: flex-start; gap: 10px;">
@@ -132,8 +137,8 @@
           <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: var(--color-accent-2-900);">SPEC Advanced</p>
           <span style="{{ advancedChip }}">AI through SPEC</span>
         </div>
-        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 44px; line-height: 1.1; margin: 14px 0 0;">{{ advancedPrice }}</p>
-        <p style="font-size: 14px; line-height: 24px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">per seat, per month · {{ advancedTotal }} a year at {{ seatsPlain }} seats</p>
+        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 36px; line-height: 1.15; margin: 14px 0 0;">{{ advancedPrice }}</p>
+        <p style="font-size: 14px; line-height: 24px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">leadership seat / team seat, per month &middot; {{ advancedTotal }} a year at {{ leadersPlain }} leaders + {{ teamPlain }} team</p>
         <div style="display: grid; gap: 10px; margin-top: 22px;">
           <sc-for list="{{ advancedFeatures }}" as="af" hint-placeholder-count="6">
             <div style="display: flex; align-items: flex-start; gap: 10px;">
@@ -151,14 +156,14 @@
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px;">
         <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow-sm); border-top: 4px solid var(--color-accent-2-600, var(--color-accent-2));">
           <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Training</p>
-          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 36px; line-height: 1.1; margin: 12px 0 0;">A$1,000</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 36px; line-height: 1.1; margin: 12px 0 0;">A$1,007</p>
           <p style="font-size: 14px; line-height: 22px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">a month, sign up now</p>
           <p style="font-size: 14.5px; line-height: 24px; margin: 16px 0 0;">Four sessions a month with whoever you choose to set this up and run it — the org chart, the KPIs, the register, the meeting rhythm.</p>
         </div>
         <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow-sm); border-top: 4px solid var(--color-accent);">
           <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Consulting</p>
-          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 36px; line-height: 1.1; margin: 12px 0 0;">A$20,000</p>
-          <p style="font-size: 14px; line-height: 22px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">a month · someone will be in contact</p>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1.2; margin: 12px 0 0;">Speak to us</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">we have the solution for you</p>
           <p style="font-size: 12.5px; line-height: 18px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">A fully-loaded GM runs about A$300,000 a year once you load super, car, bonus and recruitment. This sits comfortably under that.</p>
           <p style="font-size: 14.5px; line-height: 24px; margin: 16px 0 0;">A SPEC specialist attends your monthly board meeting and your quarterly meeting, plus one full day a week on site. Minimum term six months; the project is expected complete within twelve.</p>
         </div>
@@ -202,12 +207,12 @@ const chip = tone => 'display:inline-flex;align-items:center;border-radius:999px
 const dotOf = tone => 'width:10px;height:10px;border-radius:50%;display:block;flex:none;margin-top:6px;background:' + tone + ';';
 
 const PRICES = {
-  AUD: { seat: 26, advanced: 44, symbol: 'A$' },
-  NZD: { seat: 35, advanced: 53, symbol: 'NZ$' },
-  GBP: { seat: 17, advanced: 26, symbol: '£' },
-  EUR: { seat: 26, advanced: 44, symbol: '€' },
-  USD: { seat: 26, advanced: 44, symbol: 'US$' },
-  CAD: { seat: 35, advanced: 53, symbol: 'CA$' },
+  AUD: { leader: 134, team: 17, leaderAdv: 227, teamAdv: 29, symbol: 'A$' },
+  NZD: { leader: 180, team: 23, leaderAdv: 305, teamAdv: 39, symbol: 'NZ$' },
+  GBP: { leader: 88, team: 11, leaderAdv: 149, teamAdv: 19, symbol: '£' },
+  EUR: { leader: 134, team: 17, leaderAdv: 227, teamAdv: 29, symbol: '€' },
+  USD: { leader: 134, team: 17, leaderAdv: 227, teamAdv: 29, symbol: 'US$' },
+  CAD: { leader: 180, team: 23, leaderAdv: 305, teamAdv: 39, symbol: 'CA$' },
 };
 
 const BASIC = [
@@ -250,29 +255,34 @@ const fmt = (n, sym) => {
 };
 
 class Component extends DCLogic {
-  state = { seats: 40, labour: 3600000, improve: 20, currency: 'AUD' };
+  state = { leaders: 6, team: 34, labour: 3600000, improve: 20, currency: 'AUD' };
 
   renderVals() {
     const GM_HEADLINES = {
-      cost: "Don't pay three hundred grand for a GM. Just use SPEC.",
+      cost: "Don't pay for an expensive GM — start with a Virtual GM and let's see what you really need.",
       never_sick: 'A great GM costs you three hundred grand a year. SPEC costs a fraction — and never takes a sick day.',
       reframe: 'Why hire a three-hundred-grand GM? Just use SPEC — your virtual GM.',
       stop_paying: 'Stop paying three hundred grand for management. Start using SPEC.',
     };
     const gmHeadline = GM_HEADLINES[this.props.gmHeadline] || GM_HEADLINES.cost;
     const p = PRICES[this.state.currency];
-    const seats = this.state.seats;
-    const basicYear = seats * p.seat * 12;
-    const advancedYear = seats * p.advanced * 12;
+    const leaders = this.state.leaders, team = this.state.team;
+    const seats = leaders + team;
+    const basicYear = (leaders * p.leader + team * p.team) * 12;
+    const advancedYear = (leaders * p.leaderAdv + team * p.teamAdv) * 12;
     const gain = this.state.labour * (this.state.improve / 100);
     const multiple = Math.max(1, Math.round(gain / Math.max(advancedYear, 1)));
 
     return {
       gmHeadline,
-      seatsLabel: seats + ' seats',
-      seatsValue: seats,
-      seatsPlain: String(seats),
-      setSeats: e => this.setState({ seats: Number(e.target.value) }),
+      leadersLabel: leaders + ' leadership seats (team leader, supervisor, manager +)',
+      leadersValue: leaders,
+      leadersPlain: String(leaders),
+      setLeaders: e => this.setState({ leaders: Number(e.target.value) }),
+      teamLabel: team + ' team seats (pooled under their leader)',
+      teamValue: team,
+      teamPlain: String(team),
+      setTeam: e => this.setState({ team: Number(e.target.value) }),
       labourLabel: 'Annual labour bill · ' + fmt(this.state.labour, p.symbol),
       labourValue: this.state.labour,
       setLabour: e => this.setState({ labour: Number(e.target.value) }),
@@ -291,7 +301,7 @@ class Component extends DCLogic {
       returnLine: 'What SPEC Advanced returns against what it costs, at ' + this.state.improve + '% on a ' + fmt(this.state.labour, p.symbol) + ' labour bill.',
       ledger: [
         { label: 'Recovered from labour', value: fmt(gain, p.symbol), tone: GREEN },
-        { label: 'SPEC Advanced, ' + seats + ' seats', value: fmt(advancedYear, p.symbol) + ' a year', tone: null },
+        { label: 'SPEC Advanced, ' + leaders + ' leaders + ' + team + ' team', value: fmt(advancedYear, p.symbol) + ' a year', tone: null },
         { label: 'Net', value: fmt(gain - advancedYear, p.symbol), tone: GREEN },
       ].map(l => ({
         label: l.label,
@@ -301,13 +311,13 @@ class Component extends DCLogic {
 
       basicStyle: 'background:var(--color-surface, #fff);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:clamp(24px,3vw,36px);border-top:4px solid ' + GREY + ';',
       basicChip: chip(GREY),
-      basicPrice: p.symbol + p.seat,
+      basicPrice: p.symbol + p.leader + ' / ' + p.symbol + p.team,
       basicTotal: fmt(basicYear, p.symbol),
       basicFeatures: BASIC.map((b, i) => ({ label: b, dot: dotOf(i === BASIC.length - 1 ? AMBER : GREY) })),
 
       advancedStyle: 'background:var(--color-accent-2-100);border-radius:var(--radius-lg);padding:clamp(24px,3vw,36px);border-top:4px solid ' + GREEN + ';',
       advancedChip: chip(GREEN),
-      advancedPrice: p.symbol + p.advanced,
+      advancedPrice: p.symbol + p.leaderAdv + ' / ' + p.symbol + p.teamAdv,
       advancedTotal: fmt(advancedYear, p.symbol),
       advancedFeatures: ADVANCED.map(a => ({ label: a, dot: dotOf(GREEN) })),
 

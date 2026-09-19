@@ -1201,7 +1201,7 @@ class Component extends DCLogic {
         accept: () => this.updateEntry(r.id, { accepted: true }),
         deny: () => this.updateEntry(r.id, { accepted: false, owner: null }),
       })),
-      personName: p.name + ' · ' + p.label,
+      personName: (() => { try { const t = JSON.parse(localStorage.getItem('spec_scorecard_target') || '{}'); return t.person && t.title ? t.person + ' · ' + t.title : p.name + ' · ' + p.label; } catch (e) { return p.name + ' · ' + p.label; } })(),
       nameInitials: p.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
 
       powerPct: powerScoreOf(this.state.register).pct,

@@ -64,6 +64,11 @@
       <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Interactive org chart</span>
       <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(32px,4.2vw,54px); line-height: 1.1; margin: 0; max-width: 20ch;">Link it. Then it flows. Then it grows.</h1>
       <p style="font-size: 17px; line-height: 28px; max-width: 58ch; margin: 20px 0 0;">Right-click anywhere to add a role. Drag it onto the role it reports to and the line is drawn. Have you ever been sure the business is linked, flowing and growing? Now you can be.</p>
+      <div style="display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; background: var(--color-accent-100); border-radius: 999px; padding: 8px 16px;">
+        <span style="font-size: 13px; font-weight: 600;">Scoring month: {{ scoringMonth }}</span>
+        <span style="width: 4px; height: 4px; border-radius: 50%; background: var(--color-accent-700);"></span>
+        <span style="font-size: 13px; color: var(--color-accent-700);">Sign off and reset before {{ resetDeadline }}</span>
+      </div>
     </header>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; padding-bottom: 32px;">
@@ -92,7 +97,53 @@
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start; margin-bottom: clamp(20px,3vw,32px);">
 
-      <div style="grid-column: 1 / -1; position: relative; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,44px); overflow-x: auto;" data-canvas="true" onContextMenu="{{ canvasContextMenu }}">
+      <div style="grid-column: 1 / -1; position: relative; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,44px); overflow-x: auto;" data-canvas="true" onContextMenu="{{ canvasContextMenuGuard }}">
+
+        <sc-if value="{{ teamLayer.active }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <button type="button" onClick="{{ teamLayer.back }}" class="btn btn-ghost" style="margin-bottom: 18px;">← Back to org chart</button>
+            <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 4px;">Team layer</span>
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; margin: 0 0 22px;">{{ teamLayer.teamTitle }} · under {{ teamLayer.leaderTitle }}</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;">
+              <sc-for list="{{ teamLayer.memberCards }}" as="mc" hint-placeholder-count="4">
+                <div style="position: relative; background: var(--color-bg); border-radius: 20px; padding: 18px 16px; text-align: center; box-shadow: inset 0 0 0 1px var(--color-accent-200);">
+                  <button type="button" onClick="{{ mc.remove }}" style="all: unset; cursor: pointer; position: absolute; top: 8px; right: 10px; font-size: 14px; color: #a63b26;">×</button>
+                  <span style="display: block; font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15px; line-height: 20px;">{{ mc.name }}</span>
+                  <span style="display: block; font-size: 11.5px; margin-top: 6px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Team seat</span>
+                </div>
+              </sc-for>
+              <div style="background: var(--color-bg); border: 2px dashed var(--color-accent-400); border-radius: 20px; padding: 18px 16px; display: flex; flex-direction: column; gap: 8px; align-items: stretch;">
+                <input class="input" type="text" value="{{ teamLayer.draftName }}" onChange="{{ teamLayer.setDraft }}" onKeyDown="{{ teamLayer.onKeyDown }}" placeholder="Add a name" style="min-height: 36px; font-size: 13px; width: 100%; box-sizing: border-box;">
+                <button type="button" onClick="{{ teamLayer.add }}" class="btn btn-secondary" style="font-size: 12px; padding: 7px 10px;">+ Add to team</button>
+              </div>
+            </div>
+            <div style="margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--color-accent-200);">
+              <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 14px;">Team KPIs — shared group score</span>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px;">
+                <sc-for list="{{ teamLayer.pillars }}" as="pl" hint-placeholder-count="4">
+                  <div style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 16px 18px;" onContextMenu="{{ pl.contextMenu }}">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                      <span style="display: flex; align-items: center; gap: 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;"><span style="{{ pl.dot }}"></span>{{ pl.name }}</span>
+                    </div>
+                    <input type="text" inputMode="numeric" value="{{ pl.editValue }}" onChange="{{ pl.setDraft }}" onDoubleClick="{{ pl.beginEdit }}" onBlur="{{ pl.commit }}" onKeyDown="{{ pl.onKeyDown }}" readOnly="{{ pl.readOnly }}" aria-label="{{ pl.name }} score" title="{{ pl.lockHint }}" style="{{ pl.inputStyle }}">
+                    <sc-if value="{{ pl.locked }}" hint-placeholder-val="{{ false }}">
+                      <span style="display: block; font-size: 11.5px; margin-top: 6px; color: color-mix(in srgb, var(--color-text) 55%, transparent);">Only {{ pl.leaderName }} can set this</span>
+                    </sc-if>
+                    <sc-if value="{{ pl.hasKpis }}" hint-placeholder-val="{{ false }}">
+                      <div style="display: grid; gap: 4px; margin-top: 10px; text-align: left;">
+                        <sc-for list="{{ pl.kpiList }}" as="kp" hint-placeholder-count="2">
+                          <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; line-height: 18px;">{{ kp.text }}<button type="button" onClick="{{ kp.remove }}" style="all: unset; cursor: pointer; font-size: 12px; color: #a63b26;">×</button></span>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ teamLayer.hidden }}" hint-placeholder-val="{{ true }}">
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 14px;">
           <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Viewing: <strong style="color: var(--color-text);">{{ viewScopeLine }}</strong></span>
           <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
@@ -102,7 +153,9 @@
               </sc-for>
             </select>
             <sc-if value="{{ viewingWholeCompany }}" hint-placeholder-val="{{ true }}"></sc-if>
-            <button type="button" class="btn btn-ghost" onClick="{{ showWholeCompany }}" style="flex: none; white-space: nowrap;">See whole company chart</button>
+            <button type="button" class="btn btn-secondary" onClick="{{ showWholeCompany }}" style="flex: none; white-space: nowrap;">See whole company chart</button>
+            <button type="button" onClick="{{ toggleAdmin }}" style="{{ adminButtonStyle }}">{{ adminButtonLabel }}</button>
+            <button type="button" onClick="{{ toggleCertified }}" style="{{ certifiedButtonStyle }}">{{ certifiedButtonLabel }}</button>
           </div>
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: center; padding-bottom: 16px;">
@@ -118,24 +171,43 @@
             <div style="{{ l.style }}"></div>
           </sc-for>
           <sc-for list="{{ cards }}" as="c" hint-placeholder-count="7">
-            <div draggable="true" onClick="{{ c.select }}" onDoubleClick="{{ c.openScorecard }}" onContextMenu="{{ c.contextMenu }}" onDragStart="{{ c.dragStart }}" onDragEnd="{{ c.dragEnd }}" onDragOver="{{ c.dragOver }}" onDragLeave="{{ c.dragLeave }}" onDrop="{{ c.drop }}" style="{{ c.style }}">
-              <sc-if value="{{ c.isAce }}" hint-placeholder-val="{{ false }}">
-                <span style="{{ c.aceBadgeStyle }}" title="Ace — 90%+ every pillar, 3 months running">★</span>
+            <div draggable="true" onClick="{{ c.select }}" onDoubleClick="{{ c.openScorecard }}" onContextMenu="{{ c.contextMenu }}" onDragStart="{{ c.dragStart }}" onDragEnd="{{ c.dragEnd }}" onDragOver="{{ c.dragOver }}" onDragLeave="{{ c.dragLeave }}" onDrop="{{ c.drop }}" title="{{ c.doubleClickHint }}" style="{{ c.style }}">
+              <sc-if value="{{ c.isTeamNode }}" hint-placeholder-val="{{ false }}">
+                <p style="{{ c.titleStyle }}">{{ c.title }}</p>
+                <span style="display: block; font-size: 12px; margin-top: 4px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ c.poolCountLine }}</span>
+                <div style="display: flex; gap: 6px; justify-content: center; margin-top: 10px;">
+                  <span style="{{ c.dotS }}">S</span>
+                  <span style="{{ c.dotP }}">P</span>
+                  <span style="{{ c.dotE }}">E</span>
+                  <span style="{{ c.dotC }}">C</span>
+                </div>
               </sc-if>
-              <sc-if value="{{ c.hasTeam }}" hint-placeholder-val="{{ false }}">
-                <span style="position:absolute;top:-11px;left:-11px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--color-accent-700);color:#fff;display:grid;place-content:center;font-size:11.5px;font-weight:700;box-shadow:var(--shadow-sm);z-index:2;" title="{{ c.teamBadge }}">{{ c.teamCountLabel }}</span>
+              <sc-if value="{{ c.isNormalNode }}" hint-placeholder-val="{{ true }}">
+                <sc-if value="{{ c.isAce }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ c.aceBadgeStyle }}" title="Ace — 90%+ every pillar, 3 months running">★</span>
+                </sc-if>
+                <sc-if value="{{ c.hasTeam }}" hint-placeholder-val="{{ false }}">
+                  <span style="position:absolute;top:-11px;left:-11px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--color-accent-700);color:#fff;display:grid;place-content:center;font-size:11.5px;font-weight:700;box-shadow:var(--shadow-sm);z-index:2;" title="{{ c.teamBadge }}">{{ c.teamCountLabel }}</span>
+                </sc-if>
+                <p style="{{ c.titleStyle }}height: 100%">{{ c.title }}</p>
+                <span draggable="{{ c.personDraggable }}" onDragStart="{{ c.personDragStart }}" style="{{ c.personStyle }}">{{ c.person }}</span>
+                <sc-if value="{{ c.isLeadership }}" hint-placeholder-val="{{ false }}">
+                  <span style="display:block;margin-top:6px;font-size:10.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--color-accent-700);">Leadership seat</span>
+                </sc-if>
+                <sc-if value="{{ c.showCertified }}" hint-placeholder-val="{{ false }}">
+                  <span style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:10.5px;font-weight:700;letter-spacing:0.02em;color:var(--color-accent-2-700);"><span>✓</span>SPEC Certified</span>
+                </sc-if>
+                <div style="display: flex; gap: 7px; justify-content: center; margin-top: 10px;">
+                  <span style="{{ c.dotS }}">S</span>
+                  <span style="{{ c.dotP }}">P</span>
+                  <span style="{{ c.dotE }}">E</span>
+                  <span style="{{ c.dotC }}">C</span>
+                </div>
               </sc-if>
-              <p style="height: 100%">{{ c.title }}</p>
-              <span draggable="{{ c.personDraggable }}" onDragStart="{{ c.personDragStart }}" style="{{ c.personStyle }}">{{ c.person }}</span>
-              <div style="display: flex; gap: 7px; justify-content: center; margin-top: 10px;">
-                <span style="{{ c.dotS }}">S</span>
-                <span style="{{ c.dotP }}">P</span>
-                <span style="{{ c.dotE }}">E</span>
-                <span style="{{ c.dotC }}">C</span>
-              </div>
             </div>
           </sc-for>
         </div>
+        </sc-if>
 
         <sc-if value="{{ hasUnlinked }}" hint-placeholder-val="{{ false }}">
           <div style="margin-top: 36px; border-top: 2px dashed var(--color-accent-200); padding-top: 24px;">
@@ -160,25 +232,39 @@
             </sc-for>
           </div>
         </sc-if>
+
       </div>
 
       <aside style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
         <span style="display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-2-900); margin: 0 0 14px;">Role scorecard</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+          <sc-for list="{{ kpiReadiness }}" as="kr" hint-placeholder-count="4">
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; background: var(--color-surface, #fff); border-radius: 999px; padding: 5px 10px;"><span style="{{ kr.style }}"></span>{{ kr.name }} {{ kr.count }}</span>
+          </sc-for>
+        </div>
+        <p style="font-size: 12.5px; line-height: 18px; margin: 0 0 14px; color: var(--color-accent-2-900);">{{ kpiReadinessLine }}</p>
         <input class="input" type="text" value="{{ selectedTitle }}" onChange="{{ renameRole }}" aria-label="Role title" style="width: 100%; box-sizing: border-box; font-family: var(--font-heading); font-size: 19px; min-height: 44px;">
         <input class="input" type="text" value="{{ selectedPerson }}" onChange="{{ renamePerson }}" aria-label="Person in the role" placeholder="Vacant" style="width: 100%; box-sizing: border-box; margin-top: 10px; min-height: 40px;">
 
         <div style="display: grid; gap: 12px; margin-top: 22px;">
           <sc-for list="{{ selectedPillars }}" as="pl" hint-placeholder-count="4">
-            <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 18px 20px;">
+            <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); padding: 18px 20px;" onContextMenu="{{ pl.contextMenu }}">
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                 <span style="display: flex; align-items: center; gap: 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);"><span style="{{ pl.dot }}"></span>{{ pl.name }}</span>
-                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px;">{{ pl.score }}</span>
               </div>
               <div style="display: grid; gap: 6px; margin-top: 14px;">
                 <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ pl.kpi1 }}</span>
                 <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ pl.kpi2 }}</span>
+                <sc-if value="{{ pl.hasKpis }}" hint-placeholder-val="{{ false }}">
+                  <sc-for list="{{ pl.kpiList }}" as="kp" hint-placeholder-count="2">
+                    <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13.5px; line-height: 20px;">{{ kp.text }}<button type="button" onClick="{{ kp.remove }}" style="all: unset; cursor: pointer; font-size: 12px; color: #a63b26;">×</button></span>
+                  </sc-for>
+                </sc-if>
               </div>
-              <input type="range" min="0" max="100" value="{{ pl.value }}" onChange="{{ pl.set }}" onInput="{{ pl.set }}" aria-label="{{ pl.name }} score" style="width: 100%; margin-top: 14px; accent-color: var(--color-accent);">
+              <input type="text" inputMode="numeric" value="{{ pl.editValue }}" onChange="{{ pl.setDraft }}" onDoubleClick="{{ pl.beginEdit }}" onBlur="{{ pl.commit }}" onKeyDown="{{ pl.onKeyDown }}" readOnly="{{ pl.readOnly }}" aria-label="{{ pl.name }} score" title="{{ pl.lockHint }}" style="{{ pl.inputStyle }}">
+              <sc-if value="{{ pl.locked }}" hint-placeholder-val="{{ false }}">
+                <span style="display: block; font-size: 11.5px; margin-top: 6px; color: color-mix(in srgb, var(--color-text) 55%, transparent);">Only {{ pl.leaderName }} can set this</span>
+              </sc-if>
             </div>
           </sc-for>
         </div>
@@ -343,6 +429,26 @@ Scheduler, Amrit Kaur, Operations Manager" style="width: 100%; box-sizing: borde
     </div>
   </div>
 </section>
+
+<sc-if value="{{ kpiPrompt.open }}" hint-placeholder-val="{{ false }}">
+  <div style="position: fixed; inset: 0; background: rgba(32,30,29,0.4); display: grid; place-items: center; z-index: 30; padding: 20px;" onClick="{{ kpiPrompt.close }}">
+    <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 26px 28px; max-width: 380px; width: 100%;" onClick="{{ kpiPrompt.stop }}">
+      <span style="display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 10px;">Add a KPI under {{ kpiPrompt.pillarName }}</span>
+      <div style="position: relative;">
+        <input class="input" type="text" value="{{ kpiPrompt.draft }}" onChange="{{ kpiPrompt.setDraft }}" onKeyDown="{{ kpiPrompt.onKeyDown }}" placeholder="{{ kpiPrompt.placeholder }}" autoFocus="{{ true }}" style="width: 100%; box-sizing: border-box; min-height: 46px; padding-right: 48px;">
+        <button type="button" onClick="{{ kpiPrompt.add }}" aria-label="Add KPI" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; background: var(--color-accent); color: #fff;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </div>
+      <sc-if value="{{ kpiPrompt.hasExample }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ kpiPrompt.useSuggestion }}" style="all: unset; cursor: pointer; display: block; margin-top: 10px; font-size: 13px; color: var(--color-accent-700);">Use suggestion: "{{ kpiPrompt.exampleText }}"</button>
+      </sc-if>
+      <div style="display: flex; gap: 10px; margin-top: 14px;">
+        <button type="button" onClick="{{ kpiPrompt.close }}" class="btn btn-ghost" style="flex: none;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320}}">
 const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26';
@@ -355,11 +461,13 @@ const PILLARS = [
 ];
 
 const SEED = [
-  { id: 'n1', parent: null, root: true, title: 'Managing Director', person: 'Kris Harold', s: 94, p: 88, e: 91, c: 100, aceStreak: 4 },
-  { id: 'n2', parent: 'n1', title: 'Operations Manager', person: '', s: 92, p: 85, e: 89, c: 100, aceStreak: 0 },
-  { id: 'n3', parent: 'n1', title: 'Commercial Manager', person: '', s: 90, p: 91, e: 93, c: 100, aceStreak: 3 },
-  { id: 'n4', parent: 'n1', title: 'Safety & Compliance Lead', person: '', s: 97, p: 90, e: 92, c: 100, aceStreak: 5 },
-  { id: 'n5', parent: 'n2', title: 'Site Supervisor', person: '', s: 96, p: 72, e: 94, c: 100, aceStreak: 0 },
+  { id: 'n1', parent: null, root: true, title: 'Managing Director', person: 'Kris Harold', s: 94, p: 88, e: 91, c: 100, aceStreak: 4, certified: true },
+  { id: 'n2', parent: 'n1', title: 'Operations Manager', person: 'Jordan Cole', s: 92, p: 85, e: 89, c: 100, aceStreak: 0, certified: true },
+  { id: 'n3', parent: 'n1', title: 'Commercial Manager', person: '', s: 90, p: 91, e: 93, c: 100, aceStreak: 3, certified: false },
+  { id: 'n4', parent: 'n1', title: 'Safety & Compliance Lead', person: '', s: 97, p: 90, e: 92, c: 100, aceStreak: 5, certified: true },
+  { id: 'n5', parent: 'n2', title: 'Site Supervisor', person: 'Anthony Reeve', s: 96, p: 72, e: 94, c: 100, aceStreak: 0, certified: true },
+  { id: 'team-n5-tech', parent: 'n5', isTeamNode: true, title: 'Technicians', person: '', pool: ['Marcus Webb', 'Dion Reyes'], s: 0, p: 0, e: 0, c: 0 },
+  { id: 'team-n5-appr', parent: 'n5', isTeamNode: true, title: 'Apprentices', person: '', pool: ['Casey Nguyen'], s: 0, p: 0, e: 0, c: 0 },
   { id: 'n6', parent: 'n2', title: 'Scheduler', person: '', s: 93, p: 90, e: 90, c: 100, aceStreak: 0 },
   { id: 'n7', parent: 'n3', title: 'Estimator', person: '', s: 91, p: 88, e: 92, c: 100, aceStreak: 0 },
 ];
@@ -409,9 +517,30 @@ const rag = v => (v >= 80 ? GREEN : v > 50 ? AMBER : RED);
 const dot = (v, size) => 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:block;flex:none;background:' + rag(v) + ';';
 const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 80 ? '#4f7a3f' : v > 50 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
 const stageDot = ok => 'width:14px;height:14px;border-radius:50%;display:block;flex:none;background:' + (ok ? GREEN : AMBER) + ';';
+const MIN_KPIS = 2;
+const firstWednesdayNextMonth = () => {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  while (d.getDay() !== 3) d.setDate(d.getDate() + 1);
+  return d;
+};
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const LEADER_TITLE_RE = /leader|supervisor|manager|director|head of/i;
+const KPI_EXAMPLES_LEADER = {
+  s: ['Zero lost-time injuries across the team', 'Toolbox talks completed 100% of weeks', 'Near-miss reports closed within 48 hours', 'Site audits passed with no repeat findings'],
+  p: ['Staff turnover under 10%', '100% of 1:1s held this month', 'Training completion at 100% across the team', 'Apprentice retention through probation'],
+  e: ['Gross profit margin at 40%', 'Billable hours above 86% across the team', 'Quotes turned around within 48 hours', 'Debtor days under 30'],
+  c: ['Audit pass rate at 100%', 'Licences and tickets current across the team', 'Job packs signed off before close-out', 'Compliance register up to date'],
+};
+const KPI_EXAMPLES_FRONTLINE = {
+  s: ['Zero lost-time injuries this month', 'PPE worn on every job', 'Vehicle safety check completed weekly', 'No unreported near misses'],
+  p: ['Attend every toolbox talk', 'Complete assigned training modules on time', 'No unexplained absences', 'Turn up on time, every day'],
+  e: ['Billable hours above 86%', 'Jobs completed within quoted time', 'Timesheets submitted same day', 'No comebacks on completed jobs'],
+  c: ['Vehicle checklist completed every week', 'Ticket and licence kept current', 'Job pack filled out correctly', 'Follow the checklist on every job'],
+};
 
 class Component extends DCLogic {
-  state = { nodes: SEED.map(n => ({ ...n })), selectedId: 'n2', viewAsId: 'n2', collapsedIds: {}, dragId: null, dropId: null, dragKind: null, seq: 8, menu: null, importOpen: false, importText: '', importStatus: 'Or drag the roles in by hand.', fileStatus: 'Nothing uploaded yet.', connected: {}, predicted: sectorPack().predicted.map(p => ({ ...p })), showCascade: true, pack: sectorPack() };
+  state = { nodes: SEED.map(n => ({ ...n, pool: n.pool || [] })), selectedId: 'n2', viewAsId: 'n2', collapsedIds: {}, dragId: null, dropId: null, dragKind: null, seq: 8, menu: null, importOpen: false, importText: '', poolPanelId: null, poolDraft: '', teamLayerId: null, editingKey: null, editingDraft: '', isAdmin: false, isCertified: false, kpiPromptKey: null, kpiPromptDraft: '', kpiPromptExamples: null, importStatus: 'Or drag the roles in by hand.', fileStatus: 'Nothing uploaded yet.', connected: {}, predicted: sectorPack().predicted.map(p => ({ ...p })), showCascade: true, pack: sectorPack() };
 
   approvePredicted(id) {
     const p = this.state.predicted.find(x => x.id === id);
@@ -468,7 +597,15 @@ class Component extends DCLogic {
   byId(id) { return this.state.nodes.find(n => n.id === id); }
   kids(id) { return this.state.nodes.filter(n => n.parent === id); }
   descendantsOf(id) { let t = 0; this.kids(id).forEach(k => { t += 1 + this.descendantsOf(k.id); }); return t; }
-  unlinkedNodes() { return this.state.nodes.filter(n => !n.root && !n.parent); }
+  unlinkedNodes() { return this.state.nodes.filter(n => !n.root && !n.parent && !n.isTeamNode); }
+  addTeamNode(leaderId) {
+    const name = (window.prompt('Name this team (e.g. Technicians, Apprentices)', 'Team') || '').trim() || 'Team';
+    const id = 'team-' + leaderId + '-' + this.state.seq;
+    this.setState(s => ({
+      nodes: s.nodes.concat([{ id, parent: leaderId, isTeamNode: true, title: name, person: '', pool: [], s: 0, p: 0, e: 0, c: 0 }]),
+      seq: s.seq + 1, teamLayerId: id,
+    }));
+  }
 
   isAncestor(candidate, id) {
     let cur = this.byId(id);
@@ -529,15 +666,41 @@ class Component extends DCLogic {
     this.setState({ menu: { x: e.clientX - box.left, y: e.clientY - box.top, nodeId }, selectedId: nodeId || this.state.selectedId });
   }
 
+  decorateTeamNode(node, level) {
+    const z = [{ min: 210, r: 28, t: 15 }, { min: 176, r: 26, t: 14 }, { min: 148, r: 24, t: 13 }][Math.min(level, 2)];
+    const pool = node.pool || [];
+    const sel = this.state.selectedId === node.id;
+    return {
+      ...node,
+      isTeamNode: true,
+      style: 'cursor:pointer;user-select:none;text-align:center;box-sizing:border-box;padding:16px 18px;border-radius:22px;background:var(--color-accent-2-100);box-shadow:var(--shadow-sm);'
+        + (sel ? 'box-shadow:0 0 0 2px var(--color-accent-2-600);' : ''),
+      title: node.title || 'Team',
+      titleStyle: 'font-family:var(--font-heading);font-weight:700;color:var(--color-accent-2-900);font-size:15px;line-height:1.25;margin:0;',
+      poolCountLine: pool.length + (pool.length === 1 ? ' member' : ' members'),
+      dotS: tile(node.s, 10), dotP: tile(node.p, 10), dotE: tile(node.e, 10), dotC: tile(node.c, 10),
+      isNormalNode: false,
+      select: () => this.setState({ selectedId: node.id, menu: null }),
+      openScorecard: () => this.setState({ teamLayerId: node.id }),
+      contextMenu: e => this.openMenu(e, node.id),
+      dragStart: e => e.preventDefault(),
+      dragEnd: () => {},
+      dragOver: e => e.preventDefault(),
+      dragLeave: () => {},
+      drop: e => e.preventDefault(),
+      doubleClickHint: 'Double-click to go into the team',
+    };
+  }
+
   decorate(node, level) {
+    if (node.isTeamNode) return this.decorateTeamNode(node, level);
     const sel = this.state.selectedId === node.id;
     const dropping = this.state.dropId === node.id;
     const dragging = this.state.dragId === node.id;
     const fills = ['var(--color-bg)', 'var(--color-bg)', 'var(--color-bg)', 'var(--color-bg)'];
-    const sizes = [{ min: 210, pad: '18px 24px', r: 22, d: 13, t: 19 }, { min: 176, pad: '16px 20px', r: 20, d: 12, t: 16 }, { min: 148, pad: '13px 17px', r: 18, d: 10, t: 14 }];
-    const z = sizes[Math.min(level, 2)];
+    const z = { pad: '16px 18px', r: 22, d: 12, t: 16 };
     let style = 'cursor:grab;user-select:none;text-align:center;box-sizing:border-box;'
-      + 'min-width:' + z.min + 'px;padding:' + z.pad + ';border-radius:' + (z.r + 6) + 'px;'
+      + 'padding:' + z.pad + ';border-radius:' + (z.r + 6) + 'px;'
       + 'background:' + fills[Math.min(level, 3)] + ';transition:box-shadow 150ms,transform 150ms,opacity 150ms;';
     style += 'box-shadow:0 0 0 2.5px var(--color-accent-400),var(--shadow-md);';
     if (sel) style += 'box-shadow:0 0 0 2px var(--color-accent),var(--shadow-md);transform:translateY(-1px);';
@@ -547,22 +710,26 @@ class Component extends DCLogic {
     const isAce = (node.aceStreak || 0) >= 3;
     const teamCount = this.kids(node.id).length ? this.descendantsOf(node.id) : 0;
     const isCollapsed = !!this.state.collapsedIds[node.id];
+    const leadership = /leader|supervisor|manager|director|head of/i.test(node.title || '');
+    const pool = node.pool || [];
 
     return {
       ...node,
       style,
       isAce,
+      showCertified: leadership && !!node.person && !!node.certified,
+      isNormalNode: true,
       hasTeam: teamCount > 0,
       teamCountLabel: (isCollapsed ? '+' : '') + teamCount,
       isCollapsed,
       teamBadge: 'Team of ' + teamCount + (isCollapsed ? ' — collapsed, double-click to expand' : ' — double-click to collapse'),
       toggleCollapse: () => this.setState(s => ({ collapsedIds: { ...s.collapsedIds, [node.id]: !s.collapsedIds[node.id] } })),
       aceBadgeStyle: 'position:absolute;top:-11px;right:-11px;width:26px;height:26px;border-radius:50%;background:#c08a2e;color:#fff;display:grid;place-content:center;font-size:14px;box-shadow:var(--shadow-sm);z-index:2;',
-      titleStyle: 'font-family:var(--font-heading);font-weight:var(--font-heading-weight);text-shadow:0.5px 0 currentColor,-0.5px 0 currentColor,0 0.5px currentColor,0 -0.5px currentColor;font-size:' + z.t + 'px;line-height:1.25;margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;',
-      personStyle: 'display:inline-block;font-size:12.5px;line-height:18px;margin:5px 0 0;padding:2px 10px;border-radius:999px;'
+      titleStyle: 'font-family:var(--font-heading);font-weight:700;color:var(--color-text);font-size:' + z.t + 'px;line-height:1.3;margin:0;padding-top:2px;overflow-wrap:break-word;',
+      personStyle: 'display:inline-block;font-size:12.5px;font-weight:700;line-height:18px;margin:5px 0 0;padding:2px 10px;border-radius:999px;'
         + (node.person
-          ? 'cursor:grab;background:var(--color-bg);box-shadow:inset 0 0 0 1px var(--color-accent-200);color:color-mix(in srgb, var(--color-text) 85%, transparent);'
-          : 'color:color-mix(in srgb, var(--color-text) 55%, transparent);'),
+          ? 'cursor:grab;background:var(--color-bg);box-shadow:inset 0 0 0 1px var(--color-accent-200);color:var(--color-text);'
+          : 'font-weight:500;color:color-mix(in srgb, var(--color-text) 55%, transparent);'),
       person: node.person || 'Vacant',
       personDraggable: !!node.person,
       personDragStart: e => {
@@ -577,7 +744,14 @@ class Component extends DCLogic {
       select: () => this.setState({ selectedId: node.id, menu: null }),
       openScorecard: teamCount > 0
         ? () => this.setState(s => ({ collapsedIds: { ...s.collapsedIds, [node.id]: !s.collapsedIds[node.id] } }))
-        : () => { window.location.href = 'SPEC My Scorecard.dc.html'; },
+        : () => {
+            localStorage.setItem('spec_scorecard_target', JSON.stringify({ title: node.title, person: node.person || 'Vacant' }));
+            window.location.href = 'SPEC My Page.dc.html';
+          },
+      isLeadership: leadership,
+      hasPool: pool.length > 0,
+      poolNames: pool.map(name => ({ name })),
+      doubleClickHint: teamCount > 0 ? 'Double-click to collapse' : "Double-click for this person's My Page",
       contextMenu: e => this.openMenu(e, node.id),
       dragStart: e => { if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; this.setState({ dragId: node.id, dragKind: 'role' }); },
       dragEnd: () => this.setState({ dragId: null, dropId: null, dragKind: null }),
@@ -594,11 +768,10 @@ class Component extends DCLogic {
 
   layout(root) {
     const SLOT = 200, GAP = 56, RAIL = 'var(--color-accent-200)';
-    const width = d => (d === 0 ? 226 : d === 1 ? 186 : 158);
-    // ONE fixed height for every card at every depth, whatever role count or title length —
-    // the title is clamped to 2 lines (see titleStyle) so content can never grow past this,
-    // making the row-to-row gap a true structural constant.
-    const CARD_H = 138;
+    const CARD_W = 196, CARD_H = 150;
+    const width = d => CARD_W;
+    // ONE fixed size for every card at every depth, whatever role count or title length —
+    // symmetry beats hierarchy scaling: every box on the chart is identical.
     const height = d => CARD_H;
     // Row tops are cumulative on each depth's own card height, so the visible gap between a
     // card's bottom and the next row's top is the same constant GAP at every depth — a fixed
@@ -656,15 +829,18 @@ class Component extends DCLogic {
         const railY = bottom + GAP / 2;
         const left = Math.min.apply(null, childCentres);
         const right = Math.max.apply(null, childCentres);
-        const avgOf = n => Math.round((n.s + n.p + n.e + n.c) / 4);
-        const worstKid = Math.min.apply(null, kids.map(avgOf));
+        const avgOf = n => (n.isTeamNode ? null : Math.round((n.s + n.p + n.e + n.c) / 4));
+        const RAIL_NEUTRAL = 'var(--color-accent-300)';
+        const scoredKids = kids.map(avgOf).filter(v => v !== null);
+        const worstKid = scoredKids.length ? Math.min.apply(null, scoredKids) : null;
         lines.push({ style: 'position:absolute;left:' + (centre - 2.5) + 'px;top:' + bottom + 'px;width:5px;height:28px;border-radius:999px;background:' + rag(avgOf(node)) + ';' });
         if (kids.length > 1) {
-          lines.push({ style: 'position:absolute;left:' + left + 'px;top:' + (railY - 2) + 'px;width:' + (right - left) + 'px;height:5px;border-radius:999px;background:' + rag(worstKid) + ';' });
+          lines.push({ style: 'position:absolute;left:' + left + 'px;top:' + (railY - 2) + 'px;width:' + (right - left) + 'px;height:5px;border-radius:999px;background:' + (worstKid === null ? RAIL_NEUTRAL : rag(worstKid)) + ';' });
         }
         kids.forEach((k, i) => {
           const cx = childCentres[i];
-          lines.push({ style: 'position:absolute;left:' + (cx - 2.5) + 'px;top:' + railY + 'px;width:5px;height:' + (rowTop[depth + 1] - railY) + 'px;border-radius:999px;background:' + rag(avgOf(k)) + ';' });
+          const ka = avgOf(k);
+          lines.push({ style: 'position:absolute;left:' + (cx - 2.5) + 'px;top:' + railY + 'px;width:5px;height:' + (rowTop[depth + 1] - railY) + 'px;border-radius:999px;background:' + (ka === null ? RAIL_NEUTRAL : rag(ka)) + ';' });
         });
       }
       return centre;
@@ -688,6 +864,43 @@ class Component extends DCLogic {
     };
   }
 
+  pillarRow(node, p, forceEdit) {
+    const key = node.id + '|' + p.key;
+    const canEdit = forceEdit || this.state.isAdmin || this.state.isCertified || this.state.viewAsId === node.parent;
+    const editing = this.state.editingKey === key;
+    const commit = () => {
+      if (!editing) return;
+      const v = Math.max(0, Math.min(100, Number(this.state.editingDraft) || 0));
+      this.setState(s => ({ nodes: s.nodes.map(n => (n.id === node.id ? { ...n, [p.key]: v } : n)), editingKey: null }));
+    };
+    const kpis = (node.kpis && node.kpis[p.key]) || [];
+    const isLeaderNode = !node.isTeamNode && LEADER_TITLE_RE.test(node.title || '');
+    const examples = isLeaderNode ? KPI_EXAMPLES_LEADER : KPI_EXAMPLES_FRONTLINE;
+    return {
+      name: p.name,
+      dot: dot(node[p.key] || 0, 12),
+      editValue: editing ? this.state.editingDraft : String(node[p.key] || 0) + '%',
+      readOnly: !editing,
+      locked: !canEdit,
+      leaderName: (this.byId(node.parent) || {}).title || 'their leader',
+      lockHint: canEdit ? 'Double-click to enter a value · right-click to add a KPI' : 'Only ' + ((this.byId(node.parent) || {}).title || 'their leader') + ' can set this',
+      inputStyle: 'width:100%;box-sizing:border-box;margin-top:14px;border:0;border-radius:10px;padding:8px 10px;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:18px;text-align:center;background:' + (editing ? 'var(--color-bg)' : 'transparent') + ';cursor:' + (canEdit ? 'pointer' : 'not-allowed') + ';',
+      beginEdit: () => { if (canEdit) this.setState({ editingKey: key, editingDraft: String(node[p.key] || 0) }); },
+      setDraft: e => this.setState({ editingDraft: e.target.value.replace(/[^0-9]/g, '') }),
+      commit,
+      onKeyDown: e => { if (e.key === 'Enter') { e.target.blur(); } },
+      kpiList: kpis.map((k, i) => ({
+        text: k,
+        remove: () => this.setState(s => ({ nodes: s.nodes.map(n => (n.id === node.id ? { ...n, kpis: { ...n.kpis, [p.key]: n.kpis[p.key].filter((_, idx) => idx !== i) } } : n)) })),
+      })),
+      hasKpis: kpis.length > 0,
+      contextMenu: e => {
+        e.preventDefault();
+        this.setState({ kpiPromptKey: key, kpiPromptDraft: '', kpiPromptExamples: examples[p.key] });
+      },
+    };
+  }
+
   renderVals() {
     const nodes = this.state.nodes;
     const root = nodes.find(n => n.root) || nodes[0];
@@ -697,7 +910,7 @@ class Component extends DCLogic {
     const reachable = new Set();
     const mark = id => { reachable.add(id); this.kids(id).forEach(k => mark(k.id)); };
     mark(root.id);
-    const linked = nodes.filter(n => reachable.has(n.id));
+    const linked = nodes.filter(n => reachable.has(n.id) && !n.isTeamNode);
     const detachedCount = nodes.length - linked.length;
     const descendants = id => { let t = 0; this.kids(id).forEach(k => { t += 1 + descendants(k.id); }); return t; };
 
@@ -723,6 +936,7 @@ class Component extends DCLogic {
       ? (menuState.nodeId
         ? [
           { label: 'Add a direct report', action: () => this.addRole(menuState.nodeId), style: menuItemStyle },
+          { label: 'Add a team', action: () => this.addTeamNode(menuState.nodeId), style: menuItemStyle },
           { label: 'Rename role & person', action: () => this.setState({ selectedId: menuState.nodeId, menu: null }), style: menuItemStyle },
           { label: 'Break the link', action: () => { const id = menuState.nodeId; this.setState(s => ({ nodes: s.nodes.map(n => (n.id === id && !n.root ? { ...n, parent: null } : n)), menu: null })); }, style: menuItemStyle },
           { label: 'Make this role vacant', action: () => { const id = menuState.nodeId; this.setState(s => ({ nodes: s.nodes.map(n => (n.id === id ? { ...n, person: '' } : n)), menu: null })); }, style: menuItemStyle },
@@ -798,13 +1012,9 @@ class Component extends DCLogic {
       selectedTitle: selected.title,
       selectedPerson: selected.person,
       selectedPillars: PILLARS.map(p => ({
-        name: p.name,
+        ...this.pillarRow(selected, p),
         kpi1: p.kpi1,
         kpi2: p.kpi2,
-        score: selected[p.key] + '%',
-        value: selected[p.key],
-        dot: dot(selected[p.key], 12),
-        set: setScore(p.key),
       })),
       rollup,
       verdictStyle: 'margin-top:26px;border-radius:var(--radius-lg);padding:20px 22px;background:' + (allGreen ? 'color-mix(in srgb, ' + GREEN + ' 12%, transparent)' : worst > 50 ? 'var(--color-accent-100)' : 'color-mix(in srgb, ' + RED + ' 10%, transparent)') + ';',
@@ -858,11 +1068,92 @@ class Component extends DCLogic {
         };
       }),
       closeMenu: () => { if (this.state.menu) this.setState({ menu: null }); },
-      canvasContextMenu: e => this.openMenu(e, null),
-      renameRole: e => { const v = e.target.value; this.setState(s => ({ nodes: s.nodes.map(n => (n.id === selected.id ? { ...n, title: v } : n)) })); },
+      canvasContextMenuGuard: e => { if (this.state.teamLayerId) { e.preventDefault(); return; } this.openMenu(e, null); },      renameRole: e => { const v = e.target.value; this.setState(s => ({ nodes: s.nodes.map(n => (n.id === selected.id ? { ...n, title: v } : n)) })); },
       renamePerson: e => { const v = e.target.value; this.setState(s => ({ nodes: s.nodes.map(n => (n.id === selected.id ? { ...n, person: v } : n)) })); },
       addUnder: () => this.addRole(selected.id),
       removeRole: () => this.removeById(selected.id),
+      scoringMonth: MONTH_NAMES[new Date().getMonth()] + ' ' + new Date().getFullYear(),
+      resetDeadline: (() => { const d = firstWednesdayNextMonth(); return 'Wed ' + d.getDate() + ' ' + MONTH_NAMES[d.getMonth()].slice(0, 3); })(),
+      kpiReadiness: PILLARS.map(p => {
+        const count = ((selected.kpis && selected.kpis[p.key]) || []).length;
+        return { name: p.name, count, ok: count >= MIN_KPIS, style: 'width:10px;height:10px;border-radius:50%;display:inline-block;background:' + (count >= MIN_KPIS ? GREEN : RED) + ';' };
+      }),
+      kpiReadinessLine: PILLARS.every(p => ((selected.kpis && selected.kpis[p.key]) || []).length >= MIN_KPIS)
+        ? 'All four pillars have ' + MIN_KPIS + '+ KPIs set for ' + selected.title + '.'
+        : 'Needs ' + MIN_KPIS + '+ KPIs on every pillar before sign-off.',
+      kpiPrompt: (() => {
+        if (!this.state.kpiPromptKey) return { open: false };
+        const [nodeId, pKey] = this.state.kpiPromptKey.split('|');
+        const n = this.byId(nodeId);
+        const p = PILLARS.find(x => x.key === pKey);
+        if (!n || !p) return { open: false };
+        const close = () => this.setState({ kpiPromptKey: null, kpiPromptDraft: '' });
+        const add = () => {
+          const name = (this.state.kpiPromptDraft || '').trim();
+          if (!name) { close(); return; }
+          const existing = (n.kpis && n.kpis[pKey]) || [];
+          if (existing.some(k => k.toLowerCase() === name.toLowerCase())) { close(); return; }
+          this.setState(s => ({
+            nodes: s.nodes.map(x => (x.id === nodeId ? { ...x, kpis: { ...(x.kpis || {}), [pKey]: [...((x.kpis && x.kpis[pKey]) || []), name] } } : x)),
+            kpiPromptKey: null, kpiPromptDraft: '',
+          }));
+        };
+        const existingList = (n.kpis && n.kpis[pKey]) || [];
+        const examplePool = this.state.kpiPromptExamples || (LEADER_TITLE_RE.test(n.title || '') && !n.isTeamNode ? KPI_EXAMPLES_LEADER[pKey] : KPI_EXAMPLES_FRONTLINE[pKey]) || [];
+        const nextExample = examplePool.find(ex => !existingList.some(k => k.toLowerCase() === ex.toLowerCase())) || '';
+        return {
+          open: true,
+          pillarName: p.name,
+          placeholder: 'e.g. ' + (nextExample || 'Add a KPI'),
+          exampleText: nextExample,
+          hasExample: !!nextExample,
+          useSuggestion: () => { if (nextExample) this.setState({ kpiPromptDraft: nextExample }); },
+          draft: this.state.kpiPromptDraft,
+          setDraft: e => this.setState({ kpiPromptDraft: e.target.value }),
+          onKeyDown: e => { if (e.key === 'Enter') add(); if (e.key === 'Escape') close(); },
+          add, close,
+          stop: e => e.stopPropagation(),
+        };
+      })(),
+      toggleAdmin: () => this.setState(s => ({ isAdmin: !s.isAdmin })),
+      adminButtonLabel: this.state.isAdmin ? 'Administrator ✓ — can set any KPI' : 'View as leader only',
+      adminButtonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
+        + (this.state.isAdmin ? 'background:var(--color-accent-700);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-accent-200);'),
+      toggleCertified: () => this.setState(s => ({ isCertified: !s.isCertified })),
+      certifiedButtonLabel: this.state.isCertified ? 'SPEC Certified ✓ — can set any KPI' : 'Not SPEC certified',
+      certifiedButtonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
+        + (this.state.isCertified ? 'background:var(--color-accent-2-700);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-accent-200);'),
+      teamLayer: (() => {
+        const team = nodes.find(n => n.id === this.state.teamLayerId);
+        const active = !!team;
+        const leader = team ? nodes.find(n => n.id === team.parent) : null;
+        const pool = team ? (team.pool || []) : [];
+        return {
+          active,
+          hidden: !active,
+          teamTitle: team ? (team.title || 'Team') : '',
+          leaderTitle: leader ? leader.title : '',
+          pillars: team ? PILLARS.map(p => this.pillarRow(team, p, true)) : [],
+          memberCards: pool.map((name, i) => ({
+            name,
+            remove: () => this.setState(s => ({ nodes: s.nodes.map(n => (n.id === team.id ? { ...n, pool: n.pool.filter((_, idx) => idx !== i) } : n)) })),
+          })),
+          draftName: this.state.poolDraft || '',
+          setDraft: e => this.setState({ poolDraft: e.target.value }),
+          add: () => {
+            const name = (this.state.poolDraft || '').trim();
+            if (!name || !team) return;
+            this.setState(s => ({ nodes: s.nodes.map(n => (n.id === team.id ? { ...n, pool: [...(n.pool || []), name] } : n)), poolDraft: '' }));
+          },
+          onKeyDown: e => {
+            if (e.key !== 'Enter') return;
+            const name = (this.state.poolDraft || '').trim();
+            if (!name || !team) return;
+            this.setState(s => ({ nodes: s.nodes.map(n => (n.id === team.id ? { ...n, pool: [...(n.pool || []), name] } : n)), poolDraft: '' }));
+          },
+          back: () => this.setState({ teamLayerId: null, poolDraft: '' }),
+        };
+      })(),
     };
   }
 }
