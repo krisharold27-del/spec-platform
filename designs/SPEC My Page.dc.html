@@ -22,32 +22,32 @@
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
     <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
-          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
-          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"></circle>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"></circle>
           <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
-            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
-            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"></animate>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"></animate>
           </circle>
           <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
-            <line x1="50" y1="14" x2="50" y2="9"/>
-            <line x1="86" y1="50" x2="91" y2="50"/>
-            <line x1="50" y1="86" x2="50" y2="91"/>
-            <line x1="14" y1="50" x2="9" y2="50"/>
+            <line x1="50" y1="14" x2="50" y2="9"></line>
+            <line x1="86" y1="50" x2="91" y2="50"></line>
+            <line x1="50" y1="86" x2="50" y2="91"></line>
+            <line x1="14" y1="50" x2="9" y2="50"></line>
           </g>
           <g transform="translate(50 50)">
             <g fill="#f5ead8">
-              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
-              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
-              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
-              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"></animateTransform>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"></rect>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"></path>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"></path>
             </g>
           </g>
           <g opacity="0">
-            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
-            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
-            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
-            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
-            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"></animate>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"></circle>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"></circle>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"></circle>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"></circle>
           </g>
         </svg>SPEC</a>
     <a href="#" style="color: var(--color-text); font-weight: 700;">My page</a>
@@ -104,7 +104,73 @@
           <button type="button" onClick="{{ pr.select }}" style="{{ pr.style }}">{{ pr.label }}</button>
         </sc-for>
       </span>
+      <button type="button" onDoubleClick="{{ gm.managerDoubleClick }}" title="{{ gm.cornerTitle }}" style="all: unset; cursor: {{ gm.cornerCursor }}; display: flex; align-items: center; gap: 14px; background: var(--color-surface, #fff); border-radius: 999px; padding: 10px 22px 10px 10px; box-shadow: var(--shadow-sm); margin-left: auto;">
+        <svg viewBox="0 0 100 100" width="60" height="60" role="img" aria-label="Virtual GM Power Meter">
+          <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-accent-100)" stroke-width="14"></circle>
+          <circle cx="50" cy="50" r="42" fill="none" stroke="{{ gm.colourHex }}" stroke-width="14" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="{{ gm.offset }}" transform="rotate(-90 50 50)"></circle>
+        </svg>
+        <span style="display: grid; gap: 2px;">
+          <span style="font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 700; color: color-mix(in srgb, var(--color-text) 65%, transparent); white-space: nowrap;">Virtual GM Power Meter</span>
+          <sc-if value="{{ gm.showLabel }}" hint-placeholder-val="{{ false }}">
+            <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1;">{{ gm.pct }}</span>
+          </sc-if>
+          <span style="font-size: 10.5px; font-style: italic; color: var(--color-accent-700); white-space: nowrap;">Hack Your Power</span>
+        </span>
+      </button>
     </header>
+
+    <section aria-label="My four pillars" style="position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 188px), 1fr)); gap: 16px; padding-bottom: 32px;">
+
+      <sc-if value="{{ gm.open }}" hint-placeholder-val="{{ false }}">
+        <div style="grid-column: 1 / -1; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: 22px 26px; margin-top: 20px; border-left: 5px solid {{ gm.colourHex }}; order: -1;">
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px;">
+            <div style="display: grid; gap: 4px;">
+              <span style="font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">Virtual GM Power Meter · {{ gm.scopeLabel }}</span>
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 19px; line-height: 1.3;">{{ gm.pct }} — {{ gm.verdict }}</span>
+              <sc-if value="{{ gm.hasCause }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size: 13.5px; line-height: 20px; color: #a63b26;">{{ gm.causeLine }}</span>
+              </sc-if>
+            </div>
+            <button type="button" onClick="{{ gm.toggle }}" class="btn btn-ghost" style="flex: none;">Close</button>
+          </div>
+          <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--color-accent-100); display: grid; gap: 8px;">
+            <span style="font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">The five heavy hitters — 75% of the reading</span>
+            <sc-for list="{{ gm.bigFive }}" as="bf" hint-placeholder-count="5">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 12px; background: var(--color-bg);">
+                <span style="display: flex; align-items: center; gap: 10px; font-size: 14px;"><span style="{{ bf.dotStyle }}"></span>{{ bf.name }}</span>
+                <span style="font-size: 12.5px; font-weight: 600; color: {{ bf.tone }};">{{ bf.status }}</span>
+              </div>
+            </sc-for>
+            <button type="button" onClick="{{ gm.toggleOther }}" style="all: unset; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 12px; background: var(--color-bg); margin-top: 6px;">
+              <span style="font-size: 14px;">Everything else — 25% shared</span>
+              <span style="font-size: 12.5px; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ gm.otherMet }} of {{ gm.otherTotal }} met {{ gm.otherArrow }}</span>
+            </button>
+            <sc-if value="{{ gm.otherOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="display: grid; gap: 6px; padding: 4px 14px 4px 30px;">
+                <sc-for list="{{ gm.otherKpis }}" as="ok" hint-placeholder-count="19">
+                  <span style="display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; line-height: 22px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">
+                    <span>{{ ok.name }}</span>
+                    <span style="font-weight: 600; color: {{ ok.tone }};">{{ ok.status }}</span>
+                  </span>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-for list="{{ myPillars }}" as="p" hint-placeholder-count="4">
+        <a href="SPEC My Scorecard.dc.html" style="{{ p.cardStyle }}">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ p.name }}</span>
+            <span style="{{ p.dot }}"></span>
+          </div>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 40px; line-height: 1; margin: 16px 0 0;">{{ p.score }}</p>
+          <p style="font-size: 13.5px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ p.note }}</p>
+          <span style="display: block; font-size: 13px; line-height: 20px; margin: 12px 0 0; color: var(--color-accent-700);">Open my KPIs →</span>
+        </a>
+      </sc-for>
+    </section><span style="font-size: 16px; font-weight: 700;">{{ gm.pct }}</span>
 
     <sc-if value="{{ hasNotifications }}" hint-placeholder-val="{{ false }}">
       <section aria-label="Waiting on you" style="background: color-mix(in srgb, #a63b26 10%, transparent); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 20px; border-left: 5px solid #a63b26;">
@@ -128,8 +194,8 @@
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 22px;">
           <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 22px;">
             <svg viewBox="0 0 100 100" width="72" height="72" role="img" aria-label="Snap Score" style="flex: none;">
-              <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-accent-100)" stroke-width="11"/>
-              <circle cx="50" cy="50" r="42" fill="none" stroke="{{ powerColour }}" stroke-width="11" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="{{ powerOffset }}" transform="rotate(-90 50 50)"/>
+              <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-accent-100)" stroke-width="11"></circle>
+              <circle cx="50" cy="50" r="42" fill="none" stroke="{{ powerColour }}" stroke-width="11" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="{{ powerOffset }}" transform="rotate(-90 50 50)"></circle>
               <text x="50" y="58" text-anchor="middle" style="font-family: var(--font-heading); font-size: 24px; fill: var(--color-text);">{{ powerPct }}</text>
             </svg>
             <div>
@@ -222,8 +288,8 @@
 
                   <sc-if value="{{ e.needsAssign }}" hint-placeholder-val="{{ false }}">
                     <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
-                      <input class="input" type="text" placeholder="Assign to — a seat on the org chart" value="{{ e.ownerDraft }}" onChange="{{ e.setOwnerDraft }}" onInput="{{ e.setOwnerDraft }}" aria-label="Assign to" style="flex: 1 1 180px; min-height: 38px;" />
-                      <input class="input" type="date" value="{{ e.deadlineDraft }}" onChange="{{ e.setDeadlineDraft }}" aria-label="Deadline" style="flex: none; min-height: 38px;" />
+                      <input class="input" type="text" placeholder="Assign to — a seat on the org chart" value="{{ e.ownerDraft }}" onChange="{{ e.setOwnerDraft }}" onInput="{{ e.setOwnerDraft }}" aria-label="Assign to" style="flex: 1 1 180px; min-height: 38px;">
+                      <input class="input" type="date" value="{{ e.deadlineDraft }}" onChange="{{ e.setDeadlineDraft }}" aria-label="Deadline" style="flex: none; min-height: 38px;">
                       <button type="button" class="btn btn-secondary" onClick="{{ e.assign }}" style="flex: none; white-space: nowrap;">Assign</button>
                     </div>
                     <sc-if value="{{ e.showToast }}" hint-placeholder-val="{{ false }}">
@@ -255,21 +321,6 @@
 
         </sc-if>
 
-
-
-    <section aria-label="My four pillars" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 188px), 1fr)); gap: 16px; padding-bottom: 32px;">
-      <sc-for list="{{ myPillars }}" as="p" hint-placeholder-count="4">
-        <a href="SPEC My Scorecard.dc.html" style="{{ p.cardStyle }}">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ p.name }}</span>
-            <span style="{{ p.dot }}"></span>
-          </div>
-          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 40px; line-height: 1; margin: 16px 0 0;">{{ p.score }}</p>
-          <p style="font-size: 13.5px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ p.note }}</p>
-          <span style="display: block; font-size: 13px; line-height: 20px; margin: 12px 0 0; color: var(--color-accent-700);">Open my KPIs →</span>
-        </a>
-      </sc-for>
-    </section>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: clamp(20px,3vw,32px); align-items: start;">
 
@@ -388,7 +439,7 @@
           <p style="font-size: 14.5px; line-height: 24px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ assistantLine }}</p>
           <p style="font-size: 13px; line-height: 20px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Using {{ assistantProvider }}. You can point SPEC at your own assistant instead.</p>
           <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
-            <input class="input" type="text" value="{{ question }}" onChange="{{ setQuestion }}" onInput="{{ setQuestion }}" aria-label="Ask a question" placeholder="Why is my People light amber?" style="flex: 1 1 200px; min-height: 40px;" />
+            <input class="input" type="text" value="{{ question }}" onChange="{{ setQuestion }}" onInput="{{ setQuestion }}" aria-label="Ask a question" placeholder="Why is my People light amber?" style="flex: 1 1 200px; min-height: 40px;">
             <button type="button" class="btn btn-primary" onClick="{{ ask }}" style="flex: none; white-space: nowrap; min-height: 40px;">Ask</button>
           </div>
           <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;">
@@ -536,6 +587,80 @@ const rag = v => (v >= 80 ? GREEN : v > 50 ? AMBER : RED);
 const dot = (v, size) => 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:block;flex:none;background:' + rag(v) + ';';
 const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 'px;border-radius:8px;display:grid;place-content:center;flex:none;background:' + (v >= 80 ? '#4f7a3f' : v > 50 ? '#8c491a' : '#a63b26') + ';color:#fff;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:' + Math.max(11, Math.round(size * 1.05)) + 'px;line-height:1;';
 const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+
+const OTHER_19_NAMES = [
+  'TRIFR', 'Lost time injuries', 'Near-miss reporting rate', 'Safety actions closed on time',
+  'Absenteeism', 'Training completion', 'Engagement / satisfaction', 'Managers with a dev plan',
+  'Budget misses', 'Revenue vs budget', 'Net profit margin', 'Cash flow', 'Revenue growth rate',
+  'Debtor days', 'Productivity (revenue per work hour)',
+  'Regulatory breaches', 'Audit pass rate', 'Corrective actions closed on time', 'Licensing currency',
+];
+
+const GM_METERS = {
+  ops: { bigFive: [
+    { name: 'Safety incidents', met: true },
+    { name: "Workers' comp claims", met: true },
+    { name: 'Gross profit margin', met: false, cause: 'Gross profit sits at 33% against the 40% electrical benchmark' },
+    { name: 'Contractual breach', met: true },
+    { name: 'Negative staff turnover', met: true },
+  ], otherMet: 17, otherMisses: [2, 6, 13], scopeLabel: 'your reporting line' },
+  sup: { bigFive: [
+    { name: 'Safety incidents', met: true },
+    { name: "Workers' comp claims", met: true },
+    { name: 'Gross profit margin', met: true },
+    { name: 'Contractual breach', met: true },
+    { name: 'Negative staff turnover', met: true },
+  ], otherMet: 17, otherMisses: [3, 8], scopeLabel: 'your crew' },
+  bd: { bigFive: [
+    { name: 'Safety incidents', met: true },
+    { name: "Workers' comp claims", met: true },
+    { name: 'Gross profit margin', met: true },
+    { name: 'Contractual breach', met: true },
+    { name: 'Negative staff turnover', met: true },
+  ], otherMet: 19, otherMisses: [], scopeLabel: 'your reporting line' },
+};
+
+function gmScoreOf(meterKey, gmOpen, otherOpen, toggle, toggleOther, isManager) {
+  const m = GM_METERS[meterKey] || GM_METERS.ops;
+  const bigFiveMet = m.bigFive.filter(b => b.met).length;
+  const score = Math.round(15 * bigFiveMet + 25 * (m.otherMet / 19));
+  const colourHex = score >= 85 ? '#4f7a3f' : score >= 60 ? '#c67139' : '#a63b26';
+  const missed = m.bigFive.find(b => !b.met);
+  const bigFive = m.bigFive.map(b => ({
+    name: b.name,
+    dotStyle: 'width:9px;height:9px;border-radius:50%;background:' + (b.met ? '#4f7a3f' : '#a63b26') + ';flex:none;',
+    status: b.met ? 'Met' : 'Not met',
+    tone: b.met ? '#4f7a3f' : '#a63b26',
+  }));
+  const otherKpis = OTHER_19_NAMES.map((name, i) => ({
+    name,
+    status: m.otherMisses.includes(i) ? 'Not met' : 'Met',
+    tone: m.otherMisses.includes(i) ? '#a63b26' : '#4f7a3f',
+  }));
+  return {
+    pct: score + '%',
+    colourHex,
+    offset: Math.max(0, 264 - (264 * score) / 100),
+    verdict: score >= 85 ? 'Business is performing well' : score >= 60 ? 'Holding, with real gaps to close' : 'Serious ground to make up',
+    hasCause: !!missed,
+    causeLine: missed ? 'Power dropped 15 points: ' + missed.cause : '',
+    scopeLabel: m.scopeLabel,
+    open: gmOpen,
+    toggle,
+    toggleLabel: gmOpen ? 'Hide breakdown ▲' : 'See breakdown ▼',
+    bigFive,
+    otherOpen,
+    toggleOther,
+    otherArrow: otherOpen ? '▲' : '▼',
+    otherMet: m.otherMet,
+    otherTotal: 19,
+    otherKpis,
+    managerDoubleClick: isManager ? (() => toggle()) : (() => {}),
+    cornerCursor: isManager ? 'pointer' : 'default',
+    cornerTitle: isManager ? 'Virtual GM Power Meter — double-click to see how each component is tracking' : 'Virtual GM Power Meter',
+    showLabel: isManager,
+  };
+}
 
 const PERSONAS = {
   ops: {
@@ -803,7 +928,7 @@ const PRIORITY_LABEL = { 1: 'Harm — act now', 2: 'Losing money', 3: 'Losing pe
 const PRIORITY_TONE = { 1: '#a63b26', 2: '#c08a2e', 3: '#35617a', 4: '#8c8681' };
 
 class Component extends DCLogic {
-  state = { persona: 'ops', done: {}, question: '', answer: null, acknowledged: {}, meetingLogged: false, toolboxDone: false, clockedIn: false, problem: '', diagLoading: false, diag: null, diagError: '', register: [], ownerDrafts: {}, deadlineDrafts: {}, assignToast: '', improvementOpen: false, bizMenuOpen: false, notifsOpen: false };
+  state = { persona: 'ops', done: {}, question: '', answer: null, acknowledged: {}, meetingLogged: false, toolboxDone: false, clockedIn: false, problem: '', diagLoading: false, diag: null, diagError: '', register: [], ownerDrafts: {}, deadlineDrafts: {}, assignToast: '', improvementOpen: false, bizMenuOpen: false, notifsOpen: false, gmOpen: false, gmOtherOpen: false };
   // Notifications are computed live from the register (assigned/overdue/approved/denied), no push.
   // For Claude Code: replace with real email/SMS dispatch on these same events, per the user's
   // preferences set on the Admin page (notif_email / notif_sms toggles below).
@@ -1047,6 +1172,10 @@ class Component extends DCLogic {
       })) : [],
 
       attendsCogs: !p.checklist,
+      gm: gmScoreOf(key, this.state.gmOpen, this.state.gmOtherOpen,
+        () => this.setState(s => ({ gmOpen: !s.gmOpen })),
+        () => this.setState(s => ({ gmOtherOpen: !s.gmOtherOpen })),
+        !p.checklist),
       improvementOpen: this.state.improvementOpen,
       toggleImprovement: () => this.setState(s => ({ improvementOpen: !s.improvementOpen })),
       bizName: 'JBI Electrical',

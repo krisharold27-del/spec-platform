@@ -1,7 +1,99 @@
 # Where the product does not look like the design
 
 Kris, 18 September: *"why is the design so boring"*, then *"this is not at all like the design i
-sent you"*, then *"why are you not following design properly?"*.
+sent you"*, then *"why are you not following design properly?"*. And on 19 September: *"now go
+through every screen and check it matches the design"*.
+
+Produced by `scripts/sweep-designs.mjs`, which renders each design beside the page that is supposed
+to be it, and then checked heading by heading against the source. **Every line in the table below
+was verified in the code**, not read off a picture. That difference matters, and the first pass of
+this sweep got it wrong in both directions.
+
+## What was wrong with the check itself
+
+Three faults in the sweep, all found before any finding was written down. They are listed because
+each had already produced a false answer.
+
+**It drove a read-only visitor.** The sweep started at `/look`, which is a business with real
+numbers in it and **no right to change anything**. So every control the designs draw for somebody
+who can act — Approve and Deny on the predicted roles, *Import your structure*, *Add a direct
+report*, every form on every screen — was absent from the built side of every pair. The first three
+things this sweep appeared to find on the org chart were all present in the code and all invisible
+for that one reason. It now walks the product's own path from looking to owning, and proves it
+worked on a page that would show otherwise.
+
+**Its list of screens was kept by hand, beside a folder that moves.** It named
+`SPEC Boards.dc.html`, renamed to `SPEC Mirrors.dc.html` at some point — so it fetched a 404 and
+filed the error page as "the design". And it covered sixteen of twenty-four files: eight screens sat
+silently outside the comparison, **including the org chart**, the screen this product has been
+corrected on most. The folder is the authority now — a design in it must be paired with a route or
+named as not-a-screen, or the sweep refuses to run at all.
+
+**It could not see a blank.** The prototypes need React, which this environment's proxy denies and
+which is served from disk; when that breaks they render empty, and an empty picture beside a full
+one reads as *the product has too much on it*. Each design is now checked for having drawn
+something before its picture is kept.
+
+Three files in `designs/` are references rather than screens — the colour system, the logo concepts,
+the mascot sheet. A fourth, `SPEC Home.dc.html`, is the handoff's own contents page; pairing it with
+`/how` produced nine "missing" headings that were never meant to be anywhere in the product.
+
+`/signin` and `/cockpit` cannot be shot from an ordinary session: one redirects away the moment
+somebody is signed in, the other is only ever shown to whoever runs SPEC. Sign In is now shot from a
+second browser with no cookies. The cockpit is named and skipped **with its reason**, rather than
+being quietly absent.
+
+## What is actually missing
+
+Verified absent from the source, not merely from a screenshot. A heading that exists in the code but
+did not render — because the state it needs is not there — is **not** in this list.
+
+| Screen | In the design, not in the product |
+| --- | --- |
+| **Connections** `/connections` | Board approvals · Connection health · Available to connect · Already using Claude or another AI? · Not on the list? · Connection log |
+| **Training** `/training` | This software is different — it trains and guides you in the real world · Why this matters to my scorecard · Results · We train for results |
+| **Admin** `/settings` | People with access · Notifications · Data and records |
+| **On site** `/site` | Four taps, gloves on, one bar of signal · Why only four things · What the office gets from it |
+| **My scorecard** `/me` | GM SPEC Scorecard · What the scorecard changes |
+| **People** `/people` | Onboarding in progress · What changes for a people business |
+| **Weekly meeting** `/meeting` | Claude's read on the week · What the rhythm changes |
+| **Inbox** `/inbox` | Waiting on someone else · What one queue changes |
+| **My page** `/my-page` | KPI reports from connected systems |
+| **Setup** `/setup` | What Claude is doing |
+| **Board pack** `/board` | Aces this month |
+| **Pricing** `/pricing` | The one question that decides which |
+| **Sectors** `/sectors` | Not your sector? |
+| **Group** `/group` | Entities |
+
+**Clean:** Monthly scoring, Mirrors, Org chart. The org chart matches the design section for section
+— including the three the broken sweep reported missing.
+
+## The one pattern worth naming
+
+Five of these are the same thing. The design closes most screens with a short **"what this changes"**
+card — *What the scorecard changes*, *What changes for a people business*, *What the rhythm
+changes*, *What one queue changes*, and the Before/After trio the org chart already carries as *What
+the chart changes*.
+
+The product built that device once, on the org chart, and nowhere else. It is the design's way of
+answering "why is this screen here" — the question a new customer has on every screen and asks out
+loud on none of them. It is also the cheapest gap here to close, because the words are already
+written.
+
+## What this list is not
+
+A comparison of **sections, by name**. It does not say that a section which exists is drawn right;
+the pictures the sweep produces are for that, and they need a person looking at them. Two known
+differences of that kind are decided, and are not defects:
+
+- the Power Meter opens its breakdown on a **click** where the design uses a double-click, which
+  cannot be discovered, reached from a keyboard, or done on a phone;
+- the **Snap Score** sits inside the Power Meter as the twenty-fifth measure rather than in a band of
+  its own, which is Kris's own instruction of 19 September.
+
+---
+
+# The 18 September pass, kept as history
 
 ## How this list was made, and why there wasn't one before
 
