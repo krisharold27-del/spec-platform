@@ -7,6 +7,7 @@ import { SubmitButton } from '@/components/submit-button';
 import { OrgCanvas } from '@/components/org-canvas';
 import { getCurrentUser, canManage } from '@/lib/auth';
 import { getTenantById, getScorecard, PILLARS } from '@/lib/queries';
+import { seatBadges, MIN_KPIS, cadence } from '@/lib/chart-seats';
 import { currentPeriod } from '@/lib/period';
 import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
@@ -126,8 +127,22 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
       pencilled: !r.holder && !!r.pencilled,
       parentId: r.reportsToRoleId, level: r.level, stream: r.stream,
       pillars, scored,
-      // Two measures per pillar is the starting point the whole system is built around.
-      hasKpis: PILLARS.every(p => own.filter(c => c.pillar === p && c.kpi).length >= 2),
+      // Two measures per pillar is the starting point the whole system is built around, and it is
+      // MIN_KPIS everywhere now — this was the third copy of the literal 2. See lib/chart-seats.
+      hasKpis: PILLARS.every(p => own.filter(c => c.pillar === p && c.kpi).length >= MIN_KPIS),
+      badges: seatBadges({
+        title: r.title,
+        hasDirectReports: scope.roles.some(other => other.reportsToRoleId === r.id),
+        filled: Boolean(r.holder),
+        // SPEC has nothing that could set this yet. See the note on ChartRole.badges.
+        certified: false,
+      }),
+      kpiCounts: {
+        safety: own.filter(c => c.pillar === 'safety' && c.kpi).length,
+        people: own.filter(c => c.pillar === 'people' && c.kpi).length,
+        earnings: own.filter(c => c.pillar === 'earnings' && c.kpi).length,
+        compliance: own.filter(c => c.pillar === 'compliance' && c.kpi).length,
+      },
       // Null for a checklist role: no scorecard, so no run to be on.
       ace: aces.get(r.id) ?? null,
       // What the role is measured on, named under each pillar in the Role scorecard panel. The

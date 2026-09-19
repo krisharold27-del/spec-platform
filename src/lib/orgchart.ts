@@ -29,6 +29,20 @@ export interface ChartRole {
   /** Whether it has its KPIs set — what the Flow stage counts. */
   hasKpis: boolean;
   /**
+   * What the card says about its seat — "Leadership seat" or "Team seat", per design 15.
+   *
+   * Worked out in the page from the chart and the title together (see lib/chart-seats), because
+   * money rides on which seat a person is on and neither signal is safe on its own.
+   *
+   * The design also draws a **✓ SPEC Certified** mark. SPEC has no certification: there is no
+   * column, no sign-off and nothing that could set it. `seatBadges` knows how to show it the day
+   * something real does, and until then it is not rendered — a mark that is always absent is dead
+   * furniture, and one defaulted on would be certifying people nobody has assessed.
+   */
+  badges: string[];
+  /** How many KPIs each pillar carries, for the readiness the design draws per pillar. */
+  kpiCounts: { safety: number; people: number; earnings: number; compliance: number };
+  /**
    * This role's Ace run, or null when it has no scorecard to run one on.
    *
    * On the chart because the chart is where Kris works. Every role has an Ace — three closed months

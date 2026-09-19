@@ -7,6 +7,7 @@ import {
   cardStyle, type ChartRole, type Rollup,
 } from '@/lib/orgchart';
 import { PILLAR_META } from '@/lib/pillars';
+import { pillarReadiness, MIN_KPIS, cadence } from '@/lib/chart-seats';
 import { LIGHT_COLOUR, LIGHT_INK, light } from '@/lib/today';
 import { AcePips, AceStar } from '@/components/ace-pips';
 import { ChartKey, ChartKeyDetail } from '@/components/chart-key';
@@ -86,6 +87,7 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
   readOnlyReason?: string | null;
 }) {
   const editable = new Set(editableIds);
+  const month = cadence();
   const [drag, setDrag] = useState<Drag | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -386,6 +388,31 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
           to one branch — and the sentence beside it says so plainly, because a chart quietly
           showing you two thirds of a company is a chart that lies by omission.
         */}
+        {/*
+          ── The month, and when it has to be signed off ────────────────────────────────────────
+
+          Design 15 puts this in the chart's header: the month being scored, and the deadline to
+          sign off and reset. The design computes it on the client as a placeholder and says Code
+          should drive it from the real lock schedule; `cadence` in lib/chart-seats is that one
+          function, so the banner and whatever eventually locks the month cannot disagree.
+
+          It reads as a fact, not an alarm — until it is overdue, which is the only state worth a
+          colour, because it is the only one that changes what somebody does today.
+        */}
+        <div
+          className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]"
+          data-chart-cadence
+        >
+          <span className="label-caps text-ink-light">Scoring month</span>
+          <strong className="font-medium text-ink">{month.scoringMonth}</strong>
+          <span className="text-ink-light">·</span>
+          <span style={month.overdue ? { color: LIGHT_COLOUR.red } : undefined} className="text-ink-light">
+            {month.overdue
+              ? `Sign-off was due ${month.deadline}.`
+              : `Sign off and reset before ${month.deadline} — ${month.daysLeft} ${month.daysLeft === 1 ? 'day' : 'days'} left.`}
+          </span>
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
           <span className="text-[13.5px] text-ink-light">
             Viewing:{' '}
@@ -620,6 +647,26 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                 >
                   {r.title}
                 </span>
+
+                {/*
+                  ── Which seat this is ──────────────────────────────────────────────────────
+
+                  Design 15: a leadership seat for anybody who leads people, a team seat for
+                  anybody who is led — and they are priced very differently, so the card has to say
+                  which it is rather than leaving it to a bill at the end of the month.
+
+                  Worked out from the chart AND the title together; see lib/chart-seats for why
+                  neither on its own is safe. Grey, always: this is what the seat IS, and colour on
+                  this diagram only ever says how something is GOING.
+                */}
+                {r.badges.length > 0 && (
+                  <span
+                    className="mt-1 block text-[10px] font-medium uppercase tracking-[0.06em] text-ink-light"
+                    data-role-seat={r.id}
+                  >
+                    {r.badges.join(' · ')}
+                  </span>
+                )}
 
                 {r.person ? (
                   <span
@@ -1179,6 +1226,28 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                         ) : (
                           <span className="text-[13.5px] leading-5 text-ink-light">
                             No KPIs set, so nothing to score.
+                          </span>
+                        )}
+                        {/*
+                          ── Whether this pillar can be scored at all ──────────────────────────
+
+                          Design 15 draws a dot per pillar, green at SPEC's minimum of two KPIs and
+                          red below it. There is already a dot on this row and it means something
+                          else — how the pillar is GOING — so a second one in the same card, in the
+                          same colours, meaning readiness instead, would be two lights saying
+                          different things two centimetres apart.
+
+                          So it is said in words, and only when it is SHORT, which is the only time
+                          it changes what anybody does. `MIN_KPIS` is the same threshold lib/period
+                          refuses to open a month without.
+                        */}
+                        {pillarReadiness(selected.kpiCounts?.[p] ?? 0) === 'short' && (
+                          <span
+                            className="text-[13px] leading-5"
+                            style={{ color: LIGHT_COLOUR.red }}
+                            data-pillar-short={p}
+                          >
+                            {(selected.kpiCounts?.[p] ?? 0)} of {MIN_KPIS} KPIs — this pillar cannot be scored yet.
                           </span>
                         )}
                       </div>

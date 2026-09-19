@@ -8,7 +8,8 @@ import {
 
 const role = (id: string, parentId: string | null = null, over: Partial<ChartRole> = {}): ChartRole => ({
   id, title: id, person: null, pencilled: false, parentId,
-  level: 'manager', stream: 'operations', pillars: null, scored: true, hasKpis: true, ...over,
+  level: 'manager', stream: 'operations', pillars: null, scored: true, hasKpis: true,
+  badges: [], kpiCounts: { safety: 0, people: 0, earnings: 0, compliance: 0 }, ...over,
 });
 
 /** gm → (a → (a1, a2)), b */

@@ -86,6 +86,8 @@ async function chartOf(tenantId: string): Promise<ChartRole[]> {
     id: r.id, title: r.title, person: r.holder?.name ?? r.pencilled ?? null,
     pencilled: !r.holder && !!r.pencilled, parentId: r.reportsToRoleId,
     level: r.level, stream: r.stream, pillars: null, scored: r.level !== 'staff', hasKpis: true,
+    badges: [],
+    kpiCounts: { safety: 0, people: 0, earnings: 0, compliance: 0 },
   }));
 }
 
