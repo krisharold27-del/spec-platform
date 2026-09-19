@@ -17,7 +17,7 @@ import { tidyUp } from './test-cleanup.mjs';
 // When this run began — everything it created is newer than this.
 const RUN_STARTED = new Date().toISOString();
 
-const BASE = process.env.APP_URL ?? 'http://localhost:3000';
+const BASE = process.argv[2] ?? process.env.APP_URL ?? 'http://localhost:3000';
 // In CI, `playwright install` puts chromium where the library looks by default, so let it find
 // its own. CHROME_PATH is for a machine that has one somewhere else — this container, for one.
 const CHROME = process.env.CHROME_PATH;

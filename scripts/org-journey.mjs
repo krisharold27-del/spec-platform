@@ -24,6 +24,7 @@
 
 import { chromium } from 'playwright';
 import { tidyUp } from './test-cleanup.mjs';
+import { randomUUID } from 'node:crypto';
 
 const RUN_STARTED = new Date().toISOString();
 const BASE = process.argv[2] ?? process.env.APP_URL ?? 'http://localhost:3000';
@@ -89,6 +90,12 @@ const chartSays = async (wanted, tries = 40) => {
   faster one.
 */
 const failures = [];
+const skipped = [];
+/** A check that could not run here. Printed, counted and named in the summary — never dropped. */
+const skip = (label, why) => {
+  console.log(` skip  ${label} — ${why}`);
+  skipped.push(label);
+};
 const check = (label, ok, detail = '') => {
   console.log(`${ok ? '  ok  ' : ' FAIL '} ${label}${ok || !detail ? '' : ` — ${detail}`}`);
   if (!ok) failures.push(label);
@@ -501,9 +508,82 @@ check(
 );
 void roleIdNow;
 
+/*
+  ── Renaming the person the card is actually showing ───────────────────────────────────────────
+
+  Kris, 19 September, on JBI: *"i am the GM but it wont let me change from anthony to my name"*.
+
+  A role is meant to hold one person and nothing in the schema enforces it. When a role carries TWO
+  open placements — an account holder and a pencilled-in name — the chart shows the account holder
+  (`getRoles` prefers it) while the rename used to take whichever row the database handed back
+  first. Land on the wrong one and the card keeps the old name with no error at all.
+
+  This check does NOT prove that part. I wrote it believing it did, put the old code back to watch
+  it go red, and it stayed green: Postgres handed back the account holder's row first no matter
+  which order the rows went in. Row order is not something a database promises, so the old code was
+  a coin toss and nothing here can force the coin.
+
+  `tests/placement.test.ts` holds the rule, deterministically, in both orders. What this check is
+  for is the whole path — two placements on one role, a name typed, Save pressed — ending with the
+  new name on the card. That is worth having; it is just not the proof, and saying so here is the
+  difference between a check and a comfortable feeling.
+*/
+if (process.env.DATABASE_URL) {
+  const sql = (await import('postgres')).default(process.env.DATABASE_URL, { max: 1 });
+  try {
+    const [tenant] = await sql`select id from tenants where name = ${BUSINESS}`;
+    const [top] = await sql`
+      select id, title from roles where tenant_id = ${tenant.id} and reports_to_role_id is null limit 1`;
+    /*
+      Built from scratch rather than adjusted, because by this point the journey has already moved
+      people around and the top role may hold anybody. The shape being tested is exact: one
+      pencilled-in placement, then the account holder's, laid down in THAT order — the order the old
+      code got wrong.
+    */
+    const [me] = await sql`select id from users where tenant_id = ${tenant.id} limit 1`;
+    const today = new Date().toISOString().slice(0, 10);
+    await sql`delete from role_assignments where role_id = ${top.id} and to_date is null`;
+
+    const staffId = randomUUID();
+    await sql`insert into staff (id, tenant_id, name, created_at)
+              values (${staffId}, ${tenant.id}, 'Someone Else', ${new Date().toISOString()})`;
+    await sql`insert into role_assignments (id, role_id, staff_id, from_date)
+              values (${randomUUID()}, ${top.id}, ${staffId}, ${today})`;
+    await sql`insert into role_assignments (id, role_id, user_id, from_date)
+              values (${randomUUID()}, ${top.id}, ${me.id}, ${today})`;
+
+    await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+    const topCard = page.locator('[data-org-canvas] [draggable="true"]', { hasText: top.title }).first();
+    await topCard.click();
+    await page.waitForTimeout(400);
+    await page.fill('#org-person', 'Kris Harold');
+    await page.getByRole('button', { name: 'Save the name' }).click();
+    await chartSays('Kris Harold');
+
+    await page.goto(`${BASE}/org`, { waitUntil: 'networkidle' });
+    const shown = await page.locator('[data-org-canvas] [draggable="true"]', { hasText: top.title })
+      .first().innerText();
+    check(
+      'RENAMING THE PERSON CHANGES THE NAME ON THE CARD',
+      shown.includes('Kris Harold'),
+      shown.replace(/\n/g, ' · '),
+    );
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+} else {
+  /*
+    Run against a deployed site there is no database to reach, and this check needs one to set the
+    two placements up. Skipping is legitimate; skipping QUIETLY is not — a run that silently drops
+    a check reports the same green as a run that made it.
+  */
+  skip('RENAMING THE PERSON CHANGES THE NAME ON THE CARD', 'needs DATABASE_URL to set up two placements');
+}
+
 check('no page threw', faults.length === 0, faults.join(' | '));
 
 await browser.close();
 console.log(failures.length ? `\n${failures.length} check(s) failed.` : '\nAll checks passed.');
+if (skipped.length) console.log(`${skipped.length} skipped: ${skipped.join(', ')}`);
 await tidyUp(BUSINESS, { lookSince: RUN_STARTED });
 process.exit(failures.length ? 1 : 0);

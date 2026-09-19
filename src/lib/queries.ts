@@ -25,6 +25,29 @@ export interface RoleView {
   pencilled: string | null;
 }
 
+/**
+ * Which of a role's open placements is the one the chart is showing.
+ *
+ * ── Why this is a function rather than two lines in two files ────────────────────────────────────
+ *
+ * Kris, 19 September, on JBI: *"i am the GM but it wont let me change from anthony to my name"*.
+ *
+ * A role is meant to hold one person, and the schema does not enforce it. A role carrying TWO open
+ * placements — an account holder and a pencilled-in name — is drawn from the ACCOUNT HOLDER, which
+ * `getRoles` below does in SQL by looking for a user first and falling back to staff. The rename
+ * action had the same rule written a second time, badly: it took whichever row the database handed
+ * back first. Two placements, two different answers, and the rename landed on the row the card was
+ * not reading. Press Save, nothing changes, no error, nothing to do.
+ *
+ * A database promises nothing about the order of rows without an `order by`, so that code was a
+ * coin toss — which is also why the browser check for it could not be made to fail on demand. This
+ * is the rule in one place, deterministic, and `tests/placement.test.ts` hands it the rows in both
+ * orders. Reverting it to "the first row" fails that test every run.
+ */
+export const placementShown = <T extends { userId: string | null; staffId: string | null }>(
+  open: readonly T[],
+): T | null => open.find(a => a.userId) ?? open.find(a => a.staffId) ?? null;
+
 export async function getRoles(tenantId: string): Promise<RoleView[]> {
   const rows = await db.select().from(schema.roles)
     .where(and(eq(schema.roles.tenantId, tenantId), eq(schema.roles.active, true)))

@@ -15,7 +15,7 @@ import { chromium } from 'playwright';
 import { tidyUp } from './test-cleanup.mjs';
 import postgres from 'postgres';
 
-const BASE = process.env.APP_URL ?? 'http://localhost:3000';
+const BASE = process.argv[2] ?? process.env.APP_URL ?? 'http://localhost:3000';
 const CHROME = process.env.CHROME_PATH;
 const ADMIN = (process.env.ADMIN_EMAILS ?? '').split(',')[0].trim();
 

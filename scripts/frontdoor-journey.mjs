@@ -16,7 +16,7 @@ import { VIRTUAL_GM } from '../src/lib/virtual-gm.ts';
 // When this run began — everything it created is newer than this.
 const RUN_STARTED = new Date().toISOString();
 
-const BASE = process.env.APP_URL ?? 'http://localhost:3000';
+const BASE = process.argv[2] ?? process.env.APP_URL ?? 'http://localhost:3000';
 const CHROME = process.env.CHROME_PATH;
 
 const stamp = Date.now();

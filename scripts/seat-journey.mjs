@@ -16,7 +16,7 @@ import { tidyUp } from './test-cleanup.mjs';
 const RUN_STARTED = new Date().toISOString();
 import postgres from 'postgres';
 
-const BASE = process.env.APP_URL ?? 'http://localhost:3000';
+const BASE = process.argv[2] ?? process.env.APP_URL ?? 'http://localhost:3000';
 const CHROME = process.env.CHROME_PATH;
 const sql = postgres(process.env.DATABASE_URL, { max: 1 });
 

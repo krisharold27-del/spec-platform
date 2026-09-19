@@ -518,19 +518,49 @@ export interface ResolvedImport {
 }
 
 /**
- * Match every row's manager against the titles in the same paste.
+ * How two role titles are compared, everywhere.
  *
- * A manager nobody can find is not an error worth refusing the import over — the role is created
- * and lands in the tray, which is exactly where a human can see the problem and fix it by dragging.
+ * One function, exported, because the import matches titles in three places — finding a manager,
+ * deciding whether a role already exists, and looking the parent's id up again afterwards — and
+ * three slightly different ideas of "the same title" is how a role gets created twice or hung off
+ * nothing. Case, surrounding space, doubled spaces and a trailing comma or full stop are all noise
+ * in a pasted spreadsheet; none of them means a different role.
  */
-export function resolveImport(rows: ParsedRow[]): ResolvedImport {
-  const titles = new Set(rows.map(r => r.title.toLowerCase()));
+export const titleKey = (title: string) =>
+  title.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[.,;:]+$/, '');
+
+/**
+ * Match every row's manager — against the paste AND against the chart the business already has.
+ *
+ * ── The fault this exists to end ─────────────────────────────────────────────────────────────────
+ *
+ * It used to look only at the titles in the same paste. So the single most ordinary way to use this
+ * screen — you already have a chart, and you paste in the eleven people under your Operations
+ * Manager — put every one of those eleven in "off the chart". Their manager was sitting right there
+ * on the chart and the importer could not see them, because it was only ever shown the paste.
+ *
+ * The person then has eleven cards to drag in by hand, which is the work they came here to avoid.
+ *
+ * `onChart` is the titles already in the business. A manager still not found anywhere is not an
+ * error worth refusing the whole import over — that role is created and lands in the tray, which is
+ * where a human can see the problem and fix it with one drag.
+ */
+export function resolveImport(rows: ParsedRow[], onChart: string[] = []): ResolvedImport {
+  /*
+    Keyed by the comparison form, valued by the real title, so `parentTitle` comes back spelled the
+    way the chart spells it rather than the way the paste did — the caller looks the parent up by
+    that name.
+  */
+  const titles = new Map<string, string>();
+  for (const title of onChart) titles.set(titleKey(title), title);
+  for (const r of rows) titles.set(titleKey(r.title), r.title);
+
   const unmatched: string[] = [];
   const resolved = rows.map(r => {
     if (!r.reportsTo) return { ...r, parentTitle: null };
-    const found = titles.has(r.reportsTo.toLowerCase());
+    const found = titles.get(titleKey(r.reportsTo));
     if (!found) unmatched.push(r.title);
-    return { ...r, parentTitle: found ? r.reportsTo : null };
+    return { ...r, parentTitle: found ?? null };
   });
   return { rows: resolved, unmatched };
 }

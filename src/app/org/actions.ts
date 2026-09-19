@@ -7,7 +7,7 @@ import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
-import { getRoles } from '@/lib/queries';
+import { getRoles, placementShown } from '@/lib/queries';
 import { installTraining } from '@/lib/provision';
 import { canMove, parseRoles, parseCsv, resolveImport, type ChartRole } from '@/lib/orgchart';
 
@@ -49,6 +49,34 @@ function refuse(reason: string): never {
   redirect(`/org?cannot=${encodeURIComponent(reason)}`);
 }
 
+/**
+ * Why this person may not touch this role — in the words of whichever of the three reasons it is.
+ *
+ * Every guard on this page said the same thing: *"That role is outside your part of the chart."*
+ * Three genuinely different situations wore that one sentence, and for two of them it is not true
+ * and leads nowhere:
+ *
+ *   NOT PLACED — the account holds no role at all, so there is no "part of the chart" for anything
+ *   to be outside of. This is the one that matters: SPEC works out what somebody may change by
+ *   walking DOWN from their own role, so an owner who is not on their own chart is locked out of
+ *   every card on it — including their own — and told the business belongs to somebody else. It is
+ *   also invisible from the inside: nothing on the chart says "you are not on this".
+ *
+ *   NO WRITE ACCESS — placed, can see the whole branch, but read-only. Nothing to do with scope;
+ *   an administrator fixes it in one press, and the old sentence never mentioned that.
+ *
+ *   GENUINELY OUTSIDE — someone else's branch. The original sentence, kept as it was.
+ */
+function outside(scope: Awaited<ReturnType<typeof getScope>>, access: string): never {
+  if (!scope.myRoleId) {
+    refuse('You are not in a role on this chart yet, so SPEC cannot tell which part of it is yours — that is why it will not let you change anything. Put yourself in a role from People, then come back.');
+  }
+  if (access !== 'full' && access !== 'administrator') {
+    refuse('Your account can see this chart but not change it. An administrator can give you edit access from Admin.');
+  }
+  refuse('That role is outside your part of the chart.');
+}
+
 /** The chart as the move rules need to see it. Titles and links only — no scores. */
 async function chartOf(tenantId: string): Promise<ChartRole[]> {
   const roles = await getRoles(tenantId);
@@ -65,7 +93,7 @@ export async function moveRole(formData: FormData) {
   const roleId = String(formData.get('roleId') ?? '');
   const ontoId = String(formData.get('ontoId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) outside(scope, user.access);
 
   const chart = await chartOf(user.tenantId);
   const check = canMove(roleId, ontoId, chart);
@@ -90,7 +118,7 @@ export async function breakLink(formData: FormData) {
   const user = await editor();
   const roleId = String(formData.get('roleId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) outside(scope, user.access);
   await db.update(schema.roles).set({ reportsToRoleId: null })
     .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
   revalidatePath('/org');
@@ -113,9 +141,24 @@ export async function movePerson(formData: FormData) {
     refuse('Both roles have to be inside your part of the chart.');
   }
 
-  const open = await db.select().from(schema.roleAssignments).where(isNull(schema.roleAssignments.toDate));
-  const from = open.find(a => a.roleId === fromRoleId);
-  const to = open.find(a => a.roleId === toRoleId);
+  /*
+    Two roles, asked for by name.
+
+    This used to read EVERY open placement in the database and then look for two of them in
+    JavaScript — fine on a test business, a full table scan across every customer at twenty
+    thousand seats, and it trusted a role id from a form without ever checking it belonged to this
+    business. Asking for the two roles asks the database for exactly what is wanted.
+
+    And it takes the placement the CARD is showing, through the same `placementShown` the chart is
+    drawn from. Picking a different one is how dragging a name pill moved somebody nobody had
+    touched — the same fault as the rename, one screen over.
+  */
+  const placementsOn = async (roleId: string) => placementShown(
+    await db.select().from(schema.roleAssignments)
+      .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate))),
+  );
+  const from = await placementsOn(fromRoleId);
+  const to = await placementsOn(toRoleId);
   if (!from) return;
 
   // Assignments are opened and closed, never deleted, so the chart can always answer who held a
@@ -143,7 +186,7 @@ export async function addRole(formData: FormData) {
   if (!title) return;
 
   const scope = await getScope(user);
-  if (parentId && !scope.canEdit(parentId)) refuse('That role is outside your part of the chart.');
+  if (parentId && !scope.canEdit(parentId)) outside(scope, user.access);
 
   let stream = 'operations';
   let level = 'manager';
@@ -185,7 +228,7 @@ export async function renameRole(formData: FormData) {
   if (!title) return;
 
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) outside(scope, user.access);
 
   await db.update(schema.roles).set({ title })
     .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
@@ -219,22 +262,49 @@ export async function renamePerson(formData: FormData) {
   if (!name) return;
 
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) outside(scope, user.access);
 
   const [role] = await db.select().from(schema.roles)
     .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
   if (!role) refuse('That role is not in this business.');
 
-  const [open] = await db.select().from(schema.roleAssignments)
+  const openRows = await db.select().from(schema.roleAssignments)
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
+
+  /*
+    ── Rename the person the CARD is showing, not whichever row came back first ──────────────────
+
+    Kris, 19 September, on JBI: *"i am the GM but it wont let me change from anthony to my name"*.
+
+    A role is meant to hold one person, and mostly does — but nothing in the schema enforces it, and
+    a role that has picked up a second open assignment (an account holder AND a pencilled-in name)
+    was being renamed at random. `getRoles`, which draws the chart, always shows the ACCOUNT HOLDER
+    and falls back to the pencilled name only when there is no account. This took whatever the
+    database handed back first. So the rename could land on the staff row while the card was reading
+    the user row: press Save, nothing on the card changes, no error, nothing to do about it.
+
+    The two had to agree, so the rule is now written ONCE — `placementShown`, beside `getRoles`,
+    which is the query that draws the card. `tests/placement.test.ts` hands it the rows in both
+    orders, because a database promises nothing about the order of rows and the old code was a coin
+    toss that mostly came up heads.
+  */
+  const open = placementShown(openRows);
 
   if (open?.userId) {
     // Tenant-scoped on purpose: a user id arriving from a form must never reach another business's row.
-    await db.update(schema.users).set({ name })
-      .where(and(eq(schema.users.id, open.userId), eq(schema.users.tenantId, user.tenantId)));
+    const done = await db.update(schema.users).set({ name })
+      .where(and(eq(schema.users.id, open.userId), eq(schema.users.tenantId, user.tenantId)))
+      .returning({ id: schema.users.id });
+    /*
+      A write that changed nothing must never look like a write that worked. If it did not land,
+      the person is owed a sentence rather than a card that stubbornly keeps the old name.
+    */
+    if (!done.length) refuse('SPEC could not change that name. Nothing has been altered — tell Kris what you were doing.');
   } else if (open?.staffId) {
-    await db.update(schema.staff).set({ name })
-      .where(and(eq(schema.staff.id, open.staffId), eq(schema.staff.tenantId, user.tenantId)));
+    const done = await db.update(schema.staff).set({ name })
+      .where(and(eq(schema.staff.id, open.staffId), eq(schema.staff.tenantId, user.tenantId)))
+      .returning({ id: schema.staff.id });
+    if (!done.length) refuse('SPEC could not change that name. Nothing has been altered — tell Kris what you were doing.');
   } else {
     /*
       Vacant. Reuse a name already in the directory rather than creating a second row for the same
@@ -276,7 +346,7 @@ export async function removeRole(formData: FormData) {
   const user = await editor();
   const roleId = String(formData.get('roleId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) outside(scope, user.access);
 
   const open = await db.select().from(schema.roleAssignments)
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
@@ -297,7 +367,7 @@ export async function vacateRole(formData: FormData) {
   const user = await editor();
   const roleId = String(formData.get('roleId') ?? '');
   const scope = await getScope(user);
-  if (!scope.canEdit(roleId)) refuse('That role is outside your part of the chart.');
+  if (!scope.canEdit(roleId)) outside(scope, user.access);
   await db.update(schema.roleAssignments).set({ toDate: new Date().toISOString().slice(0, 10) })
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
   revalidatePath('/org');
