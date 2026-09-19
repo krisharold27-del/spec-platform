@@ -21,17 +21,28 @@ import { LIGHT_COLOUR, LIGHT_INK, ACE_GOLD } from '@/lib/today';
  * fails on, so red on a card and a deduction mean exactly the same thing. The design's own key still
  * reads "75–89%" and is behind; this renders what the product actually does.
  */
+/** The bands, shared by the key row and the detail under the chart so they cannot disagree. */
+const BANDS = (green: number, red: number, standard: number) => [
+    { colour: LIGHT_COLOUR.green, ink: LIGHT_INK.green, label: `${green}% and above`, note: 'Good. The SPEC standard is still ' + standard + '%.' },
+    /*
+      "Above 50%", in the design's own words, rather than the range "51–79%".
+
+      The number was more precise and read worse: a band of colour on a chart is a feeling before it
+      is a figure, and three swatches saying "above", "at or under", "not set" are read in a glance
+      where three ranges have to be worked out. The exact thresholds are still right here, in the
+      detail below and in lib/pillars, which is where somebody goes when they want the number.
+    */
+    { colour: LIGHT_COLOUR.amber, ink: LIGHT_INK.amber, label: `Above ${red}%`, note: `${red + 1}–${green - 1}%. Behind, and worth a conversation.` },
+    { colour: LIGHT_COLOUR.red, ink: LIGHT_INK.red, label: `${red}% or under`, note: 'A failure. This is what deducts.' },
+    { colour: LIGHT_COLOUR.pending, ink: LIGHT_INK.pending, label: 'Not set', note: 'No KPIs yet, so nothing to score.' },
+];
+
 export function ChartKey({ summary }: { summary?: string }) {
   const green = Math.round(GREEN_FROM * 100);
   const red = Math.round(RED_AT_OR_BELOW * 100);
   const standard = Math.round(AT_THE_STANDARD * 100);
 
-  const bands = [
-    { colour: LIGHT_COLOUR.green, ink: LIGHT_INK.green, label: `${green}% and above`, note: 'Good. The SPEC standard is still ' + standard + '%.' },
-    { colour: LIGHT_COLOUR.amber, ink: LIGHT_INK.amber, label: `${red + 1}–${green - 1}%`, note: 'Behind, and worth a conversation.' },
-    { colour: LIGHT_COLOUR.red, ink: LIGHT_INK.red, label: `${red}% or under`, note: 'A failure. This is what deducts.' },
-    { colour: LIGHT_COLOUR.pending, ink: LIGHT_INK.pending, label: 'Not set', note: 'No KPIs yet, so nothing to score.' },
-  ];
+  const bands = BANDS(green, red, standard);
 
   return (
     /*
@@ -69,9 +80,32 @@ export function ChartKey({ summary }: { summary?: string }) {
         */}
         {summary && <span className="text-ink-light/80">{summary}</span>}
       </div>
+    </div>
+  );
+}
 
-      <details className="mt-2">
-        <summary className="cursor-pointer select-none hover:text-rust">What the colours mean</summary>
+/**
+ * The long answer, at the foot of the chart rather than on the key.
+ *
+ * The key is ONE ROW in the design — swatches, the SPEC sentence, the counts — and a fifth item on
+ * it wrapped onto a second row the design does not have. Kris, 19 September: *"It must look like
+ * this"*. So the explanation folds away under the chart, beside the sentence that already says how
+ * the chart is worked.
+ *
+ * Nothing is dropped. `tests/ace-watch.test.ts` holds every word of the Ace paragraph, because a
+ * mark on a card that nobody explains is the exact fault this component exists for — and folding
+ * something away must never be a quiet way of deleting it.
+ */
+export function ChartKeyDetail() {
+  const green = Math.round(GREEN_FROM * 100);
+  const red = Math.round(RED_AT_OR_BELOW * 100);
+  const standard = Math.round(AT_THE_STANDARD * 100);
+  const bands = BANDS(green, red, standard);
+
+  return (
+    <div className="text-[13px] text-ink-light">
+      <details className="align-top">
+        <summary className="cursor-pointer select-none text-ink-light/70 hover:text-rust">What the colours mean</summary>
         <div className="mt-2 grid max-w-3xl gap-2">
           {bands.map(b => (
             <p key={b.label}>

@@ -143,3 +143,23 @@ body { @apply bg-cream font-sans text-ink antialiased; }
   }
   .input:hover { @apply border-ink/40; }
 }
+
+/*
+ * The card's ⋯ key: out of sight until it is wanted, and always there where it cannot be.
+ *
+ * The design's org-chart card has no ⋯ at all — everything is right-click. The product keeps one,
+ * because a menu reachable only by right-click is reachable only by people who already know it is
+ * there. A permanent glyph on forty cards is forty marks the design does not have, and Kris
+ * photographed exactly that on 19 September: *"It is not right and doesnt match the design"*.
+ *
+ * So: hidden at rest, shown on hover or keyboard focus — and ALWAYS shown on a device with no
+ * hover, because a phone has neither hover nor right-click and hiding it there would leave no way
+ * into the menu at all.
+ *
+ * Written here rather than as an arbitrary Tailwind variant on the element. Two utilities setting
+ * the same property in two media contexts depend on the order Tailwind happens to emit them in,
+ * which is not a thing to leave a control's visibility resting on.
+ */
+@media (hover: none) {
+  .menu-key { opacity: 1 !important; }
+}

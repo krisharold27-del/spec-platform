@@ -165,6 +165,49 @@ check('ESCAPE CLOSES IT', !(await menu.isVisible()));
 await first.locator('button[aria-label^="What can be done"]').click();
 await menu.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
 check('AND THE ⋯ BUTTON OPENS THE SAME MENU', await menu.isVisible());
+
+/*
+  ── And a scroll does not take it away again ───────────────────────────────────────────────────
+
+  This check is here because the one above it failed for a day and the CSS got the blame twice.
+
+  Measured with the browser instrumented: pressing ⋯ on a card part-way down the chart makes
+  Chromium scroll the window of its own accord — about ten milliseconds AFTER the click, to the
+  card's own offset. The menu was closing on any scroll, so it opened and the scroll it had just
+  caused shut it again. On screen: press the button, the page jumps, nothing appears.
+
+  The menu now follows the card it was opened on rather than closing. So this scrolls the page
+  deliberately, with the menu open, and asks two things of it: that it is STILL THERE, and that it
+  has MOVED WITH the card — a menu that survives a scroll by standing still is pointing at the
+  wrong role, which is the fault the closing was meant to avoid.
+*/
+/*
+  The scroll puts the card at a known place — 200px down the window — rather than moving by a fixed
+  amount, and the first draft of this check is why. It scrolled down 240 from wherever the browser
+  had already left the page, which on this card was the very top, so the card went off the window
+  and the menu closed: correctly, for the one reason it is still allowed to close. The check went
+  red at the product for doing exactly the right thing.
+*/
+const menuBefore = await menu.boundingBox();
+await page.evaluate(() => {
+  const card = document.querySelector('[data-org-canvas] [draggable="true"]');
+  window.scrollTo(0, window.scrollY + card.getBoundingClientRect().top - 200);
+});
+await page.waitForTimeout(250);
+
+const survived = await menu.isVisible();
+check('AND A SCROLL DOES NOT TAKE IT AWAY', survived);
+
+const cardNow = survived ? await first.boundingBox() : null;
+const menuNow = survived ? await menu.boundingBox() : null;
+check(
+  '  and it moves with the card rather than standing still',
+  !!menuNow && !!cardNow && !!menuBefore
+    && Math.abs(menuNow.y - cardNow.y) <= 40    // still over its own card
+    && Math.abs(menuNow.y - menuBefore.y) > 8,  // and not simply pinned where it was
+  survived ? `menu ${menuBefore?.y} → ${menuNow?.y}, card at ${cardNow?.y}` : 'the menu had gone',
+);
+await page.evaluate(() => window.scrollTo(0, 0));
 await page.keyboard.press('Escape');
 
 // ── Add a direct report: the row has to really arrive ────────────────────────────────────────────

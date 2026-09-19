@@ -9,7 +9,7 @@ import {
 import { PILLAR_META } from '@/lib/pillars';
 import { LIGHT_COLOUR, LIGHT_INK, light } from '@/lib/today';
 import { AcePips, AceStar } from '@/components/ace-pips';
-import { ChartKey } from '@/components/chart-key';
+import { ChartKey, ChartKeyDetail } from '@/components/chart-key';
 import {
   moveRole, movePerson, breakLink, vacateRole, addRole, removeRole, renameRole, renamePerson,
 } from '@/app/org/actions';
@@ -48,6 +48,22 @@ interface Drag { kind: DragKind; id: string; title: string }
 /** Where the menu is, and what it is about. A null `roleId` is the canvas itself. */
 interface Menu { x: number; y: number; roleId: string | null }
 interface Item { label: string; run: () => void; danger?: boolean }
+
+/**
+ * Keep the menu inside the window.
+ *
+ * The clamp is not tidiness. Right-click a card near the right-hand edge of a laptop screen and an
+ * unclamped menu opens with half its words past the edge — including, on a six-item menu, the one
+ * that removes the role.
+ */
+const MENU_W = 230;
+// Six items now that KPIs sit at the top. Under-counting here puts the last item — which is the one
+// that removes a role — off the bottom of a laptop screen.
+const MENU_H = 8 + 6 * 38;
+const place = (x: number, y: number) => ({
+  x: Math.max(8, Math.min(x, window.innerWidth - MENU_W)),
+  y: Math.max(8, Math.min(y, window.innerHeight - MENU_H)),
+});
 
 const PILLARS = ['safety', 'people', 'earnings', 'compliance'] as const;
 
@@ -130,6 +146,37 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
 
   const shut = useCallback(() => setMenu(null), []);
 
+  /**
+   * What the menu was opened ON, and where inside it the press landed.
+   *
+   * ── Why the menu follows the card instead of closing ─────────────────────────────────────────
+   *
+   * It used to close on any scroll, which sounded careful and was the bug. Measured on 19 September
+   * with the browser instrumented: pressing ⋯ on a card part-way down JBI's chart, moments after
+   * that card had been selected, made Chromium scroll the window — to 827 in one run, 339 in the
+   * next, both of them the browser bringing the pressed button into view of its own accord, about
+   * ten milliseconds AFTER the click. The menu opened and the scroll it caused shut it again. On
+   * screen: press the button, the page jumps, nothing appears. Press it again a second later and it
+   * works. `scripts/org-journey.mjs` failed on exactly this and I twice blamed the CSS.
+   *
+   * Closing was the wrong answer to a real problem — a menu pinned to the WINDOW points at the
+   * wrong card the moment anything scrolls. So it is pinned to the CARD: the offset from the card
+   * is kept, and every scroll re-places the menu over it. Now no scroll can lose it, whoever
+   * started the scroll, and it never points at the wrong role.
+   *
+   * It still closes when the card it belongs to has scrolled out of the window, because a menu for
+   * something you can no longer see is a menu about nothing.
+   */
+  const anchor = useRef<{ el: HTMLElement; dx: number; dy: number } | null>(null);
+
+  const follow = useCallback(() => {
+    const a = anchor.current;
+    if (!a || !a.el.isConnected) return shut();
+    const r = a.el.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > window.innerHeight) return shut();
+    setMenu(m => (m ? { ...m, ...place(r.left + a.dx, r.top + a.dy) } : m));
+  }, [shut]);
+
   // Escape closes it, and so does a press anywhere else. Both, because a menu you cannot dismiss is
   // worse than no menu — and a menu that eats the next click is how a page starts feeling broken.
   useEffect(() => {
@@ -137,16 +184,16 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') shut(); };
     window.addEventListener('keydown', key);
     window.addEventListener('pointerdown', shut);
-    window.addEventListener('resize', shut);
-    // Pinned to the window, so anything that scrolls under it leaves it pointing at the wrong card.
-    window.addEventListener('scroll', shut, true);
+    window.addEventListener('resize', follow);
+    // Capture, because the chart's own frame scrolls sideways and that moves the card too.
+    window.addEventListener('scroll', follow, true);
     return () => {
       window.removeEventListener('keydown', key);
       window.removeEventListener('pointerdown', shut);
-      window.removeEventListener('resize', shut);
-      window.removeEventListener('scroll', shut, true);
+      window.removeEventListener('resize', follow);
+      window.removeEventListener('scroll', follow, true);
     };
-  }, [menu, shut]);
+  }, [menu, shut, follow]);
 
   /*
     A fresh draft when a DIFFERENT role is selected, and never otherwise — re-seeding on every render
@@ -166,25 +213,16 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
   };
 
   /**
-   * Open the menu where the press landed, in window coordinates, kept inside the window.
-   *
-   * The clamp is not tidiness. Right-click a card near the right-hand edge of a laptop screen and
-   * an unclamped menu opens with half its words past the edge — including, on a five-item menu,
-   * the one that removes the role.
+   * Open the menu where the press landed, and remember what it was opened on so it can stay there.
    */
   function openMenu(e: React.MouseEvent, roleId: string | null) {
     if (!canEdit) return;
     e.preventDefault();
     e.stopPropagation();
-    const MENU_W = 230;
-    // Six items now that KPIs sit at the top. Under-counting here puts the last item — which is the
-    // one that removes a role — off the bottom of a laptop screen.
-    const MENU_H = 8 + 6 * 38;
-    setMenu({
-      x: Math.max(8, Math.min(e.clientX, window.innerWidth - MENU_W)),
-      y: Math.max(8, Math.min(e.clientY, window.innerHeight - MENU_H)),
-      roleId,
-    });
+    const el = e.currentTarget as HTMLElement;
+    const r = el.getBoundingClientRect();
+    anchor.current = { el, dx: e.clientX - r.left, dy: e.clientY - r.top };
+    setMenu({ ...place(e.clientX, e.clientY), roleId });
     if (roleId) setSelectedId(roleId);
   }
 
@@ -341,7 +379,7 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
             <strong className="font-medium text-ink">
               {from
                 ? `${roles.find(r => r.id === from)?.title ?? 'a role'} and below`
-                : 'the whole company'}
+                : 'Whole company chart'}
             </strong>
           </span>
           <div className="flex flex-wrap items-center gap-2">
@@ -396,7 +434,22 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
               className="absolute rounded-full"
               style={{
                 left: l.x, top: l.y, width: l.w, height: l.h,
-                background: l.score === null ? '#e7d6bb' : LIGHT_COLOUR[light(l.score)],
+                /*
+                  ── An unscored line is GREY, not almost-the-panel ──────────────────────────
+
+                  This was `#e7d6bb` against a `#ebddc5` panel: two per cent apart, so on a chart
+                  where nothing is scored yet — which is every business on its first morning — the
+                  whole tree vanished and the cards floated unconnected. Kris, 19 September, with
+                  a photograph of it: *"It is not right and doesnt match the design"*. In the
+                  design every line is green because the prototype ships with every role scored; it
+                  has no unscored case, so this colour was mine and it was invisible.
+
+                  `LIGHT_COLOUR.pending` is the same grey as an unset tile and the same swatch the
+                  key prints beside "Not set", so a line with nothing behind it reads exactly like
+                  the letters it joins. The structure is the one thing this screen must always
+                  show: a business can have no scores, and still has a shape.
+                */
+                background: l.score === null ? LIGHT_COLOUR.pending : LIGHT_COLOUR[light(l.score)],
               }}
             />
           ))}
@@ -462,7 +515,7 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                   bottom. The product drew one radius and one text size for every card, so the
                   hierarchy had to be read off the lines instead of being visible in the shapes.
                 */
-                className={`absolute flex flex-col items-center bg-cream text-center transition-[box-shadow,transform] ${
+                className={`group absolute flex flex-col items-center bg-cream text-center transition-[box-shadow,transform] ${
                   dragging ? 'opacity-40' : ''
                 } ${canEdit ? 'cursor-grab' : ''}`}
                 style={{
@@ -717,10 +770,24 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
                     onPointerDown={e => e.stopPropagation()}
                     onClick={e => openMenu(e, r.id)}
                     /* Out from under the Ace star, which hangs off the same corner. */
-                    /* A 24px hit area around a 13px glyph. It measured 21×13 — under the floor the
-                       usability journey holds every control to, and small enough that clicking it
-                       was intermittently missing. The mark stays the same size; the target does not. */
-                    className={`absolute top-0 grid h-6 w-6 place-content-center rounded text-[13px] leading-none text-ink-light hover:text-rust ${
+                    /*
+                      ── Out of sight until it is wanted ──────────────────────────────────────
+
+                      The design's card has no ⋯ at all: everything is right-click. The product
+                      keeps one, because a menu reachable only by right-click is reachable only by
+                      people who already know it is there — but a permanent glyph on forty cards is
+                      forty marks the design does not have, and Kris photographed exactly that:
+                      *"It is not right and doesnt match the design"*.
+
+                      So on a device with a pointer it appears on hover or keyboard focus, and the
+                      card at rest is the design's card. On touch, where there is neither hover NOR
+                      right-click, it is always there — hiding it would leave a phone with no way
+                      into the menu at all.
+
+                      A 24px hit area around a 13px glyph: it measured 21×13, under the floor the
+                      usability journey holds every control to.
+                    */
+                    className={`menu-key absolute top-0 grid h-6 w-6 place-content-center rounded text-[13px] leading-none text-ink-light opacity-0 transition-opacity hover:text-rust group-hover:opacity-100 focus-visible:opacity-100 ${
                       r.ace?.holdingAce ? 'right-7' : 'right-0.5'
                     }`}
                   >
@@ -784,6 +851,12 @@ export function OrgCanvas({ roles, rootId, canEdit, averages }: {
             : 'Press a card to open it beside the chart, or double-click for the full scorecard. Press the number on a leader to fold their team away. '}
           Lights read left to right: Safety, People, Earnings, Compliance.
         </p>
+
+        {/* The long answer about the colours and the Ace, folded away here rather than adding a
+            second row to the key. See ChartKeyDetail. */}
+        <div className="mt-3">
+          <ChartKeyDetail />
+        </div>
       </section>
 
       {/*
