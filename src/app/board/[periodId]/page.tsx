@@ -178,6 +178,40 @@ export default async function Board({ params }: { params: Promise<{ periodId: st
             </li>
           ))}
         </ul>
+
+        {/*
+          ── Who is actually on the board, and the way to change it ─────────────────────────────
+
+          Kris, 19 September: *"how do i add directors - above me as the GM - added in board
+          area?"* — asked while looking at the board area, which checked the board's governance
+          and never said who the board WAS, nor offered any way to add one.
+
+          The names belong on the pack: it is the document they approve, and a governance section
+          that grades the board without naming it is grading nobody in particular.
+        */}
+        <div className="mt-4 border-t border-ink/10 pt-4">
+          <div className="label-caps text-ink-light">Who sits on the board</div>
+          {directors.filter(d => d.active).length ? (
+            <ul className="mt-2 grid gap-1.5">
+              {directors.filter(d => d.active).map(d => (
+                <li key={d.id} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                  <span className="text-ink">{d.name}</span>
+                  <span className="text-xs text-ink-light">{d.title ?? 'Director'}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-ink-light">
+              Nobody is recorded. Every business reports to a board whether or not it has one — an
+              owner, a bank, an investor, a franchisor, a major customer.
+            </p>
+          )}
+          <p className="mt-3 text-sm">
+            <a href="/setup/board" className="text-rust underline">
+              {directors.length ? 'Add a director, or stand one down' : 'Record the board'}
+            </a>
+          </p>
+        </div>
       </section>
 
       <section className="mt-6 rounded-lg border border-ink/10 bg-surface p-6">

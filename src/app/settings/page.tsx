@@ -346,10 +346,26 @@ export default async function Settings({ searchParams }: { searchParams: Promise
         ) : (
           <p className="mt-3 text-sm text-ink-light">
             Nobody is recorded yet. A board that cannot say who its directors are has a compliance gap
-            whatever the safety numbers say.{' '}
-            <Link href="/setup/board" className="text-rust-700 hover:underline">Record the board</Link>.
+            whatever the safety numbers say.
           </p>
         )}
+        {/*
+          ── The way in is always here, not only while the list is empty ──────────────────────
+
+          Kris, 19 September: *"how do i add directors - above me as the GM - added in board
+          area?"*. He could add them, at /setup/board, and the only link to it was inside the
+          EMPTY-state sentence — so the route existed until the moment you used it once and then
+          vanished, and adding a second director meant typing the address.
+
+          That is the same fault as the KPI screen in September: *"its too complicated where i go
+          to enter kpi's"*, where every route in was an empty state that disappeared the moment it
+          had served its purpose. A door that closes behind you is not a door.
+        */}
+        <p className="mt-3 text-sm">
+          <Link href="/setup/board" className="text-rust-700 hover:underline">
+            {directors.length ? 'Add a director, or stand one down' : 'Record the board'}
+          </Link>
+        </p>
       </section>
 
       <section className="card mt-6">
