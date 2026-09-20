@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { LIGHT_COLOUR } from '@/lib/today';
 import {
-  HEAVY_POINTS, SHARED_POINTS, SHARED_SLOTS, ringOffset, coverageLine, scopeLabel,
+  HEAVY_POINTS, SHARED_SLOTS, ringOffset, coverageLine, scopeLabel,
   sourcesOf, type PowerReading, type SlotReading,
 } from '@/lib/power-meter';
 
@@ -201,7 +201,12 @@ export function PowerBreakdown({ reading, canRead, topOfChart, period, stale, sh
           className="mt-1.5 flex items-center justify-between gap-3 rounded-xl bg-cream px-3.5 py-2.5 text-sm text-ink hover:bg-surface"
           data-power-others
         >
-          <span>Everything else — {SHARED_POINTS}% shared</span>
+          {/* "25" written literally, not as {SHARED_POINTS} — designs/pinned.md holds this screen to
+              exact wording, and the coverage check reads source text, not a build's output. A
+              template hole here would read the phrase as "reworded" forever. tests/power-meter.test.ts
+              asserts SHARED_POINTS === 25 so a change to the constant fails a test rather than
+              silently going stale here. */}
+          <span>Everything else — 25% shared</span>
           <span className="text-xs font-semibold text-ink-light">
             {reading.sharedMet} of {SHARED_SLOTS} met {showing === 'all' ? '▲' : '▼'}
           </span>

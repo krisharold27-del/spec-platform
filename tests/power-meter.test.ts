@@ -590,3 +590,16 @@ describe('whose numbers the reading is of', () => {
     expect(source).toContain('periods.slice(0, WINDOW)');
   });
 });
+
+/*
+  designs/pinned.md holds My Page to exact wording, and scripts/design-coverage.mjs proves that by
+  reading source text — not by rendering the page — so the "Everything else — 25% shared" copy in
+  power-meter.tsx is written as a literal "25", not `{SHARED_POINTS}`. That is only honest while the
+  two agree. This is the tripwire: if SHARED_POINTS ever changes, this fails instead of leaving a
+  quietly wrong number on a screen a board reads.
+*/
+it('AND THE PINNED "25% SHARED" ON MY PAGE IS STILL THIS CONSTANT', () => {
+  expect(SHARED_POINTS).toBe(25);
+  const page = readFileSync('src/components/power-meter.tsx', 'utf8');
+  expect(page).toContain('Everything else — 25% shared');
+});

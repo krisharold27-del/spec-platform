@@ -53,6 +53,41 @@ The heading beside the Snap Score. The product says **Snap Score — too early t
 enough history, which is a different and more honest sentence: the design's wording assumes a score
 worth reading, and a business in its first month has not got one.
 
+### `SPEC My Page` — Virtual GM Power Meter Hack Your Power
+
+Not a phrase — two of the pill's four lines, glued together by how the check reads a
+design screen. The corner instrument is one `<button>` in `SPEC My Page.dc.html`,
+holding the label, a percentage behind an `sc-if`, and **Hack Your Power** as three
+sibling elements; a button's whole text is read as one string, and `{{ }}` template
+holes vanish, so "Virtual GM Power Meter" and "Hack Your Power" arrive concatenated
+whether or not the percentage between them was ever going to render.
+
+`src/components/power-meter.tsx` carries both, word for word, unconditionally — see
+`PowerMeter`, the pill's two label spans. What sits between them in the product is
+not the reworded text of anything: it is JSX — a comment, a conditional score, class
+names — the same kind of scaffolding the design's own `sc-if` is, just written in a
+different language. A source-text scanner cannot see past either one, and asking the
+product to butt the two labels up against each other with nothing between, in the
+raw file, would mean deleting the comment explaining why the percentage is
+conditional in the first place.
+
+**Decided:** 20 September 2026.
+
+### `SPEC My Page` — Everything else — 25% shared of met
+
+The other half of the same button-merges-into-one-string artifact, on the row below.
+`{{ gm.otherMet }} of {{ gm.otherTotal }} met {{ gm.otherArrow }}` is the design's
+second line; strip its template holes and "of met" is what is left, glued onto
+"Everything else — 25% shared" from the line above because both sit inside the same
+`<button>`. `power-meter.tsx` carries "Everything else — 25% shared" as a literal
+(`tests/power-meter.test.ts` holds it in sync with `SHARED_POINTS`) and carries the
+count as `{reading.sharedMet} of {SHARED_SLOTS} met` — correct, and never going to
+read as one contiguous string in source, because a real count sits where the design
+left a hole. See `of met` in `designs/superseded.md` for the same fragment counted
+on its own.
+
+**Decided:** 20 September 2026.
+
 ### `SPEC My Page` — Validate in COGS — sign it off
 
 A register entry's sign-off button, worded for a business that runs a COGS meeting. SPEC does not

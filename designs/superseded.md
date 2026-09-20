@@ -34,6 +34,26 @@ morning. A permanent "coming soon" on a daily page is clutter that ages badly.
 
 **Decided:** 13 September 2026, with the navigation bar.
 
+### `of met`
+
+**Design:** `SPEC My Page.dc.html` — the second line of the "Everything else" row in
+the Virtual GM Power Meter breakdown: `{{ gm.otherMet }} of {{ gm.otherTotal }} met
+{{ gm.otherArrow }}`.
+
+**Why the product does not carry it:** it was never a phrase, only the connective
+tissue of one. `labels()` strips every `{{ }}` template hole and keeps whatever
+English survives either side, and here that is two words with a number's worth of
+meaning removed from between them — "of" belonging to the count before it, "met"
+to the count after. The product's own equivalent, `{reading.sharedMet} of
+{SHARED_SLOTS} met` in `src/components/power-meter.tsx`, says the identical thing
+with the numbers present, which is the whole point of the row: it exists to tell
+somebody 3 of 20 met, not to say "of met" on its own. No wording is missing from
+the page — the fragment just cannot appear verbatim in source the way the design's
+static markup happens to, once a real count sits where the design left a hole.
+
+**Decided:** 20 September 2026, chasing why `designs:coverage --deep --enforce`
+would not clear 100% on a page nobody had touched.
+
 ## Screens that are not product screens
 
 Some pages in the design project are references rather than things the product
