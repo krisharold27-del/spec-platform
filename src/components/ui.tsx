@@ -88,26 +88,38 @@ export async function Shell({ title, kicker, headline, subtitle, children }: {
     their screen. The lapsed banner below already covers the "something has gone wrong" case, so
     this tab says nothing while `lapsed` — one clear message at a time, not two disagreeing ones.
   */
+  /*
+    Wrapped, unlike the reads above — deliberately. This one is new, on 20 September, and it is the
+    only thing in this header that touches Stripe-shaped numbers rather than just this business's own
+    rows. `waiting`, below, already accepts that a slow or failing read is a missing dot rather than a
+    broken page (`.catch(() => [])`); this needs the same rule; a tab in the header is not worth the
+    header itself, on every page an administrator opens, over one bad row or one Stripe hiccup.
+  */
   let billingTab: { text: string; tone: 'quiet' | 'due' } | null = null;
   if (me && !looking && !lapsed) {
-    const scope = await getScope(me);
-    if (me.access === 'administrator' || isTopOfChart(scope)) {
-      const plan = await planStateFor(me.tenantId, await requestCurrency());
-      const people = `${plan.seats} ${plan.seats === 1 ? 'person' : 'people'}`;
-      if (plan.program) {
-        billingTab = null; // The consulting engagement, not a self-serve bill — nothing to show here.
-      } else if (plan.seats === 0) {
-        billingTab = null; // Nobody in the business yet — nothing to say about money until there is.
-      } else if (plan.beta) {
-        billingTab = { text: `Beta — free · ${people}`, tone: 'quiet' };
-      } else if (plan.needsCheckout) {
-        billingTab = { text: `Start paying · ${moneyLabel(plan.currency, plan.monthlyCost)}/mo · ${people}`, tone: 'due' };
-      } else if (plan.billing) {
-        billingTab = { text: `${moneyLabel(plan.currency, plan.monthlyCost)}/mo · ${people}`, tone: 'quiet' };
-      } else {
-        // Free and billing has not started — the first seat is free, and so far that is all there is.
-        billingTab = { text: 'Free so far — first seat free', tone: 'quiet' };
+    try {
+      const scope = await getScope(me);
+      if (me.access === 'administrator' || isTopOfChart(scope)) {
+        const plan = await planStateFor(me.tenantId, await requestCurrency());
+        const people = `${plan.seats} ${plan.seats === 1 ? 'person' : 'people'}`;
+        if (plan.program) {
+          billingTab = null; // The consulting engagement, not a self-serve bill — nothing to show here.
+        } else if (plan.seats === 0) {
+          billingTab = null; // Nobody in the business yet — nothing to say about money until there is.
+        } else if (plan.beta) {
+          billingTab = { text: `Beta — free · ${people}`, tone: 'quiet' };
+        } else if (plan.needsCheckout) {
+          billingTab = { text: `Start paying · ${moneyLabel(plan.currency, plan.monthlyCost)}/mo · ${people}`, tone: 'due' };
+        } else if (plan.billing) {
+          billingTab = { text: `${moneyLabel(plan.currency, plan.monthlyCost)}/mo · ${people}`, tone: 'quiet' };
+        } else {
+          // Free and billing has not started — the first seat is free, and so far that is all there is.
+          billingTab = { text: 'Free so far — first seat free', tone: 'quiet' };
+        }
       }
+    } catch (err) {
+      console.error('Billing tab could not be worked out', err);
+      billingTab = null;
     }
   }
 

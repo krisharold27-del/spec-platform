@@ -122,26 +122,40 @@ export async function POST() {
     });
   }
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    line_items: lines,
-    /*
-      The currency, so Stripe reads the right `currency_options` off each price. Without it every
-      customer in the world is charged the price's default currency, which is Australian dollars —
-      and it would look completely normal on the invoice.
-    */
-    currency,
-    // client_reference_id is how the webhook maps the completed session back to a tenant —
-    // more reliable than matching on customer email, which can differ from the app user's email.
-    client_reference_id: tenant.id,
-    customer: tenant.stripeCustomerId ?? undefined,
-    customer_email: tenant.stripeCustomerId ? undefined : user.email,
-    subscription_data: { metadata: { tenantId: tenant.id } },
-    metadata: { tenantId: tenant.id },
-    success_url: `${here}/journey?upgraded=1`,
-    cancel_url: `${here}/journey?upgrade_cancelled=1`,
-    allow_promotion_codes: true,
-  });
+  /*
+    Kris, 20 September, right after the first real payment: the billing page came back as a bare
+    "HTTP ERROR 500" — the generic screen the rest of this file explicitly writes redirects to avoid.
+    That particular crash was `stripe.billingPortal.sessions.create` in ../portal/route.ts (see the
+    comment there), but this call has the same shape and the same documented way to fail — "if a
+    currency has no option on a price Stripe refuses the session outright", a few lines up — and was
+    just as unguarded. One customer hitting a Stripe error here got the identical unhelpful page.
+  */
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: lines,
+      /*
+        The currency, so Stripe reads the right `currency_options` off each price. Without it every
+        customer in the world is charged the price's default currency, which is Australian dollars —
+        and it would look completely normal on the invoice.
+      */
+      currency,
+      // client_reference_id is how the webhook maps the completed session back to a tenant —
+      // more reliable than matching on customer email, which can differ from the app user's email.
+      client_reference_id: tenant.id,
+      customer: tenant.stripeCustomerId ?? undefined,
+      customer_email: tenant.stripeCustomerId ? undefined : user.email,
+      subscription_data: { metadata: { tenantId: tenant.id } },
+      metadata: { tenantId: tenant.id },
+      success_url: `${here}/journey?upgraded=1`,
+      cancel_url: `${here}/journey?upgrade_cancelled=1`,
+      allow_promotion_codes: true,
+    });
+  } catch (err) {
+    console.error('Stripe checkout session failed', err);
+    return NextResponse.redirect(`${here}/journey?billing_error=1`, 303);
+  }
 
   if (!session.url) return NextResponse.redirect(`${here}/journey?billing_error=1`, 303);
   return NextResponse.redirect(session.url, 303);

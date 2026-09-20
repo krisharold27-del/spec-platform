@@ -38,9 +38,30 @@ export async function POST() {
   */
   if (!tenant?.stripeCustomerId) return NextResponse.redirect(`${here}/journey?no_subscription=1`, 303);
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: tenant.stripeCustomerId,
-    return_url: `${here}/journey`,
-  });
-  return NextResponse.redirect(session.url, 303);
+  /*
+    Kris, 20 September, minutes after the first real payment: the billing page itself came back as a
+    bare "HTTP ERROR 500" — the generic screen this whole file exists to avoid.
+
+    The portal is one Stripe API call with no configuration in this repository to get wrong — its
+    settings (what it shows, what it lets a customer cancel) live entirely in the Stripe dashboard,
+    under Settings → Billing → Customer portal, and a *default configuration* has to be activated
+    there before `billingPortal.sessions.create` will do anything but throw. Nobody had ever clicked
+    "Manage billing" before there was a real subscription to manage, so nobody had ever found this.
+    Same class of fault as the DECISIONS.md entry on the leadership seat: a setting that lives outside
+    the repo, checked for the first time by the first real customer.
+
+    So this is caught rather than left to crash the route: Stripe's own message is worth more than
+    "something went wrong", and it goes to `billing_error`, which already has a banner and an email
+    address on `/journey` for exactly this shape of failure.
+  */
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: tenant.stripeCustomerId,
+      return_url: `${here}/journey`,
+    });
+    return NextResponse.redirect(session.url, 303);
+  } catch (err) {
+    console.error('Stripe billing portal session failed', err);
+    return NextResponse.redirect(`${here}/journey?billing_error=1`, 303);
+  }
 }
