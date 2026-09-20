@@ -5,7 +5,8 @@ import { band, type Pillar, type Score } from '@/lib/scoring';
 import { myBusinesses, getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
 import { currentLook } from '@/lib/look';
-import { isLapsed } from '@/lib/plan';
+import { isLapsed, planStateFor } from '@/lib/plan';
+import { moneyLabel } from '@/lib/pricing';
 import { LookBar } from './look-bar';
 import { navDoors } from '@/lib/doors';
 import { ReadOnlyNotice } from './read-only-notice';
@@ -14,6 +15,8 @@ import { NavBar } from './nav-bar';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { currentPeriod } from '@/lib/period';
+import { getScope, isTopOfChart } from '@/lib/scope';
+import { requestCurrency } from '@/lib/request-currency';
 
 // Re-exported so existing pages keep importing them from here; they live in lib/pillars because a
 // client component must be able to reach them without pulling the server's request context in too.
@@ -64,6 +67,49 @@ export async function Shell({ title, kicker, headline, subtitle, children }: {
     read, which is a single row and the same query the page was going to make anyway.
   */
   const lapsed = me ? await isLapsed(me.tenantId) : false;
+
+  /*
+    ── A billing tab, at the top of every page, crystal clear ───────────────────────────────────
+
+    Kris, 20 September: *"the company has to know clearly when they start paying and how much"* —
+    and then, when the first answer was a line of text folded into the page: *"no it needs a
+    cleaer tab at the top of the page so it is crystl clear"*.
+
+    The number itself already existed — `costLabel` on `/journey` names both, in the business's
+    own currency, first seat free — it just lived on a page nothing links to once a business is
+    past its first morning (My Page is the only address the nav sends anybody to; see `navDoors`).
+    A leader could invite somebody, start the meter, and have no way to see that had happened short
+    of typing `/journey` in by hand.
+
+    So it sits here instead, in the header every page shares, beside the business name — the one
+    row that is genuinely on every screen. Paying for the business is administration
+    (`/api/stripe/checkout` gates the same way, on `isTopOfChart` or `access === 'administrator'`),
+    so this is read only for whoever that is; nobody else gets a bill they cannot act on pinned to
+    their screen. The lapsed banner below already covers the "something has gone wrong" case, so
+    this tab says nothing while `lapsed` — one clear message at a time, not two disagreeing ones.
+  */
+  let billingTab: { text: string; tone: 'quiet' | 'due' } | null = null;
+  if (me && !looking && !lapsed) {
+    const scope = await getScope(me);
+    if (me.access === 'administrator' || isTopOfChart(scope)) {
+      const plan = await planStateFor(me.tenantId, await requestCurrency());
+      const people = `${plan.seats} ${plan.seats === 1 ? 'person' : 'people'}`;
+      if (plan.program) {
+        billingTab = null; // The consulting engagement, not a self-serve bill — nothing to show here.
+      } else if (plan.seats === 0) {
+        billingTab = null; // Nobody in the business yet — nothing to say about money until there is.
+      } else if (plan.beta) {
+        billingTab = { text: `Beta — free · ${people}`, tone: 'quiet' };
+      } else if (plan.needsCheckout) {
+        billingTab = { text: `Start paying · ${moneyLabel(plan.currency, plan.monthlyCost)}/mo · ${people}`, tone: 'due' };
+      } else if (plan.billing) {
+        billingTab = { text: `${moneyLabel(plan.currency, plan.monthlyCost)}/mo · ${people}`, tone: 'quiet' };
+      } else {
+        // Free and billing has not started — the first seat is free, and so far that is all there is.
+        billingTab = { text: 'Free so far — first seat free', tone: 'quiet' };
+      }
+    }
+  }
 
   // One source with the directory on My Page, so a renamed route cannot leave the bar pointing at
   // nothing while the grouped list quietly stays right.
@@ -127,6 +173,26 @@ export async function Shell({ title, kicker, headline, subtitle, children }: {
 
           {!looking && me && (
             <div className="ml-auto flex items-center gap-4">
+              {/*
+                The billing tab — a pill, not a sentence buried in the page, so it reads at a
+                glance and matches the bell and the business name beside it for how loud it is.
+                Rust and filled when money is waiting on a decision ("Start paying"); quiet ink
+                once that decision is made, same as everything else in the header that is simply
+                stating a fact rather than asking for one.
+              */}
+              {billingTab && (
+                <Link
+                  href="/journey"
+                  className={
+                    billingTab.tone === 'due'
+                      ? 'inline-flex min-h-[28px] items-center whitespace-nowrap rounded-full bg-rust-800 px-3 py-1 text-[13px] font-medium text-cream hover:bg-rust-900'
+                      : 'inline-flex min-h-[28px] items-center whitespace-nowrap rounded-full border border-ink/15 px-3 py-1 text-[13px] text-ink-light hover:text-rust'
+                  }
+                >
+                  {billingTab.text}
+                </Link>
+              )}
+
               {/*
                 The bell, which Kris drew on the header with a dot on it.
 

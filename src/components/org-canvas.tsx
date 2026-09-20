@@ -73,6 +73,9 @@ const place = (x: number, y: number) => ({
 
 const PILLARS = ['safety', 'people', 'earnings', 'compliance'] as const;
 
+/** Below this, a shrunk card stops being legible — the frame hands the scrollbar back instead. */
+const MIN_FIT = 0.45;
+
 export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], myRoleId = null, readOnlyReason = null, openTeamId = null, openRoleId = null }: {
   roles: ChartRole[];
   rootId: string | null;
@@ -184,6 +187,9 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
   const [, start] = useTransition();
 
   const panelRef = useRef<HTMLDivElement>(null);
+  /** The frame the tree is scaled to fit inside. See the note beside `data-org-tree` below. */
+  const fitRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState(1);
 
   const detached = detachedBranches(roles, rootId);
   const onChart = rootId ? roles.filter(r => !isOff(r, roles, rootId)) : roles;
@@ -200,6 +206,40 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
   const inView = from ? onChart.filter(r => under(r, onChart, from)) : onChart;
   const drawn = inView.filter(r => !hidden.has(r.id));
   const { cards, lines, width, height } = layout(rootsOf(drawn), drawn);
+
+  /*
+    How much the tree is shrunk to sit inside its frame with no scrollbar.
+
+    Watches the frame's own width — a `ResizeObserver` rather than `window.resize`, because the
+    frame changes size on things a window resize never fires for: the side panel opening beside the
+    chart, a team folding open, the browser's own scrollbar appearing once a tall page grows past
+    the fold. Height is capped against the viewport too, so a deep chart is shrunk to fit the screen
+    rather than merely the width of it — "on one page" means both directions.
+
+    Never scales UP. A chart smaller than its frame is already all on one page; blowing three roles
+    up to fill a monitor would not make them more readable, only larger.
+  */
+  useEffect(() => {
+    const el = fitRef.current;
+    if (!el) return;
+    const compute = () => {
+      const frameW = el.clientWidth;
+      // Leave room for whatever is above the frame — the key, the heading — so the WHOLE tree,
+      // not just its top half, lands inside the window without a vertical scroll either.
+      const top = el.getBoundingClientRect().top;
+      const frameH = Math.max(320, window.innerHeight - top - 24);
+      if (!frameW || !width || !height) return;
+      // Clamped at MIN_FIT rather than left to shrink further: a chart too big even at the floor
+      // gets the scrollbar back (see the overflowX below) instead of cards nobody can read.
+      const next = Math.max(MIN_FIT, Math.min(1, frameW / width, frameH / height));
+      setFit(prev => (Math.abs(prev - next) > 0.005 ? next : prev));
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    window.addEventListener('resize', compute);
+    return () => { ro.disconnect(); window.removeEventListener('resize', compute); };
+  }, [width, height]);
 
   /*
     The line the design prints beside the key: how big the chart is, how much of it is off, and how
@@ -728,13 +768,30 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
         */}
         <ChartKey summary={summary} />
 
-        {/* pt-4 so the count badge, which hangs off the top-left corner of a card, is not clipped
-            by the frame the chart now sits in. */}
-        <div className="mt-4 overflow-x-auto pt-4">
+        {/*
+          ── One page, not a scrollbar ────────────────────────────────────────────────────────
+
+          Kris, 20 September: *"the org chart with the movement bar is annoying and visibility not
+          great - make it all symetrical and on one page"*. The layout below was already symmetric
+          — `layout()` in lib/orgchart centres every parent over its own children — but the CANVAS
+          drew every card at its native pixel size and left the browser to grow a horizontal
+          scrollbar once the tree was wider than the screen. A chart you have to drag sideways to
+          read is not "on one page" whatever the boxes underneath it look like.
+
+          So the tree is measured at its true size, same as always, and then scaled down as ONE
+          image to fit the space actually available — width primarily, since that is what forced
+          the scrollbar, and height too so a tall chart does not run off the bottom either. `fitRef`
+          is the frame; `fit` is how much the tree inside it is shrunk. A chart that already fits
+          scales at 1 and nothing changes. Below `MIN_FIT` the cards would stop being readable, so
+          past that floor the frame gives up trying to fit it and hands the scrollbar back —
+          survivable and rare, rather than forty roles rendered at a size nobody can read.
+        */}
+        <div ref={fitRef} className="mt-4 pt-4" style={{ overflowX: fit <= MIN_FIT ? 'auto' : 'hidden' }}>
+        <div className="mx-auto" style={{ width: width * fit, height: height * fit }}>
         {/* Marked so a browser check can measure the cards against the tree they sit on — the
             chart's height is derived from the bottom row's card, and that arithmetic has drifted
             before. See the note on `layout`'s height in lib/orgchart. */}
-        <div data-org-tree className="relative mx-auto" style={{ width, height }}>
+        <div data-org-tree className="relative" style={{ width, height, transform: `scale(${fit})`, transformOrigin: 'top left' }}>
           {/*
             The lines carry the reading, and they are rails rather than hairlines.
 
@@ -1239,6 +1296,7 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
             );
           })}
 
+        </div>
         </div>
         </div>
 
