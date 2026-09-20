@@ -101,17 +101,40 @@ A period is a **calendar month of work, marked and locked during the month that 
 closes during September, because that is when the P&L lands. Locking is a person's decision, not a
 date. The next period reloads with the same roles, KPIs and targets, all marks back to `pending`.
 
-## Pricing — **$26 per seat per month**
+## Pricing — **two kinds of seat, not one flat rate**
 
-Per region, decided rather than converted, every price reducing to 8: AUD $26/$44 · NZD $35/$53 ·
-GBP £17/£26 · EUR €26/€44 · USD $26/$44 · CAD $35/$53.
+Superseded 19 September (design 15) and this file had not caught up — corrected 20 September after
+Kris: *"remember pricing is for leadership seats and team member seats."*
 
-**No minimum. No tier that unlocks features. People on the chart without a seat are free. Board roles
-are free.** A lapsed subscription goes read-only; export always works.
+**Leadership seat** — somebody who leads people (their title says so, or somebody reports to their
+role, per `seatKindFor` in `lib/chart-seats`). **Team seat** — everybody else, priced in a pool.
+Never a field anybody sets: which seat a person is on is read off the org chart at the point the
+count becomes money (`lib/plan`'s `countLeadershipSeats`), so it cannot drift from what the chart
+says.
 
-**The A$100/year "Basic" plan, the stage-gated trial, and periods locked until payment are
-superseded** and need rebuilding — see BUILD_SPEC §8.3. The `tenants.plan` column and the Stripe
-products still reflect the old model.
+Six regions, decided per region rather than converted (`lib/pricing`'s `SEAT_PRICES`, transcribed
+from the live Stripe account, is the source of truth — this table is not):
+
+| | Leadership | Team |
+|---|---|---|
+| Australia (AUD) | $134 | $17 |
+| New Zealand (NZD) | $180 | $23 |
+| United Kingdom (GBP) | £88 | £11 |
+| Europe (EUR) | €134 | €17 |
+| United States (USD) | $134 | $17 |
+| Canada (CAD) | $180 | $23 |
+
+Each also has an Advanced (with-AI) rate — not sellable yet, see `AI_TIER_ON_SALE` in `lib/plan`.
+
+**The first seat is free**, and comes off a team seat first (the cheaper of the two) — see
+`FREE_SEATS`/`seatBill` in `lib/plan`. **No minimum. No tier that unlocks features. People on the
+chart without a seat are free. Board roles are free.** A lapsed subscription goes read-only; export
+always works.
+
+**A live setting can silently disagree with this table and nothing here would show it** — see
+DECISIONS.md, 20 September, on a leadership seat quietly billing the team rate for a day because a
+Vercel env var still named an old flat-rate price. Check Stripe/Vercel directly rather than trusting
+this file for what a customer is actually charged.
 
 ## Org model
 
