@@ -50,9 +50,9 @@ const BILLING_NOTICE: Record<string, { tone: 'ok' | 'warn'; text: string }> = {
   training_price_missing: {
     tone: 'warn',
     text: "Somebody here is on SPEC's training material, and the training price hasn't been set up in Stripe yet. "
-      + "Nothing has been charged. Email hello@specbizhq.com and we'll switch it on — it takes a minute at our end.",
+      + "Nothing has been charged. Email manager@specbizhq.com and we'll switch it on — it takes a minute at our end.",
   },
-  billing_error: { tone: 'warn', text: "We couldn't open the payment page just then. Nothing has been charged. Try again, and if it happens twice email hello@specbizhq.com and we'll sort it at our end." },
+  billing_error: { tone: 'warn', text: "We couldn't open the payment page just then. Nothing has been charged. Try again, and if it happens twice email manager@specbizhq.com and we'll sort it at our end." },
 };
 
 export default async function Journey({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
