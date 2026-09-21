@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getScope, assertAdministrator } from '@/lib/scope';
-import { assertWritable } from '@/lib/plan';
+import { assertWritable, planStateFor } from '@/lib/plan';
 import { fileUnder, categoryName, isSensitive } from '@/lib/systems';
 import { refuseTo } from '@/lib/refuse';
 import { cookies } from 'next/headers';
@@ -28,6 +28,28 @@ async function administrator() {
   assertAdministrator(await getScope(user));
   await assertWritable(user.tenantId);
   return user;
+}
+
+/**
+ * No connector actually goes live without the AI layer switched on.
+ *
+ * Kris, 21 September: *"it must be blocked by payment - whats the point of letting people connect
+ * xero when they haven't got AI connected"*. A business can still name every system it runs and
+ * queue every board approval for free — that structure-building stays free like everything else in
+ * `lib/plan`. What this stops is the moment SPEC would actually be handed a key: Going to Xero, and
+ * marking any other connector live, both require `aiActive` — a real subscription, or one of the
+ * two states SPEC switches fully on for free (`program`, `beta`).
+ */
+async function assertAiActive(tenantId: string) {
+  const state = await planStateFor(tenantId);
+  if (!state.aiActive) {
+    refuseTo(
+      '/connections',
+      'A live connection needs the AI layer switched on, because a number with nobody reading across '
+      + 'it is not worth the key SPEC would be holding. Start paying to switch it on, then come back '
+      + 'and connect this.',
+    );
+  }
 }
 
 export async function connectSystem(formData: FormData) {
@@ -134,6 +156,7 @@ export async function disconnectSystem(formData: FormData) {
  */
 export async function startXero(formData: FormData) {
   const user = await administrator();
+  await assertAiActive(user.tenantId);
   const id = String(formData.get('connectionId') ?? '');
   if (!id) return;
 
@@ -211,6 +234,7 @@ export async function chooseXeroOrg(formData: FormData) {
  */
 export async function markLive(formData: FormData) {
   const user = await administrator();
+  await assertAiActive(user.tenantId);
   const id = String(formData.get('connectionId') ?? '');
   if (!id) return;
 

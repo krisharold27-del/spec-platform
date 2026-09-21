@@ -101,6 +101,35 @@ describe('the guard is on the write, not only on the screen', () => {
 });
 
 /**
+ * ── Nothing goes live for free ───────────────────────────────────────────────────────────────────
+ *
+ * Kris, 21 September: *"it must be blocked by payment - whats the point of letting people connect
+ * xero when they haven't got AI connected"*.
+ *
+ * Naming a system and queuing its board approval stay free, same as the rest of the org chart. What
+ * this closes is the moment SPEC would actually be handed a key: `startXero` and `markLive` both
+ * refuse before that, unless the AI layer is genuinely switched on.
+ */
+describe('a connection cannot go live without the AI layer switched on', () => {
+  const actions = readFileSync('src/app/connections/actions.ts', 'utf8');
+
+  it('BOTH WAYS A SYSTEM GOES LIVE CHECK IT, RIGHT AFTER administrator()', () => {
+    for (const fn of ['startXero', 'markLive']) {
+      const body = actions.slice(actions.indexOf(`export async function ${fn}`));
+      const afterAdmin = body.slice(body.indexOf('administrator()'), body.indexOf('administrator()') + 120);
+      expect(afterAdmin, `${fn} does not check assertAiActive right after administrator()`).toContain('assertAiActive');
+    }
+  });
+
+  it('and the check reads the real plan state, not a stored flag', () => {
+    const guard = actions.slice(actions.indexOf('async function assertAiActive'));
+    expect(guard).toContain('planStateFor');
+    expect(guard).toContain('state.aiActive');
+    expect(guard).toContain('refuseTo');
+  });
+});
+
+/**
  * ── And nothing claims a number arrived on its own ───────────────────────────────────────────────
  *
  * `tests/no-false-feed.test.ts` tore this claim out of four screens on 18 September. It survived in

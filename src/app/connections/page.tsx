@@ -7,6 +7,7 @@ import { SubmitButton } from '@/components/submit-button';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { getScope } from '@/lib/scope';
+import { planStateFor } from '@/lib/plan';
 import { CATEGORIES, categoryName, isSensitive, STATUS_LABEL, SENSITIVE_NOTE } from '@/lib/systems';
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { propose } from '@/lib/mapping';
@@ -64,6 +65,9 @@ export default async function Connections({
     ),
   );
   const xeroReady = Boolean(xeroApp()) && canHoldSecrets();
+  // A live connection is not worth the key SPEC would be holding until something is reading across
+  // it. Naming systems and queuing board approvals stay free; going live needs the AI layer on.
+  const { aiActive } = await planStateFor(user.tenantId);
   const choosing = typeof sp.choose === 'string' ? sp.choose : undefined;
   const linked = typeof sp.linked === 'string' ? sp.linked : undefined;
 
@@ -196,7 +200,7 @@ export default async function Connections({
                         that look alike and mean completely different things is how somebody marks a
                         ledger live that nothing is reading.
                       */}
-                      {xero && xeroReady && (!sensitive || approved) && (
+                      {xero && xeroReady && aiActive && (!sensitive || approved) && (
                         <form action={startXero}>
                           <input type="hidden" name="connectionId" value={c.id} />
                           <SubmitButton className="btn-primary px-3 py-1.5 text-xs" pending="Going to Xero…">
@@ -210,11 +214,26 @@ export default async function Connections({
                           still a note about what the business runs.
                         </span>
                       )}
-                      {!xero && c.status !== 'live' && (!sensitive || approved) && (
+                      {/*
+                        A live connection is not worth the key SPEC would be holding until the AI
+                        layer is actually reading across it — see assertAiActive in actions.ts. Shown
+                        instead of a button that would only refuse on submit.
+                      */}
+                      {xero && xeroReady && !aiActive && (!sensitive || approved) && (
+                        <span className="text-xs text-ink-light">
+                          Connecting needs the AI layer on. <Link href="/journey" className="link-go">Start paying</Link>, then come back.
+                        </span>
+                      )}
+                      {!xero && c.status !== 'live' && aiActive && (!sensitive || approved) && (
                         <form action={markLive}>
                           <input type="hidden" name="connectionId" value={c.id} />
                           <SubmitButton className="btn-secondary px-3 py-1.5 text-xs" pending="…">Mark it live</SubmitButton>
                         </form>
+                      )}
+                      {!xero && c.status !== 'live' && !aiActive && (!sensitive || approved) && (
+                        <span className="text-xs text-ink-light">
+                          Going live needs the AI layer on. <Link href="/journey" className="link-go">Start paying</Link>, then come back.
+                        </span>
                       )}
                       {(c.status === 'live' || credential) && (
                         <form action={disconnectSystem}>

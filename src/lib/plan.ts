@@ -166,6 +166,27 @@ export interface PlanState {
   /** Seats to bill, no subscription yet — the state that needs a Start paying button. */
   needsCheckout: boolean;
   /**
+   * Is the AI layer actually switched on for this business?
+   *
+   * ── Why this exists, separately from `subscribed` ────────────────────────────────────────────
+   *
+   * Kris, 21 September, on Connections: *"it must be blocked by payment - whats the point of
+   * letting people connect xero when they haven't got AI connected"*.
+   *
+   * Claude's API cost only switches on once a seat is paid — that trigger already governs the two
+   * chat surfaces. It did not yet govern the ONE THING a live connector is actually for: a number
+   * flowing into a scorecard is only useful alongside the AI that reads across it and tells the
+   * cross-pillar story. Connected-but-no-AI is a key to somebody's Xero sitting there for a product
+   * that cannot yet do anything with what it would read — worse than not connecting at all, because
+   * it looks like the feature works.
+   *
+   * `program` and `beta` count: both are businesses SPEC has deliberately switched fully on for
+   * free, not businesses that have not paid. Only the ordinary unpaid state — a business still
+   * building its structure before inviting anyone in, or one that has not started a subscription —
+   * leaves this false.
+   */
+  aiActive: boolean;
+  /**
    * No writes allowed — **read-only follows the money.**
    *
    * A lapsed subscription AND something actually owed. Never a business that simply has not paid
@@ -400,6 +421,9 @@ export function planState(
     // Lapsed AND owing something. A lapsed business with nothing to bill is not a debtor, and
     // locking it sends somebody to a checkout that has nothing to charge them for.
     readOnly: lapsed && billable > 0,
+    // Program and beta are switched on deliberately, for free. Everyone else needs an actual
+    // subscription — see the note on the field.
+    aiActive: subscribed || program || beta,
   };
 }
 
