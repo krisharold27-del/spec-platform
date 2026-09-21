@@ -78,10 +78,10 @@ async function doseCheck(tenantId: string, doseId: string): Promise<{ status: St
 
 export const STEPS: StepDef[] = [
   {
-    id: 'systems', stage: 2, title: 'Connect the systems you already run', href: '/setup/systems',
+    id: 'systems', stage: 2, title: 'Which systems would you like to connect and review information from?', href: '/setup/systems',
     later: true,
     optional: true, minutes: 10,
-    why: 'Everything in SPEC works without this. Connecting the systems you already run — jobs, financials, safety, clients, payroll — is what stops the numbers being typed in by hand each month.',
+    why: 'Data is king. Everything in SPEC works without this, but connecting the systems you already run — jobs, financials, safety, clients, payroll — is what stops the numbers being typed in by hand each month.',
     payoff: 'Every number has a named source and an owner, so nobody argues about where a figure came from.',
     check: async t => {
       // Connecting your own mail is not progress the BUSINESS made, so it does not count here.

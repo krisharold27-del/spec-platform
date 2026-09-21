@@ -36,8 +36,8 @@ export default async function Systems({ searchParams }: { searchParams: Promise<
 
   return (
     <Shell
-      title="Connect the systems you already run"
-      subtitle="Optional. Everything in SPEC works without this — recording a system says where a number comes from and who owns it, so the source is agreed before anybody argues about the figure."
+      title="Which systems would you like to connect and review information from?"
+      subtitle="Data is king — the more SPEC can see, the sharper every pillar gets. Nothing here is required: manual entry is a complete way to run SPEC on its own, and recording a system just says where a number comes from and who owns it, so the source is agreed before anybody argues about the figure."
     >
       {error && <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">{error}</div>}
       {sp.added && (
