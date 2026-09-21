@@ -4,6 +4,7 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { Shell } from '@/components/ui';
 import { CATEGORIES, categoryName, STATUS_LABEL } from '@/lib/systems';
+import { SystemChips } from '@/components/system-chips';
 import { addConnection, removeConnection } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -78,6 +79,10 @@ export default async function Systems({ searchParams }: { searchParams: Promise<
         <p className="mt-1 text-xs text-ink-light">
           Anything that holds a number you want on a scorecard counts — including a spreadsheet.
         </p>
+        <div className="mt-3">
+          <p className="mb-2 text-xs text-ink-light">Common ones — press to fill the box, or just type your own:</p>
+          <SystemChips target="name" />
+        </div>
 
         <label className="label-caps mt-5 block" htmlFor="category">What does it hold?</label>
         <select id="category" name="category" className="mt-1 w-full rounded-lg border border-ink/20 p-3 text-base">

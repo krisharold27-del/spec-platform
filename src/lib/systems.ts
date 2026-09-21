@@ -19,6 +19,29 @@ export const CATEGORIES = [
 export type CategoryId = typeof CATEGORIES[number]['id'];
 
 /**
+ * Names worth putting in front of somebody before they type — never the only way in.
+ *
+ * ── Why this exists beside a rule that says no vendor list ──────────────────────────────────────
+ *
+ * Kris, 21 September: *"the business wants to put this list in the setup and for SPEC to say great
+ * lets work through that and make this happen"* — naming SimPro, Xero, MYOB, HubSpot, Microsoft 365,
+ * Safety Minder, Pylon as the ones people actually type.
+ *
+ * The free-text box stays the only real answer — a business on AroFlo and Fergus must never feel
+ * like the odd one out, which is the whole reason `CATEGORIES` never became a vendor dropdown. What
+ * changes is the first thing on the page: instead of a blank box asking somebody to describe their
+ * stack from nothing, these are offered as a starting point, worded as examples rather than a fixed
+ * list — one press fills the name field with nothing submitted, exactly like `ExampleChips`. Typing
+ * over it or ignoring it entirely both work the same as before.
+ *
+ * Ten is deliberately not exhaustive. It is the handful an electrical or trade business actually
+ * runs — the number changes per industry, and a bigger list stops being quick to scan.
+ */
+export const COMMON_SYSTEMS = [
+  'Xero', 'MYOB', 'Simpro', 'AroFlo', 'HubSpot', 'Employment Hero', 'Safety Minder', 'Pylon',
+] as const;
+
+/**
  * Mail is the one category a person connects for themselves.
  *
  * Every other connection belongs to the business: an administrator turns it on, the sensitive ones
@@ -62,7 +85,7 @@ export function categoryName(id: string) {
 const HINTS: [RegExp, CategoryId][] = [
   [/simpro|aroflo|servicem8|fergus|tradify|job|schedul|fieldwire|procore/i, 'job_management'],
   [/xero|myob|quickbooks|quicken|sage|reckon|invoice|account|financ|ledger/i, 'financials'],
-  [/safe|incident|induct|hammertech|donesafe|sitedocs|train|competen|licen/i, 'safety'],
+  [/safe|incident|induct|hammertech|donesafe|sitedocs|train|competen|licen|pylon|ticket|certif/i, 'safety'],
   [/hubspot|salesforce|pipedrive|zoho|crm|quote|tender|client/i, 'crm'],
   [/employment ?hero|keypay|deputy|tanda|payroll|roster|hr\b|people/i, 'payroll'],
 ];

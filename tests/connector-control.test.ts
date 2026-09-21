@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { fileUnder, isSensitive, guessCategory, STATUS_LABEL } from '../src/lib/systems';
+import { fileUnder, isSensitive, guessCategory, STATUS_LABEL, COMMON_SYSTEMS } from '../src/lib/systems';
 
 /**
  * ── Who can connect the ledger ───────────────────────────────────────────────────────────────────
@@ -110,6 +110,36 @@ describe('the guard is on the write, not only on the screen', () => {
  * this closes is the moment SPEC would actually be handed a key: `startXero` and `markLive` both
  * refuse before that, unless the AI layer is genuinely switched on.
  */
+/**
+ * ── A shortcut into the free-text box, never a dropdown instead of it ───────────────────────────
+ *
+ * Kris, 21 September: *"the business wants to put this list in the setup"* — naming the systems
+ * people actually type (Simpro, Xero, MYOB, HubSpot, Safety Minder, Pylon…).
+ *
+ * `COMMON_SYSTEMS` exists to fill the box faster, never to replace it — `system-chips.tsx` follows
+ * the exact `ExampleChips` mechanic (fills the field, submits nothing), and every name on the list
+ * still runs through `guessCategory`/`fileUnder` like anything a person typed themselves. A vendor
+ * gaining a name on a chip must never gain a shortcut around the category logic.
+ */
+describe('the common-systems list is a shortcut into the box, not a new gate', () => {
+  it('EVERY NAME ON IT FILES UNDER A REAL CATEGORY, THE SAME WAY IT WOULD IF TYPED', () => {
+    for (const name of COMMON_SYSTEMS) {
+      expect(guessCategory(name), `"${name}" did not guess a category`).not.toBe('other');
+    }
+  });
+
+  it('and Pylon — certifications, licences, tickets — is filed as safety, not guessed as job management', () => {
+    expect(guessCategory('Pylon')).toBe('safety');
+  });
+
+  it('the chip component reuses the exact fill-and-do-not-submit mechanic as the example chips', () => {
+    const chips = readFileSync('src/components/system-chips.tsx', 'utf8');
+    expect(chips).toContain("dispatchEvent(new Event('input'");
+    expect(chips).not.toContain('.submit(');
+    expect(chips).not.toContain('formAction');
+  });
+});
+
 describe('a connection cannot go live without the AI layer switched on', () => {
   const actions = readFileSync('src/app/connections/actions.ts', 'utf8');
 

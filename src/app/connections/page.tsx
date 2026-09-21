@@ -11,6 +11,7 @@ import { planStateFor } from '@/lib/plan';
 import { CATEGORIES, categoryName, isSensitive, STATUS_LABEL, SENSITIVE_NOTE } from '@/lib/systems';
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { propose } from '@/lib/mapping';
+import { SystemChips } from '@/components/system-chips';
 import { connectSystem, disconnectSystem, markLive, startXero, chooseXeroOrg } from './actions';
 import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
@@ -296,13 +297,17 @@ export default async function Connections({
             that is the part it reasons about, and it is why there is no vendor list to be absent from.
           </p>
           <form action={connectSystem} className="mt-4 grid gap-2 sm:grid-cols-[1.4fr_1.2fr_auto]">
-            <input className="input" name="name" required placeholder="What you call it" aria-label="System name" />
+            <input id="conn-name" className="input" name="name" required placeholder="What you call it" aria-label="System name" />
             <select className="input" name="category" aria-label="What it holds" defaultValue="">
               <option value="">What does it hold?</option>
               {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <SubmitButton className="btn-primary shrink-0" pending="Adding…">Add it</SubmitButton>
           </form>
+          <div className="mt-2">
+            <p className="mb-2 text-xs text-ink-light">Common ones — press to fill the box, or just type your own:</p>
+            <SystemChips target="conn-name" />
+          </div>
           {/*
             The two questions the form above asks — what is it called, and which of seven kinds is
             it — are the two a person running a business cannot reliably answer. They know what they
