@@ -62,8 +62,8 @@
 
     <header style="padding: clamp(28px,4vw,44px) 0 26px;">
       <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Connection centre</span>
-      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">You talk to Claude. The systems talk to each other.</h1>
-      <p style="font-size: 17px; line-height: 28px; max-width: 58ch; margin: 18px 0 0;">Connect what the business already runs on and stop opening it. Claude reads what each system holds, proposes which KPIs it can feed, and you approve the mapping before anything is scored.</p>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0; max-width: 20ch;">You talk to SPEC. The systems talk to each other.</h1>
+      <p style="font-size: 17px; line-height: 28px; max-width: 58ch; margin: 18px 0 0;">Connect what the business already runs on and stop opening it. SPEC reads what each system holds, proposes which KPIs it can feed, and you approve what it feeds before anything is scored.</p>
     </header>
 
     <section style="{{ authStyle }}">
@@ -182,7 +182,7 @@
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;">
                   <button type="button" onClick="{{ c.sync }}" style="{{ c.syncStyle }}">{{ c.syncLabel }}</button>
-                  <button type="button" onClick="{{ c.review }}" style="{{ c.ghostStyle }}">Review mapping</button>
+                  <button type="button" onClick="{{ c.review }}" style="{{ c.ghostStyle }}">Check what it feeds</button>
                   <button type="button" onClick="{{ c.disconnect }}" style="{{ c.ghostStyle }}">Disconnect</button>
                 </div>
                 <sc-if value="{{ c.showMapping }}" hint-placeholder-val="{{ false }}">
@@ -193,7 +193,7 @@
                         <span style="font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ m.field }}</span>
                       </div>
                     </sc-for>
-                    <p style="font-size: 13px; line-height: 20px; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Claude proposed this mapping. Anything you reject stays manual.</p>
+                    <p style="font-size: 13px; line-height: 20px; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">SPEC worked out what this feeds. Anything you reject stays manual.</p>
                   </div>
                 </sc-if>
               </div>
@@ -221,6 +221,7 @@
                   <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 16px;">{{ a.name }}</span>
                 </span>
                 <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ a.feedsLine }}</span>
+                <span style="{{ a.readyStyle }}">{{ a.readyLabel }}</span>
                 <span style="{{ a.sensitiveStyle }}">{{ a.sensitiveLabel }}</span>
                 <button type="button" onClick="{{ a.connect }}" style="{{ a.buttonStyle }}">{{ a.buttonLabel }}</button>
               </div>
@@ -234,14 +235,14 @@
 
         <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
           <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Already using Claude or another AI?</h2>
-          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Keep it — SPEC doesn't have to be a second AI. Point it at your existing account or API key and every read/write still runs through your org chart and KPIs; only where the calls route changes.</p>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">You don't need a second AI to run SPEC — SPEC is your AI. This is only for a business that already has one somewhere else and wants to keep it: point it at the assistant you already use and everything still runs through your org chart and KPIs — only where the thinking happens changes.</p>
           <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
             <sc-for list="{{ aiProviders }}" as="ap" hint-placeholder-count="3">
               <button type="button" onClick="{{ ap.select }}" style="{{ ap.style }}">{{ ap.label }}</button>
             </sc-for>
           </div>
           <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;">
-            <input class="input" type="password" value="{{ aiKey }}" onChange="{{ setAiKey }}" onInput="{{ setAiKey }}" aria-label="API key or account token" placeholder="Paste your API key or account token" style="flex: 1 1 220px; min-height: 40px;" />
+            <input class="input" type="password" value="{{ aiKey }}" onChange="{{ setAiKey }}" onInput="{{ setAiKey }}" aria-label="Connection details" placeholder="Paste what they gave you to connect" style="flex: 1 1 220px; min-height: 40px;" />
             <button type="button" class="btn btn-primary" onClick="{{ connectAi }}" style="flex: none; white-space: nowrap;">{{ aiButtonLabel }}</button>
           </div>
           <sc-if value="{{ aiConnected }}" hint-placeholder-val="{{ false }}">
@@ -251,17 +252,17 @@
 
         <section style="background: var(--color-accent-2-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
           <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Not on the list?</h2>
-          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Describe the system in your own words. Claude works out what it holds, which pillar it belongs to and what it can feed, then brings you a mapping to approve.</p>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Describe the system in your own words. SPEC works out what it holds, which pillar it belongs to and what it can feed, then brings you a mapping to approve.</p>
           <div style="display: grid; gap: 10px; margin-top: 20px;">
             <textarea class="input" value="{{ ask }}" onChange="{{ setAsk }}" onInput="{{ setAsk }}" aria-label="Describe a system" placeholder="We log plant checks in a shared spreadsheet the yard fills in each morning." style="width: 100%; box-sizing: border-box; min-height: 100px; border-radius: 20px; padding: 14px 18px; font-family: var(--font-body); font-size: 14.5px; line-height: 22px; resize: vertical;"></textarea>
-            <button type="button" class="btn btn-primary" onClick="{{ runAsk }}" style="flex: none; white-space: nowrap; justify-self: start;">Ask Claude to work it out</button>
+            <button type="button" class="btn btn-primary" onClick="{{ runAsk }}" style="flex: none; white-space: nowrap; justify-self: start;">Ask SPEC to work it out</button>
           </div>
           <sc-if value="{{ hasProposal }}" hint-placeholder-val="{{ false }}">
             <div style="background: var(--color-surface, #fff); border-radius: 20px; padding: 18px 20px; margin-top: 16px;">
-              <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 8px; color: var(--color-accent-700);">Proposed mapping</p>
+              <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 8px; color: var(--color-accent-700);">What this would feed</p>
               <p style="font-size: 14.5px; line-height: 23px; margin: 0;">{{ proposal }}</p>
               <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
-                <button type="button" class="btn btn-secondary" style="flex: none; white-space: nowrap;">Approve mapping</button>
+                <button type="button" class="btn btn-secondary" style="flex: none; white-space: nowrap;">Approve this</button>
                 <button type="button" class="btn btn-ghost" onClick="{{ clearAsk }}" style="flex: none; white-space: nowrap;">Discard</button>
               </div>
             </div>
@@ -294,7 +295,7 @@
               </div>
             </sc-for>
           </div>
-          <p style="font-size: 13px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Every connection, disconnection and mapping change is logged against a name.</p>
+          <p style="font-size: 13px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Every connection, disconnection and change is logged against a name.</p>
         </section>
       </div>
     </div>
@@ -307,6 +308,7 @@ const GREEN = '#4f7a3f', AMBER = '#c67139', GREY = '#8c8681';
 
 const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;'
   + 'background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
+const CORE_STACK = ['Simpro', 'Xero', 'HubSpot', 'Microsoft 365'];
 
 const mark = tone => 'width:36px;height:36px;flex:none;border-radius:12px;display:grid;place-content:center;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:15px;'
   + 'background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
@@ -317,7 +319,7 @@ const SYSTEMS = [
   { name: 'HubSpot', category: 'Sales', tone: GREEN, connected: true, meta: 'Pipeline, quotes and win rate · hourly', status: 'Healthy', feeds: ['Earnings'], mapping: [{ kpi: 'Quoted work won', field: 'Deals · won / quoted' }, { kpi: 'Pipeline against plan', field: 'Pipeline value · stage weighted' }] },
   { name: 'Safety Minder', category: 'Safety', tone: AMBER, connected: false, meta: 'Not connected — TRIFR cannot be measured', status: 'Pending', feeds: ['Safety'], mapping: [{ kpi: 'TRIFR', field: 'Incidents · rolling 12 months' }, { kpi: 'Corrective actions on time', field: 'Actions · due date' }, { kpi: 'Tickets current', field: 'Certifications · expiry' }] },
   { name: 'Groundplan', category: 'Operations', tone: GREEN, connected: true, meta: 'Take-offs and plan mark-ups · daily', status: 'Healthy', feeds: ['Earnings'], mapping: [{ kpi: 'Estimating accuracy', field: 'Take-off vs installed quantities' }] },
-  { name: 'Pylon', category: 'Operations', tone: AMBER, connected: true, meta: 'Design and compliance calculations · two fields unmapped', status: 'Needs review', feeds: ['Compliance'], mapping: [{ kpi: 'Designs signed off', field: 'Project · approval status' }, { kpi: 'Defects at handover', field: 'Unmapped' }] },
+  { name: 'Pylon', category: 'Operations', tone: AMBER, connected: true, meta: 'Design and compliance calculations · two things not feeding yet', status: 'Needs review', feeds: ['Compliance'], mapping: [{ kpi: 'Designs signed off', field: 'Project · approval status' }, { kpi: 'Defects at handover', field: 'Not feeding yet' }] },
   { name: 'Payroll / rostering', category: 'People', tone: GREY, connected: false, meta: 'Starters, leavers and rostered hours', status: 'Available', feeds: ['People', 'Earnings'], mapping: [] },
   { name: 'Microsoft 365', category: 'Workplace', tone: GREY, connected: false, meta: 'Sign-in, calendar and the weekly meeting log', status: 'Available', feeds: ['People'], mapping: [] },
   { name: 'Google Workspace', category: 'Workplace', tone: GREY, connected: false, meta: 'Sign-in, calendar and the weekly meeting log', status: 'Available', feeds: ['People'], mapping: [] },
@@ -349,14 +351,14 @@ const RED = '#a63b26';
 const HEALTH = [
   { name: 'Simpro', sync: 'Synced 6:04am · every 15 minutes', reliability: '100% of syncs, 30 days', state: 'Healthy', tone: GREEN, impact: 'Feeding margin against quote and labour utilisation. Both current.' },
   { name: 'Xero', sync: 'Synced 2:10am · nightly', reliability: '29 of 30 nights', state: 'Healthy', tone: GREEN, impact: 'Feeding revenue against plan. One missed night last month, recovered on the next run.' },
-  { name: 'Safety Minder', sync: 'Last successful sync 28 Aug · 14 days ago', reliability: 'Token expired', state: 'Stale', tone: RED, impact: 'TRIFR and incidents closed are not being fed. Both are marked Not tracked on the scorecard rather than carried forward at last known value.' },
+  { name: 'Safety Minder', sync: 'Last successful sync 28 Aug · 14 days ago', reliability: 'Login expired — needs reconnecting', state: 'Stale', tone: RED, impact: 'TRIFR and incidents closed are not being fed. Both are marked Not tracked on the scorecard rather than carried forward at last known value.' },
   { name: 'HubSpot', sync: 'Synced 6:02am · hourly', reliability: '100% of syncs, 30 days', state: 'Healthy', tone: GREEN, impact: 'Feeding pipeline value and quoted work won.' },
   { name: 'Groundplan', sync: 'Synced 5:51am · daily', reliability: '26 of 30 days', state: 'Watch', tone: AMBER, impact: 'Four missed runs this month. Take-off accuracy is still counting, but a fifth miss stops it counting for September.' },
 ];
 
 const LOG = [
-  { what: 'Pylon mapping changed — defects at handover left unmapped', who: 'Kristopher Harold, GM · 9 Sep' },
-  { what: 'Xero reconnected after token expiry', who: 'Kristopher Harold, GM · 9 Sep' },
+  { what: "Pylon changed — 'Defects at handover' isn't feeding a KPI yet", who: 'Kristopher Harold, GM · 9 Sep' },
+  { what: 'Xero reconnected after its login expired', who: 'Kristopher Harold, GM · 9 Sep' },
   { what: 'Safety Minder connection requested', who: 'Justin Bussell, Director · 2 Sep' },
   { what: 'Groundplan connected', who: 'Kristopher Harold, GM · 14 Aug' },
 ];
@@ -384,7 +386,7 @@ class Component extends DCLogic {
         chip: chip(tone),
         impact: fixed[h.name] ? 'Feeding again. The numbers it owns count towards September from this run.' : h.impact,
         style: 'background:var(--color-bg);border-radius:20px;padding:16px 20px;border-left:4px solid ' + tone + ';',
-        buttonLabel: ok ? 'Test the feed' : watch ? 'View missed runs' : (authorised ? 'Reconnect' : 'Ask the GM'),
+        buttonLabel: ok ? 'Test the feed' : watch ? 'View missed runs' : (authorised ? 'Reconnect' : 'Ask the GM, Board or Commercial Manager'),
         buttonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
           + (ok || watch ? 'background:var(--color-surface, #fff);color:var(--color-text);' : 'background:var(--color-accent);color:#fff;'),
         fix: () => { if (!ok && !watch && authorised) this.setState(s => ({ fixed: { ...(s.fixed || {}), [h.name]: true } })); },
@@ -406,8 +408,8 @@ class Component extends DCLogic {
       authStyle: 'border-radius:var(--radius-lg);padding:22px 24px;background:' + (authorised ? 'color-mix(in srgb, ' + GREEN + ' 10%, transparent)' : 'var(--color-accent-100)') + ';',
       authTitle: authorised ? 'You are authorised to connect systems' : 'You can see connections, but not change them',
       authBody: authorised
-        ? 'Kristopher Harold, GM. Connecting, disconnecting and approving a mapping is limited to the roles the Director has authorised, and every change is logged.'
-        : 'Ask the Managing Director or the Director to authorise your role, or to make the change for you. Everything below is read-only.',
+        ? 'You hold this because you\'re GM, on the Board, or the Commercial Manager. Connecting, disconnecting and approving what a system feeds is limited to those roles, and every change is logged.'
+        : 'This is limited to the GM, the Board, or the Commercial Manager. Ask one of them to authorise your role, or to make the change for you. Everything below is read-only.',
       authToggleLabel: authorised ? 'View as unauthorised' : 'View as authorised',
       toggleAuth: () => this.setState(s => ({ authorised: !s.authorised })),
 
@@ -465,6 +467,8 @@ class Component extends DCLogic {
         sensitive: !!SENSITIVE[s.name],
         sensitiveStyle: SENSITIVE[s.name] ? chip(AMBER) : 'display:none;',
         sensitiveLabel: SENSITIVE[s.name] ? 'Board approval needed' : '',
+        readyStyle: CORE_STACK.includes(s.name) ? chip(GREEN) : 'display:none;',
+        readyLabel: CORE_STACK.includes(s.name) ? 'Core stack · fully supported' : '',
         buttonLabel: !authorised ? 'Needs authorisation' : this.state.pending[s.name] ? 'Awaiting the board ✓' : SENSITIVE[s.name] ? 'Request board approval' : 'Connect',
         buttonStyle: 'cursor:' + (authorised ? 'pointer' : 'not-allowed') + ';border:0;border-radius:999px;padding:9px 18px;font-family:var(--font-body);font-size:13px;justify-self:start;white-space:nowrap;'
           + (!authorised
@@ -516,9 +520,9 @@ class Component extends DCLogic {
         name,
         line: name + ' — declined by the board. It stays disconnected and its KPIs stay manual.',
       })),
-      emptyLine: available.length ? 'Claude reads what each system holds before anything is scored.' : 'Nothing left in this category — everything here is connected.',
+      emptyLine: available.length ? 'SPEC reads what each system holds before anything is scored.' : 'Nothing left in this category — everything here is connected.',
 
-      aiProviders: ['Claude', 'Your own API key', 'Another AI'].map(name => ({
+      aiProviders: ['Claude', 'One I already use', 'Something else'].map(name => ({
         label: name,
         select: () => this.setState({ aiProvider: name }),
         style: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;'
@@ -535,7 +539,7 @@ class Component extends DCLogic {
       runAsk: () => {
         const text = this.state.ask.trim();
         if (!text) return;
-        this.setState({ proposal: 'Reads as a Compliance source. Claude would map it to “Plant checks logged” against the operator who signs each morning, pull the sheet daily at 6am, and flag any day with no entry rather than scoring it 100%. Nothing else on the scorecard changes.' });
+        this.setState({ proposal: 'Reads as a Compliance source. SPEC would map it to “Plant checks logged” against the operator who signs each morning, pull the sheet daily at 6am, and flag any day with no entry rather than scoring it 100%. Nothing else on the scorecard changes.' });
       },
       clearAsk: () => this.setState({ ask: '', proposal: '' }),
       hasProposal: !!this.state.proposal,
