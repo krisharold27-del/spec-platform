@@ -7,6 +7,8 @@ import { getTenantById } from '@/lib/queries';
 import { goalsFor } from '@/lib/goals-data';
 import { GOAL_PROMPTS, GOAL_MAX, goalsAnswered, goalsSet } from '@/lib/goals';
 import { saveBusinessGoals } from './actions';
+import { nextStepAfter } from '@/lib/journey';
+import { NextStepCallout } from '@/components/next-step';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +43,7 @@ export default async function Goals({ searchParams }: { searchParams: Promise<Re
   const answered = goalsAnswered(goals);
   const count = goalsSet(goals);
   const byId = new Map(goals.map(g => [g.promptId, g.answer]));
+  const nextStep = await nextStepAfter(user.tenantId, '/setup/goals');
 
   return (
     <Shell
@@ -125,6 +128,8 @@ export default async function Goals({ searchParams }: { searchParams: Promise<Re
           lost under the numbers.
         </p>
       </section>
+
+      <NextStepCallout step={nextStep} />
     </Shell>
   );
 }

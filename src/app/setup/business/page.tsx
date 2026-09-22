@@ -13,6 +13,8 @@ import { nameRole, unplaceStaff, resolveRoleChange, invite } from '../people/act
 import { SeatLink } from '@/components/seat-link';
 import { seatUrl } from '@/lib/seat';
 import { currentOrigin } from '@/lib/origin';
+import { nextStepAfter } from '@/lib/journey';
+import { NextStepCallout } from '@/components/next-step';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,6 +121,7 @@ export default async function Business({ searchParams }: { searchParams: Promise
   };
 
   const named = roleRows.filter(r => holderOf(r.id)).length;
+  const nextStep = await nextStepAfter(user.tenantId, '/setup/business');
 
   function RoleRowItem({ r }: { r: typeof roleRows[number] }) {
     const holder = holderOf(r.id);
@@ -367,7 +370,7 @@ export default async function Business({ searchParams }: { searchParams: Promise
         </div>
       </details>
 
-      <p className="mt-6 text-sm"><a href="/journey" className="underline">Back to the journey</a></p>
+      <NextStepCallout step={nextStep} />
     </Shell>
   );
 }

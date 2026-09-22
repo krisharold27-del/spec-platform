@@ -338,6 +338,27 @@ export async function nextStep(tenantId: string) {
   return steps.find(s => isCore(s) && s.status !== 'done');
 }
 
+/**
+ * What to do after THIS step — the shape every setup page hands to `<NextStepCallout>` at the
+ * bottom of the screen.
+ *
+ * Kris, looking at the setup pages: *"when going through the setup phase it should link nicely to
+ * the next step."* `expectations` and `focus` already did this, one-off, inside `<Interview>`'s own
+ * finishing screen; this is the same idea pulled out so `business`, `kpis`, `board`, `systems` and
+ * `goals` — which have no interview to finish, just a form that saves — can hand off the same way
+ * instead of ending on a bare "Back to the journey" link.
+ *
+ * Not core-only, unlike `nextStep`: a setup page IS a step, so from inside one, an optional or later
+ * step is still a real next thing to do — only the step you are already on is excluded. `null` when
+ * nothing is left, so the page can show "you're done" instead of a step that does not exist.
+ */
+export async function nextStepAfter(tenantId: string, currentHref: string): Promise<{ title: string; href: string; why: string } | null> {
+  const steps = await journeyFor(tenantId);
+  const here = currentHref.split('?')[0];
+  const upcoming = steps.find(s => s.status !== 'done' && s.href.split('?')[0] !== here);
+  return upcoming ? { title: upcoming.title, href: upcoming.href, why: upcoming.why } : null;
+}
+
 /** The spine: four questions, the business on a page, the dashboards, the people, the first month. */
 export function isCore(s: { optional?: boolean; later?: boolean }) {
   return !s.optional && !s.later;

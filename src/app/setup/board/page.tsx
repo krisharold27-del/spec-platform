@@ -5,6 +5,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { Shell } from '@/components/ui';
 import { CADENCE, cadenceOf, governanceChecks, type Cadence } from '@/lib/governance';
 import { setCadence, addDirector, standDownDirector, recordBoardMeeting } from './actions';
+import { nextStepAfter } from '@/lib/journey';
+import { NextStepCallout } from '@/components/next-step';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +34,7 @@ export default async function BoardSetup({ searchParams }: { searchParams: Promi
     .filter(m => m.type === 'board')
     .sort((a, b) => (a.date < b.date ? 1 : -1));
   const checks = governanceChecks(cadence, meetings, directors);
+  const nextStep = await nextStepAfter(user.tenantId, '/setup/board');
 
   return (
     <Shell
@@ -119,6 +122,8 @@ export default async function BoardSetup({ searchParams }: { searchParams: Promi
           ))}
         </ul>
       </section>
+
+      <NextStepCallout step={nextStep} />
     </Shell>
   );
 }

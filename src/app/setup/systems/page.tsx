@@ -6,6 +6,8 @@ import { Shell } from '@/components/ui';
 import { CATEGORIES, categoryName, STATUS_LABEL } from '@/lib/systems';
 import { SystemChips } from '@/components/system-chips';
 import { addConnection, removeConnection } from './actions';
+import { nextStepAfter } from '@/lib/journey';
+import { NextStepCallout } from '@/components/next-step';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +35,7 @@ export default async function Systems({ searchParams }: { searchParams: Promise<
       eq(schema.systemConnections.tenantId, user.tenantId),
       isNull(schema.systemConnections.personalFor),
     ));
+  const nextStep = await nextStepAfter(user.tenantId, '/setup/systems');
 
   return (
     <Shell
@@ -118,6 +121,8 @@ export default async function Systems({ searchParams }: { searchParams: Promise<
         If a connection ever stops working, nobody in the business sees an error. The KPI it feeds falls
         back to being marked by hand, and only the person who set it up is told — quietly, by email.
       </p>
+
+      <NextStepCallout step={nextStep} />
     </Shell>
   );
 }

@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import Link from 'next/link';
 import { saveAnswer } from '@/app/setup/expectations/actions';
+import { NextStepCallout } from './next-step';
 
 export type Step = {
   sectionId: string;
@@ -89,23 +89,7 @@ export function Interview({ steps, initial, nextStep = null }: { steps: Step[]; 
             Saved as you went. These answers tune every KPI proposed from here on.
           </p>
 
-          {nextStep ? (
-            <div className="callout mt-6 text-left">
-              <div className="label-caps">What happens next</div>
-              <div className="mt-1 text-lg font-medium">{nextStep.title}</div>
-              <p className="mt-1 text-sm text-ink-light">{nextStep.why}</p>
-              <Link href={nextStep.href} className="btn-primary mt-3 inline-block">Start {nextStep.title.toLowerCase()}</Link>
-            </div>
-          ) : (
-            <div className="callout mt-6 text-left">
-              <div className="label-caps">What happens next</div>
-              <p className="mt-1 text-sm text-ink-light">
-                Every setup step is done. From here the rhythm carries it: weekly SOG meeting, monthly scoring,
-                monthly board output.
-              </p>
-              <Link href="/journey" className="btn-primary mt-3 inline-block">Back to the journey</Link>
-            </div>
-          )}
+          <NextStepCallout step={nextStep} />
 
           <div className="mt-4 text-center">
             <button onClick={() => setI(0)} className="text-sm text-ink-light underline hover:text-rust">Review my answers</button>

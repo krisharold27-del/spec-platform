@@ -8,6 +8,8 @@ import { Shell, PILLAR_META, Badge } from '@/components/ui';
 import { saveCriteria, loadVirtualGmKpis } from './actions';
 import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
+import { nextStepAfter } from '@/lib/journey';
+import { NextStepCallout } from '@/components/next-step';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +21,7 @@ export default async function KpiSetup({ searchParams }: { searchParams: Promise
   const role = roles.find(r => r.id === sp.role) ?? roles[0];
   if (!role) return <Shell title="KPIs"><p>Define roles first.</p></Shell>;
   const crit = await db.select().from(schema.criteria).where(and(eq(schema.criteria.roleId, role.id), eq(schema.criteria.active, true))).orderBy(schema.criteria.sortOrder);
+  const nextStep = await nextStepAfter(user.tenantId, '/setup/kpis');
 
   return (
     <Shell title="KPIs per role" subtitle="Two per pillar to start, and add as many as you like. Targets are negotiated, so leave one blank until it is agreed.">
@@ -126,7 +129,7 @@ export default async function KpiSetup({ searchParams }: { searchParams: Promise
           whatever is in it, so there is no arithmetic to do.
         </span>
       </form>
-      <p className="mt-6 text-sm"><a href="/journey" className="underline">Back to the journey</a></p>
+      <NextStepCallout step={nextStep} />
     </Shell>
   );
 }
