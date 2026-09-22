@@ -65,8 +65,8 @@ describe('the four packages', () => {
     in three tests, and it is what stopped design 15's $227 and $29 going out on 19 September — he
     was given the nearest numbers that obeyed it and said *"224 and 26"*. Those prices, and the
     tier they belonged to, are retired as of 22 September — see the note on `SEAT_PRICES` in
-    lib/pricing — and AUD's team seat, freed to be chosen again, is $26: the number the rule always
-    agreed with.
+    lib/pricing. AUD's team seat briefly moved to $26 for the same reason, then back to $17 —
+    Kris: *"oh yeah stay at 17 that sfine"* — so the seat table is unchanged from Stripe's own.
 
     What must not happen is the rule quietly disappearing — so this asserts the exceptions are
     EXACTLY the ones on record. A new one cannot arrive by accident, and a price moved back onto the

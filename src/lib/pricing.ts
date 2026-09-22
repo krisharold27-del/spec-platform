@@ -50,25 +50,15 @@ export interface SeatPrice {
  * again: `tenants.seatTier` is retired the same way `tenants.tier` was on 18 September — kept in the
  * schema, no longer read, additive migrations meaning it is never worth a rollback to drop it.
  *
- * Only the Australian figure actually changes. Kris, asked whether "$134 / $26" was every currency
- * or the Australian one: *"AUD only; others keep their own."* So AUD's team seat moves from $17 to
- * $26 — the rule-of-8 number this table's own history already names as the one he wanted (see
- * `RULE_OF_EIGHT` below) — and the other five currencies keep the amounts they already had. AUD's
- * leadership seat does not move: $134 was already the Basic price, and Basic is what "the system" was
- * ever going to mean once there is only one of it.
- *
- * ── Stripe still needs telling ──────────────────────────────────────────────────────────────────
- *
- * A Price object in Stripe is immutable. The account has $134 leadership (`leader_basic`, unchanged
- * and reused), $17 and $29 team seats (`team_basic`, `team_advanced`) and $227 leadership-with-AI
- * (`leader_advanced`) — and NOT a $26 team seat. Until a new $26 AUD price exists in the live account
- * (matching `team_basic`'s existing currency_options — 23/11/17/17/23 — with only the AUD default
- * changed), `STRIPE_PRICES.team` below falls back to the old $17 id so checkout keeps working rather
- * than throwing, and the display figure and the charged figure will disagree until that price is
- * created. See DECISIONS.md, 22 September.
+ * Nothing about the actual numbers changes. Kris first asked for the team seat to move from $17 to
+ * $26 — the rule-of-8 number this table's own history already names as one he wanted (see
+ * `RULE_OF_EIGHT` below) — then, once the tier itself was gone, said to leave it: *"oh yeah stay at
+ * 17 that sfine."* So AUD keeps the $17 it already had, matching the live Stripe price exactly, and
+ * every other currency keeps the amounts it already had too. What changed is only the SHAPE: one
+ * price per seat kind rather than two.
  */
 export const SEAT_PRICES: Record<Currency, SeatPrice> = {
-  aud: { leadership: 134, team: 26, symbol: 'A$' },
+  aud: { leadership: 134, team: 17, symbol: 'A$' },
   nzd: { leadership: 180, team: 23, symbol: 'NZ$' },
   gbp: { leadership: 88, team: 11, symbol: '£' },
   eur: { leadership: 134, team: 17, symbol: '€' },
@@ -88,8 +78,7 @@ export const everyPublishedSeatPrice = (p: SeatPrice): number[] => [p.leadership
  * *"224 and 26"*, and those were built and published, then overridden by what Stripe actually
  * charged (227 and 29) once the account confirmed it. That whole tier is gone as of 22 September —
  * see the note on `SEAT_PRICES` — and with it the one price this table could never make obey the
- * rule. AUD's team seat, freed to be chosen again rather than read off Stripe's $17, is $26: the
- * exact number Kris asked for the first time and the rule agrees with.
+ * rule.
  *
  * Twelve prices published now (two seat kinds, six currencies) rather than twenty-four. Six of them
  * reduce to 8 — AUD and, because they happen to share AUD's numbers, EUR and USD, both seat kinds —
@@ -97,7 +86,7 @@ export const everyPublishedSeatPrice = (p: SeatPrice): number[] => [p.leadership
  * exactly this: no more and no fewer, so a future price change that breaks the rule fails a test
  * until somebody decides it on purpose.
  */
-export const RULE_OF_EIGHT: readonly number[] = [17, 26, 134];
+export const RULE_OF_EIGHT: readonly number[] = [17, 134];
 
 /** Repeated digit sum: 26 → 8, 35 → 8, 1,700 → 8. */
 export function digitRoot(n: number): number {
@@ -133,12 +122,6 @@ export const pricesObeyingTheRule = (): number[] => [
  */
 export const STRIPE_PRICES = {
   leader: 'price_1UHK06GjbPN3KVS7Erx7Aeum',
-  /**
-   * Temporary: the real $26 AUD team price does not exist in Stripe yet (Price objects are
-   * immutable — see the note on `SEAT_PRICES`), so this still points at the old $17 `team_basic`
-   * id until somebody creates the new one and this id is replaced. Until then, checkout charges
-   * $17 for a seat the page shows as $26.
-   */
   team: 'price_1UHK5hGjbPN3KVS7hzoKltlI',
   /** Flat monthly, quantity 1, Australian dollars only. */
   training: 'price_1UHK94GjbPN3KVS7FE5GGzAC',

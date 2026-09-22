@@ -25,7 +25,7 @@ const t = (plan: string) => ({ id: 'x', plan, startDate: '2026-01-01' });
   here meant design 15 broke nine of them for saying nothing about the maths at all.
 */
 const LEADER = SEAT_PRICES.aud.leadership;   // 134
-const TEAM = SEAT_PRICES.aud.team;           // 26
+const TEAM = SEAT_PRICES.aud.team;           // 17
 
 describe('who the training seat is for', () => {
   it('frontline leaders, and nobody else', () => {
@@ -81,7 +81,7 @@ describe('a bill made of two kinds of seat', () => {
     counted every person in every business at it.
 
     The numbers below are the ones that were wrong: a business of forty with six leaders would have
-    been billed 39 × A$134 = A$5,226 a month instead of 5 × A$134 + 34 × A$26 = A$1,564. Four times
+    been billed 39 × A$134 = A$5,226 a month instead of 5 × A$134 + 34 × A$17 = A$1,248. Four times
     over, on the screen a customer reads before pressing pay, and looking entirely reasonable.
   */
   it('CHARGES THE LEADERSHIP RATE ONLY FOR THE PEOPLE WHO LEAD', () => {
@@ -102,7 +102,7 @@ describe('a bill made of two kinds of seat', () => {
   /*
     The free seat comes off the CHEAPER seat — the less generous reading, and the same choice the
     old version made. "The first seat is free" is a rule about money, not about which person, and
-    taking it off a leadership seat would hand back A$134 to make a point about A$26.
+    taking it off a leadership seat would hand back A$134 to make a point about A$17.
   */
   it('takes the free seat off a team seat, not off the dearer one', () => {
     expect(seatBill(2, 1, 'aud').monthlyCost).toBe(LEADER);

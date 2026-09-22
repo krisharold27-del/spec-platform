@@ -27,9 +27,9 @@ const BILLING_NOTICE: Record<string, { tone: 'ok' | 'warn'; text: string }> = {
   nothing_to_bill: { tone: 'ok', text: 'Nothing to pay — you have not invited anyone in yet, and the structure you are building is free.' },
   no_subscription: { tone: 'warn', text: "There's no subscription to manage yet — nothing has ever been charged. Use Start paying to set one up, and the Billing page appears once it's running." },
   /*
-    Somebody is on the A$44 training seat and Stripe has no training price configured. Stopping is
-    the point: falling back to the plain seat price would charge A$26 for material worth A$44, every
-    month, and nothing anywhere would ever say so.
+    Somebody is on the training seat and Stripe has no training price configured. Stopping is the
+    point: falling back to the plain seat price would charge less for material meant to cost more,
+    every month, and nothing anywhere would ever say so.
   */
   training_price_missing: {
     tone: 'warn',

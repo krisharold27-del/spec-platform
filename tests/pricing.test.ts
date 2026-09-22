@@ -20,7 +20,7 @@ describe('regional prices (BUILD_SPEC §8.1)', () => {
     const table = Object.fromEntries(Object.entries(SEAT_PRICES)
       .map(([c, p]) => [c, [p.leadership, p.team]]));
     expect(table).toEqual({
-      aud: [134, 26],
+      aud: [134, 17],
       nzd: [180, 23],
       gbp: [88, 11],
       eur: [134, 17],
@@ -32,11 +32,12 @@ describe('regional prices (BUILD_SPEC §8.1)', () => {
   /*
     ── Where the rule of 8 ended up ─────────────────────────────────────────────────────────────
 
-    AUD's team seat is free again to be CHOSEN rather than read off Stripe's old $17 — and $26 is
-    the exact number Kris asked for the first time, on 18 September, and the rule agrees with it.
-    `RULE_OF_EIGHT` is the frozen list of the three distinct amounts that obey it; a new price that
-    breaks the rule fails until somebody records it on purpose, and one moved back ONTO the rule
-    fails too — which is the direction that matters if a price is ever corrected.
+    Kris asked, briefly, for AUD's team seat to move from $17 to $26 — the rule-of-8 number this
+    table's own history already names — then, once the tier that prompted it was gone, said to
+    leave it: *"oh yeah stay at 17 that sfine."* So the numbers are unchanged from Stripe's own,
+    and `RULE_OF_EIGHT` is the frozen list of the amounts that obey it; a new price that breaks the
+    rule fails until somebody records it on purpose, and one moved back ONTO the rule fails too —
+    which is the direction that matters if a price is ever corrected.
   */
   it('OBEY THE RULE OF 8 IN EXACTLY THE PLACES ON RECORD, and nowhere else', () => {
     expect(pricesObeyingTheRule()).toEqual([...RULE_OF_EIGHT]);
@@ -106,12 +107,12 @@ describe('regional prices (BUILD_SPEC §8.1)', () => {
     expect(seatKindFor({ title: 'Site Supervisor', hasDirectReports: false })).toBe('leadership');
     expect(seatKindFor({ title: 'Electrician', hasDirectReports: false })).toBe('team');
     expect(seatPrice('aud', 'leadership')).toBe(134);
-    expect(seatPrice('aud', 'team')).toBe(26);
+    expect(seatPrice('aud', 'team')).toBe(17);
   });
 
   it('shows the local symbol', () => {
     expect((['aud', 'gbp', 'eur'] as Currency[]).map(c => seatLabel(c))).toEqual(['A$134', '£88', '€134']);
-    expect(seatLabel('aud', 'team')).toBe('A$26');
+    expect(seatLabel('aud', 'team')).toBe('A$17');
   });
 });
 

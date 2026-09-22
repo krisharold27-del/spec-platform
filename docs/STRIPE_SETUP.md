@@ -52,7 +52,7 @@ A$134 and US$134 are the same number and not the same price.
 Worth checking before the first real payment rather than after. Retro-fixing GST on invoices already
 issued is an accountant's afternoon.
 
-## 3. The products — already created, one gap still open
+## 3. The products — already created
 
 Confirmed against the live account on 19 September 2026, and retired to one price per seat kind on
 22 September — see `SEAT_PRICES` in `src/lib/pricing.ts` for why. This section is the record, so
@@ -61,17 +61,15 @@ that anybody comparing the code to Stripe has one table to compare it with.
 | Product | Product ID | Price ID | AUD | NZD | GBP | EUR | USD | CAD |
 |---|---|---|---|---|---|---|---|---|
 | SPEC Leadership seat | `prod_VHtnsfpPRSp6no` | `price_1UHK06GjbPN3KVS7Erx7Aeum` | 134 | 180 | 88 | 134 | 134 | 180 |
-| SPEC Team seat | `prod_VHtt211YPktGXS` | `price_1UHK5hGjbPN3KVS7hzoKltlI` | **17** (see below) | 23 | 11 | 17 | 17 | 23 |
+| SPEC Team seat | `prod_VHtt211YPktGXS` | `price_1UHK5hGjbPN3KVS7hzoKltlI` | 17 | 23 | 11 | 17 | 17 | 23 |
 | SPEC Training | `prod_VHtwe8HgAnBYdW` | `price_1UHK94GjbPN3KVS7FE5GGzAC` | 1,502 | — | — | — | — | — |
 
 All amounts are per month. Stripe stores them in minor units, so A$134 is `13400`.
 
-**The AUD team seat is still $17 in Stripe, and $26 on the page — this is the one gap in the table
-above.** Kris asked for AUD's team seat to move from $17 to $26; a Stripe Price object cannot be
-edited once created, so somebody has to create a new one — same currency_options as the row above
-(NZD 23, GBP 11, EUR 17, USD 17, CAD 23), only the AUD default changed to 26 — and its id replaces
-`STRIPE_PRICES.team` in `src/lib/pricing.ts`. Until that happens, checkout charges $17 for a seat
-the page shows as $26.
+Kris briefly asked for AUD's team seat to move from $17 to $26 — a Stripe Price object cannot be
+edited once created, so that would have meant creating a new one — then, once the tier that
+prompted the change was retired, said to leave it: *"oh yeah stay at 17 that sfine."* So the table
+above matches the live account exactly, with nothing left to create.
 
 The **Leadership seat - Advanced** (`prod_VHtrdn6wF9T8JM` / `price_1UHK3PGjbPN3KVS7vot0UtCu`, A$227)
 and **Team seat - Advanced** (`prod_VHtv5osYcg3Snq` / `price_1UHK7lGjbPN3KVS7EXlND5Xg`, A$29)
@@ -84,7 +82,7 @@ The two seat prices by currency, which is the order the pricing page prints them
 
 | Currency | Leadership seat | Team seat |
 |---|---|---|
-| AUD | 134 | 26 |
+| AUD | 134 | 17 |
 | NZD | 180 | 23 |
 | GBP | 88 | 11 |
 | EUR | 134 | 17 |
@@ -175,7 +173,7 @@ and still works if a line of code names it, so the ids are written down and
 Kris's rule: a published price should reduce to 8 by repeated digit sum, and three tests enforce
 it. **Six of the twelve seat prices above do not** — NZD, GBP and CAD, in both seat kinds.
 
-`RULE_OF_EIGHT` in `src/lib/pricing.ts` records the amounts that obey it — 17, 26 and 134 — and a
+`RULE_OF_EIGHT` in `src/lib/pricing.ts` records the amounts that obey it — 17 and 134 — and a
 test holds the set to exactly that, so a new exception cannot arrive without somebody adding it on
 purpose. If these prices are ever corrected in Stripe, correct the table and that list together.
 

@@ -447,7 +447,7 @@ export function costLabel(state: PlanState): string {
     It used to say `seatLabel(currency)` — the LEADERSHIP price — full stop: "A$134 a month for
     each person you add". Since design 15 that is the dearer of the two, and it is the wrong one
     for almost everybody a business adds next. A GM about to invite an electrician was being quoted
-    A$134 for a seat that costs A$26, on the page where they decide whether to invite anybody at
+    A$134 for a seat that costs A$17, on the page where they decide whether to invite anybody at
     all.
 
     So it names both, cheapest first, and says what makes the difference. A price that is too high
