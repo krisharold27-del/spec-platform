@@ -38,15 +38,24 @@ import type { Pillar, Answer } from './scoring';
  * framework, and the match is SHOWN rather than hidden, because a mapping somebody can see is a
  * mapping somebody can correct.
  *
- * What it must never do is **count a slot it has no measure for**. A business with no TRIFR
- * criterion is not failing TRIFR — SPEC simply cannot see it. So an unmatched or unmarked slot is
- * excluded from both sides, exactly as `NA` is excluded from a pillar, and the reading says how
- * much of itself it could compute. Below a floor it refuses to put a number up at all.
+ * ── Unmeasured counts against the score — changed 22 September ─────────────────────────────────
  *
- * That refusal is the whole difference between this and a dashboard. Kris's brief: *"if it spins,
- * errors, or shows an unrecognised number, the anticipation inverts into broken trust — worse than
- * never promising it."* A confident 94% built from two KPIs out of twenty-four is an unrecognised
- * number waiting to be argued with.
+ * Kris, 22 September: *"for gm power meter if something hasn't been done or measured it is a 0 -
+ * then brings down the score - until a score is entered or met"*.
+ *
+ * This reverses what the file said until today: a slot with no measure used to be left out of both
+ * sides of the fraction, the same way `NA` is excluded from a pillar, with a floor below which the
+ * meter refused to show a number at all. That reasoning was sound for the CORE scoring SPEC runs on
+ * — pillar%, role%, team%, the numbers behind somebody's incentive — and stays exactly as it was
+ * there (`lib/scoring`, and rule 9 in CLAUDE.md: pending is never red). Kris scoped this change to
+ * the power meter alone, and confirmed it explicitly when asked: not a change to how anybody's
+ * incentive is calculated.
+ *
+ * The meter is a different kind of number — a glance at the whole business for a GM and a board,
+ * not a pay calculation for one person — and here the business case runs the other way: a business
+ * that has only set up two of the twenty-five measures should NOT read as strong on the eighteen it
+ * has not gotten to yet. Scored out of the full hundred, always, every slot with nothing behind it
+ * costs exactly what it would cost if it had been marked and missed.
  */
 
 export type Weight = 'heavy' | 'shared';
@@ -302,25 +311,17 @@ export function readSnapSlot(snap: SnapReading | null | undefined): SlotReading 
   };
 }
 
-/**
- * How much of itself the meter has to see before it will put a number up.
- *
- * Six of twenty-four, and at least one of the five heavy hitters. Stated here rather than buried,
- * because it is a judgement and somebody should be able to argue with it.
- *
- * Without a floor, a business with one matched KPI that went well reads **100%** — a number that is
- * arithmetically true, completely wrong, and on the screen a board looks at. The heavy-hitter
- * requirement is the second half: seventy-five points of this reading live in those five, so a
- * meter built only from the other nineteen is measuring a quarter of itself and calling it the
- * business.
- */
-export const ENOUGH_SLOTS = 6;
+/** The full framework, in points. Fixed at 100 — five heavy hitters at 15, twenty sharing 25. */
+export const TOTAL_POINTS = HEAVY_SLOTS * HEAVY_POINTS + SHARED_POINTS;
 
 export type Band = 'green' | 'amber' | 'red' | 'unknown';
 
 export interface PowerReading {
-  /** 0–100 of what SPEC can actually see. Null when it can see too little to say anything. */
-  score: number | null;
+  /**
+   * 0–100, out of the full framework. Never null: a slot with nothing behind it costs its points
+   * the same as a slot that was marked and missed — see the note on this file, 22 September.
+   */
+  score: number;
   band: Band;
   verdict: string;
   heavy: SlotReading[];
@@ -346,15 +347,17 @@ const VERDICT: Record<Band, string> = {
   green: 'Business is performing well',
   amber: 'Holding, with real gaps to close',
   red: 'Serious ground to make up',
+  // Kept for a defensive null (bandOf still accepts one) even though powerReading never produces
+  // it any more — a type this file's own past self already got right once is worth leaving alone.
   unknown: 'Not enough is being measured yet to put a number on it',
 };
 
 /**
  * The reading.
  *
- * Scored **out of what is measured**, never out of twenty-four. A slot SPEC has no measure for
- * leaves both sides of the fraction, so a business that measures six things well reads well and is
- * told plainly that it is a reading of six things.
+ * Scored **out of the full hundred, always** — see the note at the top of this file, 22 September.
+ * A slot with nothing behind it costs its points exactly as a slot that was marked and missed
+ * would; there is no floor and no refusal, because "0 until it is entered or met" is the point.
  */
 export function powerReading(measures: readonly Measure[], snap?: SnapReading | null): PowerReading {
   const heavy = HEAVY.map(s => readSlot(s, measures));
@@ -371,19 +374,17 @@ export function powerReading(measures: readonly Measure[], snap?: SnapReading | 
   const sharedMet = shared.filter(r => r.state === 'met').length;
   const measured = heavyMeasured + sharedMeasured;
 
-  const available = heavyMeasured * HEAVY_POINTS + (SHARED_POINTS * sharedMeasured) / SHARED_SLOTS;
+  // Not measured and not met earn nothing, out of the fixed total — never out of what happens to
+  // be measured. That fixed denominator is the whole change: it is how "not done yet" costs.
   const earned = heavyMet * HEAVY_POINTS + (SHARED_POINTS * sharedMet) / SHARED_SLOTS;
-
-  const enough = measured >= ENOUGH_SLOTS && heavyMeasured > 0 && available > 0;
-  const score = enough ? Math.round((earned / available) * 100) : null;
+  const score = Math.round((earned / TOTAL_POINTS) * 100);
   const band = bandOf(score);
 
   /*
-    The loudest thing that went wrong, and only ever a heavy hitter.
-
-    Fifteen points is the largest single move this reading can make, so it is the sentence worth
-    putting under the number. The other nineteen are a point and a third each — naming one of those
-    as the cause would be true and useless.
+    The loudest thing that went wrong, and only ever a heavy hitter — but only when one was
+    actually MARKED not met. An unmeasured heavy hitter costs the same fifteen points, and it gets
+    its own row in the breakdown, but "cause" is reserved for a KPI somebody entered and missed; an
+    unmeasured one is a gap to fill in, not a figure to argue with.
   */
   const cause = heavy.find(r => r.state === 'not_met')?.cause ?? null;
 
@@ -396,30 +397,25 @@ export function powerReading(measures: readonly Measure[], snap?: SnapReading | 
   };
 }
 
-/**
- * What the ring draws — the design's dasharray, kept out of the page.
- *
- * An unknown reading draws no arc at all rather than an empty one. A ring stuck at zero and a ring
- * that has nothing to say look identical on a screen and mean opposite things.
- */
+/** What the ring draws — the design's dasharray, kept out of the page. */
 export const ringOffset = (score: number | null, circumference = 264): number =>
   (score === null ? circumference : Math.max(0, circumference - (circumference * score) / 100));
 
 /**
- * The sentence beside the number saying how much of the framework SPEC can see.
+ * The sentence beside the number saying how much of the framework SPEC can see, and that the rest
+ * counts as zero rather than being left out.
  *
  * Always shown, never only when it is low. A coverage note that appears when things are bad is a
  * disclaimer; one that is always there is a fact about the reading.
  */
 export function coverageLine(reading: PowerReading): string {
   if (reading.measured === 0) {
-    return `SPEC has no measure yet for any of the ${reading.total}. Set KPIs against the roles and this fills in.`;
+    return `Nothing is measured yet, so every one of the ${reading.total} counts as not yet met. `
+      + 'Set KPIs against the roles and this fills in.';
   }
-  if (reading.score === null) {
-    const short = reading.heavyMeasured === 0
-      ? ' — and none of the five heavy hitters, which carry three quarters of the reading'
-      : '';
-    return `Reading ${reading.measured} of the ${reading.total}${short}. Not enough to put a number on it yet.`;
+  if (reading.measured < reading.total) {
+    return `Read from ${reading.measured} of the ${reading.total} — the other `
+      + `${reading.total - reading.measured} count as not yet met until a KPI is set and marked.`;
   }
   return `Read from ${reading.measured} of the ${reading.total} measures marked this month.`;
 }

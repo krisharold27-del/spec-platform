@@ -82,7 +82,7 @@ export function PowerMeter({ reading, canRead, period, showing, hrefFor }: Omit<
         */}
         {canRead && (
           <span className="font-serif text-[22px] leading-none text-ink" data-power-score>
-            {reading.score === null ? '—' : `${reading.score}%`}
+            {reading.score}%
           </span>
         )}
         <span className="whitespace-nowrap text-[10.5px] italic text-rust-700">Hack Your Power</span>
@@ -115,26 +115,21 @@ export function PowerMeter({ reading, canRead, period, showing, hrefFor }: Omit<
 /**
  * The ring.
  *
- * Track in `rust-100` — `--color-accent-100` in the design system, the same value. An unknown
- * reading draws no arc at all: a ring stuck at zero and a ring with nothing to say look identical
- * on a screen and mean opposite things, and of the two the wrong one has a board asking why the
- * business is at nothing.
+ * Track in `rust-100` — `--color-accent-100` in the design system, the same value. The reading is
+ * never null now — nothing measured reads as a real 0, not an unknown — so the arc always draws;
+ * see the note on `lib/power-meter`, 22 September.
  */
 function Dial({ reading, colour }: { reading: PowerReading; colour: string }) {
   return (
     <svg viewBox="0 0 100 100" width="60" height="60" role="img" className="shrink-0"
-      aria-label={reading.score === null
-        ? 'Virtual GM Power Meter — not enough is measured yet to give a reading'
-        : `Virtual GM Power Meter — ${reading.score} out of 100, ${reading.verdict}`}
+      aria-label={`Virtual GM Power Meter — ${reading.score} out of 100, ${reading.verdict}`}
     >
       <circle cx="50" cy="50" r="42" fill="none" stroke="#fff2eb" strokeWidth="14" />
-      {reading.score !== null && (
-        <circle
-          cx="50" cy="50" r="42" fill="none" stroke={colour} strokeWidth="14" strokeLinecap="round"
-          strokeDasharray="264" strokeDashoffset={ringOffset(reading.score)}
-          transform="rotate(-90 50 50)"
-        />
-      )}
+      <circle
+        cx="50" cy="50" r="42" fill="none" stroke={colour} strokeWidth="14" strokeLinecap="round"
+        strokeDasharray="264" strokeDashoffset={ringOffset(reading.score)}
+        transform="rotate(-90 50 50)"
+      />
     </svg>
   );
 }
@@ -156,9 +151,7 @@ export function PowerBreakdown({ reading, canRead, topOfChart, period, stale, sh
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid gap-1">
           <span className="label-caps">Virtual GM Power Meter · {scopeLabel(topOfChart)}</span>
-          <p className="font-serif text-xl text-ink">
-            {reading.score === null ? reading.verdict : `${reading.score}% — ${reading.verdict}`}
-          </p>
+          <p className="font-serif text-xl text-ink">{reading.score}% — {reading.verdict}</p>
         </div>
         <Link href={hrefFor('closed')} className="btn-secondary shrink-0 px-3 py-1.5 text-xs">Close</Link>
       </div>

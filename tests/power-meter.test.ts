@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
-  FRAMEWORK, HEAVY_SLOTS, SHARED_SLOTS, HEAVY_POINTS, SHARED_POINTS, ENOUGH_SLOTS,
+  FRAMEWORK, HEAVY_SLOTS, SHARED_SLOTS, HEAVY_POINTS, SHARED_POINTS, TOTAL_POINTS,
   powerReading, readSlot, bandOf, ringOffset, coverageLine, scopeLabel, sourcesOf,
   readSnapSlot, SNAP_MET_AT,
   type Measure, type Slot,
@@ -54,6 +54,7 @@ describe('the framework itself', () => {
   */
   it('AND THE FIVE CARRY THREE QUARTERS OF IT', () => {
     expect(HEAVY_SLOTS * HEAVY_POINTS + SHARED_POINTS).toBe(100);
+    expect(TOTAL_POINTS).toBe(100);
     expect(HEAVY_SLOTS * HEAVY_POINTS).toBe(75);
   });
 
@@ -247,12 +248,17 @@ describe('against the words a real business actually uses', () => {
       'Job notes and timesheets complete same day',
     ].map(t => measure(t, 'Y')));
     expect(reading.measured).toBe(0);
-    expect(reading.score).toBeNull();
+    // Nothing matched, so nothing is measured — and unmeasured now reads as a real, low score
+    // rather than a refusal to say anything.
+    expect(reading.score).toBe(0);
   });
 
   it('and gives JBI a real reading rather than a shrug', () => {
     const reading = met(JBI_KPIS);
-    expect(reading.score).toBe(100);
+    // Every measure JBI actually has is met — but JBI has not written a KPI for every one of the
+    // 25 slots, and since 22 September the slots it has not measured cost points rather than being
+    // left out. 88 is what a real, still-growing set of KPIs is worth, not a shrug and not a 100.
+    expect(reading.score).toBe(88);
     expect(reading.measured).toBeGreaterThanOrEqual(12);
   });
 });
@@ -266,16 +272,19 @@ describe('the reading', () => {
   });
 
   /*
-    The reading is out of WHAT IS MEASURED, never out of twenty-four. A business with no TRIFR
-    criterion is not failing TRIFR — SPEC simply cannot see it, and counting an absence as a miss
-    would make the meter a punishment for not having bought more software.
+    Changed 22 September — Kris: *"if something hasn't been done or measured it is a 0 - then
+    brings down the score - until a score is entered or met"*. The reading is now out of the full
+    twenty-five, always: the twelve left unmeasured cost their points exactly as a miss would,
+    which is the whole point of the change.
   */
-  it('AND IS SCORED OUT OF WHAT IT CAN SEE, NOT OUT OF TWENTY-FIVE', () => {
+  it('AND IS SCORED OUT OF THE FULL TWENTY-FIVE — UNMEASURED COSTS THE SAME AS A MISS', () => {
     const half = FRAMEWORK.slice(0, 12).map(s => measure(s.name, 'Y'));
     const reading = powerReading(half);
-    expect(reading.score).toBe(100);
+    // 5 heavy met (75) + 7 of the shared slice met (7 × 1.25 = 8.75) = 83.75 → 84 of 100.
+    expect(reading.score).toBe(84);
     expect(reading.measured).toBe(12);
     expect(coverageLine(reading)).toContain('12 of the 25');
+    expect(coverageLine(reading)).toContain('13 count as not yet met');
   });
 
   it('and one heavy hitter missed costs fifteen of the hundred', () => {
@@ -395,57 +404,51 @@ describe('the twenty-fifth measure — the Snap Score', () => {
 
 describe('when it refuses to put a number up', () => {
   /*
-    The check this whole file exists for.
-
-    A business with one matched KPI that went well reads 100% — arithmetically true, completely
-    wrong, and on the screen a board looks at. Kris's brief: "if it spins, errors, or shows an
-    unrecognised number, the anticipation inverts into broken trust — worse than never promising
-    it." So below a floor there is no number at all.
+    Changed 22 September — Kris: *"if something hasn't been done or measured it is a 0 - then
+    brings down the score - until a score is entered or met"*. There is no floor any more and no
+    refusal: the meter always puts a number up, and one matched KPI reads as what it is worth —
+    fifteen of a hundred for a heavy hitter — with the other twenty-four counted against it as not
+    yet met, not left out of the reckoning.
   */
-  it('WILL NOT REPORT 100% OFF A SINGLE KPI', () => {
+  it('ONE MATCHED HEAVY HITTER READS AS FIFTEEN OF A HUNDRED, NOT A REFUSAL', () => {
     const reading = powerReading([measure('Safety incidents: zero', 'Y')]);
-    expect(reading.score).toBeNull();
-    expect(reading.band).toBe('unknown');
-    expect(reading.verdict).toContain('Not enough is being measured');
+    expect(reading.score).toBe(15);
+    expect(reading.band).toBe('red');
+    expect(reading.measured).toBe(1);
   });
 
   /*
-    And the second half of the floor. Seventy-five points of this reading live in the five heavy
-    hitters, so a meter built only from the other nineteen is measuring a quarter of itself and
-    calling it the business.
+    And the twenty small measures, met on their own with no heavy hitter touched, read as exactly
+    what twenty of the twenty-five sharing 1.25 points each are worth: 25 of 100.
   */
-  it('NOR A NUMBER BUILT ENTIRELY FROM THE SMALL MEASURES', () => {
-    /*
-      Named one by one rather than "the first ten shared slots", which is how this test was first
-      written and was wrong about its own premise: "Lost time injuries" also answers the heavy
-      safety-incident slot, so the reading had a heavy hitter in it and correctly produced a number.
-      The CODE was right and the fixture was not — which is worth keeping, because a lost-time
-      injury really is a safety incident and the overlap is a feature.
-    */
+  it('AND A HANDFUL OF SMALL MEASURES READS AS ITS OWN SMALL SHARE, NOT NOTHING', () => {
     const noHeavy = ['absenteeism', 'training_done', 'engagement', 'dev_plans', 'budget_miss',
       'revenue_budget', 'net_margin', 'cash_flow', 'revenue_growth', 'debtor_days']
       .map(id => measure(FRAMEWORK.find(s => s.id === id)!.name, 'Y'));
     const reading = powerReading(noHeavy);
     expect(reading.heavyMeasured).toBe(0);
-    expect(reading.measured).toBeGreaterThanOrEqual(ENOUGH_SLOTS);
-    expect(reading.score).toBeNull();
-    expect(coverageLine(reading)).toContain('heavy hitters');
+    // 10 of the 20 shared slots met: 10 × 1.25 = 12.5 → 13 of 100.
+    expect(reading.score).toBe(13);
+    expect(reading.band).toBe('red');
   });
 
-  it('and says so in words rather than showing a zero', () => {
+  it('and nothing measured at all reads as a real zero, not an unknown', () => {
     const nothing = powerReading([]);
-    expect(nothing.score).toBeNull();
+    expect(nothing.score).toBe(0);
+    expect(nothing.band).toBe('red');
     expect(nothing.measured).toBe(0);
-    expect(coverageLine(nothing)).toContain('no measure yet');
-    // A ring stuck at zero and a ring with nothing to say look identical and mean opposite things.
-    expect(ringOffset(null)).toBe(264);
+    expect(coverageLine(nothing)).toContain('counts as not yet met');
+    // Zero is now a real, meaningful reading — the ring draws exactly as far as any other score.
     expect(ringOffset(0)).toBe(264);
     expect(ringOffset(100)).toBe(0);
     expect(Math.round(ringOffset(50))).toBe(132);
+    // null stays handled defensively, even though powerReading never produces it any more.
+    expect(ringOffset(null)).toBe(264);
   });
 
-  it('and the coverage is stated on every reading, not only the bad ones', () => {
+  it('and the coverage always says how much counts against the business, not only when it is bad', () => {
     expect(coverageLine(powerReading(everythingMet(), GOOD_SNAP))).toContain('25 of the 25');
+    expect(coverageLine(powerReading([]))).toContain('25 counts as not yet met');
   });
 
   /*
