@@ -206,13 +206,6 @@ export default function How() {
             target nobody can meet and a role nobody is in will both hold one open for months, so the same
             page measures those too, and names what would move each one.
           </p>
-          <p className="mt-3 max-w-3xl text-sm text-ink-light">
-            Being exact about which half of the price list this applies to:{' '}
-            <b className="text-ink">the collapse is caused by connectors, so it happens on Advanced and
-            not on Basic.</b>{' '}
-            Basic is a complete way to run the whole system and it is not a shallow J curve. Saying
-            otherwise would make every other number here worth less.
-          </p>
         </section>
 
         {/* ── Conversation boards ───────────────────────────────────────────── */}

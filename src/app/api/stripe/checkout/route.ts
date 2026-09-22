@@ -78,10 +78,7 @@ export async function POST() {
   */
   const seats = await countSeats(user.tenantId);
   const leadershipSeats = await countLeadershipSeats(user.tenantId);
-  // basic | advanced — this business's own answer to "do you want SPEC AI powered?" (billing page,
-  // lib/plan's setSeatTier). Missing reads as basic — see the note on tenants.seatTier.
-  const withAi = tenant.seatTier === 'advanced';
-  const bill = seatBill(seats, leadershipSeats, undefined, withAi);
+  const bill = seatBill(seats, leadershipSeats);
   if (bill.billable === 0) return NextResponse.redirect(`${here}/billing?nothing_to_bill=1`, 303);
 
   // Billed in the business's own currency, set by where it is (BUILD_SPEC §8.2).
@@ -91,21 +88,16 @@ export async function POST() {
     ── Two seats, so two lines ─────────────────────────────────────────────────────────────────
 
     Kris's handoff: *"A customer's subscription is one Leadership-seat line item (quantity = number
-    of leaders) plus one Team-seat line item (quantity = number of team members), both on the same
-    tier."*
-
-    Both on the same tier is the part worth stating, because it is not enforceable from here on its
-    own: `withAi` is one value for the whole checkout, so both lines always agree — mixing Basic
-    leaders with Advanced team seats is not offered, and a bill that mixed them would be selling
-    something that does not exist. `lineItemsFor` (lib/pricing) is shared with `syncSubscriptionSeats`
-    (lib/plan), which pushes the same two lines onto an ALREADY-subscribed business when its tier
-    changes, so there is exactly one place this arithmetic is written.
+    of leaders) plus one Team-seat line item (quantity = number of team members)."* One price per
+    seat kind, not two — the Basic/Advanced split this checkout briefly offered lasted one session
+    and was retired 22 September (see the note on `SEAT_PRICES` in lib/pricing). `lineItemsFor`
+    (lib/pricing) is the one place this arithmetic is written.
 
     The old version of this split people a different way — plain seats against SPEC's training
     seats — and could only ever reach ONE of the four prices, the leadership one. Every team member
     in every business was counted at A$134. See the note on seatBill.
   */
-  const lines = lineItemsFor(bill, withAi);
+  const lines = lineItemsFor(bill);
 
   /*
     Kris, 20 September, right after the first real payment: the billing page came back as a bare

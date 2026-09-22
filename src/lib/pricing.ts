@@ -26,67 +26,78 @@ export const SUPPORTED_CURRENCIES = ['aud', 'nzd', 'gbp', 'eur', 'usd', 'cad'] a
 export interface SeatPrice {
   /** Somebody who leads people. */
   leadership: number;
-  leadershipWithAi: number;
   /** Somebody who is led — priced in a pool, not one at a time. */
   team: number;
-  teamWithAi: number;
   symbol: string;
 }
 
 /**
- * ── Two seats, two tiers, six currencies ────────────────────────────────────────────────────────
+ * ── One price per seat kind, not two ────────────────────────────────────────────────────────────
  *
- * Design 15, 19 September, replacing a single flat seat: **"if you lead people, you're a leadership
- * seat. If you're led, you're a team seat in a pool."** Each of the two comes in Basic (no AI) and
- * Advanced (with AI) — `leadershipWithAi` and `teamWithAi` here, `_advanced` in Stripe.
+ * Design 15, 19 September, split one flat seat into two: **"if you lead people, you're a leadership
+ * seat. If you're led, you're a team seat in a pool."** That stands. What does not survive is the
+ * SECOND split it arrived with — Basic and Advanced, the same seat at two different prices — which
+ * lasted one session. Kris, 22 September, looking at the built result: *"i also feel like i don't
+ * want to have 2 different prices. either use the system or not - make it simple - I think take all
+ * prices for seat to $134 and for team members $26 - feels too confusing to me."* Asked to confirm,
+ * he restated it rather than reversing it: *"make it either on or off - then the prices are clear -
+ * the system seats are $134 and the member seats are $26."*
  *
- * Every figure below is transcribed from Kris's Stripe handoff of 19 September, which was read off
- * the live account. Written out currency by currency rather than computed, because the whole point
- * of this table is that a price is CHOSEN for a region and never converted — a table that derived
- * its own numbers would agree with any arithmetic mistake it made.
+ * "On or off" is not a third tier. It is `aiActive` (lib/plan) — subscribed, or not — which already
+ * decided whether the assistant works, from before this session started, independently of whatever
+ * seat tier a business was on. The Advanced price never bought a different product; `aiActive` was
+ * never read from `seatTier`. Two prices for one thing was the whole complaint, so there is one price
+ * again: `tenants.seatTier` is retired the same way `tenants.tier` was on 18 September — kept in the
+ * schema, no longer read, additive migrations meaning it is never worth a rollback to drop it.
  *
- * In Stripe each row is NOT six prices. It is ONE price object with AUD as its default currency and
- * the other five as `currency_options` on it, which is why `STRIPE_PRICES` has four ids and not
- * twenty-four. Checkout is told the currency and Stripe picks the option.
+ * Only the Australian figure actually changes. Kris, asked whether "$134 / $26" was every currency
+ * or the Australian one: *"AUD only; others keep their own."* So AUD's team seat moves from $17 to
+ * $26 — the rule-of-8 number this table's own history already names as the one he wanted (see
+ * `RULE_OF_EIGHT` below) — and the other five currencies keep the amounts they already had. AUD's
+ * leadership seat does not move: $134 was already the Basic price, and Basic is what "the system" was
+ * ever going to mean once there is only one of it.
+ *
+ * ── Stripe still needs telling ──────────────────────────────────────────────────────────────────
+ *
+ * A Price object in Stripe is immutable. The account has $134 leadership (`leader_basic`, unchanged
+ * and reused), $17 and $29 team seats (`team_basic`, `team_advanced`) and $227 leadership-with-AI
+ * (`leader_advanced`) — and NOT a $26 team seat. Until a new $26 AUD price exists in the live account
+ * (matching `team_basic`'s existing currency_options — 23/11/17/17/23 — with only the AUD default
+ * changed), `STRIPE_PRICES.team` below falls back to the old $17 id so checkout keeps working rather
+ * than throwing, and the display figure and the charged figure will disagree until that price is
+ * created. See DECISIONS.md, 22 September.
  */
 export const SEAT_PRICES: Record<Currency, SeatPrice> = {
-  aud: { leadership: 134, leadershipWithAi: 227, team: 17, teamWithAi: 29, symbol: 'A$' },
-  nzd: { leadership: 180, leadershipWithAi: 305, team: 23, teamWithAi: 39, symbol: 'NZ$' },
-  gbp: { leadership: 88, leadershipWithAi: 149, team: 11, teamWithAi: 19, symbol: '£' },
-  eur: { leadership: 134, leadershipWithAi: 227, team: 17, teamWithAi: 29, symbol: '€' },
-  usd: { leadership: 134, leadershipWithAi: 227, team: 17, teamWithAi: 29, symbol: 'US$' },
-  cad: { leadership: 180, leadershipWithAi: 305, team: 23, teamWithAi: 39, symbol: 'CA$' },
+  aud: { leadership: 134, team: 26, symbol: 'A$' },
+  nzd: { leadership: 180, team: 23, symbol: 'NZ$' },
+  gbp: { leadership: 88, team: 11, symbol: '£' },
+  eur: { leadership: 134, team: 17, symbol: '€' },
+  usd: { leadership: 134, team: 17, symbol: 'US$' },
+  cad: { leadership: 180, team: 23, symbol: 'CA$' },
 };
 
 /** Every number this table publishes. */
-export const everyPublishedSeatPrice = (p: SeatPrice): number[] =>
-  [p.leadership, p.leadershipWithAi, p.team, p.teamWithAi];
+export const everyPublishedSeatPrice = (p: SeatPrice): number[] => [p.leadership, p.team];
 
 /**
  * ── The rule of 8, and what happened to it ──────────────────────────────────────────────────────
  *
  * Every published price in SPEC reduced to 8 by repeated digit sum. It was a real rule of Kris's,
- * it was enforced in three separate tests, and on 19 September it is what stopped design 15's
- * **$227** and **$29** going out — he was given the nearest numbers that obeyed it and said
- * *"224 and 26"*, and those were built and published.
+ * enforced in three separate tests, and on 19 September it is what stopped design 15's Advanced
+ * prices — $227 and $29 — going out: he was given the nearest numbers that obeyed it and said
+ * *"224 and 26"*, and those were built and published, then overridden by what Stripe actually
+ * charged (227 and 29) once the account confirmed it. That whole tier is gone as of 22 September —
+ * see the note on `SEAT_PRICES` — and with it the one price this table could never make obey the
+ * rule. AUD's team seat, freed to be chosen again rather than read off Stripe's $17, is $26: the
+ * exact number Kris asked for the first time and the rule agrees with.
  *
- * Then the products were created in Stripe at **227** and **29**, and the handoff confirms them
- * against the live account. Sixteen of the twenty-four seat prices do not reduce to 8.
- *
- * A displayed price that is not the charged price is the worst outcome available here — it is a
- * chargeback and a support ticket and a customer who stops believing the rest of the page — so the
- * table matches Stripe and the rule gives way. But it is NOT quietly deleted, because a rule that
- * disappears without a decision is how the next twenty-four go out unexamined.
- *
- * So this is the frozen list of the eight that still obey it. `tests/pricing.test.ts` asserts the
- * set is exactly this — no more and no fewer — which means a seventeenth exception cannot arrive by
- * accident: changing a price to one that breaks the rule fails a test until somebody adds it here
- * on purpose, and changing one BACK to a number that obeys it fails too.
- *
- * Kris has been told which sixteen they are. If Stripe is corrected, correct this table and this
- * list together, in that order.
+ * Twelve prices published now (two seat kinds, six currencies) rather than twenty-four. Six of them
+ * reduce to 8 — AUD and, because they happen to share AUD's numbers, EUR and USD, both seat kinds —
+ * and NZD, GBP and CAD's do not, exactly as before. `tests/pricing.test.ts` asserts the set below is
+ * exactly this: no more and no fewer, so a future price change that breaks the rule fails a test
+ * until somebody decides it on purpose.
  */
-export const RULE_OF_EIGHT: readonly number[] = [17, 134, 305];
+export const RULE_OF_EIGHT: readonly number[] = [17, 26, 134];
 
 /** Repeated digit sum: 26 → 8, 35 → 8, 1,700 → 8. */
 export function digitRoot(n: number): number {
@@ -95,7 +106,7 @@ export function digitRoot(n: number): number {
   return x;
 }
 
-/** Which of the twenty-four published seat prices still reduce to 8, as a sorted set of amounts. */
+/** Which of the twelve published seat prices reduce to 8, as a sorted set of amounts. */
 export const pricesObeyingTheRule = (): number[] => [
   ...new Set(Object.values(SEAT_PRICES)
     .flatMap(everyPublishedSeatPrice)
@@ -121,10 +132,14 @@ export const pricesObeyingTheRule = (): number[] => [
  * at test-mode prices without a release. These are the fallback, and the fallback is the truth.
  */
 export const STRIPE_PRICES = {
-  leader_basic: 'price_1UHK06GjbPN3KVS7Erx7Aeum',
-  leader_advanced: 'price_1UHK3PGjbPN3KVS7vot0UtCu',
-  team_basic: 'price_1UHK5hGjbPN3KVS7hzoKltlI',
-  team_advanced: 'price_1UHK7lGjbPN3KVS7EXlND5Xg',
+  leader: 'price_1UHK06GjbPN3KVS7Erx7Aeum',
+  /**
+   * Temporary: the real $26 AUD team price does not exist in Stripe yet (Price objects are
+   * immutable — see the note on `SEAT_PRICES`), so this still points at the old $17 `team_basic`
+   * id until somebody creates the new one and this id is replaced. Until then, checkout charges
+   * $17 for a seat the page shows as $26.
+   */
+  team: 'price_1UHK5hGjbPN3KVS7hzoKltlI',
   /** Flat monthly, quantity 1, Australian dollars only. */
   training: 'price_1UHK94GjbPN3KVS7FE5GGzAC',
 } as const;
@@ -132,7 +147,7 @@ export const STRIPE_PRICES = {
 export type StripePriceKey = keyof typeof STRIPE_PRICES;
 
 /**
- * The Stripe price id for one of the four seat products — the environment variable wins when set
+ * The Stripe price id for one of the two seat products — the environment variable wins when set
  * (a deployment can be pointed at test-mode prices without a release), `STRIPE_PRICES` is the
  * fallback and the truth.
  */
@@ -140,36 +155,43 @@ export const stripePriceId = (key: StripePriceKey, envName: string): string =>
   process.env[envName] || STRIPE_PRICES[key];
 
 /**
+ * The Advanced/AI-priced seat ids, retired 22 September along with the tier they billed. Still
+ * live in Stripe — nobody archived them — but no code path references them any more. Written
+ * down so nobody reads an old commit, sees a bare id, and wires it back in without reading why it
+ * stopped being used: see the note on `SEAT_PRICES`.
+ */
+export const RETIRED_STRIPE_PRICES = {
+  leader_advanced: 'price_1UHK3PGjbPN3KVS7vot0UtCu',
+  team_advanced: 'price_1UHK7lGjbPN3KVS7EXlND5Xg',
+} as const;
+
+/**
  * The subscription line items for a bill — one place, used by both a NEW checkout and an UPDATE to
  * an existing subscription, so the two can never compute this differently.
  *
  * ── Why this used to be only in one place ───────────────────────────────────────────────────────
  *
- * `api/stripe/checkout/route.ts` built this inline, because until 22 September a business could
- * only ever reach this shape once — at its first checkout. Now a business can change seat tier
- * AFTER subscribing (`setSeatTier` in lib/plan), which has to update the SAME subscription rather
- * than start a second one, and it needs the identical two lines to reconcile against. Two versions
- * of "what a bill is made of" is exactly the fault `seatBill`'s own history warns about — see the
- * note there on a business being billed four times over because the bill asked an old question.
+ * `api/stripe/checkout/route.ts` used to build this inline, because a business could only ever
+ * reach this shape once — at its first checkout. That stopped being true once a business could be
+ * on a subscription already and change its seat counts, which has to update the SAME subscription
+ * rather than start a second one, and needs the identical two lines to reconcile against. Two
+ * versions of "what a bill is made of" is exactly the fault `seatBill`'s own history warns about —
+ * see the note there on a business being billed four times over because the bill asked an old
+ * question.
  */
 export function lineItemsFor(
   bill: { leadership: number; team: number },
-  withAi: boolean,
 ): { price: string; quantity: number }[] {
   const lines: { price: string; quantity: number }[] = [];
   if (bill.leadership > 0) {
     lines.push({
-      price: withAi
-        ? stripePriceId('leader_advanced', 'STRIPE_PRICE_SEAT_TRAINING_MONTHLY')
-        : stripePriceId('leader_basic', 'STRIPE_PRICE_SEAT_MONTHLY'),
+      price: stripePriceId('leader', 'STRIPE_PRICE_SEAT_MONTHLY'),
       quantity: bill.leadership,
     });
   }
   if (bill.team > 0) {
     lines.push({
-      price: withAi
-        ? stripePriceId('team_advanced', 'STRIPE_PRICE_TEAM_SEAT_ADVANCED_MONTHLY')
-        : stripePriceId('team_basic', 'STRIPE_PRICE_TEAM_SEAT_MONTHLY'),
+      price: stripePriceId('team', 'STRIPE_PRICE_TEAM_SEAT_MONTHLY'),
       quantity: bill.team,
     });
   }
@@ -178,11 +200,15 @@ export function lineItemsFor(
 
 /** The products those prices hang off, for anybody checking the account against this file. */
 export const STRIPE_PRODUCTS = {
-  leader_basic: 'prod_VHtnsfpPRSp6no',
-  leader_advanced: 'prod_VHtrdn6wF9T8JM',
-  team_basic: 'prod_VHtt211YPktGXS',
-  team_advanced: 'prod_VHtv5osYcg3Snq',
+  leader: 'prod_VHtnsfpPRSp6no',
+  team: 'prod_VHtt211YPktGXS',
   training: 'prod_VHtwe8HgAnBYdW',
+} as const;
+
+/** The Advanced products those `RETIRED_STRIPE_PRICES` hang off — see the note there. */
+export const RETIRED_STRIPE_PRODUCTS = {
+  leader_advanced: 'prod_VHtrdn6wF9T8JM',
+  team_advanced: 'prod_VHtv5osYcg3Snq',
 } as const;
 
 /**
@@ -248,15 +274,14 @@ export type SeatKind = 'leadership' | 'team';
  * `SeatKind` stays here because the PRICES are keyed by it.
  */
 
-/** What one seat of a kind costs, with or without the AI. */
-export function seatPrice(currency: Currency, kind: SeatKind, withAi = false): number {
+/** What one seat of a kind costs. */
+export function seatPrice(currency: Currency, kind: SeatKind): number {
   const p = SEAT_PRICES[currency];
-  if (kind === 'leadership') return withAi ? p.leadershipWithAi : p.leadership;
-  return withAi ? p.teamWithAi : p.team;
+  return kind === 'leadership' ? p.leadership : p.team;
 }
 
-export const seatLabel = (currency: Currency, kind: SeatKind = 'leadership', withAi = false) =>
-  `${SEAT_PRICES[currency].symbol}${seatPrice(currency, kind, withAi)}`;
+export const seatLabel = (currency: Currency, kind: SeatKind = 'leadership') =>
+  `${SEAT_PRICES[currency].symbol}${seatPrice(currency, kind)}`;
 export const moneyLabel = (currency: Currency, amount: number) => `${SEAT_PRICES[currency].symbol}${amount}`;
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -365,16 +390,6 @@ export const canBeTrained = (level: string | null | undefined): boolean =>
 export const isFrontlineLeader = (level: string | null | undefined): boolean =>
   TRAINING_LEVELS.includes(String(level) as (typeof TRAINING_LEVELS)[number]);
 
-/**
- * What one seat costs a month, in this currency.
- *
- * The boolean used to mean "with SPEC's training material". Design 15 retires that seat — it was
- * published for months and never sellable, because the supervisor pack was never finished — and
- * puts an AI variant on each of the two real seats instead. Same shape, different question.
- */
-export const seatRate = (currency: Currency, withAi: boolean, kind: SeatKind = 'leadership'): number =>
-  seatPrice(currency, kind, withAi);
-
 export interface PackageSpec {
   label: string;
   /** What the business actually gets, in the words it was sold in. */
@@ -455,15 +470,21 @@ export const PACKAGES: Record<Package, PackageSpec> = {
     publishPrice: true,
   },
   seat_training: {
-    // Stripe: "SPEC Leadership seat - Advanced".
-    label: 'Leadership seat — Advanced',
-    what: 'The same seat, with the assistant on it — SPEC reading the numbers with them rather than '
-      + 'just holding them.',
+    /*
+      Retired 22 September, the same day as the Advanced tier it priced: Kris, looking at the built
+      result, *"i also feel like i don't want to have 2 different prices... take all prices for
+      seat to $134."* There is no second leadership price any more, so this package now costs
+      exactly what `seat` does and is not offered on the pricing page — kept, not deleted, because
+      the key is stored on businesses (see the note above) and a business already on it must keep
+      reading a real price rather than `undefined`.
+    */
+    label: 'Leadership seat',
+    what: 'One person who leads people. Their scorecard, their page, their part of the chart.',
     per: 'seat',
-    aud: 227,
+    aud: 134,
     everyCurrency: true,
     availableIn: 'anywhere',
-    publishPrice: true,
+    publishPrice: false,
   },
   /*
     A$1,007 → A$1,502 on 18 September. Kris: *"One-to-one is the premium format, and the old number
@@ -546,7 +567,7 @@ export function monthlyCostOf(pkg: Package, currency: Currency, seats: number): 
   // a table. Every caller has to say what it does about that rather than multiply a zero.
   if (spec.aud === null) return null;
   if (spec.per === 'business') return spec.aud;
-  return seatRate(currency, pkg === 'seat_training') * seats;
+  return seatPrice(currency, 'leadership') * seats;
 }
 
 /**
@@ -583,7 +604,7 @@ export function packagePrice(pkg: Package, currency: Currency = HOME_CURRENCY): 
     if (currency !== HOME_CURRENCY) return SPEAK_TO_US;
     return `${moneyLabel(c, spec.aud)} a month`;
   }
-  return `${moneyLabel(c, seatPrice(c, 'leadership', pkg === 'seat_training'))} a person a month`;
+  return `${moneyLabel(c, seatPrice(c, 'leadership'))} a person a month`;
 }
 
 /**

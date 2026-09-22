@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  PACKAGES, PACKAGE_KEYS, SEAT_PRICES, RULE_OF_EIGHT, pricesObeyingTheRule,
+  PACKAGES, PACKAGE_KEYS, RULE_OF_EIGHT, pricesObeyingTheRule,
 } from '../src/lib/pricing';
 
 /**
@@ -34,21 +34,17 @@ describe('the rule of 8, on every published figure', () => {
   const digitSum = (n: number): number => (n < 10 ? n : digitSum(String(n).split('').reduce((a, d) => a + Number(d), 0)));
 
   /*
-    ── The two package prices that are left still obey it ───────────────────────────────────────
+    ── Every package price that is a chosen number obeys it ─────────────────────────────────────
 
-    Four packages, two of which now have no AUD figure of their own to check: `seat_training` is
-    the AI seat at A$227, which Stripe carries and which does not reduce to 8, and `full_control`
-    is quote-only with no price at all.
-
-    So this checks the ones that DO have a number and are not seat prices — the plain leadership
-    seat and Training — and `tests/pricing.test.ts` holds the seat table to its recorded set of
-    exceptions. Between them nothing is unchecked.
+    `seat_training` used to be the exception — the AI seat at A$227, which Stripe carried and which
+    does not reduce to 8. That tier was retired 22 September (see the note on `SEAT_PRICES` in
+    lib/pricing) and the package now costs exactly what `seat` does, so there is no exception left
+    among the packages: only `full_control`, which is quote-only with no price at all, is skipped.
   */
   it('EVERY PACKAGE PRICE THAT IS STILL A CHOSEN NUMBER REDUCES TO 8', () => {
     for (const k of PACKAGE_KEYS) {
       const aud = PACKAGES[k].aud;
       if (aud === null) continue;                       // quote-only: there is nothing to check
-      if (aud === SEAT_PRICES.aud.leadershipWithAi) continue;  // Stripe's 227 — see RULE_OF_EIGHT
       expect(digitSum(aud), `${k} is A$${aud}`).toBe(8);
     }
   });
@@ -56,10 +52,10 @@ describe('the rule of 8, on every published figure', () => {
   /*
     ── And the seat table's exceptions are the recorded ones ────────────────────────────────────
 
-    This used to read "and every seat price in every currency". Sixteen of the twenty-four no
-    longer reduce to 8 — the Stripe handoff of 19 September — so the check that still bites is
-    that the set of survivors is EXACTLY `RULE_OF_EIGHT`. Deleting the rule would have been the
-    easy edit and would have left nothing at all guarding the next price.
+    This used to read "and every seat price in every currency". Six of the twelve no longer reduce
+    to 8, so the check that still bites is that the set of survivors is EXACTLY `RULE_OF_EIGHT`.
+    Deleting the rule would have been the easy edit and would have left nothing at all guarding the
+    next price.
   */
   it('and the seat prices obey it in exactly the places on record', () => {
     expect(pricesObeyingTheRule()).toEqual([...RULE_OF_EIGHT]);
@@ -76,7 +72,10 @@ describe('the rule of 8, on every published figure', () => {
 describe('which prices may be said out loud', () => {
   it('the seat and the training price are published', () => {
     expect(PACKAGES.seat.publishPrice).toBe(true);
-    expect(PACKAGES.seat_training.publishPrice).toBe(true);
+    // Retired 22 September — see the note on `seat_training` in lib/pricing — and not shown on the
+    // marketing page, since it is not offered any more. Kept, unpublished, for businesses already
+    // holding the key.
+    expect(PACKAGES.seat_training.publishPrice).toBe(false);
     expect(PACKAGES.sessions.publishPrice).toBe(true);
   });
 

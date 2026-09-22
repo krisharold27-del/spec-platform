@@ -189,10 +189,14 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           <div className="mt-6 border-t border-ink/10 pt-5">
             <div className="label-caps">SPEC&apos;s training material</div>
             <p className="mt-1 text-sm text-ink-light">
-              For frontline leaders — supervisors and team leaders. {libraryLine(LIBRARY)} It takes their
-              seat from {moneyLabel(plan.currency, SEAT_PRICES[plan.currency].leadership)} to{' '}
-              {moneyLabel(plan.currency, SEAT_PRICES[plan.currency].leadershipWithAi)} a month, and the
-              modules go onto the path for the role they hold.
+              {/*
+                This used to quote a second price — "$134 to $227 a month" — because design 15
+                reused the slot as the leadership seat with the AI on it. That tier was retired 22
+                September (see the note on `SEAT_PRICES` in lib/pricing), so there is no second
+                price to quote any more. Not on sale yet either way — see below.
+              */}
+              For frontline leaders — supervisors and team leaders. {libraryLine(LIBRARY)} The
+              modules go onto the path for the role they hold, once the pack is ready.
             </p>
             {sp.training === 'not_frontline' && (
               <p className="mt-2 rounded-lg border-l-4 border-rust-400 bg-surface p-3 text-sm text-ink">
@@ -227,7 +231,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                     <span className="text-xs text-ink-light">{role.title}</span>
                     <span className={`rounded px-2 py-0.5 text-xs font-medium ${person.trainingSeat ? 'bg-sage-200 text-sage-900' : 'bg-cream text-ink-light'}`}>
                       {person.trainingSeat
-                        ? `With AI · ${moneyLabel(plan.currency, SEAT_PRICES[plan.currency].leadershipWithAi)}`
+                        ? 'On training'
                         : `${moneyLabel(plan.currency, SEAT_PRICES[plan.currency].leadership)}`}
                     </span>
                     <form action={setTrainingSeat} className="ml-auto">

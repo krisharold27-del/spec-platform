@@ -95,13 +95,14 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
       doors: [
         { href: '/connections', label: 'Connections', note: 'The systems that feed your numbers.' },
         /*
-          Kris, 22 September, after finding the AI-powered question buried inside Journey's setup
-          steps: "put under pricing." What it costs and whether the assistant is switched on used to
-          share a page with "do the four questions", "build the chart" — money mixed into a setup
-          checklist is money nobody goes looking for. `/billing` carries everything that decides the
-          bill: the seat tier question, Start paying, and Stripe's own portal.
+          Kris, 22 September, after finding what was then the AI-powered question buried inside
+          Journey's setup steps: "put under pricing." What it costs used to share a page with "do
+          the four questions", "build the chart" — money mixed into a setup checklist is money
+          nobody goes looking for. `/billing` carries everything that decides the bill: seats,
+          Start paying, and Stripe's own portal. The AI-powered question itself lasted one more day
+          on that page before being retired — see the note on `SEAT_PRICES` in lib/pricing.
         */
-        { href: '/billing', label: 'Pricing', note: 'What it costs, whether the AI seat is switched on, and Stripe billing.' },
+        { href: '/billing', label: 'Pricing', note: 'What it costs, and Stripe billing.' },
         { href: '/setup', label: 'Setting up', note: 'Roles, KPIs and the things still to do.' },
         { href: '/charter', label: 'Board charter', note: 'What the Board commits to — the four, identical in every business.' },
         { href: '/settings', label: 'Administration', note: 'Seats, billing, permissions and the board.' },
@@ -185,7 +186,7 @@ export function navDoors(f: DoorsFor): Door[] {
     { href: '/setup', label: 'Setup', note: 'Roles, KPIs and the things still to do.' },
     { href: '/my-page', label: 'My page', note: 'Your day, and everything else opens from it.' },
     find('/org') ?? { href: '/org', label: 'Org chart', note: 'Who does what, and who reports to whom.' },
-    find('/billing') ?? { href: '/billing', label: 'Pricing', note: 'What it costs, and whether the AI seat is switched on.' },
+    find('/billing') ?? { href: '/billing', label: 'Pricing', note: 'What it costs, and Stripe billing.' },
     { href: '/scoring', label: 'Scoring', note: 'Mark the month, and close it when it is done.' },
     /*
       The pack itself lives at /board/[periodId]. `/board` is the door — it opens the most recently

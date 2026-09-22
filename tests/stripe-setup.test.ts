@@ -51,7 +51,7 @@ describe('the Stripe setup list matches the code', () => {
     const inCode = new Set<string>();
     for (const file of walk('src')) {
       for (const m of src(file).matchAll(/process\.env\.(STRIPE_[A-Z_]+)/g)) inCode.add(m[1]);
-      // `priceId('leader_basic', 'STRIPE_PRICE_SEAT_MONTHLY')` reads the environment too — the
+      // `stripePriceId('leader', 'STRIPE_PRICE_SEAT_MONTHLY')` reads the environment too — the
       // name arrives as a string, and a check that missed it would miss the override entirely.
       for (const m of src(file).matchAll(/'(STRIPE_PRICE_[A-Z_]+)'/g)) inCode.add(m[1]);
     }
@@ -95,14 +95,13 @@ describe('the Stripe setup list matches the code', () => {
   it('states every published price exactly as the product charges it', () => {
     for (const [currency, price] of Object.entries(SEAT_PRICES)) {
       /*
-        All four now, in the order the table prints them. Design 15 turned one seat into two and the
-        row from two numbers into four — a check that still read the first column would have passed
-        on a document whose other three were anything at all.
+        Two now, in the order the table prints them. Design 15 turned one seat into two and a
+        same-day Basic/Advanced split briefly turned the row from two numbers into four; that split
+        is retired (22 September — see the note on `SEAT_PRICES`), so the row is two again.
       */
       const row = new RegExp(
-        `\\|\\s*${currency.toUpperCase()}\\s*\\|\\s*${price.leadership}\\s*\\|\\s*${price.leadershipWithAi}`
-        + `\\s*\\|\\s*${price.team}\\s*\\|\\s*${price.teamWithAi}\\s*\\|`, 'i');
-      expect(doc, `${currency.toUpperCase()} should read ${price.leadership} ${price.leadershipWithAi} ${price.team} ${price.teamWithAi}`).toMatch(row);
+        `\\|\\s*${currency.toUpperCase()}\\s*\\|\\s*${price.leadership}\\s*\\|\\s*${price.team}\\s*\\|`, 'i');
+      expect(doc, `${currency.toUpperCase()} should read ${price.leadership} ${price.team}`).toMatch(row);
     }
   });
 

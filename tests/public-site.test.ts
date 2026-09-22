@@ -170,13 +170,13 @@ describe('the public navigation', () => {
 
 describe('the tier claim', () => {
   /**
-   * The one overclaim that would matter most: letting "shallow J curve" spread across the whole
-   * price list. The collapse is caused by connectors, so it happens on Advanced and not on Basic,
-   * and the page that sells both has to say so beside the prices.
+   * There used to be an overclaim to guard against here: letting "shallow J curve" spread across
+   * the whole price list when only Advanced supposedly caused the collapse. Advanced is retired (22
+   * September — see the note on `SEAT_PRICES` in lib/pricing) along with the claim, so there is no
+   * tier left for the page to carve the collapse in half for.
    */
-  it('says on the pricing page which half the collapse applies to', () => {
+  it('no longer claims the J curve applies to only half the price list', () => {
     const src = words('src/app/pricing/page.tsx');
-    expect(src).toContain('happens on Advanced and not on Basic');
-    expect(src).toContain('complete way to run the whole system');
+    expect(src).not.toContain('happens on Advanced and not on Basic');
   });
 });

@@ -6,18 +6,20 @@ import { Shell } from '@/components/ui';
 import { planStateFor, costLabel } from '@/lib/plan';
 import { seatLabel } from '@/lib/pricing';
 import { requestCurrency } from '@/lib/request-currency';
-import { getScope, isTopOfChart } from '@/lib/scope';
-import { setBusinessSeatTier } from './actions';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Everything that decides the bill, in one place.
  *
- * Moved out of Journey on 22 September — Kris, having found the AI-powered question buried inside
- * Journey's setup steps: *"put under pricing."* What it costs and whether the assistant is switched
- * on used to share a page with "do the four questions", "build the chart" — money mixed into a setup
- * checklist is money nobody goes looking for. See the note on `/billing` in `lib/doors.ts`.
+ * Moved out of Journey on 22 September — Kris, having found what was then the AI-powered question
+ * buried inside Journey's setup steps: *"put under pricing."* What it costs used to share a page
+ * with "do the four questions", "build the chart" — money mixed into a setup checklist is money
+ * nobody goes looking for. See the note on `/billing` in `lib/doors.ts`.
+ *
+ * The AI-powered question itself lasted one more day on this page before Kris retired it: *"i also
+ * feel like i don't want to have 2 different prices... make it simple."* One seat price again — see
+ * lib/pricing.
  */
 const BILLING_NOTICE: Record<string, { tone: 'ok' | 'warn'; text: string }> = {
   upgraded: { tone: 'ok', text: 'Payment received. Nothing you set up before it has changed.' },
@@ -43,8 +45,6 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
   const currency = await requestCurrency();
   const plan = await planStateFor(user.tenantId, currency);
-  // Paying for the business is administration — the same gate api/stripe/checkout uses.
-  const canBill = user.access === 'administrator' || isTopOfChart(await getScope(user));
 
   /*
     The banner has to agree with the page under it.
@@ -97,55 +97,6 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
         </div>
       )}
       {/*
-        * "Do you want SPEC AI powered?" — Kris, 22 September: *"jbi is the test case — needs to
-        * follow all processes so the next businesses can do this on their own... there needs to be
-        * a question that says do you want SPEC AI powered — if yes then the leadership seat is
-        * this and if no then the leadership seat is that."*
-        *
-        * Shown to whoever can actually pay for the business, right above the price it decides, and
-        * changeable any time rather than asked once and locked — a business that starts on Basic
-        * and later wants Claude reading across it should not need to email anybody.
-        */}
-      {canBill && !plan.program && (
-        <div className="mb-4 rounded-lg border border-ink/10 bg-surface p-4 text-sm">
-          <div className="label-caps">Do you want SPEC AI powered?</div>
-          <p className="mt-1 text-ink-light">
-            Basic is every screen, run by the people in it — numbers typed in and confirmed by a
-            name. AI powered adds Claude reading across the business: connected systems, the
-            assistant on every page, cross-pillar patterns nobody has to go looking for.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <form action={setBusinessSeatTier}>
-              <input type="hidden" name="seat_tier" value="basic" />
-              <button
-                type="submit"
-                className={`rounded-full px-4 py-2 text-left text-sm font-medium ${
-                  plan.seatTier === 'basic' ? 'bg-rust-800 text-cream' : 'bg-cream text-ink hover:bg-surface-raised'
-                }`}
-              >
-                No, keep it Basic — {seatLabel(currency, 'leadership')} leadership · {seatLabel(currency, 'team')} team
-              </button>
-            </form>
-            <form action={setBusinessSeatTier}>
-              <input type="hidden" name="seat_tier" value="advanced" />
-              <button
-                type="submit"
-                className={`rounded-full px-4 py-2 text-left text-sm font-medium ${
-                  plan.seatTier === 'advanced' ? 'bg-rust-800 text-cream' : 'bg-cream text-ink hover:bg-surface-raised'
-                }`}
-              >
-                Yes, power it with AI — {seatLabel(currency, 'leadership', true)} leadership · {seatLabel(currency, 'team', true)} team
-              </button>
-            </form>
-          </div>
-          {plan.subscribed && (
-            <p className="mt-2 text-xs text-ink-light">
-              Already paying — switching this updates your existing subscription, with the difference prorated for the rest of this billing period.
-            </p>
-          )}
-        </div>
-      )}
-      {/*
         * No trial and no countdown. Building the business costs nothing and never expires; the meter
         * starts only when a real person is invited in. A clock on someone who has just admitted four
         * things are going wrong is the last thing they need.
@@ -158,7 +109,7 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
           </div>
           <p className="mt-1 text-ink-light">
             Draw the whole business, set every KPI, take as long as you like. It only costs anything once
-            you invite a real person in — {seatLabel(currency, 'team', plan.seatTier === 'advanced')} a month each. Roles with nobody in them are always free.
+            you invite a real person in — {seatLabel(currency, 'team')} a month each. Roles with nobody in them are always free.
           </p>
         </div>
       )}
@@ -174,7 +125,7 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">
           <span>
             <b>{costLabel(plan)}</b>
-            <span className="text-ink-light"> · each extra person is {seatLabel(currency, 'team', plan.seatTier === 'advanced')} a month. Nothing has been charged yet.</span>
+            <span className="text-ink-light"> · each extra person is {seatLabel(currency, 'team')} a month. Nothing has been charged yet.</span>
           </span>
           <form action="/api/stripe/checkout" method="post">
             <button className="shrink-0 rounded-full bg-rust-800 px-4 py-2 text-sm font-medium text-cream hover:bg-rust-900">
@@ -185,7 +136,7 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
       )}
       {plan.billing && plan.subscribed && (
         <div className="mb-4 flex items-baseline justify-between gap-3 rounded-lg bg-surface p-4 text-sm">
-          <span><b>{costLabel(plan)}</b> <span className="text-ink-light">· each extra person is {seatLabel(currency, 'team', plan.seatTier === 'advanced')} a month</span></span>
+          <span><b>{costLabel(plan)}</b> <span className="text-ink-light">· each extra person is {seatLabel(currency, 'team')} a month</span></span>
           <form action="/api/stripe/portal" method="post"><button className="text-sm text-ink-light underline hover:text-rust">Billing</button></form>
         </div>
       )}

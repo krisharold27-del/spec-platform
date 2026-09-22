@@ -31,7 +31,9 @@ describe('the four packages', () => {
 
   it('charges what Stripe charges', () => {
     expect(PACKAGES.seat.aud).toBe(SEAT_PRICES.aud.leadership);
-    expect(PACKAGES.seat_training.aud).toBe(SEAT_PRICES.aud.leadershipWithAi);
+    // Retired 22 September, the same day it briefly priced apart — see the note on it in
+    // lib/pricing. It now costs exactly what the plain seat does.
+    expect(PACKAGES.seat_training.aud).toBe(SEAT_PRICES.aud.leadership);
     /*
       A$1,007 → A$1,502 on 18 September. Kris: *"One-to-one is the premium format, and the old
       number priced it like a freelancer hour ($250/hr) — too cheap for training delivered at your
@@ -57,19 +59,18 @@ describe('the four packages', () => {
   });
 
   /*
-    ── The rule of 8, and the sixteen prices that broke it ──────────────────────────────────────
+    ── The rule of 8, and what still doesn't obey it ────────────────────────────────────────────
 
-    Every published price in SPEC used to reduce to 8 by repeated digit sum. It was Kris's rule, it
-    was enforced in three tests, and on 19 September it is what stopped design 15's $227 and $29
-    going out — he was given the nearest numbers that obeyed it and said *"224 and 26"*.
+    Every published price in SPEC reduces to 8 by repeated digit sum. It was Kris's rule, enforced
+    in three tests, and it is what stopped design 15's $227 and $29 going out on 19 September — he
+    was given the nearest numbers that obeyed it and said *"224 and 26"*. Those prices, and the
+    tier they belonged to, are retired as of 22 September — see the note on `SEAT_PRICES` in
+    lib/pricing — and AUD's team seat, freed to be chosen again, is $26: the number the rule always
+    agreed with.
 
-    Then the products were created in Stripe at 227 and 29, and the handoff confirms them against
-    the live account. Sixteen of the twenty-four seat prices no longer reduce to 8.
-
-    A displayed price that is not the charged price is the worst outcome available here, so the
-    table matches Stripe. What must not happen is the rule quietly disappearing — so this asserts
-    the exceptions are EXACTLY the ones on record. A seventeenth cannot arrive by accident, and a
-    price moved back onto the rule fails too until `RULE_OF_EIGHT` is updated with it.
+    What must not happen is the rule quietly disappearing — so this asserts the exceptions are
+    EXACTLY the ones on record. A new one cannot arrive by accident, and a price moved back onto the
+    rule fails too until `RULE_OF_EIGHT` is updated with it.
   */
   it('STILL KNOWS EXACTLY WHICH PRICES OBEY THE RULE OF 8, and which no longer do', () => {
     expect(pricesObeyingTheRule()).toEqual([...RULE_OF_EIGHT]);
@@ -78,7 +79,7 @@ describe('the four packages', () => {
     const broken = Object.values(SEAT_PRICES)
       .flatMap(everyPublishedSeatPrice)
       .filter(a => digitRoot(a) !== 8);
-    expect(broken.length, 'sixteen of the twenty-four, per the handoff of 19 September').toBe(16);
+    expect(broken.length, 'six of the twelve').toBe(6);
   });
 
   /* The training price still obeys it, and both figures in its history do — so only the note and
@@ -97,7 +98,7 @@ describe('seats scale; somebody\'s week does not', () => {
   */
   it('multiplies a seat package by the people in it', () => {
     expect(monthlyCostOf('seat', 'aud', 40)).toBe(SEAT_PRICES.aud.leadership * 40);
-    expect(monthlyCostOf('seat_training', 'aud', 40)).toBe(SEAT_PRICES.aud.leadershipWithAi * 40);
+    expect(monthlyCostOf('seat_training', 'aud', 40)).toBe(SEAT_PRICES.aud.leadership * 40);
   });
 
   it('NEVER multiplies a per-business package by a headcount', () => {
@@ -110,13 +111,15 @@ describe('seats scale; somebody\'s week does not', () => {
   });
 
   /*
-    `seat_training` is the AI seat now, not SPEC's training material — design 15 retired that seat,
-    which had been published for months and was never sellable. The KEY is unchanged because it is
-    stored on businesses and renaming it is a migration; see the note in lib/pricing.
+    `seat_training` was the AI seat for one day, 22 September — design 15 had already retired
+    SPEC's training material out of this slot, and the AI tier that replaced it was retired the
+    same day it shipped. The KEY is unchanged because it is stored on businesses and renaming it is
+    a migration; see the note in lib/pricing. It costs the plain seat price, because there is
+    nothing left to charge it differently for.
   */
-  it('uses the AI price for the AI package, not the plain seat one', () => {
-    expect(monthlyCostOf('seat_training', 'aud', 1)).toBe(227);
-    expect(monthlyCostOf('seat_training', 'gbp', 1)).toBe(SEAT_PRICES.gbp.leadershipWithAi);
+  it('costs the plain seat price, there being no second price left to charge', () => {
+    expect(monthlyCostOf('seat_training', 'aud', 1)).toBe(134);
+    expect(monthlyCostOf('seat_training', 'gbp', 1)).toBe(SEAT_PRICES.gbp.leadership);
     expect(monthlyCostOf('seat', 'gbp', 1)).toBe(SEAT_PRICES.gbp.leadership);
   });
 });
@@ -244,7 +247,9 @@ describe('who sets it', () => {
 
   /* Each package says what it includes in the words it was sold in, so nobody is surprised later. */
   it('describes what is actually delivered', () => {
-    expect(PACKAGES.seat_training.what).toMatch(/assistant|\bAI\b/i);
+    // Retired 22 September and now the same seat as `seat`, described the same way — see the note
+    // on it in lib/pricing.
+    expect(PACKAGES.seat_training.what).toBe(PACKAGES.seat.what);
     // One-to-one, and described by the sessions rather than by an hour — see tests/published-prices.
     expect(PACKAGES.sessions.what).toContain('Four one-to-one sessions a month');
     expect(PACKAGES.full_control.what).toContain('board meeting');

@@ -26,10 +26,9 @@ where the two cannot drift apart one at a time.
 | `STRIPE_SECRET_KEY` | `sk_test_…`, then `sk_live_…` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…`, from the endpoint you create in step 5 |
 
-Four more are **read if set and otherwise ignored**, and exist only so a deployment can be pointed
+Two more are **read if set and otherwise ignored**, and exist only so a deployment can be pointed
 at test-mode prices without a release. Leave them empty and the live ids below are used:
-`STRIPE_PRICE_SEAT_MONTHLY`, `STRIPE_PRICE_SEAT_TRAINING_MONTHLY`,
-`STRIPE_PRICE_TEAM_SEAT_MONTHLY`, `STRIPE_PRICE_TEAM_SEAT_ADVANCED_MONTHLY`.
+`STRIPE_PRICE_SEAT_MONTHLY`, `STRIPE_PRICE_TEAM_SEAT_MONTHLY`.
 
 ---
 
@@ -53,32 +52,44 @@ A$134 and US$134 are the same number and not the same price.
 Worth checking before the first real payment rather than after. Retro-fixing GST on invoices already
 issued is an accountant's afternoon.
 
-## 3. The products — already created
+## 3. The products — already created, one gap still open
 
-**Nothing to do here.** Confirmed against the live account on 19 September 2026. This section is the
-record, so that anybody comparing the code to Stripe has one table to compare it with.
+Confirmed against the live account on 19 September 2026, and retired to one price per seat kind on
+22 September — see `SEAT_PRICES` in `src/lib/pricing.ts` for why. This section is the record, so
+that anybody comparing the code to Stripe has one table to compare it with.
 
 | Product | Product ID | Price ID | AUD | NZD | GBP | EUR | USD | CAD |
 |---|---|---|---|---|---|---|---|---|
-| SPEC Leadership seat - Basic | `prod_VHtnsfpPRSp6no` | `price_1UHK06GjbPN3KVS7Erx7Aeum` | 134 | 180 | 88 | 134 | 134 | 180 |
-| SPEC Leadership seat - Advanced | `prod_VHtrdn6wF9T8JM` | `price_1UHK3PGjbPN3KVS7vot0UtCu` | 227 | 305 | 149 | 227 | 227 | 305 |
-| SPEC Team seat - Basic | `prod_VHtt211YPktGXS` | `price_1UHK5hGjbPN3KVS7hzoKltlI` | 17 | 23 | 11 | 17 | 17 | 23 |
-| SPEC Team seat - Advanced | `prod_VHtv5osYcg3Snq` | `price_1UHK7lGjbPN3KVS7EXlND5Xg` | 29 | 39 | 19 | 29 | 29 | 39 |
+| SPEC Leadership seat | `prod_VHtnsfpPRSp6no` | `price_1UHK06GjbPN3KVS7Erx7Aeum` | 134 | 180 | 88 | 134 | 134 | 180 |
+| SPEC Team seat | `prod_VHtt211YPktGXS` | `price_1UHK5hGjbPN3KVS7hzoKltlI` | **17** (see below) | 23 | 11 | 17 | 17 | 23 |
 | SPEC Training | `prod_VHtwe8HgAnBYdW` | `price_1UHK94GjbPN3KVS7FE5GGzAC` | 1,502 | — | — | — | — | — |
 
 All amounts are per month. Stripe stores them in minor units, so A$134 is `13400`.
 
-The same four seat prices by currency, which is the order the pricing page prints them and the
-order `SEAT_PRICES` in `src/lib/pricing.ts` holds them:
+**The AUD team seat is still $17 in Stripe, and $26 on the page — this is the one gap in the table
+above.** Kris asked for AUD's team seat to move from $17 to $26; a Stripe Price object cannot be
+edited once created, so somebody has to create a new one — same currency_options as the row above
+(NZD 23, GBP 11, EUR 17, USD 17, CAD 23), only the AUD default changed to 26 — and its id replaces
+`STRIPE_PRICES.team` in `src/lib/pricing.ts`. Until that happens, checkout charges $17 for a seat
+the page shows as $26.
 
-| Currency | Leadership seat | Leadership + AI | Team seat | Team + AI |
-|---|---|---|---|---|
-| AUD | 134 | 227 | 17 | 29 |
-| NZD | 180 | 305 | 23 | 39 |
-| GBP | 88 | 149 | 11 | 19 |
-| EUR | 134 | 227 | 17 | 29 |
-| USD | 134 | 227 | 17 | 29 |
-| CAD | 180 | 305 | 23 | 39 |
+The **Leadership seat - Advanced** (`prod_VHtrdn6wF9T8JM` / `price_1UHK3PGjbPN3KVS7vot0UtCu`, A$227)
+and **Team seat - Advanced** (`prod_VHtv5osYcg3Snq` / `price_1UHK7lGjbPN3KVS7EXlND5Xg`, A$29)
+products from 19 September are still live in Stripe — nobody archived them — but no code path uses
+them: the tier they priced lasted one session and was retired 22 September. See
+`RETIRED_STRIPE_PRICES`/`RETIRED_STRIPE_PRODUCTS` in `src/lib/pricing.ts`.
+
+The two seat prices by currency, which is the order the pricing page prints them and the order
+`SEAT_PRICES` in `src/lib/pricing.ts` holds them:
+
+| Currency | Leadership seat | Team seat |
+|---|---|---|
+| AUD | 134 | 26 |
+| NZD | 180 | 23 |
+| GBP | 88 | 11 |
+| EUR | 134 | 17 |
+| USD | 134 | 17 |
+| CAD | 180 | 23 |
 
 ### One price per product, six currencies on it
 
@@ -109,29 +120,31 @@ A person with a login and no role at all is a **team seat**.
 ### What a subscription looks like
 
 One subscription per business, with **two line items**: Leadership seat × the number of leaders, and
-Team seat × the number of team members, both on the same tier. A business of forty with six leaders
-pays six leadership seats and thirty-three team seats — the first seat is free, and it comes off a
-team seat because that is the cheaper of the two.
+Team seat × the number of team members. A business of forty with six leaders pays six leadership
+seats and thirty-three team seats — the first seat is free, and it comes off a team seat because
+that is the cheaper of the two.
 
 - **Recurring monthly, per-unit with a quantity.** Seat counts change through subscription quantity
   updates, prorated by Stripe's default behaviour.
-- **Basic and Advanced never mix.** A subscription is one tier across both lines.
+- **One price per seat kind.** There was briefly a second, dearer price for each — Basic and
+  Advanced — for the one session it existed; see the note on the retired Advanced products above.
 - **The free first seat stays in SPEC's maths**, not a Stripe coupon — one place owns that rule and
   it is `lib/plan`.
-- **Existing customers do not re-price themselves.** Moving one is a deliberate act on that
-  subscription, and should be a decision rather than a side effect.
+- **Existing customers do not re-price themselves.** SPEC has no mechanism today for reconciling an
+  existing subscription's line items against a changed price — a gap that predates this document
+  and is unrelated to the tier that was retired.
 
-### Advanced is live in Stripe and not yet sellable in SPEC
+### There is one SPEC — the AI is switched on by subscribing, not by a choice of seat
 
-All four seat prices are real and a customer could be charged A$227 today. What does not exist is
-the half that decides **who**: nothing in SPEC chooses Advanced, nothing gates the assistant on it,
-and no screen offers the choice. So every business is billed **Basic** until `AI_TIER_ON_SALE` in
-`src/lib/plan.ts` is deliberately switched on.
+The Advanced tier existed for one session on 22 September to let a business choose between two
+prices for the assistant being switched on. It never gated anything real: `aiActive` in
+`src/lib/plan.ts` was already `subscribed || program || beta`, independent of which tier a business
+was on, so a subscribed business got the assistant either way. Kris, looking at the built result:
+*"i also feel like i don't want to have 2 different prices... make it simple."* There is one price
+per seat again — see the table above — and every subscribed business is `aiActive`.
 
-`tenants.tier` is not that switch and must not be pressed into being one. It defaults to
-`advanced` and has not been read since the tiers were collapsed on 18 September, so wiring checkout
-to it would move every existing business onto the dearer seat at once with nobody having chosen
-anything.
+`tenants.tier` and `tenants.seatTier` are both retired columns, kept in the schema and no longer
+read for pricing. Neither is a switch to press back into service.
 
 ### Training, and the one that is not a product
 
@@ -159,15 +172,12 @@ and still works if a line of code names it, so the ids are written down and
 
 ### The rule of 8
 
-Every published price in SPEC used to reduce to 8 by repeated digit sum, and three tests enforced
-it. **Sixteen of the twenty-four seat prices above do not.** Stripe is the source of truth and a
-page showing a number a card will not be charged is the one outcome nobody recovers from, so the
-table won.
+Kris's rule: a published price should reduce to 8 by repeated digit sum, and three tests enforce
+it. **Six of the twelve seat prices above do not** — NZD, GBP and CAD, in both seat kinds.
 
-The rule is not gone. `RULE_OF_EIGHT` in `src/lib/pricing.ts` records the three amounts that still
-obey it — 17, 134 and 305 — and a test holds the set to exactly that, so a seventeenth exception
-cannot arrive without somebody adding it on purpose. If these prices are ever corrected in Stripe,
-correct the table and that list together.
+`RULE_OF_EIGHT` in `src/lib/pricing.ts` records the amounts that obey it — 17, 26 and 134 — and a
+test holds the set to exactly that, so a new exception cannot arrive without somebody adding it on
+purpose. If these prices are ever corrected in Stripe, correct the table and that list together.
 
 ## 4. The customer portal
 

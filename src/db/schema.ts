@@ -67,20 +67,18 @@ export const tenants = pgTable('tenants', {
    */
   package: text('package').notNull().default('seat'),
   /**
-   * basic | advanced — whether THIS business has chosen the AI-priced seat.
+   * Retired 22 September, the same day it was built — no longer read by anything.
    *
-   * Deliberately a new column and not a reuse of `tier` above: `tier` already carries a different,
-   * retired meaning (whether connectors/the assistant were switched on at all, before 18 September's
-   * "one SPEC, everything is on" collapsed that question) and every existing row already holds
-   * `tier='advanced'` from `provisionTenant` — reading THAT as "wants the dearer seat" would move
-   * every business ever created onto A$227 the moment this shipped, with nobody having chosen it.
-   * `seat_tier` starts every business, existing and new, at `basic` — nobody pays more until they
-   * say so.
+   * Built earlier that day to hold a per-business answer to "do you want SPEC AI powered?" — two
+   * prices for the same leadership seat, A$134 against A$227. Kris, looking at the built result:
+   * *"i also feel like i don't want to have 2 different prices... make it simple."* There was never
+   * a second product behind the second price — `aiActive` in lib/plan already switches the
+   * assistant on for every subscribed business regardless of this column — so the choice this
+   * column recorded stopped meaning anything the same day it shipped.
    *
-   * Kris, 22 September: *"there needs to be a question that says do you want SPEC AI powered — if
-   * yes then the leadership seat is this and if no then the leadership seat is that"* — read at
-   * checkout time by `lib/plan`'s `planState`, and settable by an administrator from the journey
-   * page (`setSeatTier`). See DECISIONS.md, 22 September.
+   * Kept in the schema rather than dropped, the same way `tier` above is: migrations here are
+   * additive by design (see scripts/deploy-migrate), and removing a column on the way past is how a
+   * rollback becomes data loss. See DECISIONS.md, 22 September.
    */
   seatTier: text('seat_tier').notNull().default('basic'),
 }).enableRLS();

@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { canBeTrained, isFrontlineLeader, TRAINING_SEAT_ON_SALE, SEAT_PRICES, PACKAGES, digitRoot, everyPublishedSeatPrice, RULE_OF_EIGHT, pricesObeyingTheRule } from '../src/lib/pricing';
+import { canBeTrained, isFrontlineLeader, TRAINING_SEAT_ON_SALE, SEAT_PRICES, PACKAGES } from '../src/lib/pricing';
 import { seatBill, planState, FREE_SEATS } from '../src/lib/plan';
-import { LIBRARY, libraryOrder, libraryMinutes, libraryLine } from '../src/lib/training-library';
 
 /**
  * The A$44, which until 16 September was a number on three screens with nothing behind it.
@@ -16,18 +14,18 @@ import { LIBRARY, libraryOrder, libraryMinutes, libraryLine } from '../src/lib/t
  * supervisors, team leaders etc"*.
  */
 
-const t = (plan: string, seatTier?: string) => ({ id: 'x', plan, startDate: '2026-01-01', seatTier });
+const t = (plan: string) => ({ id: 'x', plan, startDate: '2026-01-01' });
 
 /*
   Derived from the table rather than written out, deliberately.
 
-  `tests/pricing.test.ts` owns the twenty-four published numbers and states every one of them
+  `tests/pricing.test.ts` owns the twelve published numbers and states every one of them
   literally, so a table change is caught there once. These tests are about the ARITHMETIC on top of
   it — who is charged which rate, and which seat the free one comes off — and hard-coding totals
   here meant design 15 broke nine of them for saying nothing about the maths at all.
 */
 const LEADER = SEAT_PRICES.aud.leadership;   // 134
-const TEAM = SEAT_PRICES.aud.team;           // 17
+const TEAM = SEAT_PRICES.aud.team;           // 26
 
 describe('who the training seat is for', () => {
   it('frontline leaders, and nobody else', () => {
@@ -60,15 +58,16 @@ describe('who the training seat is for', () => {
   });
 
   /*
-    Design 15 retired the A$44 training seat. It had been published for months and was never
-    sellable — the supervisor pack was never finished — and the same slot is now the leadership seat
-    with the AI on it, at A$227 — the figure the design drew, which the rule of 8 briefly moved to
-    224 and which Stripe now carries live. See RULE_OF_EIGHT in lib/pricing.
+    Design 15 retired the A$44 training seat, and the slot it moved into — the leadership seat with
+    the AI on it, at A$227 — was itself retired 22 September, the same day it shipped: Kris, looking
+    at the built result, *"i also feel like i don't want to have 2 different prices... make it
+    simple."* `PACKAGES.seat_training` is kept, unpublished, at the same price as the plain seat —
+    see the note on it in lib/pricing — rather than deleted, because the key is stored on
+    businesses.
   */
-  it('but the slot is now the AI seat, and the training seat is gone', () => {
-    expect(PACKAGES.seat_training.aud).toBe(227);
-    expect(SEAT_PRICES.aud.leadershipWithAi).toBe(227);
-    expect(PACKAGES.seat_training.label).toContain('Advanced');
+  it('and the slot it moved into is retired as well, unpublished at the plain seat price', () => {
+    expect(PACKAGES.seat_training.aud).toBe(PACKAGES.seat.aud);
+    expect(PACKAGES.seat_training.publishPrice).toBe(false);
   });
 });
 
@@ -82,7 +81,7 @@ describe('a bill made of two kinds of seat', () => {
     counted every person in every business at it.
 
     The numbers below are the ones that were wrong: a business of forty with six leaders would have
-    been billed 39 × A$134 = A$5,226 a month instead of 5 × A$134 + 34 × A$17 = A$1,248. Four times
+    been billed 39 × A$134 = A$5,226 a month instead of 5 × A$134 + 34 × A$26 = A$1,564. Four times
     over, on the screen a customer reads before pressing pay, and looking entirely reasonable.
   */
   it('CHARGES THE LEADERSHIP RATE ONLY FOR THE PEOPLE WHO LEAD', () => {
@@ -103,7 +102,7 @@ describe('a bill made of two kinds of seat', () => {
   /*
     The free seat comes off the CHEAPER seat — the less generous reading, and the same choice the
     old version made. "The first seat is free" is a rule about money, not about which person, and
-    taking it off a leadership seat would hand back A$134 to make a point about A$17.
+    taking it off a leadership seat would hand back A$134 to make a point about A$26.
   */
   it('takes the free seat off a team seat, not off the dearer one', () => {
     expect(seatBill(2, 1, 'aud').monthlyCost).toBe(LEADER);
@@ -135,22 +134,13 @@ describe('a bill made of two kinds of seat', () => {
   });
 
   /*
-    ── Every business starts on Basic, until ITS OWN administrator says otherwise ───────────────
-
-    All four seat products are live in Stripe and a customer could be charged A$227 today. Since
-    22 September the choice is per business — `tenants.seatTier`, answered on the journey page
-    (`setBusinessSeatTier`) — never a product-wide switch, because a global one could only ever
-    move every existing business onto the dearer seat at once with nobody having chosen anything.
+    One price per seat kind now, so there is nothing left for `planState` to choose between — the
+    Basic/Advanced question this test used to check ("prices a business at Basic until its own
+    administrator chooses Advanced") was retired 22 September along with the tier. See the note on
+    `SEAT_PRICES` in lib/pricing.
   */
-  it('PRICES A BUSINESS AT BASIC UNTIL ITS OWN ADMINISTRATOR CHOOSES ADVANCED', () => {
+  it('PRICES EVERY BUSINESS THE SAME WAY, there being only one price to be on', () => {
     expect(planState(t('basic'), 40, 'aud', 6).monthlyCost).toBe(6 * LEADER + 33 * TEAM);
-    expect(planState(t('basic'), 40, 'aud', 6).seatTier, 'no choice made yet reads as basic').toBe('basic');
-    // And the dearer rates are reachable the moment a business says so, on its own.
-    expect(planState(t('basic', 'advanced'), 40, 'aud', 6).seatTier).toBe('advanced');
-    expect(planState(t('basic', 'advanced'), 40, 'aud', 6).monthlyCost)
-      .toBe(6 * SEAT_PRICES.aud.leadershipWithAi + 33 * SEAT_PRICES.aud.teamWithAi);
-    expect(seatBill(40, 6, 'aud', true).monthlyCost)
-      .toBe(6 * SEAT_PRICES.aud.leadershipWithAi + 33 * SEAT_PRICES.aud.teamWithAi);
   });
 
   it('reaches the plan state, so the page shows the real number', () => {

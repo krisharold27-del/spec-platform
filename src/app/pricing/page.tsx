@@ -68,36 +68,22 @@ export default function Pricing() {
         </p>
 
         {/*
-          One product, and what is in it.
+          One product, and what is in it. One price per seat, not two.
 
-          This was two cards and a six-row comparison table with Basic and Advanced columns. Kris,
-          18 September: *"take away the basic and advanced - either use the system with 1 person
-          yourself for free - or add everyone and pay $26 per seat."*
-
-          The two tiers cost the same money — this page said so — so the only thing the choice ever
-          did was take features away for nothing in return. Worse, a business landed on Basic by
-          default, which meant the product shipped with its own central argument switched off:
-          connecting the systems is where the productivity comes from, and Basic was the tier that
-          could not connect anything.
-        */}
-        {/*
-          ── "No tier to choose" needed one word of qualification ──────────────────────────────
-
-          Kris removed Basic and Advanced on 18 September because the two tiers cost the same money,
-          so choosing between them only ever took features away for nothing. That decision stands
-          and the sentence below is still the point of the page.
-
-          But the Stripe handoff of 19 September names two tiers again — Basic and Advanced — and
-          this time they are NOT the same money: Advanced is the seat with the assistant on it, at
-          A$227 against A$134. A page that says "no tier to choose" beside a table with two prices
-          per seat is a page arguing with itself, so it says what the one choice actually is.
+          This was two cards and a six-row comparison table with Basic and Advanced columns, and
+          then, briefly on 22 September, one price per seat with a second, dearer one for the
+          assistant. Kris, having looked at that result: *"i also feel like i don't want to have 2
+          different prices. either use the system or not - make it simple."* There was never a
+          second product behind the second price — every subscribed business gets the assistant
+          either way (see `aiActive` in lib/plan) — so there is one price again, and the choice this
+          section used to describe no longer exists.
         */}
         <section className="mt-10 card">
           <h2 className="font-serif text-2xl text-ink">Everything is in it, from the first minute</h2>
           <p className="mt-2 max-w-2xl text-sm text-ink-light">
             There is one SPEC. Nothing is held back for a bigger plan, and there is no version of
-            this where you pay the same money for less of it. The only choice is whether the
-            assistant is switched on &mdash; that is what the two prices per seat are.
+            this where you pay more for the same thing. Connectors, the assistant and every screen
+            are on from the first minute.
           </p>
           <ul className="mt-5 grid gap-2 text-sm sm:grid-cols-2">
             {EVERYTHING_IN_IT.map(line => (
@@ -137,26 +123,19 @@ export default function Pricing() {
             billed in your own currency.
           </p>
           {/*
-            ── Four columns, because there are four prices ──────────────────────────────────────
+            ── Two columns, because there are two prices ────────────────────────────────────────
 
-            This table had three: Region, "Per seat, per month", and "Frontline leader, with
-            training (not open yet)" — and that third column was printing `SEAT_PRICES[c].team`.
-            When design 15 turned one seat into two, the header was left behind and the cell
-            pointed at the new field, so the page published the TEAM seat price under a heading
-            about a training seat that is not on sale. A wrong number is bad; a right number under
-            the wrong name is worse, because nobody reading it knows to check.
-
-            All four now, named as Stripe names them on the invoice.
+            This table briefly had four — a leadership and a team price, each with an "with AI"
+            variant — for the one session the Advanced tier existed. Retired 22 September along
+            with the tier: see the note above `SEAT_PRICES` in lib/pricing.
           */}
           <div className="mt-4 overflow-x-auto">
-            <table className="table-clean min-w-[560px]">
+            <table className="table-clean min-w-[420px]">
               <thead>
                 <tr>
                   <th>Region</th>
                   <th>Leadership seat</th>
-                  <th>Leadership, with AI</th>
                   <th>Team seat</th>
-                  <th>Team, with AI</th>
                 </tr>
               </thead>
               <tbody>
@@ -164,9 +143,7 @@ export default function Pricing() {
                   <tr key={c}>
                     <td className="text-ink">{REGION[c]}</td>
                     <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].leadership}</td>
-                    <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].leadershipWithAi}</td>
                     <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].team}</td>
-                    <td className="font-mono">{SEAT_PRICES[c].symbol}{SEAT_PRICES[c].teamWithAi}</td>
                   </tr>
                 ))}
               </tbody>
@@ -255,24 +232,17 @@ export default function Pricing() {
 
         {/*
           The J curve argument lives in full on /how, because it is a question about the method
-          rather than about the price. What stays here is the part that genuinely IS a pricing fact:
-          which half of this page the collapse applies to. Stating it beside the two prices is the
-          whole point — a claim that quietly spreads across the entire price list is the overclaim
-          that would make every other number here worth less.
+          rather than about the price. It used to need a paragraph here too, saying which half of
+          this page's now-retired Basic/Advanced split it applied to — that split is gone (see the
+          note above `SEAT_PRICES` in lib/pricing), so there is nothing left to carve the claim in
+          half for.
         */}
         <section className="mt-12">
-          <h2 className="font-serif text-2xl text-ink">Which half of this page the J curve applies to</h2>
+          <h2 className="font-serif text-2xl text-ink">How SPEC shortens the J curve</h2>
           <p className="mt-2 max-w-2xl text-base text-ink-light">
             Every transformation dips before it climbs, and the dip is deep because discovery is manual.
             SPEC collapses it by letting the systems you already run feed the KPIs, so the picture exists
             the day they connect.
-          </p>
-          <p className="mt-4 max-w-2xl text-base text-ink-light">
-            <b className="text-ink">The collapse is caused by connectors, so it happens on Advanced and
-            not on Basic.</b>{' '}
-            Basic is a complete way to run the whole system — every number entered and confirmed by a
-            named person — and it is not a shallow J curve. Saying otherwise would make every other
-            number on this page worth less.
           </p>
           <Link href="/how" className="mt-4 link-go">
             How the curve is measured, and what else holds one open →
