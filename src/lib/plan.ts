@@ -16,7 +16,9 @@
  * what the system will do — before spending a cent or entering a card.
  */
 
-import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatPrice, type Currency } from './pricing';
+import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatPrice, lineItemsFor, type Currency } from './pricing';
+
+export type SeatTier = 'basic' | 'advanced';
 
 /** Per active named seat, per month, in the home currency (AUD). Other regions: see lib/pricing. */
 /** The leadership seat, which is the one the free-first-seat rule is about. */
@@ -108,6 +110,8 @@ export interface TenantPlan {
    * whether Stripe has ever heard of them.
    */
   stripeSubscriptionId?: string | null;
+  /** basic | advanced — see the note on `tenants.seatTier` in db/schema.ts. Missing reads as basic. */
+  seatTier?: string | null;
 }
 
 export interface PlanState {
@@ -187,6 +191,16 @@ export interface PlanState {
    */
   aiActive: boolean;
   /**
+   * basic | advanced — has THIS business chosen the AI-priced seat? See `tenants.seatTier`.
+   *
+   * Separate from `aiActive` on purpose: `aiActive` is "is the assistant switched on at all"
+   * (subscribed, program or beta — the payment gate on 21 September's Connections work). This is
+   * "which of the two seat prices is it switched on AT" — a business can be `aiActive` and still be
+   * on the Basic seat, because a subscribed business gets the assistant either way; the tier only
+   * decides which of A$134/A$227 (and the team equivalents) it is billed.
+   */
+  seatTier: SeatTier;
+  /**
    * No writes allowed — **read-only follows the money.**
    *
    * A lapsed subscription AND something actually owed. Never a business that simply has not paid
@@ -245,27 +259,26 @@ export const billableSeats = (seats: number) => Math.max(0, seats - FREE_SEATS);
 /**
  * Is the Advanced tier — the seat with the assistant on it — sellable yet?
  *
- * ── Why this is false, with four live prices in Stripe ──────────────────────────────────────────
+ * ── What this WAS, and why it is gone ───────────────────────────────────────────────────────────
  *
- * Kris's Stripe handoff of 19 September creates all four seat products, Basic and Advanced, and
- * they are real: a customer could be charged A$227 today. What does not exist is the other half —
- * nothing in SPEC decides which businesses are on Advanced, nothing gates the assistant on it, and
- * no screen offers the choice.
+ * Until 22 September this was a single flag, `false`, standing in for the thing that did not exist
+ * yet: *"somewhere a business chooses, and something that reads the choice."* Kris, 22 September,
+ * on being asked whether JBI should be the only business on Advanced: *"jbi is the test case — needs
+ * to follow all processes so the next businesses can do this on their own. there needs to be a
+ * question that says do you want SPEC AI powered — if yes then the leadership seat is this and if
+ * no then the leadership seat is that."*
  *
- * `tenants.tier` is not that switch and must not be pressed into being one. It defaults to
- * **'advanced'** and has not been read since Kris collapsed the two tiers on 18 September, so
- * wiring checkout to it would move every existing business onto the dearer seat at once, with
- * nobody having chosen anything. That is the exact shape of a billing incident.
+ * That is a PER-BUSINESS choice, not a product-wide switch — a global flag could only ever move
+ * every business onto Advanced at once, which is exactly the billing incident this flag used to
+ * exist to prevent. So there are now two of the thing this used to be one of:
  *
- * So the prices are published — they are Stripe's, and the pricing page shows all four — and
- * everybody is billed Basic until this is switched on deliberately. Same arrangement, and the same
- * reasoning, as `TRAINING_SEAT_ON_SALE` in lib/pricing: one flag, read at the point the number
- * becomes money, rather than a half-built feature that bills.
+ *   `tenants.seatTier` — where the choice lives, one row per business, read by `planState`.
+ *   `setSeatTier` (below) — where the choice is made, an administrator's own decision, exactly as
+ *   rule 8 requires: SPEC proposes and sense-checks, the business's own managers decide.
  *
- * Turning it on needs the thing this flag is standing in for: somewhere a business chooses, and
- * something that reads the choice.
+ * Every business starts on `basic` (the column's own default) until its own administrator answers
+ * the question on the journey page — see DECISIONS.md, 22 September.
  */
-export const AI_TIER_ON_SALE = false;
 
 /**
  * How many of the people with a login lead somebody.
@@ -395,7 +408,9 @@ export function planState(
   const beta = tenant.plan === 'beta';
   const lapsed = tenant.plan === 'lapsed';
   const subscribed = Boolean(tenant.stripeSubscriptionId);
-  const bill = seatBill(seats, leadershipSeats, currency, AI_TIER_ON_SALE);
+  const seatTier: SeatTier = tenant.seatTier === 'advanced' ? 'advanced' : 'basic';
+  const withAi = seatTier === 'advanced';
+  const bill = seatBill(seats, leadershipSeats, currency, withAi);
   const billable = bill.billable;
   return {
     seats,
@@ -424,6 +439,7 @@ export function planState(
     // Program and beta are switched on deliberately, for free. Everyone else needs an actual
     // subscription — see the note on the field.
     aiActive: subscribed || program || beta,
+    seatTier,
   };
 }
 
@@ -459,9 +475,10 @@ export function costLabel(state: PlanState): string {
     Neither is worth having when both numbers fit in a sentence.
   */
   if (state.free) {
+    const withAi = state.seatTier === 'advanced';
     return 'Free — the first seat is, and so far it is just you. '
-      + `${seatLabel(state.currency, 'team')} a month for each person you add, `
-      + `${seatLabel(state.currency, 'leadership')} if they lead a team`;
+      + `${seatLabel(state.currency, 'team', withAi)} a month for each person you add, `
+      + `${seatLabel(state.currency, 'leadership', withAi)} if they lead a team`;
   }
   const people = `${state.seats} ${state.seats === 1 ? 'person' : 'people'}`;
   return `${moneyLabel(state.currency, state.monthlyCost)} a month · ${people}, first seat free`;
@@ -509,7 +526,107 @@ export async function planStateFor(tenantId: string, currency: Currency = HOME_C
     // Without this the page cannot tell a business that has paid from one that never could, which
     // is exactly the gap that left the product with no way to start a subscription at all.
     stripeSubscriptionId: tenant.stripeSubscriptionId,
+    seatTier: tenant.seatTier,
   }, await countSeats(tenantId), currency, await countLeadershipSeats(tenantId));
+}
+
+/**
+ * The administrator's own answer to "do you want SPEC AI powered?" — see the note on
+ * `AI_TIER_ON_SALE` above and on `tenants.seatTier` in db/schema.ts.
+ *
+ * Writable-guarded and administrator-only, exactly like every other company setting in
+ * `app/settings/actions.ts` — this changes what the WHOLE business is billed, not a personal
+ * preference.
+ *
+ * ── Why this also touches Stripe, not just the row ──────────────────────────────────────────────
+ *
+ * A business that has never subscribed just gets the new price at its next checkout — nothing to
+ * reconcile. But JBI, the test case this was built for, is already subscribed at Basic: changing
+ * the column alone would answer "yes" on screen while Stripe went on charging A$134. So when a
+ * subscription already exists, this pushes the new line items onto THAT subscription
+ * (`syncSubscriptionSeats`) rather than leaving a second, silent truth for somebody to find later.
+ */
+export async function setSeatTier(tenantId: string, tier: SeatTier): Promise<void> {
+  const { db, schema } = await import('../db');
+  const { eq } = await import('drizzle-orm');
+  await db.update(schema.tenants).set({ seatTier: tier }).where(eq(schema.tenants.id, tenantId));
+  await syncSubscriptionSeats(tenantId);
+}
+
+/**
+ * Pushes the current seat counts and tier onto a business's LIVE Stripe subscription, if it has
+ * one. A no-op for a business that has never subscribed — there is nothing to reconcile, and the
+ * next checkout will simply use the new tier.
+ *
+ * ── Why items are matched by price id rather than replaced wholesale ───────────────────────────
+ *
+ * Deleting every item and recreating them would still charge correctly, but it also resets Stripe's
+ * own proration tracking on lines that did not actually change — a business that only grew a team
+ * seat, with its tier untouched, would see its unrelated leadership line "change" for no reason a
+ * customer could explain from their invoice. Matching by price id and only touching what differs
+ * keeps the invoice explainable.
+ */
+export async function syncSubscriptionSeats(tenantId: string): Promise<void> {
+  const { getStripe } = await import('./stripe');
+  const stripe = getStripe();
+  if (!stripe) return; // no Stripe key configured — nothing to push
+
+  const { db, schema } = await import('../db');
+  const { eq } = await import('drizzle-orm');
+  const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, tenantId)))[0];
+  if (!tenant?.stripeSubscriptionId) return; // never subscribed — the next checkout carries the tier
+
+  const seats = await countSeats(tenantId);
+  const leadershipSeats = await countLeadershipSeats(tenantId);
+  const withAi = tenant.seatTier === 'advanced';
+  const bill = seatBill(seats, leadershipSeats, undefined, withAi);
+  const target = lineItemsFor(bill, withAi);
+
+  const subscription = await stripe.subscriptions.retrieve(tenant.stripeSubscriptionId);
+  const existing = subscription.items.data.map(i => ({ id: i.id, price: i.price.id, quantity: i.quantity ?? 0 }));
+
+  const items = reconcileSubscriptionItems(existing, target);
+  if (items.length === 0) return; // already matches — nothing to push
+  await stripe.subscriptions.update(tenant.stripeSubscriptionId, {
+    items,
+    proration_behavior: 'create_prorations',
+  });
+}
+
+export type SubscriptionItemUpdate =
+  | { id: string; quantity?: number; deleted?: true }
+  | { price: string; quantity: number };
+
+/**
+ * The plain diff behind `syncSubscriptionSeats`, pulled out so it can be tested without a Stripe
+ * client or a database — the arithmetic, not the API call, is where a mistake bills somebody the
+ * wrong amount.
+ *
+ * Matches by price id first (a business that only grew a team seat should not see its unrelated
+ * leadership line "change" for no reason a customer could explain from their invoice — see the note
+ * on `syncSubscriptionSeats`), updates quantity only where it actually differs, adds a line the
+ * subscription does not have yet, and deletes whatever the subscription still carries that the new
+ * bill does not — the other tier's line, or a seat kind this business no longer has any of.
+ */
+export function reconcileSubscriptionItems(
+  existing: readonly { id: string; price: string; quantity: number }[],
+  target: readonly { price: string; quantity: number }[],
+): SubscriptionItemUpdate[] {
+  const items: SubscriptionItemUpdate[] = [];
+  const claimed = new Set<string>();
+
+  for (const line of target) {
+    const match = existing.find(i => i.price === line.price && !claimed.has(i.id));
+    if (match) {
+      claimed.add(match.id);
+      if (match.quantity !== line.quantity) items.push({ id: match.id, quantity: line.quantity });
+    } else {
+      items.push({ price: line.price, quantity: line.quantity });
+    }
+  }
+  for (const old of existing) if (!claimed.has(old.id)) items.push({ id: old.id, deleted: true });
+
+  return items;
 }
 
 /**

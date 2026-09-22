@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { canBeTrained, isFrontlineLeader, TRAINING_SEAT_ON_SALE, SEAT_PRICES, PACKAGES, digitRoot, everyPublishedSeatPrice, RULE_OF_EIGHT, pricesObeyingTheRule } from '../src/lib/pricing';
-import { seatBill, planState, FREE_SEATS, AI_TIER_ON_SALE } from '../src/lib/plan';
+import { seatBill, planState, FREE_SEATS } from '../src/lib/plan';
 import { LIBRARY, libraryOrder, libraryMinutes, libraryLine } from '../src/lib/training-library';
 
 /**
@@ -16,7 +16,7 @@ import { LIBRARY, libraryOrder, libraryMinutes, libraryLine } from '../src/lib/t
  * supervisors, team leaders etc"*.
  */
 
-const t = (plan: string) => ({ id: 'x', plan, startDate: '2026-01-01' });
+const t = (plan: string, seatTier?: string) => ({ id: 'x', plan, startDate: '2026-01-01', seatTier });
 
 /*
   Derived from the table rather than written out, deliberately.
@@ -135,20 +135,20 @@ describe('a bill made of two kinds of seat', () => {
   });
 
   /*
-    ── Everybody is on Basic, whatever tenants.tier says ────────────────────────────────────────
+    ── Every business starts on Basic, until ITS OWN administrator says otherwise ───────────────
 
-    All four seat products are live in Stripe and a customer could be charged A$227 today. What
-    does not exist is the half that decides WHO: nothing in SPEC chooses Advanced, nothing gates
-    the assistant on it, no screen offers it.
-
-    `tenants.tier` is not that switch. It defaults to 'advanced' and has not been read since the
-    tiers were collapsed on 18 September, so wiring checkout to it would move every existing
-    business onto the dearer seat at once with nobody having chosen anything.
+    All four seat products are live in Stripe and a customer could be charged A$227 today. Since
+    22 September the choice is per business — `tenants.seatTier`, answered on the journey page
+    (`setBusinessSeatTier`) — never a product-wide switch, because a global one could only ever
+    move every existing business onto the dearer seat at once with nobody having chosen anything.
   */
-  it('PRICES EVERY BUSINESS AT BASIC UNTIL THE AI TIER IS DELIBERATELY SWITCHED ON', () => {
-    expect(AI_TIER_ON_SALE, 'nothing in SPEC decides who is on Advanced yet').toBe(false);
+  it('PRICES A BUSINESS AT BASIC UNTIL ITS OWN ADMINISTRATOR CHOOSES ADVANCED', () => {
     expect(planState(t('basic'), 40, 'aud', 6).monthlyCost).toBe(6 * LEADER + 33 * TEAM);
-    // And the dearer rates are still reachable the day it is, so the switch is the only change.
+    expect(planState(t('basic'), 40, 'aud', 6).seatTier, 'no choice made yet reads as basic').toBe('basic');
+    // And the dearer rates are reachable the moment a business says so, on its own.
+    expect(planState(t('basic', 'advanced'), 40, 'aud', 6).seatTier).toBe('advanced');
+    expect(planState(t('basic', 'advanced'), 40, 'aud', 6).monthlyCost)
+      .toBe(6 * SEAT_PRICES.aud.leadershipWithAi + 33 * SEAT_PRICES.aud.teamWithAi);
     expect(seatBill(40, 6, 'aud', true).monthlyCost)
       .toBe(6 * SEAT_PRICES.aud.leadershipWithAi + 33 * SEAT_PRICES.aud.teamWithAi);
   });

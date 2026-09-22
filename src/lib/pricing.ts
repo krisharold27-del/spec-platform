@@ -131,6 +131,51 @@ export const STRIPE_PRICES = {
 
 export type StripePriceKey = keyof typeof STRIPE_PRICES;
 
+/**
+ * The Stripe price id for one of the four seat products — the environment variable wins when set
+ * (a deployment can be pointed at test-mode prices without a release), `STRIPE_PRICES` is the
+ * fallback and the truth.
+ */
+export const stripePriceId = (key: StripePriceKey, envName: string): string =>
+  process.env[envName] || STRIPE_PRICES[key];
+
+/**
+ * The subscription line items for a bill — one place, used by both a NEW checkout and an UPDATE to
+ * an existing subscription, so the two can never compute this differently.
+ *
+ * ── Why this used to be only in one place ───────────────────────────────────────────────────────
+ *
+ * `api/stripe/checkout/route.ts` built this inline, because until 22 September a business could
+ * only ever reach this shape once — at its first checkout. Now a business can change seat tier
+ * AFTER subscribing (`setSeatTier` in lib/plan), which has to update the SAME subscription rather
+ * than start a second one, and it needs the identical two lines to reconcile against. Two versions
+ * of "what a bill is made of" is exactly the fault `seatBill`'s own history warns about — see the
+ * note there on a business being billed four times over because the bill asked an old question.
+ */
+export function lineItemsFor(
+  bill: { leadership: number; team: number },
+  withAi: boolean,
+): { price: string; quantity: number }[] {
+  const lines: { price: string; quantity: number }[] = [];
+  if (bill.leadership > 0) {
+    lines.push({
+      price: withAi
+        ? stripePriceId('leader_advanced', 'STRIPE_PRICE_SEAT_TRAINING_MONTHLY')
+        : stripePriceId('leader_basic', 'STRIPE_PRICE_SEAT_MONTHLY'),
+      quantity: bill.leadership,
+    });
+  }
+  if (bill.team > 0) {
+    lines.push({
+      price: withAi
+        ? stripePriceId('team_advanced', 'STRIPE_PRICE_TEAM_SEAT_ADVANCED_MONTHLY')
+        : stripePriceId('team_basic', 'STRIPE_PRICE_TEAM_SEAT_MONTHLY'),
+      quantity: bill.team,
+    });
+  }
+  return lines;
+}
+
 /** The products those prices hang off, for anybody checking the account against this file. */
 export const STRIPE_PRODUCTS = {
   leader_basic: 'prod_VHtnsfpPRSp6no',

@@ -66,6 +66,23 @@ export const tenants = pgTable('tenants', {
    * from anybody to deliver.
    */
   package: text('package').notNull().default('seat'),
+  /**
+   * basic | advanced — whether THIS business has chosen the AI-priced seat.
+   *
+   * Deliberately a new column and not a reuse of `tier` above: `tier` already carries a different,
+   * retired meaning (whether connectors/the assistant were switched on at all, before 18 September's
+   * "one SPEC, everything is on" collapsed that question) and every existing row already holds
+   * `tier='advanced'` from `provisionTenant` — reading THAT as "wants the dearer seat" would move
+   * every business ever created onto A$227 the moment this shipped, with nobody having chosen it.
+   * `seat_tier` starts every business, existing and new, at `basic` — nobody pays more until they
+   * say so.
+   *
+   * Kris, 22 September: *"there needs to be a question that says do you want SPEC AI powered — if
+   * yes then the leadership seat is this and if no then the leadership seat is that"* — read at
+   * checkout time by `lib/plan`'s `planState`, and settable by an administrator from the journey
+   * page (`setSeatTier`). See DECISIONS.md, 22 September.
+   */
+  seatTier: text('seat_tier').notNull().default('basic'),
 }).enableRLS();
 
 /**

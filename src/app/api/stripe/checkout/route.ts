@@ -9,12 +9,12 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { eq } from 'drizzle-orm';
-import { currencyForCountry, STRIPE_PRICES } from '@/lib/pricing';
+import { currencyForCountry, lineItemsFor } from '@/lib/pricing';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getStripe } from '@/lib/stripe';
 import { currentOrigin } from '@/lib/origin';
-import { countSeats, countLeadershipSeats, seatBill, AI_TIER_ON_SALE } from '@/lib/plan';
+import { countSeats, countLeadershipSeats, seatBill } from '@/lib/plan';
 import { getScope, isTopOfChart } from '@/lib/scope';
 
 /**
@@ -42,9 +42,6 @@ import { getScope, isTopOfChart } from '@/lib/scope';
  * The environment variables still win when set, so a deployment can be pointed at test-mode prices
  * without a release.
  */
-const priceId = (key: keyof typeof STRIPE_PRICES, envName: string): string =>
-  process.env[envName] || STRIPE_PRICES[key];
-
 export async function POST() {
   /*
     Everything below goes back to the address the customer is actually on, not to APP_URL.
@@ -81,7 +78,10 @@ export async function POST() {
   */
   const seats = await countSeats(user.tenantId);
   const leadershipSeats = await countLeadershipSeats(user.tenantId);
-  const bill = seatBill(seats, leadershipSeats, undefined, AI_TIER_ON_SALE);
+  // basic | advanced — this business's own answer to "do you want SPEC AI powered?" (journey page,
+  // lib/plan's setSeatTier). Missing reads as basic — see the note on tenants.seatTier.
+  const withAi = tenant.seatTier === 'advanced';
+  const bill = seatBill(seats, leadershipSeats, undefined, withAi);
   if (bill.billable === 0) return NextResponse.redirect(`${here}/journey?nothing_to_bill=1`, 303);
 
   // Billed in the business's own currency, set by where it is (BUILD_SPEC §8.2).
@@ -94,33 +94,18 @@ export async function POST() {
     of leaders) plus one Team-seat line item (quantity = number of team members), both on the same
     tier."*
 
-    Both on the same tier is the part worth stating, because it is not enforceable from here: there
-    is one `AI_TIER_ON_SALE` for the whole product, which is false, so every line is Basic. When a
-    business can choose Advanced, the choice has to apply to BOTH lines — mixing Basic leaders with
-    Advanced team seats is not offered, and a bill that mixed them would be selling something that
-    does not exist.
+    Both on the same tier is the part worth stating, because it is not enforceable from here on its
+    own: `withAi` is one value for the whole checkout, so both lines always agree — mixing Basic
+    leaders with Advanced team seats is not offered, and a bill that mixed them would be selling
+    something that does not exist. `lineItemsFor` (lib/pricing) is shared with `syncSubscriptionSeats`
+    (lib/plan), which pushes the same two lines onto an ALREADY-subscribed business when its tier
+    changes, so there is exactly one place this arithmetic is written.
 
     The old version of this split people a different way — plain seats against SPEC's training
     seats — and could only ever reach ONE of the four prices, the leadership one. Every team member
     in every business was counted at A$134. See the note on seatBill.
   */
-  const lines: { price: string; quantity: number }[] = [];
-  if (bill.leadership > 0) {
-    lines.push({
-      price: AI_TIER_ON_SALE
-        ? priceId('leader_advanced', 'STRIPE_PRICE_SEAT_TRAINING_MONTHLY')
-        : priceId('leader_basic', 'STRIPE_PRICE_SEAT_MONTHLY'),
-      quantity: bill.leadership,
-    });
-  }
-  if (bill.team > 0) {
-    lines.push({
-      price: AI_TIER_ON_SALE
-        ? priceId('team_advanced', 'STRIPE_PRICE_TEAM_SEAT_ADVANCED_MONTHLY')
-        : priceId('team_basic', 'STRIPE_PRICE_TEAM_SEAT_MONTHLY'),
-      quantity: bill.team,
-    });
-  }
+  const lines = lineItemsFor(bill, withAi);
 
   /*
     Kris, 20 September, right after the first real payment: the billing page came back as a bare
