@@ -154,9 +154,17 @@ export async function Shell({ title, kicker, headline, subtitle, children }: {
     <div className="min-h-screen">
       {looking && <LookBar />}
       <header className="border-b border-ink/10 bg-surface">
-        {/* Wraps rather than scrolls: six links and a business name do not fit one line on a phone,
-            and a bar that slides sideways is the half of the navigation nobody finds. */}
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-3">
+        {/*
+          Wraps rather than scrolls: nine links and a business name do not fit one line on a phone,
+          and a bar that slides sideways is the half of the navigation nobody finds.
+
+          No `justify-between` — the mark and the nav sit as one left-hand group (`gap-x-6` between
+          them), and only the billing pill/bell/business-name block is pushed right, on its own
+          `ml-auto` below. `justify-between` had stretched the mark and the nav to opposite ends of
+          a 1152px bar, leaving a wide empty gap on any screen wider than the content — Kris, looking
+          at it built: *"why is everything so far right - line it up nicely."*
+        */}
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
           {/* Inside the product the mark is a wayfinder, not a brand statement, so it carries no
               supporting line. */}
           {/*

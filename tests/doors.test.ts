@@ -106,18 +106,18 @@ describe('the navigation bar', () => {
   */
   const f = { businesses: 1, runsSpec: false };
 
-  it('IS EIGHT ITEMS, not nineteen', () => {
+  it('IS NINE ITEMS, not nineteen', () => {
     /*
       The argument was never that navigation is wrong. It was that nineteen of them is.
 
       Seven since 18 September, when Kris sent the header he wants: the six screens plus **All
       pages**, which is the door to the full grouped directory at the foot of My Page. Eight since
       22 September, when Kris asked for the AI-powered question "under pricing" — see the note on
-      `/billing` in lib/doors.ts. "All pages" is what lets the bar stay this short whatever else is
-      added — SPEC has far more than eight screens and always will, and nothing may be reachable
-      only by knowing it is there.
+      `/billing` in lib/doors.ts. Nine later the same day, when Kris asked for Setup as tab one. "All
+      pages" is what lets the bar stay this short whatever else is added — SPEC has far more than
+      nine screens and always will, and nothing may be reachable only by knowing it is there.
     */
-    expect(navDoors(f)).toHaveLength(8);
+    expect(navDoors(f)).toHaveLength(9);
     expect(navDoors(f).length).toBeLessThan(allDoors(f).length);
   });
 
@@ -135,8 +135,14 @@ describe('the navigation bar', () => {
     }
   });
 
-  it('starts at My page, because that is where every day starts', () => {
-    expect(navDoors(f)[0].href).toBe('/my-page');
+  it('starts at Setup, since Kris asked for it as tab one', () => {
+    /*
+      Was "starts at My page, because that is where every day starts" until 22 September, when Kris
+      looked at the built bar and said tab one should be Setup instead. My Page keeps its other jobs
+      — the logo's destination, and the address every other door here is described as opening from —
+      it is simply no longer first on the bar.
+    */
+    expect(navDoors(f)[0].href).toBe('/setup');
   });
 
   it('and every item carries the words the design uses', () => {
@@ -150,14 +156,15 @@ describe('the navigation bar', () => {
       written before the rename and nobody updated it — so it was asserting the old name as though
       it were the design's.
     */
-    expect(labels).toEqual(['My page', 'Org chart', 'Scoring', 'Board pack', 'Mirrors', 'Connections', 'Pricing', 'All pages']);
+    expect(labels).toEqual(['Setup', 'My page', 'Org chart', 'Pricing', 'Scoring', 'Board pack', 'Mirrors', 'Connections', 'All pages']);
   });
 
   it('THE BAR AND THE DIRECTORY CANNOT DISAGREE', () => {
     /*
-      Every bar item except My page and Board pack is taken from `doors()`, so a renamed route moves
-      both at once. Those two are the exceptions and are named here rather than left to be noticed:
-      My page is the shell itself, and /board is a door onto /board/[periodId], which has no fixed
+      Every bar item except My page and Board pack is taken from `doors()` (Setup is written out too,
+      but its href still names a real door in the directory, so it is checked the same as the rest).
+      My page and Board pack are the true exceptions, named here rather than left to be noticed: My
+      page is the shell itself, and /board is a door onto /board/[periodId], which has no fixed
       address to put in a list.
       */
     const directory = new Set(allDoors(f).map(d => d.href));

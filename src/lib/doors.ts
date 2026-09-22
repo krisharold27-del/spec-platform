@@ -162,17 +162,30 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
  * setup steps — see the note on `/billing` above. Money is one of the things a leader goes looking
  * for repeatedly, the same test every other item here passes.
  *
+ * Nine, later the same day: Kris looked at the built bar and said tab one should be **Setup**, with
+ * Pricing sitting right after Org chart rather than down near Connections — *"tab 1 is supposed to
+ * be set up - then my page - org chart - pricing and so on."* `/setup` is the same door as "Setting
+ * up" in the grouped directory, shortened to fit the bar the way `/billing` already shortens to
+ * "Pricing" here.
+ *
  * Built from `doors()` rather than written out again, so a route that is renamed cannot leave the
  * bar pointing at nothing while the directory quietly stays right.
  */
-export const NAV_HREFS = ['/my-page', '/org', '/scoring', '/board', '/mirrors', '/connections', '/billing', '/my-page#everywhere'] as const;
+export const NAV_HREFS = ['/setup', '/my-page', '/org', '/billing', '/scoring', '/board', '/mirrors', '/connections', '/my-page#everywhere'] as const;
 
 export function navDoors(f: DoorsFor): Door[] {
   const all = allDoors(f);
   const find = (href: string) => all.find(d => d.href === href);
   return [
+    /*
+      Tab one, since 22 September — Kris, looking at the built bar: "tab 1 is supposed to be set
+      up." My Page is still where the logo goes home and still the address every other door on this
+      bar is described as opening FROM, but the bar itself now opens on Setup rather than on it.
+    */
+    { href: '/setup', label: 'Setup', note: 'Roles, KPIs and the things still to do.' },
     { href: '/my-page', label: 'My page', note: 'Your day, and everything else opens from it.' },
     find('/org') ?? { href: '/org', label: 'Org chart', note: 'Who does what, and who reports to whom.' },
+    find('/billing') ?? { href: '/billing', label: 'Pricing', note: 'What it costs, and whether the AI seat is switched on.' },
     { href: '/scoring', label: 'Scoring', note: 'Mark the month, and close it when it is done.' },
     /*
       The pack itself lives at /board/[periodId]. `/board` is the door — it opens the most recently
@@ -181,11 +194,10 @@ export function navDoors(f: DoorsFor): Door[] {
     { href: '/board', label: 'Board pack', note: 'What went to the Board for the last closed month.' },
     find('/mirrors') ?? { href: '/mirrors', label: 'Mirrors', note: 'Artifacts your team pins and runs projects through.' },
     find('/connections') ?? { href: '/connections', label: 'Connections', note: 'The systems that feed your numbers.' },
-    find('/billing') ?? { href: '/billing', label: 'Pricing', note: 'What it costs, and whether the AI seat is switched on.' },
     /*
       The last item on the bar, and the reason the bar can stay this short whatever else gets added.
 
-      SPEC has far more than eight screens and always will. The complete grouped directory is at the
+      SPEC has far more than nine screens and always will. The complete grouped directory is at the
       foot of My Page — this is the door to it, so the bar never has to grow and nothing is ever
       only reachable by knowing it is there. Kris drew the original six plus this one on the header
       he sent on 18 September.
