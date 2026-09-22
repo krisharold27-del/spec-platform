@@ -213,23 +213,21 @@ export default async function Landing() {
               <Link href="/signup" className="btn-secondary mt-6 inline-block">Start free</Link>
             </div>
             {/*
-              This card used to print the A$44 above the words "SPEC Advanced", which is two
-              different products wearing one number. Advanced is connectors and the assistant — the
-              same price, because it is the same system, which is what /pricing has always said. The
-              A$44 is the frontline leader seat, a different question entirely, and a customer
-              reading both pages was being told two things that could not both be true.
+              This card used to print the A$44 above the words "SPEC Advanced", which was two
+              different products wearing one number, and later the frontline-leader training seat
+              at the team price while its own pack was still being written. Both are fixed now: the
+              training upgrade is a LEADERSHIP seat, priced and turned on, 22 September.
             */}
             <div className="rounded-lg bg-sage-100 p-8">
-              <div className="label-caps text-sage-800">Seat plus training</div>
+              <div className="label-caps text-sage-800">Leadership seat + training</div>
               <div className="mt-3 font-serif text-[44px] leading-tight text-ink">
-                {moneyLabel(HOME_CURRENCY, SEAT.team)}
+                {moneyLabel(HOME_CURRENCY, SEAT.leadershipWithTraining)}
               </div>
-              <p className="mt-1.5 text-sm text-ink-light">per frontline leader, per month · not open yet</p>
+              <p className="mt-1.5 text-sm text-ink-light">per person, per month</p>
               <p className="mt-5 text-base leading-7 text-ink">
-                The same seat, plus SPEC&rsquo;s own training for supervisors and team leaders — twelve
-                modules across the four pillars, done online at their own pace. For the people running
-                a crew, not for everybody. The pack is still being written — the price is set for when
-                it is ready, and nobody is charged for it before then.
+                Any leadership seat, upgraded person by person, unlocks SPEC&rsquo;s own training
+                material for the role they hold — twelve modules across the four pillars, done
+                online at their own pace. Turned on and off by your own administrator, from Training.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link href="/pricing" className="btn-primary inline-block">See what is in it</Link>

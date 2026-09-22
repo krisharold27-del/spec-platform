@@ -8,13 +8,12 @@ import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { getScope } from '@/lib/scope';
 import { planStateFor, costLabel } from '@/lib/plan';
-import { moneyLabel, SEAT_PRICES, isFrontlineLeader, TRAINING_SEAT_ON_SALE } from '@/lib/pricing';
-import { libraryLine, LIBRARY } from '@/lib/training-library';
+import { moneyLabel } from '@/lib/pricing';
 import { PERMISSIONS, LEVELS, stateOf, STATE_LABEL, levelOf } from '@/lib/permissions';
 import { cadenceOf, CADENCE } from '@/lib/governance';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { adminActivity } from '@/lib/admin-activity';
-import { setCadence, setCeilings, resetCeilings, setTrainingSeat, revokeRights } from './actions';
+import { setCadence, setCeilings, resetCeilings, revokeRights } from './actions';
 import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsFor, usesOwnCeilings } from '@/lib/ceilings';
 import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_AT_OR_BELOW } from '@/lib/incentive';
 
@@ -35,7 +34,7 @@ const STATE_COLOUR = {
  * read in one go — hiding a button was never access control.
  */
 export default async function Settings({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const sp = await searchParams;
+  await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
@@ -101,19 +100,6 @@ export default async function Settings({ searchParams }: { searchParams: Promise
     const holder = r.holder?.email;
     return !holder || !billable.some(b => b.email === holder);
   });
-
-  /*
-    Who may be put on SPEC's training material, and who already is.
-
-    Read from the CHART, not from a list of people: the A$44 seat is for frontline leaders, and
-    whether somebody is one is a fact about the role they hold, which moves when they move. Asking
-    the chart means a supervisor who becomes a stream head stops being eligible the same minute,
-    without anybody remembering to change a second thing.
-  */
-  const frontline = scope.roles
-    .filter(r => isFrontlineLeader(r.level) && r.holder?.email)
-    .map(r => ({ role: r, person: billable.find(b => b.email === r.holder!.email) }))
-    .filter((x): x is { role: typeof x.role; person: NonNullable<typeof x.person> } => Boolean(x.person));
 
   if (!scope.canAdminister) {
     return (
@@ -181,70 +167,18 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           </p>
 
           {/*
-            SPEC's training material, and who is on it.
-
-            It sits inside Seats and billing rather than beside Training, because turning it on is a
-            billing decision an administrator makes, not a learning decision a supervisor makes.
+            SPEC's training material moved to its own door on 22 September — Kris asked for a
+            dedicated training area rather than a control buried inside Seats and billing. Who is on
+            the training seat, and putting somebody on or off it, now lives on /training itself,
+            beside the material it unlocks.
           */}
           <div className="mt-6 border-t border-ink/10 pt-5">
             <div className="label-caps">SPEC&apos;s training material</div>
             <p className="mt-1 text-sm text-ink-light">
-              {/*
-                This used to quote a second price — "$134 to $227 a month" — because design 15
-                reused the slot as the leadership seat with the AI on it. That tier was retired 22
-                September (see the note on `SEAT_PRICES` in lib/pricing), so there is no second
-                price to quote any more. Not on sale yet either way — see below.
-              */}
-              For frontline leaders — supervisors and team leaders. {libraryLine(LIBRARY)} The
-              modules go onto the path for the role they hold, once the pack is ready.
+              A leadership seat can be upgraded, person by person, to unlock SPEC&apos;s own training
+              material for the role.{' '}
+              <Link href="/training" className="text-rust-700 hover:underline">Manage it from Training →</Link>
             </p>
-            {sp.training === 'not_frontline' && (
-              <p className="mt-2 rounded-lg border-l-4 border-rust-400 bg-surface p-3 text-sm text-ink">
-                That person does not hold a frontline leader role, so the training seat does not apply
-                to them. It is for supervisors and team leaders — the people running a crew.
-              </p>
-            )}
-            {!TRAINING_SEAT_ON_SALE ? (
-              /*
-                Kris, 16 September: "happy to remove the 44 from the plan for the short term and
-                start cleanly... leave it as a price for the future - i havent finished the
-                supervisor training pack anyway".
-
-                The price stays published and everything behind it stays built; nobody can be put on
-                it until the pack is done. Said plainly rather than the control quietly vanishing,
-                because a leader who saw it yesterday would otherwise think SPEC had lost something.
-              */
-              <p className="mt-3 rounded-lg bg-cream p-3 text-sm text-ink-light">
-                Not open yet. The supervisor pack is still being written, so nobody can be put on it
-                and nobody is being charged for it. The price is set for when it is ready.
-              </p>
-            ) : frontline.length === 0 ? (
-              <p className="mt-3 text-sm text-ink-light">
-                Nobody here holds a supervisor or team leader role yet. When somebody does, they can
-                be put on it from here.
-              </p>
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {frontline.map(({ role, person }) => (
-                  <li key={person.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 p-3 text-sm">
-                    <span className="text-ink">{person.name}</span>
-                    <span className="text-xs text-ink-light">{role.title}</span>
-                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${person.trainingSeat ? 'bg-sage-200 text-sage-900' : 'bg-cream text-ink-light'}`}>
-                      {person.trainingSeat
-                        ? 'On training'
-                        : `${moneyLabel(plan.currency, SEAT_PRICES[plan.currency].leadership)}`}
-                    </span>
-                    <form action={setTrainingSeat} className="ml-auto">
-                      <input type="hidden" name="userId" value={person.id} />
-                      <input type="hidden" name="on" value={person.trainingSeat ? '0' : '1'} />
-                      <SubmitButton className="btn-secondary text-xs" pending="Saving…">
-                        {person.trainingSeat ? 'Take off training' : 'Put on training'}
-                      </SubmitButton>
-                    </form>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
         </section>
 

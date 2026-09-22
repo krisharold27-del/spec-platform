@@ -14,7 +14,7 @@ import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getStripe } from '@/lib/stripe';
 import { currentOrigin } from '@/lib/origin';
-import { countSeats, countLeadershipSeats, seatBill } from '@/lib/plan';
+import { countSeats, countLeadershipSeats, countTrainingSeats, seatBill } from '@/lib/plan';
 import { getScope, isTopOfChart } from '@/lib/scope';
 
 /**
@@ -78,20 +78,23 @@ export async function POST() {
   */
   const seats = await countSeats(user.tenantId);
   const leadershipSeats = await countLeadershipSeats(user.tenantId);
-  const bill = seatBill(seats, leadershipSeats);
+  const trainingSeats = await countTrainingSeats(user.tenantId);
+  const bill = seatBill(seats, leadershipSeats, undefined, trainingSeats);
   if (bill.billable === 0) return NextResponse.redirect(`${here}/billing?nothing_to_bill=1`, 303);
 
   // Billed in the business's own currency, set by where it is (BUILD_SPEC §8.2).
   const currency = currencyForCountry((await headers()).get('x-vercel-ip-country'));
 
   /*
-    ── Two seats, so two lines ─────────────────────────────────────────────────────────────────
+    ── Two seats, and a third line for anybody trained ─────────────────────────────────────────
 
     Kris's handoff: *"A customer's subscription is one Leadership-seat line item (quantity = number
     of leaders) plus one Team-seat line item (quantity = number of team members)."* One price per
-    seat kind, not two — the Basic/Advanced split this checkout briefly offered lasted one session
-    and was retired 22 September (see the note on `SEAT_PRICES` in lib/pricing). `lineItemsFor`
-    (lib/pricing) is the one place this arithmetic is written.
+    seat kind — the Basic/Advanced split this checkout briefly offered lasted one session and was
+    retired 22 September (see the note on `SEAT_PRICES` in lib/pricing). A third line joins them
+    only when somebody is on the training upgrade (`bill.training`), at its own price rather than
+    the plain leadership one. `lineItemsFor` (lib/pricing) is the one place this arithmetic is
+    written.
 
     The old version of this split people a different way — plain seats against SPEC's training
     seats — and could only ever reach ONE of the four prices, the leadership one. Every team member

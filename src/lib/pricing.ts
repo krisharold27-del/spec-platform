@@ -18,6 +18,8 @@
  * the amounts and the price IDs are transcribed from one document, together, so they cannot drift
  * apart one at a time.
  */
+import { seatKindFor } from './chart-seats';
+
 export type Currency = 'aud' | 'nzd' | 'gbp' | 'eur' | 'usd' | 'cad';
 
 /** Every currency a seat can be charged in. AUD is the default currency on each Stripe price. */
@@ -26,6 +28,8 @@ export const SUPPORTED_CURRENCIES = ['aud', 'nzd', 'gbp', 'eur', 'usd', 'cad'] a
 export interface SeatPrice {
   /** Somebody who leads people. */
   leadership: number;
+  /** A leadership seat upgraded to carry SPEC's own training material — see `TRAINING_SEAT_ON_SALE`. */
+  leadershipWithTraining: number;
   /** Somebody who is led — priced in a pool, not one at a time. */
   team: number;
   symbol: string;
@@ -56,18 +60,34 @@ export interface SeatPrice {
  * 17 that sfine."* So AUD keeps the $17 it already had, matching the live Stripe price exactly, and
  * every other currency keeps the amounts it already had too. What changed is only the SHAPE: one
  * price per seat kind rather than two.
+ *
+ * ── A third number returns, meaning something different ─────────────────────────────────────────
+ *
+ * `leadershipWithTraining` reuses the exact figures the retired Advanced/AI leadership price had —
+ * the same live Stripe price object, `RETIRED_STRIPE_PRICES.leader_advanced` until this change, now
+ * un-retired below as `leaderTraining`. Kris, 22 September, once the tier itself was gone: *"i think
+ * the 227 price can stay but change to full training system price — so all training materials
+ * become available for the role — we as SPEC are constantly building our training materials so they
+ * can turn the seat to a leadership and training seat and that then makes it 227."*
+ *
+ * A leadership seat, upgraded, per person, by an administrator — not a business-wide switch, and
+ * not a different Stripe product from the one that already existed. Only its meaning changed: it no
+ * longer buys the AI-powered leadership seat, which nothing distinguished from the plain one either
+ * (see the note above on `aiActive`). It now buys the one thing the price was never used for before
+ * — SPEC's own training material, unlocked for the person holding the seat.
  */
 export const SEAT_PRICES: Record<Currency, SeatPrice> = {
-  aud: { leadership: 134, team: 17, symbol: 'A$' },
-  nzd: { leadership: 180, team: 23, symbol: 'NZ$' },
-  gbp: { leadership: 88, team: 11, symbol: '£' },
-  eur: { leadership: 134, team: 17, symbol: '€' },
-  usd: { leadership: 134, team: 17, symbol: 'US$' },
-  cad: { leadership: 180, team: 23, symbol: 'CA$' },
+  aud: { leadership: 134, leadershipWithTraining: 227, team: 17, symbol: 'A$' },
+  nzd: { leadership: 180, leadershipWithTraining: 305, team: 23, symbol: 'NZ$' },
+  gbp: { leadership: 88, leadershipWithTraining: 149, team: 11, symbol: '£' },
+  eur: { leadership: 134, leadershipWithTraining: 227, team: 17, symbol: '€' },
+  usd: { leadership: 134, leadershipWithTraining: 227, team: 17, symbol: 'US$' },
+  cad: { leadership: 180, leadershipWithTraining: 305, team: 23, symbol: 'CA$' },
 };
 
 /** Every number this table publishes. */
-export const everyPublishedSeatPrice = (p: SeatPrice): number[] => [p.leadership, p.team];
+export const everyPublishedSeatPrice = (p: SeatPrice): number[] =>
+  [p.leadership, p.leadershipWithTraining, p.team];
 
 /**
  * ── The rule of 8, and what happened to it ──────────────────────────────────────────────────────
@@ -80,13 +100,14 @@ export const everyPublishedSeatPrice = (p: SeatPrice): number[] => [p.leadership
  * see the note on `SEAT_PRICES` — and with it the one price this table could never make obey the
  * rule.
  *
- * Twelve prices published now (two seat kinds, six currencies) rather than twenty-four. Six of them
- * reduce to 8 — AUD and, because they happen to share AUD's numbers, EUR and USD, both seat kinds —
- * and NZD, GBP and CAD's do not, exactly as before. `tests/pricing.test.ts` asserts the set below is
+ * Eighteen prices published now (three seat kinds, six currencies) since `leadershipWithTraining`
+ * returned. Eight of them reduce to 8 — AUD, EUR and USD's leadership (134) and team (17) seats, and
+ * NZD and CAD's training seat (305) — and the other ten do not: NZD/CAD's leadership and team, GBP's
+ * every seat, and AUD/EUR/USD's training seat (227). `tests/pricing.test.ts` asserts the set below is
  * exactly this: no more and no fewer, so a future price change that breaks the rule fails a test
  * until somebody decides it on purpose.
  */
-export const RULE_OF_EIGHT: readonly number[] = [17, 134];
+export const RULE_OF_EIGHT: readonly number[] = [17, 134, 305];
 
 /** Repeated digit sum: 26 → 8, 35 → 8, 1,700 → 8. */
 export function digitRoot(n: number): number {
@@ -123,7 +144,13 @@ export const pricesObeyingTheRule = (): number[] => [
 export const STRIPE_PRICES = {
   leader: 'price_1UHK06GjbPN3KVS7Erx7Aeum',
   team: 'price_1UHK5hGjbPN3KVS7hzoKltlI',
-  /** Flat monthly, quantity 1, Australian dollars only. */
+  /**
+   * The leadership seat, upgraded with SPEC's training material. Un-retired 22 September — this is
+   * the same `leader_advanced` id that used to buy the AI-powered leadership seat, repurposed rather
+   * than replaced: see the note on `SEAT_PRICES`.
+   */
+  leaderTraining: 'price_1UHK3PGjbPN3KVS7vot0UtCu',
+  /** Flat monthly, quantity 1, Australian dollars only — the $1,502 SPEC Training package, not a seat. */
   training: 'price_1UHK94GjbPN3KVS7FE5GGzAC',
 } as const;
 
@@ -138,13 +165,11 @@ export const stripePriceId = (key: StripePriceKey, envName: string): string =>
   process.env[envName] || STRIPE_PRICES[key];
 
 /**
- * The Advanced/AI-priced seat ids, retired 22 September along with the tier they billed. Still
- * live in Stripe — nobody archived them — but no code path references them any more. Written
- * down so nobody reads an old commit, sees a bare id, and wires it back in without reading why it
- * stopped being used: see the note on `SEAT_PRICES`.
+ * The Advanced/AI-priced TEAM seat, retired 22 September along with the tier it billed and never
+ * un-retired — there is no team-seat training upgrade, only a leadership one (see `STRIPE_PRICES`).
+ * Still live in Stripe — nobody archived it — but no code path references it any more.
  */
 export const RETIRED_STRIPE_PRICES = {
-  leader_advanced: 'price_1UHK3PGjbPN3KVS7vot0UtCu',
   team_advanced: 'price_1UHK7lGjbPN3KVS7EXlND5Xg',
 } as const;
 
@@ -163,7 +188,7 @@ export const RETIRED_STRIPE_PRICES = {
  * question.
  */
 export function lineItemsFor(
-  bill: { leadership: number; team: number },
+  bill: { leadership: number; team: number; training?: number },
 ): { price: string; quantity: number }[] {
   const lines: { price: string; quantity: number }[] = [];
   if (bill.leadership > 0) {
@@ -178,6 +203,17 @@ export function lineItemsFor(
       quantity: bill.team,
     });
   }
+  /*
+    A third line, only when somebody is actually on the training upgrade. `bill.leadership` above is
+    already the PLAIN leadership count — `seatBill` (lib/plan) splits a trained leader out of it — so
+    this never double-charges the same seat at two prices.
+  */
+  if (bill.training && bill.training > 0) {
+    lines.push({
+      price: stripePriceId('leaderTraining', 'STRIPE_PRICE_SEAT_TRAINING_MONTHLY'),
+      quantity: bill.training,
+    });
+  }
   return lines;
 }
 
@@ -185,12 +221,12 @@ export function lineItemsFor(
 export const STRIPE_PRODUCTS = {
   leader: 'prod_VHtnsfpPRSp6no',
   team: 'prod_VHtt211YPktGXS',
+  leaderTraining: 'prod_VHtrdn6wF9T8JM',
   training: 'prod_VHtwe8HgAnBYdW',
 } as const;
 
-/** The Advanced products those `RETIRED_STRIPE_PRICES` hang off — see the note there. */
+/** The product `RETIRED_STRIPE_PRICES.team_advanced` hangs off — see the note there. */
 export const RETIRED_STRIPE_PRODUCTS = {
-  leader_advanced: 'prod_VHtrdn6wF9T8JM',
   team_advanced: 'prod_VHtv5osYcg3Snq',
 } as const;
 
@@ -267,6 +303,11 @@ export const seatLabel = (currency: Currency, kind: SeatKind = 'leadership') =>
   `${SEAT_PRICES[currency].symbol}${seatPrice(currency, kind)}`;
 export const moneyLabel = (currency: Currency, amount: number) => `${SEAT_PRICES[currency].symbol}${amount}`;
 
+/** What a leadership seat costs once it carries SPEC's training material. */
+export const trainingSeatPrice = (currency: Currency): number => SEAT_PRICES[currency].leadershipWithTraining;
+export const trainingSeatLabel = (currency: Currency) =>
+  `${SEAT_PRICES[currency].symbol}${trainingSeatPrice(currency)}`;
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * The four things a business can be buying
  * ───────────────────────────────────────────────────────────────────────────── */
@@ -333,45 +374,35 @@ export type Package = 'seat' | 'seat_training' | 'sessions' | 'full_control';
  * to the person, and a bill becomes a mixture.
  */
 /**
- * Is the A$44 seat sellable yet?
+ * Is the training seat sellable yet?
  *
- * Kris, 16 September: *"happy to remove the 44 from the plan for the short term and start
- * cleanly... leave it as a price for the future - i havent finished the supervisor training pack
- * anyway"*.
+ * Kris, 16 September, holding the price back: *"happy to remove the 44 from the plan for the short
+ * term and start cleanly... leave it as a price for the future - i havent finished the supervisor
+ * training pack anyway"*. That pack is `lib/training-library`'s twelve modules, and it exists now —
+ * Kris, 22 September, asked whether the seat should be turned on business-wide or per person once an
+ * administrator puts somebody on it: *"per-person... on now"*. So this is `true`: every eligible
+ * leader can be put on it today, one at a time, by their own administrator.
  *
- * So the price stays — it is published, it reduces to 8, the material that exists is real — and
- * nobody can be put on it until the pack is finished. One switch, because the alternative is
- * deleting the work and rebuilding it in a month, and because a half-removed price is how a number
- * ends up on a page with nothing behind it, which is the fault this whole area was just fixed for.
- *
- * Flipping this to `true` is the only change needed when the pack is done. Everything downstream —
- * the Administration control, the eligibility check, the two-line Stripe bill — is already built and
- * tested and simply has nothing to act on while it is false.
- *
- * It also takes STRIPE_PRICE_SEAT_TRAINING_MONTHLY off the critical path for the first real payment:
- * no training seats can exist, so checkout never needs the training price.
+ * It stays a single switch rather than being deleted, because the alternative — pulling the whole
+ * mechanism out and rebuilding it the next time a price needs holding back — is exactly the mistake
+ * this file was built to stop repeating.
  */
-export const TRAINING_SEAT_ON_SALE = false;
-
-export const TRAINING_LEVELS = ['supervisor'] as const;
+export const TRAINING_SEAT_ON_SALE = true;
 
 /**
- * May somebody in this role be put on a training seat?
+ * May somebody in this role be put on the training seat?
  *
- * Frontline leaders only — the people who run a crew day to day. Not the stream heads, not the GM,
- * not team members. That is the whole point of the price: it is what a supervisor needs in order to
- * lead the people in front of them, and pretending it suits everybody would make it suit nobody.
+ * ── Broadened from "frontline leader" to "leadership seat" ──────────────────────────────────────
  *
- * Levels are `gm | manager | supervisor | staff` (db/schema roles.level). `manager` is a stream head
- * — Head of Commercial, Operations, Growth — which is a seat above the frontline, not on it.
+ * It used to be role LEVEL — `supervisor` only, nobody above or below. Kris's 22 September answer
+ * ("one shared library, role decides eligibility") reuses the same library for everybody who leads
+ * people, not only the frontline: the price is now the leadership seat's own training upgrade, so
+ * the question is the same one that decides which seat somebody is on in the first place —
+ * `seatKindFor` in lib/chart-seats, read off the chart rather than off a level string that could
+ * disagree with it.
  */
-export const canBeTrained = (level: string | null | undefined): boolean =>
-  TRAINING_SEAT_ON_SALE
-  && TRAINING_LEVELS.includes(String(level) as (typeof TRAINING_LEVELS)[number]);
-
-/** The same question, ignoring whether it is on sale yet — for describing the rule on a page. */
-export const isFrontlineLeader = (level: string | null | undefined): boolean =>
-  TRAINING_LEVELS.includes(String(level) as (typeof TRAINING_LEVELS)[number]);
+export const eligibleForTrainingSeat = (role: { title: string; hasDirectReports: boolean }): boolean =>
+  TRAINING_SEAT_ON_SALE && seatKindFor(role) === 'leadership';
 
 export interface PackageSpec {
   label: string;

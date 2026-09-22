@@ -16,7 +16,7 @@
  * what the system will do — before spending a cent or entering a card.
  */
 
-import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatPrice, type Currency } from './pricing';
+import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatPrice, trainingSeatPrice, type Currency } from './pricing';
 
 /** Per active named seat, per month, in the home currency (AUD). Other regions: see lib/pricing. */
 /** The leadership seat, which is the one the free-first-seat rule is about. */
@@ -119,6 +119,11 @@ export interface PlanState {
   leadershipSeats: number;
   /** And how many are team seats. The two add up to `billable`, never to `seats`. */
   teamSeats: number;
+  /**
+   * How many of `leadershipSeats` are ALSO on SPEC's training upgrade, at the dearer of the two
+   * leadership prices. A subset of `leadershipSeats`, never added on top of it — see `seatBill`.
+   */
+  trainingSeats: number;
   /** The business's own currency — prices are decided per region, never converted. */
   currency: Currency;
   /** billable seats × the seat price in that currency — NOT every person in the business. */
@@ -280,19 +285,30 @@ export const billableSeats = (seats: number) => Math.max(0, seats - FREE_SEATS);
  * SPEC, and billing the leadership rate for somebody the product cannot even place would be
  * charging A$134 for a row in a table.
  */
-export async function countLeadershipSeats(tenantId: string): Promise<number> {
+/**
+ * The same walk of the chart, done once, for both `countLeadershipSeats` and `countTrainingSeats` —
+ * one DB round trip rather than two functions each rebuilding the same maps.
+ *
+ * Training is read here rather than trusted off `users.trainingSeat` alone: the column says an
+ * administrator once put this person on it, but eligibility is `seatKindFor` read off the CURRENT
+ * chart, the same as the leadership count beside it. Somebody moved off a leadership role keeps the
+ * column set — nothing un-ticks it automatically — but stops being counted, and therefore billed,
+ * the same way `countLeadershipSeats` already stops billing them at the leadership rate the moment
+ * the chart says team.
+ */
+async function leadershipSeatCounts(tenantId: string): Promise<{ leadership: number; training: number }> {
   const { db, schema } = await import('../db');
   const { eq, and, isNull, inArray } = await import('drizzle-orm');
   const { seatKindFor } = await import('./chart-seats');
 
   const people = (await db.select().from(schema.users).where(eq(schema.users.tenantId, tenantId)))
     .filter(u => u.invitedAt || u.acceptedAt || u.authUserId);
-  if (!people.length) return 0;
+  if (!people.length) return { leadership: 0, training: 0 };
 
   const roles = await db.select({
     id: schema.roles.id, title: schema.roles.title, reportsTo: schema.roles.reportsToRoleId,
   }).from(schema.roles).where(eq(schema.roles.tenantId, tenantId));
-  if (!roles.length) return 0;
+  if (!roles.length) return { leadership: 0, training: 0 };
 
   const byId = new Map(roles.map(r => [r.id, r]));
   const leads = new Set(roles.map(r => r.reportsTo).filter((x): x is string => Boolean(x)));
@@ -321,14 +337,29 @@ export async function countLeadershipSeats(tenantId: string): Promise<number> {
   for (const a of placements) if (a.userId) roleOf.set(a.userId, a.roleId);
 
   let leadership = 0;
+  let training = 0;
   for (const person of people) {
     const role = byId.get(roleOf.get(person.id) ?? '');
     if (!role) continue;
     if (seatKindFor({ title: role.title, hasDirectReports: leads.has(role.id) }) === 'leadership') {
       leadership += 1;
+      if (person.trainingSeat) training += 1;
     }
   }
-  return leadership;
+  return { leadership, training };
+}
+
+export async function countLeadershipSeats(tenantId: string): Promise<number> {
+  return (await leadershipSeatCounts(tenantId)).leadership;
+}
+
+/**
+ * How many leadership seats also carry SPEC's training upgrade — the count `seatBill` charges at
+ * `SEAT_PRICES.leadershipWithTraining` rather than the plain leadership rate. See the note on
+ * `leadershipSeatCounts` for why this reads the chart rather than trusting the column alone.
+ */
+export async function countTrainingSeats(tenantId: string): Promise<number> {
+  return (await leadershipSeatCounts(tenantId)).training;
 }
 
 /**
@@ -359,23 +390,46 @@ export async function countLeadershipSeats(tenantId: string): Promise<number> {
  * day — the free one comes off those instead, because the rule has to hold however the business is
  * shaped. That is the case that matters: it is what makes a business of one pay nothing at all.
  */
+/**
+ * `trainingSeats` — how many of `leadershipSeats` are ALSO on SPEC's training upgrade, at the
+ * dearer of the two leadership prices (see `SEAT_PRICES.leadershipWithTraining`). A subset of the
+ * leadership count, never on top of it: a person is either a plain leadership seat or a trained
+ * one, never both, so this function never charges the same seat at two prices.
+ *
+ * The free seat still comes off the CHEAPEST seat available — team first, then plain leadership,
+ * and only the trained leadership seat if a business somehow has nothing else (every leader it has
+ * put straight onto training on day one). Taking it off the dearest seat first would hand back
+ * A$227 to make the same point A$134 already made.
+ */
 export function seatBill(
   seats: number,
   leadershipSeats: number,
   currency: Currency = HOME_CURRENCY,
+  trainingSeats = 0,
 ) {
   const leadership = Math.max(0, Math.min(leadershipSeats, seats));
   const team = Math.max(0, seats) - leadership;
+  const training = Math.max(0, Math.min(trainingSeats, leadership));
+  const plainLeadership = leadership - training;
 
   const freeFromTeam = Math.min(FREE_SEATS, team);
   const billableTeam = team - freeFromTeam;
-  const billableLeadership = Math.max(0, leadership - (FREE_SEATS - freeFromTeam));
+  let freeLeft = FREE_SEATS - freeFromTeam;
+
+  const freeFromPlain = Math.min(freeLeft, plainLeadership);
+  const billablePlain = plainLeadership - freeFromPlain;
+  freeLeft -= freeFromPlain;
+
+  const freeFromTraining = Math.min(freeLeft, training);
+  const billableTraining = training - freeFromTraining;
 
   return {
-    leadership: billableLeadership,
+    leadership: billablePlain + billableTraining,
     team: billableTeam,
-    billable: billableLeadership + billableTeam,
-    monthlyCost: billableLeadership * seatPrice(currency, 'leadership')
+    training: billableTraining,
+    billable: billablePlain + billableTraining + billableTeam,
+    monthlyCost: billablePlain * seatPrice(currency, 'leadership')
+      + billableTraining * trainingSeatPrice(currency)
       + billableTeam * seatPrice(currency, 'team'),
   };
 }
@@ -386,18 +440,21 @@ export function planState(
   currency: Currency = HOME_CURRENCY,
   /** How many of those people lead somebody. Defaults to none, which prices a business at its floor. */
   leadershipSeats = 0,
+  /** How many of THOSE are also on SPEC's training upgrade. Defaults to none. */
+  trainingSeats = 0,
 ): PlanState {
   const program = tenant.plan === 'program';
   const beta = tenant.plan === 'beta';
   const lapsed = tenant.plan === 'lapsed';
   const subscribed = Boolean(tenant.stripeSubscriptionId);
-  const bill = seatBill(seats, leadershipSeats, currency);
+  const bill = seatBill(seats, leadershipSeats, currency, trainingSeats);
   const billable = bill.billable;
   return {
     seats,
     billable,
     leadershipSeats: bill.leadership,
     teamSeats: bill.team,
+    trainingSeats: bill.training,
     currency,
     // What it WOULD cost, kept even on a beta. A free arrangement somebody cannot see the value of
     // is one they have no reason to be glad of, and one nobody can price when it ends.
@@ -505,7 +562,7 @@ export async function planStateFor(tenantId: string, currency: Currency = HOME_C
     // Without this the page cannot tell a business that has paid from one that never could, which
     // is exactly the gap that left the product with no way to start a subscription at all.
     stripeSubscriptionId: tenant.stripeSubscriptionId,
-  }, await countSeats(tenantId), currency, await countLeadershipSeats(tenantId));
+  }, await countSeats(tenantId), currency, await countLeadershipSeats(tenantId), await countTrainingSeats(tenantId));
 }
 
 /**

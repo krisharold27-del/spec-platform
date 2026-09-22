@@ -79,7 +79,7 @@ describe('the four packages', () => {
     const broken = Object.values(SEAT_PRICES)
       .flatMap(everyPublishedSeatPrice)
       .filter(a => digitRoot(a) !== 8);
-    expect(broken.length, 'six of the twelve').toBe(6);
+    expect(broken.length, 'ten of the eighteen').toBe(10);
   });
 
   /* The training price still obeys it, and both figures in its history do — so only the note and

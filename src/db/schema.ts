@@ -241,12 +241,13 @@ export const users = pgTable('users', {
    */
   access: text('access').notNull().default('readonly'),
   /**
-   * On SPEC's own training material for frontline leaders — the A$44 seat rather than the A$26 one.
+   * On SPEC's own training material — a leadership seat upgraded to the training price rather than
+   * the plain one.
    *
    * Against the PERSON, not the business. `tenants.package` could only ever mean "everybody pays
-   * A$44", which for a business of forty with six supervisors would have charged the training price
-   * for thirty-four people nobody is training. Set by the administrator, and only for somebody
-   * holding a frontline leader role — see canBeTrained in lib/pricing.
+   * the training price", which for a business of forty with six leaders would have charged it for
+   * thirty-four people nobody is training. Set by the administrator, and only for somebody holding
+   * a leadership seat — see `eligibleForTrainingSeat` in lib/pricing.
    */
   trainingSeat: boolean('training_seat').notNull().default(false),
   invitedAt: text('invited_at'),

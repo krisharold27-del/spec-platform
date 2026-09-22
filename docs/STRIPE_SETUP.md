@@ -26,9 +26,9 @@ where the two cannot drift apart one at a time.
 | `STRIPE_SECRET_KEY` | `sk_test_…`, then `sk_live_…` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…`, from the endpoint you create in step 5 |
 
-Two more are **read if set and otherwise ignored**, and exist only so a deployment can be pointed
+Three more are **read if set and otherwise ignored**, and exist only so a deployment can be pointed
 at test-mode prices without a release. Leave them empty and the live ids below are used:
-`STRIPE_PRICE_SEAT_MONTHLY`, `STRIPE_PRICE_TEAM_SEAT_MONTHLY`.
+`STRIPE_PRICE_SEAT_MONTHLY`, `STRIPE_PRICE_TEAM_SEAT_MONTHLY`, `STRIPE_PRICE_SEAT_TRAINING_MONTHLY`.
 
 ---
 
@@ -62,32 +62,39 @@ that anybody comparing the code to Stripe has one table to compare it with.
 |---|---|---|---|---|---|---|---|---|
 | SPEC Leadership seat | `prod_VHtnsfpPRSp6no` | `price_1UHK06GjbPN3KVS7Erx7Aeum` | 134 | 180 | 88 | 134 | 134 | 180 |
 | SPEC Team seat | `prod_VHtt211YPktGXS` | `price_1UHK5hGjbPN3KVS7hzoKltlI` | 17 | 23 | 11 | 17 | 17 | 23 |
+| SPEC Leadership seat + training | `prod_VHtrdn6wF9T8JM` | `price_1UHK3PGjbPN3KVS7vot0UtCu` | 227 | 305 | 149 | 227 | 227 | 305 |
 | SPEC Training | `prod_VHtwe8HgAnBYdW` | `price_1UHK94GjbPN3KVS7FE5GGzAC` | 1,502 | — | — | — | — | — |
 
 All amounts are per month. Stripe stores them in minor units, so A$134 is `13400`.
 
 Kris briefly asked for AUD's team seat to move from $17 to $26 — a Stripe Price object cannot be
 edited once created, so that would have meant creating a new one — then, once the tier that
-prompted the change was retired, said to leave it: *"oh yeah stay at 17 that sfine."* So the table
-above matches the live account exactly, with nothing left to create.
+prompted the change was retired, said to leave it: *"oh yeah stay at 17 that sfine."* So the team
+seat matches the live account exactly, with nothing left to create.
 
-The **Leadership seat - Advanced** (`prod_VHtrdn6wF9T8JM` / `price_1UHK3PGjbPN3KVS7vot0UtCu`, A$227)
-and **Team seat - Advanced** (`prod_VHtv5osYcg3Snq` / `price_1UHK7lGjbPN3KVS7EXlND5Xg`, A$29)
-products from 19 September are still live in Stripe — nobody archived them — but no code path uses
-them: the tier they priced lasted one session and was retired 22 September. See
-`RETIRED_STRIPE_PRICES`/`RETIRED_STRIPE_PRODUCTS` in `src/lib/pricing.ts`.
+**The Leadership seat + training row is un-retired.** It is the same product and price that used to
+be "SPEC Leadership seat - Advanced" — created 19 September for the AI-powered tier, retired 22
+September the same day that tier shipped. Kris, 22 September: *"i think the 227 price can stay but
+change to full training system price... they can turn the seat to a leadership and training seat
+and that then makes it 227."* Nothing in Stripe changed — same product, same price, same id — only
+what it is SOLD as. See the note on `SEAT_PRICES.leadershipWithTraining` in `src/lib/pricing.ts`.
 
-The two seat prices by currency, which is the order the pricing page prints them and the order
+The **Team seat - Advanced** (`prod_VHtv5osYcg3Snq` / `price_1UHK7lGjbPN3KVS7EXlND5Xg`, A$29) product
+from 19 September is still live in Stripe — nobody archived it — but no code path uses it: there is
+no team-seat training upgrade, only a leadership one. See `RETIRED_STRIPE_PRICES`/
+`RETIRED_STRIPE_PRODUCTS` in `src/lib/pricing.ts`.
+
+The three seat prices by currency, which is the order the pricing page prints them and the order
 `SEAT_PRICES` in `src/lib/pricing.ts` holds them:
 
-| Currency | Leadership seat | Team seat |
-|---|---|---|
-| AUD | 134 | 17 |
-| NZD | 180 | 23 |
-| GBP | 88 | 11 |
-| EUR | 134 | 17 |
-| USD | 134 | 17 |
-| CAD | 180 | 23 |
+| Currency | Leadership seat | Team seat | Leadership + training |
+|---|---|---|---|
+| AUD | 134 | 17 | 227 |
+| NZD | 180 | 23 | 305 |
+| GBP | 88 | 11 | 149 |
+| EUR | 134 | 17 | 227 |
+| USD | 134 | 17 | 227 |
+| CAD | 180 | 23 | 305 |
 
 ### One price per product, six currencies on it
 
@@ -117,20 +124,20 @@ A person with a login and no role at all is a **team seat**.
 
 ### What a subscription looks like
 
-One subscription per business, with **two line items**: Leadership seat × the number of leaders, and
-Team seat × the number of team members. A business of forty with six leaders pays six leadership
-seats and thirty-three team seats — the first seat is free, and it comes off a team seat because
-that is the cheaper of the two.
+One subscription per business, with **two or three line items**: Leadership seat × the number of
+leaders not on the training upgrade, Team seat × the number of team members, and Leadership seat +
+training × the number of leaders an administrator has put on it. A business of forty with six
+leaders, two of them on the training upgrade, pays four plain leadership seats, two training seats
+and thirty-three team seats — the first seat is free, and it comes off a team seat first, then a
+plain leadership seat, because those are the cheaper of the three.
 
 - **Recurring monthly, per-unit with a quantity.** Seat counts change through subscription quantity
   updates, prorated by Stripe's default behaviour.
-- **One price per seat kind.** There was briefly a second, dearer price for each — Basic and
-  Advanced — for the one session it existed; see the note on the retired Advanced products above.
 - **The free first seat stays in SPEC's maths**, not a Stripe coupon — one place owns that rule and
   it is `lib/plan`.
 - **Existing customers do not re-price themselves.** SPEC has no mechanism today for reconciling an
   existing subscription's line items against a changed price — a gap that predates this document
-  and is unrelated to the tier that was retired.
+  and is unrelated to any tier that was retired.
 
 ### There is one SPEC — the AI is switched on by subscribing, not by a choice of seat
 
@@ -144,11 +151,17 @@ per seat again — see the table above — and every subscribed business is `aiA
 `tenants.tier` and `tenants.seatTier` are both retired columns, kept in the schema and no longer
 read for pricing. Neither is a switch to press back into service.
 
-### Training, and the one that is not a product
+### Two different things are called "training", and they are not the same product
 
-**SPEC Training** is a flat monthly line item, quantity 1, added only if the customer selects it.
-It is **Australian dollars only** — one price, no `currency_options` — so a customer in any other
-currency is shown *"Speak to us"* rather than a figure Stripe could not charge them.
+**The leadership seat + training upgrade** (above) is per person, turned on and off by an
+administrator from the Training screen, and bills like any other seat — quantity, currency,
+proration, all the same rules.
+
+**SPEC Training** is a completely different thing: a flat monthly line item, quantity 1, added only
+if the customer selects it — four one-to-one sessions delivered by SPEC rather than material read
+on the software. It is **Australian dollars only** — one price, no `currency_options` — so a
+customer in any other currency is shown *"Speak to us"* rather than a figure Stripe could not
+charge them.
 
 **Consulting has no Stripe product.** It is quote-only: *"Speak to us"*, priced in the
 conversation. `PACKAGES.full_control.aud` is `null` rather than a number kept quietly for
@@ -171,9 +184,10 @@ and still works if a line of code names it, so the ids are written down and
 ### The rule of 8
 
 Kris's rule: a published price should reduce to 8 by repeated digit sum, and three tests enforce
-it. **Six of the twelve seat prices above do not** — NZD, GBP and CAD, in both seat kinds.
+it. **Ten of the eighteen seat prices above do not** — NZD, GBP and CAD's leadership and team
+seats, GBP's training seat, and AUD/EUR/USD's training seat (227).
 
-`RULE_OF_EIGHT` in `src/lib/pricing.ts` records the amounts that obey it — 17 and 134 — and a
+`RULE_OF_EIGHT` in `src/lib/pricing.ts` records the amounts that obey it — 17, 134 and 305 — and a
 test holds the set to exactly that, so a new exception cannot arrive without somebody adding it on
 purpose. If these prices are ever corrected in Stripe, correct the table and that list together.
 

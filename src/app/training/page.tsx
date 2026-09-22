@@ -13,6 +13,9 @@ import { getScorecard } from '@/lib/queries';
 import { getToday } from '@/lib/today-data';
 import { pathFor, pathProgress, signoffFor, aceSteps, type TrainingModule } from '@/lib/training';
 import { hasTrainingSeat } from '@/lib/training-seat';
+import { moneyLabel, trainingSeatPrice, eligibleForTrainingSeat, TRAINING_SEAT_ON_SALE, HOME_CURRENCY, type Currency } from '@/lib/pricing';
+import { planStateFor } from '@/lib/plan';
+import { setTrainingSeat } from './actions';
 import { PILLAR_META, Badge } from '@/components/ui';
 import { Material } from '@/components/material';
 import { LIGHT_COLOUR } from '@/lib/today';
@@ -103,6 +106,28 @@ export default async function Training({ searchParams }: {
   const period = await currentPeriod(user.tenantId);
   const ace = data.ace;
 
+  /*
+    Who may be put on the training upgrade, and who already is — administration only, since it
+    changes the bill. Moved here from Settings 22 September, so the control sits beside the
+    material it unlocks. Read from the CHART, not from a list of people: `eligibleForTrainingSeat`
+    is the same leadership question `seatKindFor` bills from, so a role that stops leading people
+    stops being offered the seat the same minute, without anybody remembering to change a second
+    thing.
+  */
+  let leadershipSeats: { role: (typeof scope.roles)[number]; person: { id: string; name: string; trainingSeat: boolean } }[] = [];
+  let currency: Currency = HOME_CURRENCY;
+  if (scope.canAdminister) {
+    const plan = await planStateFor(user.tenantId);
+    currency = plan.currency;
+    const allPeople = await db.select().from(schema.users).where(eq(schema.users.tenantId, user.tenantId));
+    const billablePeople = allPeople.filter(u => u.invitedAt || u.acceptedAt || u.authUserId);
+    const leadsSet = new Set(scope.roles.map(r => r.reportsToRoleId).filter((x): x is string => Boolean(x)));
+    leadershipSeats = scope.roles
+      .filter(r => r.holder?.email && eligibleForTrainingSeat({ title: r.title, hasDirectReports: leadsSet.has(r.id) }))
+      .map(r => ({ role: r, person: billablePeople.find(b => b.email === r.holder!.email) }))
+      .filter((x): x is { role: typeof x.role; person: NonNullable<typeof x.person> } => Boolean(x.person));
+  }
+
   return (
     <Shell
       title="Training"
@@ -146,6 +171,49 @@ export default async function Training({ searchParams }: {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {scope.canAdminister && (
+        <section className="card mb-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-serif text-xl text-ink">Leadership training seats</h2>
+            <span className="text-sm text-ink-light">{moneyLabel(currency, trainingSeatPrice(currency))} a person a month</span>
+          </div>
+          <p className="mt-1 text-sm text-ink-light">
+            Any leadership seat can be upgraded, person by person, to unlock SPEC&apos;s own training
+            material for the role they hold — turned on and off here, which is also what changes
+            the bill.
+          </p>
+          {!TRAINING_SEAT_ON_SALE ? (
+            <p className="mt-3 rounded-lg bg-cream p-3 text-sm text-ink-light">
+              Not open yet. The price is set for when it is ready.
+            </p>
+          ) : leadershipSeats.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-light">
+              Nobody here holds a leadership seat yet. When somebody does, they can be put on
+              training from here.
+            </p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {leadershipSeats.map(({ role, person }) => (
+                <li key={person.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 p-3 text-sm">
+                  <span className="text-ink">{person.name}</span>
+                  <span className="text-xs text-ink-light">{role.title}</span>
+                  <span className={`rounded px-2 py-0.5 text-xs font-medium ${person.trainingSeat ? 'bg-sage-200 text-sage-900' : 'bg-cream text-ink-light'}`}>
+                    {person.trainingSeat ? 'On training' : moneyLabel(currency, trainingSeatPrice(currency))}
+                  </span>
+                  <form action={setTrainingSeat} className="ml-auto">
+                    <input type="hidden" name="userId" value={person.id} />
+                    <input type="hidden" name="on" value={person.trainingSeat ? '0' : '1'} />
+                    <SubmitButton className="btn-secondary text-xs" pending="Saving…">
+                      {person.trainingSeat ? 'Take off training' : 'Put on training'}
+                    </SubmitButton>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
 

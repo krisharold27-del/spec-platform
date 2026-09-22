@@ -46,19 +46,20 @@ describe('regional prices (BUILD_SPEC §8.1)', () => {
     const broken = Object.values(SEAT_PRICES)
       .flatMap(everyPublishedSeatPrice)
       .filter(a => digitRoot(a) !== 8);
-    expect(broken.length, 'six of the twelve').toBe(6);
+    expect(broken.length, 'ten of the eighteen').toBe(10);
   });
 
   /*
     ── One price object per seat, not six ───────────────────────────────────────────────────────
 
     Each row of the table is ONE Stripe price with AUD as its default currency and the other five
-    as `currency_options` on it. That is why there are two live ids here (plus training) and not
-    twelve, and it is why checkout has to PASS the currency rather than go looking for a price in
-    it — which is what the old `seatPriceFor` did, and it could only ever have failed to find one.
+    as `currency_options` on it. That is why there are three live seat ids here (plus the separate
+    SPEC Training price) and not eighteen, and it is why checkout has to PASS the currency rather
+    than go looking for a price in it — which is what the old `seatPriceFor` did, and it could only
+    ever have failed to find one.
   */
-  it('AND ARE TWO STRIPE SEAT PRICES, one per seat kind, not one per currency', () => {
-    expect(Object.keys(STRIPE_PRICES)).toEqual(['leader', 'team', 'training']);
+  it('AND ARE THREE STRIPE SEAT PRICES, one per seat kind, not one per currency', () => {
+    expect(Object.keys(STRIPE_PRICES)).toEqual(['leader', 'team', 'leaderTraining', 'training']);
     for (const [key, id] of Object.entries(STRIPE_PRICES)) {
       expect(id, `${key} is not a live price id`).toMatch(/^price_[A-Za-z0-9]+$/);
     }

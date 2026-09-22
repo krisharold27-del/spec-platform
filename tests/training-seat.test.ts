@@ -1,17 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { canBeTrained, isFrontlineLeader, TRAINING_SEAT_ON_SALE, SEAT_PRICES, PACKAGES } from '../src/lib/pricing';
+import { eligibleForTrainingSeat, TRAINING_SEAT_ON_SALE, SEAT_PRICES, trainingSeatPrice, PACKAGES } from '../src/lib/pricing';
 import { seatBill, planState, FREE_SEATS } from '../src/lib/plan';
 
 /**
- * The A$44, which until 16 September was a number on three screens with nothing behind it.
+ * The training seat — a leadership seat, upgraded per person, to unlock SPEC's own training
+ * material for the role.
  *
- * `seat_training` was a column on the BUSINESS, settable from /admin, printed on the pricing page
- * and the landing page — and no line of code charged it or gated anything on it. A business put on
- * "Seat plus training" paid A$26 and received exactly what every other business received.
+ * ── What it used to be ───────────────────────────────────────────────────────────────────────────
  *
- * Kris: *"we need to be clear what the $44 price is about — i think we need to make training
- * materials available for front line leaders and so it need to be only $44 for people who are
- * supervisors, team leaders etc"*.
+ * A$44 for frontline leaders only — supervisors and team leaders, decided by role LEVEL — held back
+ * entirely while the material did not exist: *"happy to remove the 44 from the plan for the short
+ * term and start cleanly... leave it as a price for the future - i havent finished the supervisor
+ * training pack anyway."*
+ *
+ * ── What changed it ──────────────────────────────────────────────────────────────────────────────
+ *
+ * The material exists now (`lib/training-library`'s twelve modules), and the slot the retired
+ * Basic/Advanced tier had briefly reused — the $227 leadership-with-AI price — was itself retired
+ * the same day it shipped. Kris, 22 September: *"i think the 227 price can stay but change to full
+ * training system price — so all training materials become available for the role — we as SPEC are
+ * constantly building our training materials so they can turn the seat to a leadership and training
+ * seat and that then makes it 227."* Asked scope and timing, he confirmed: per-person, on now.
+ *
+ * Eligibility broadens with it — from role LEVEL (`supervisor` only) to seat KIND
+ * (`seatKindFor` === `'leadership'`), the same question billing already asks, so eligibility can
+ * never disagree with what a person is actually charged as.
  */
 
 const t = (plan: string) => ({ id: 'x', plan, startDate: '2026-01-01' });
@@ -26,35 +39,18 @@ const t = (plan: string) => ({ id: 'x', plan, startDate: '2026-01-01' });
 */
 const LEADER = SEAT_PRICES.aud.leadership;   // 134
 const TEAM = SEAT_PRICES.aud.team;           // 17
+const TRAINING = SEAT_PRICES.aud.leadershipWithTraining; // 227
 
-describe('who the training seat is for', () => {
-  it('frontline leaders, and nobody else', () => {
-    expect(isFrontlineLeader('supervisor')).toBe(true);
-    expect(isFrontlineLeader('staff'), 'a team member is not a leader').toBe(false);
-    expect(isFrontlineLeader('manager'), 'a stream head is above the frontline, not on it').toBe(false);
-    expect(isFrontlineLeader('gm')).toBe(false);
+describe('who may be put on the training seat', () => {
+  it('is a leadership seat, decided the same way billing decides one', () => {
+    expect(eligibleForTrainingSeat({ title: 'Site Supervisor', hasDirectReports: true })).toBe(true);
+    expect(eligibleForTrainingSeat({ title: 'Site Supervisor', hasDirectReports: false }), 'title alone says leader').toBe(true);
+    expect(eligibleForTrainingSeat({ title: 'Electrician', hasDirectReports: true }), 'the chart alone says leader').toBe(true);
+    expect(eligibleForTrainingSeat({ title: 'Electrician', hasDirectReports: false }), 'a team member is not').toBe(false);
   });
 
-  it('refuses anything it does not recognise, rather than guessing', () => {
-    expect(isFrontlineLeader(null)).toBe(false);
-    expect(isFrontlineLeader(undefined)).toBe(false);
-    expect(isFrontlineLeader('')).toBe(false);
-    expect(isFrontlineLeader('SUPERVISOR'), 'levels are stored lowercase; a near miss is not a match').toBe(false);
-  });
-
-  /*
-    Kris, 16 September: "happy to remove the 44 from the plan for the short term and start
-    cleanly... leave it as a price for the future - i havent finished the supervisor training pack
-    anyway".
-
-    So nobody can be put on it at all while the pack is unfinished, whatever role they hold — and
-    the price, the material and the whole two-rate bill stay built and tested behind the switch,
-    because deleting them and rebuilding in a month is how a feature comes back worse.
-  */
-  it('AND NOBODY AT ALL WHILE THE PACK IS UNFINISHED', () => {
-    expect(TRAINING_SEAT_ON_SALE, 'the supervisor pack is not finished yet').toBe(false);
-    expect(canBeTrained('supervisor'), 'not even a supervisor, until it is on sale').toBe(false);
-    expect(canBeTrained('staff')).toBe(false);
+  it('IS ON, per person, now', () => {
+    expect(TRAINING_SEAT_ON_SALE).toBe(true);
   });
 
   /*
@@ -63,15 +59,25 @@ describe('who the training seat is for', () => {
     at the built result, *"i also feel like i don't want to have 2 different prices... make it
     simple."* `PACKAGES.seat_training` is kept, unpublished, at the same price as the plain seat —
     see the note on it in lib/pricing — rather than deleted, because the key is stored on
-    businesses.
+    businesses. It is a separate thing from the per-person training seat above: a `Package` is a
+    whole-business choice, and the training seat is a per-person one, so the two do not disagree.
   */
-  it('and the slot it moved into is retired as well, unpublished at the plain seat price', () => {
+  it('and the slot the OLD tier moved into is retired as well, unpublished at the plain seat price', () => {
     expect(PACKAGES.seat_training.aud).toBe(PACKAGES.seat.aud);
     expect(PACKAGES.seat_training.publishPrice).toBe(false);
   });
 });
 
-describe('a bill made of two kinds of seat', () => {
+describe('what the training seat actually costs', () => {
+  it('is the same figures the retired Advanced/AI leadership price had', () => {
+    expect(TRAINING).toBe(227);
+    expect(trainingSeatPrice('aud')).toBe(227);
+    expect(trainingSeatPrice('nzd')).toBe(305);
+    expect(trainingSeatPrice('gbp')).toBe(149);
+  });
+});
+
+describe('a bill made of three kinds of seat', () => {
   /*
     ── The two kinds changed, and the bill did not follow ───────────────────────────────────────
 
@@ -89,6 +95,7 @@ describe('a bill made of two kinds of seat', () => {
     const bill = seatBill(40, 6, 'aud');
     expect(bill.leadership).toBe(6);
     expect(bill.team).toBe(33);
+    expect(bill.training).toBe(0);
     expect(bill.leadership + bill.team + FREE_SEATS).toBe(40);
     expect(bill.monthlyCost).toBe(6 * LEADER + 33 * TEAM);
   });
@@ -100,14 +107,49 @@ describe('a bill made of two kinds of seat', () => {
   });
 
   /*
-    The free seat comes off the CHEAPER seat — the less generous reading, and the same choice the
-    old version made. "The first seat is free" is a rule about money, not about which person, and
-    taking it off a leadership seat would hand back A$134 to make a point about A$17.
+    The third kind: some of the leadership seats are also on the training upgrade, at the dearer
+    price. Never counted twice — `bill.leadership` is the PLAIN leadership count, and `bill.training`
+    is separate from it, so `bill.leadership + bill.training` is the total number of leaders, the
+    same total `countLeadershipSeats` would report on its own.
   */
-  it('takes the free seat off a team seat, not off the dearer one', () => {
+  it('charges the training rate for a leadership seat put on it, and the plain rate for the rest', () => {
+    // Forty people, six leaders, two of the six on the training upgrade.
+    // `bill.leadership` is every billed leadership seat, plain and trained together (6); `bill.training`
+    // is the trained subset of it (2) — never added on top, which is why the cost uses only four at
+    // the plain rate.
+    const bill = seatBill(40, 6, 'aud', 2);
+    expect(bill.leadership).toBe(6);
+    expect(bill.training).toBe(2);
+    expect(bill.team).toBe(33);
+    expect(bill.monthlyCost).toBe(4 * LEADER + 2 * TRAINING + 33 * TEAM);
+  });
+
+  it('never charges a trained seat that is not also counted as a leader', () => {
+    // trainingSeats can never exceed leadershipSeats — the training seat is a leadership seat, first.
+    const bill = seatBill(10, 2, 'aud', 9);
+    expect(bill.training).toBeLessThanOrEqual(2);
+    expect(bill.leadership + bill.training).toBe(bill.leadership + Math.min(9, 2));
+  });
+
+  /*
+    The free seat comes off a team seat, not off the dearer ones — the less generous reading, and
+    the same choice the old version made. Taking it off a trained leadership seat would hand back
+    A$227 to make a point about A$17.
+  */
+  it('takes the free seat off a team seat, not off either leadership rate', () => {
     expect(seatBill(2, 1, 'aud').monthlyCost).toBe(LEADER);
     expect(seatBill(2, 1, 'aud').team).toBe(0);
     expect(seatBill(2, 1, 'aud').leadership).toBe(1);
+  });
+
+  it('and off a plain leadership seat before a trained one, when there is no team seat to take it from', () => {
+    // Two leaders, one trained, nobody else — the free seat comes off the plain one, leaving only
+    // the trained seat billed. `bill.leadership` is the total leadership count billed (plain and
+    // trained together), which is why it still reads 1 even though the plain seat itself is free.
+    const bill = seatBill(2, 2, 'aud', 1);
+    expect(bill.leadership).toBe(1);
+    expect(bill.training).toBe(1);
+    expect(bill.monthlyCost).toBe(TRAINING);
   });
 
   it('but the first seat is still free when every seat is a leadership seat', () => {
@@ -131,6 +173,8 @@ describe('a bill made of two kinds of seat', () => {
   it('bills in the region’s own prices, never converted', () => {
     expect(seatBill(5, 2, 'gbp').monthlyCost)
       .toBe(2 * SEAT_PRICES.gbp.leadership + 2 * SEAT_PRICES.gbp.team);
+    expect(seatBill(5, 2, 'gbp', 1).monthlyCost)
+      .toBe(1 * SEAT_PRICES.gbp.leadership + 1 * SEAT_PRICES.gbp.leadershipWithTraining + 2 * SEAT_PRICES.gbp.team);
   });
 
   /*
@@ -144,11 +188,12 @@ describe('a bill made of two kinds of seat', () => {
   });
 
   it('reaches the plan state, so the page shows the real number', () => {
-    const s = planState(t('basic'), 40, 'aud', 6);
+    const s = planState(t('basic'), 40, 'aud', 6, 2);
     expect(s.seats).toBe(40);
     expect(s.leadershipSeats).toBe(6);
+    expect(s.trainingSeats).toBe(2);
     expect(s.teamSeats).toBe(33);
-    expect(s.monthlyCost).toBe(6 * LEADER + 33 * TEAM);
+    expect(s.monthlyCost).toBe(4 * LEADER + 2 * TRAINING + 33 * TEAM);
   });
 
   it('holds at twenty thousand seats', () => {

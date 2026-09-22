@@ -5,7 +5,8 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
-import { getScope } from '@/lib/scope';
+import { getCurrentUser } from '@/lib/auth';
+import { getScope, assertAdministrator } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { refuseTo } from '@/lib/refuse';
 
@@ -55,4 +56,42 @@ export async function setCurriculum(formData: FormData) {
 
   revalidatePath('/training');
   revalidatePath('/my-page');
+}
+
+/**
+ * Put somebody on the leadership seat's training upgrade, or take them off it.
+ *
+ * Administration, because it changes the bill — moved here from Settings 22 September, so the
+ * control sits beside the material it unlocks rather than behind Seats and billing. Leadership
+ * seats only: the server checks the chart rather than trusting the form, since a form is a
+ * suggestion and this one decides money.
+ *
+ * Turning it on installs SPEC's material into the business and puts it on that role's path in the
+ * same operation. Doing only the billing half would charge somebody the training price for a page
+ * identical to the plain one, which is precisely the fault this mechanism exists to fix.
+ */
+export async function setTrainingSeat(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  assertAdministrator(await getScope(user));
+  await assertWritable(user.tenantId);
+
+  const userId = String(formData.get('userId') ?? '');
+  const on = String(formData.get('on') ?? '') === '1';
+  if (!userId) return;
+
+  const { giveTrainingSeat, removeTrainingSeat } = await import('@/lib/training-seat');
+  if (on) {
+    const done = await giveTrainingSeat(user.tenantId, userId);
+    if (!done) {
+      // Not on a leadership seat. Say so rather than failing silently or throwing a page away.
+      revalidatePath('/training');
+      refuseTo('/training', 'That person is not on a leadership seat, so the training upgrade does not apply to them.');
+    }
+  } else {
+    await removeTrainingSeat(user.tenantId, userId);
+  }
+  revalidatePath('/training');
+  revalidatePath('/settings');
+  revalidatePath('/journey');
 }

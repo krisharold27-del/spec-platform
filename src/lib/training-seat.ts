@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '../db';
-import { canBeTrained, TRAINING_SEAT_ON_SALE } from './pricing';
+import { eligibleForTrainingSeat } from './pricing';
 import { LIBRARY, libraryOrder } from './training-library';
 
 /**
- * Turning SPEC's training material on for one person — the A$44 seat.
+ * Turning SPEC's training material on for one person — the leadership seat's training upgrade.
  *
  * Three things have to be true at once and they are easy to let drift apart:
  *
@@ -13,18 +13,38 @@ import { LIBRARY, libraryOrder } from './training-library';
  *   the MATERIAL exists in this business    (training_modules, source 'spec')
  *   the ROLE'S PATH includes it             (role_curriculum — what they are actually asked to do)
  *
- * Turning the seat on without the last two would charge somebody A$44 for a page that looks exactly
- * like the A$26 one, which is the fault this whole change exists to fix. So it is one operation.
+ * Turning the seat on without the last two would charge somebody the training price for a page that
+ * looks exactly like the plain one, which is the fault this whole mechanism exists to fix. So it is
+ * one operation.
  */
 
-/** Frontline leaders only. Anyone else cannot be put on a training seat at any price. */
-export async function eligibleForTraining(tenantId: string, userId: string): Promise<boolean> {
+/**
+ * The roles this person holds, with enough of the chart to say whether each one is a leadership
+ * seat — `eligibleForTrainingSeat` (lib/pricing) needs the title AND whether anybody reports to it,
+ * the same two facts `seatKindFor` decides billing from, so eligibility here can never disagree
+ * with what the person is actually billed as.
+ */
+async function heldRoles(tenantId: string, userId: string) {
   const rows = await db
-    .select({ level: schema.roles.level })
+    .select({ roleId: schema.roles.id, title: schema.roles.title })
     .from(schema.roleAssignments)
     .innerJoin(schema.roles, eq(schema.roles.id, schema.roleAssignments.roleId))
     .where(and(eq(schema.roles.tenantId, tenantId), eq(schema.roleAssignments.userId, userId)));
-  return rows.some(r => canBeTrained(r.level));
+  if (!rows.length) return [];
+
+  const reportsIn = await db
+    .select({ reportsTo: schema.roles.reportsToRoleId })
+    .from(schema.roles)
+    .where(and(eq(schema.roles.tenantId, tenantId), inArray(schema.roles.reportsToRoleId, rows.map(r => r.roleId))));
+  const leads = new Set(reportsIn.map(r => r.reportsTo).filter((x): x is string => Boolean(x)));
+
+  return rows.map(r => ({ roleId: r.roleId, title: r.title, hasDirectReports: leads.has(r.roleId) }));
+}
+
+/** Leadership seats only — see `eligibleForTrainingSeat` in lib/pricing for what decides that. */
+export async function eligibleForTraining(tenantId: string, userId: string): Promise<boolean> {
+  const roles = await heldRoles(tenantId, userId);
+  return roles.some(r => eligibleForTrainingSeat(r));
 }
 
 /**
@@ -91,22 +111,18 @@ export async function addLibraryToPath(roleId: string, moduleIds: string[]): Pro
 /**
  * The whole operation: bill the person, install the material, put it on their role's path.
  *
- * Returns false when the person is not a frontline leader, rather than throwing — the caller is a
- * form on a page, and a refusal it can explain is worth more than an exception it cannot.
+ * Returns false when the person does not hold a leadership seat, rather than throwing — the caller
+ * is a form on a page, and a refusal it can explain is worth more than an exception it cannot.
  */
 export async function giveTrainingSeat(tenantId: string, userId: string): Promise<boolean> {
-  if (!(await eligibleForTraining(tenantId, userId))) return false;
+  const roles = await heldRoles(tenantId, userId);
+  const eligible = roles.filter(r => eligibleForTrainingSeat(r));
+  if (!eligible.length) return false;
 
   const modules = await installLibrary(tenantId);
   const ids = libraryOrder().map(m => modules.get(m.libraryId)).filter((x): x is string => Boolean(x));
 
-  const roles = await db
-    .select({ roleId: schema.roleAssignments.roleId, level: schema.roles.level })
-    .from(schema.roleAssignments)
-    .innerJoin(schema.roles, eq(schema.roles.id, schema.roleAssignments.roleId))
-    .where(and(eq(schema.roles.tenantId, tenantId), eq(schema.roleAssignments.userId, userId)));
-
-  for (const r of roles.filter(r => canBeTrained(r.level))) await addLibraryToPath(r.roleId, ids);
+  for (const r of eligible) await addLibraryToPath(r.roleId, ids);
 
   await db.update(schema.users).set({ trainingSeat: true })
     .where(and(eq(schema.users.tenantId, tenantId), eq(schema.users.id, userId)));
@@ -126,37 +142,12 @@ export async function removeTrainingSeat(tenantId: string, userId: string): Prom
 }
 
 /**
- * How many people are billed at the training price.
- *
- * The same test as countSeats — a way in — because a training seat somebody cannot use is not a seat
- * anybody should be charged for.
+ * How many people are actually billed at the training price lives in `lib/plan` now —
+ * `countTrainingSeats` there, alongside `countLeadershipSeats` — because billing has to read the
+ * SAME walk of the chart both counts come from, rather than this file's column-only version
+ * disagreeing with it the day somebody moves off a leadership role without anybody touching the
+ * `trainingSeat` column.
  */
-export async function countTrainingSeats(tenantId: string): Promise<number> {
-  /*
-    While the seat is not on sale, nobody is billed for it — whatever the column says.
-
-    Found by a check that asked the database rather than the switch: somebody put on a training seat
-    BEFORE the pack was held back would have gone on being charged A$44 a month for material that is
-    not finished. Nobody in production is in that position, which is exactly why it would never have
-    been noticed. The switch has to mean what it says, so it is read here, at the point the number
-    becomes money, rather than only where the button used to be.
-
-    The column is left alone on purpose: when the pack is finished, the people already chosen for it
-    are still chosen, and nobody has to remember who they were.
-  */
-  if (!TRAINING_SEAT_ON_SALE) return 0;
-
-  const rows = await db
-    .select({
-      trainingSeat: schema.users.trainingSeat,
-      invitedAt: schema.users.invitedAt,
-      acceptedAt: schema.users.acceptedAt,
-      authUserId: schema.users.authUserId,
-    })
-    .from(schema.users)
-    .where(eq(schema.users.tenantId, tenantId));
-  return rows.filter(u => u.trainingSeat && (u.invitedAt || u.acceptedAt || u.authUserId)).length;
-}
 
 /** Is this person on a training seat? What the training page shows SPEC's material on. */
 export async function hasTrainingSeat(tenantId: string, userId: string): Promise<boolean> {
