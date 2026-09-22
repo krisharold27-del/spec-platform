@@ -194,7 +194,7 @@ export async function Shell({ title, kicker, headline, subtitle, children }: {
               */}
               {billingTab && (
                 <Link
-                  href="/journey"
+                  href="/billing"
                   className={
                     billingTab.tone === 'due'
                       ? 'inline-flex min-h-[28px] items-center whitespace-nowrap rounded-full bg-rust-800 px-3 py-1 text-[13px] font-medium text-cream hover:bg-rust-900'
@@ -306,7 +306,7 @@ export async function Shell({ title, kicker, headline, subtitle, children }: {
                 nothing. Nothing has been deleted, and it all comes back the moment the payment goes
                 through.
               </p>
-              <Link href="/journey" className="shrink-0 rounded-md bg-rust px-3 py-1.5 text-sm font-semibold text-cream hover:bg-rust-600">
+              <Link href="/billing" className="shrink-0 rounded-md bg-rust px-3 py-1.5 text-sm font-semibold text-cream hover:bg-rust-600">
                 Fix payment
               </Link>
             </div>

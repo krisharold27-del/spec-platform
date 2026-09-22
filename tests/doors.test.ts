@@ -106,16 +106,18 @@ describe('the navigation bar', () => {
   */
   const f = { businesses: 1, runsSpec: false };
 
-  it('IS SEVEN ITEMS, not nineteen', () => {
+  it('IS EIGHT ITEMS, not nineteen', () => {
     /*
       The argument was never that navigation is wrong. It was that nineteen of them is.
 
       Seven since 18 September, when Kris sent the header he wants: the six screens plus **All
-      pages**, which is the door to the full grouped directory at the foot of My Page. That last
-      item is what lets the bar stay this short — SPEC has far more than seven screens and always
-      will, and nothing may be reachable only by knowing it is there.
+      pages**, which is the door to the full grouped directory at the foot of My Page. Eight since
+      22 September, when Kris asked for the AI-powered question "under pricing" — see the note on
+      `/billing` in lib/doors.ts. "All pages" is what lets the bar stay this short whatever else is
+      added — SPEC has far more than eight screens and always will, and nothing may be reachable
+      only by knowing it is there.
     */
-    expect(navDoors(f)).toHaveLength(7);
+    expect(navDoors(f)).toHaveLength(8);
     expect(navDoors(f).length).toBeLessThan(allDoors(f).length);
   });
 
@@ -148,7 +150,7 @@ describe('the navigation bar', () => {
       written before the rename and nobody updated it — so it was asserting the old name as though
       it were the design's.
     */
-    expect(labels).toEqual(['My page', 'Org chart', 'Scoring', 'Board pack', 'Mirrors', 'Connections', 'All pages']);
+    expect(labels).toEqual(['My page', 'Org chart', 'Scoring', 'Board pack', 'Mirrors', 'Connections', 'Pricing', 'All pages']);
   });
 
   it('THE BAR AND THE DIRECTORY CANNOT DISAGREE', () => {

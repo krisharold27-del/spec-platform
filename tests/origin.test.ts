@@ -85,7 +85,7 @@ describe('the address a request came in on', () => {
   it('SENDS SOMEBODY BACK WHERE THEY STARTED', () => {
     const where = originFrom(headers({ 'x-forwarded-host': 'www.specbizhq.com', 'x-forwarded-proto': 'https' }), APP);
     expect(where).toBe('https://www.specbizhq.com');
-    expect(`${where}/journey?upgraded=1`).toBe('https://www.specbizhq.com/journey?upgraded=1');
+    expect(`${where}/billing?upgraded=1`).toBe('https://www.specbizhq.com/billing?upgraded=1');
   });
 
   it('prefers what the proxy says over what the proxy is called', () => {
@@ -145,8 +145,8 @@ describe('the places that send somebody back', () => {
 
   it('the checkout returns to that address, both ways out of Stripe', () => {
     const src = reads('src/app/api/stripe/checkout/route.ts');
-    expect(src).toContain('success_url: `${here}/journey?upgraded=1`');
-    expect(src).toContain('cancel_url: `${here}/journey?upgrade_cancelled=1`');
+    expect(src).toContain('success_url: `${here}/billing?upgraded=1`');
+    expect(src).toContain('cancel_url: `${here}/billing?upgrade_cancelled=1`');
   });
 
   it('a seat invitation lands on the address it was sent from', () => {
@@ -166,7 +166,7 @@ describe('the places that send somebody back', () => {
     checkout finished somewhere, never that THIS business paid.
   */
   it('the payment banner is only cheerful when the business really is subscribed', () => {
-    const src = reads('src/app/journey/page.tsx');
+    const src = reads('src/app/billing/page.tsx');
     expect(src).toContain("flag === 'upgraded' && !plan.subscribed");
     expect(src).toContain('nothing is recorded against');
   });

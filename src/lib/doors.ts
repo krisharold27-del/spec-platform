@@ -94,6 +94,14 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
       title: 'Setting it up',
       doors: [
         { href: '/connections', label: 'Connections', note: 'The systems that feed your numbers.' },
+        /*
+          Kris, 22 September, after finding the AI-powered question buried inside Journey's setup
+          steps: "put under pricing." What it costs and whether the assistant is switched on used to
+          share a page with "do the four questions", "build the chart" — money mixed into a setup
+          checklist is money nobody goes looking for. `/billing` carries everything that decides the
+          bill: the seat tier question, Start paying, and Stripe's own portal.
+        */
+        { href: '/billing', label: 'Pricing', note: 'What it costs, whether the AI seat is switched on, and Stripe billing.' },
         { href: '/setup', label: 'Setting up', note: 'Roles, KPIs and the things still to do.' },
         { href: '/charter', label: 'Board charter', note: 'What the Board commits to — the four, identical in every business.' },
         { href: '/settings', label: 'Administration', note: 'Seats, billing, permissions and the board.' },
@@ -144,14 +152,20 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
  * product beside the designs and said *"keep the nav bar"*. That settles it: he is the one who opens
  * this at seven in the morning.
  *
- * Six items, because the argument against the old toolbar was never that navigation is wrong — it
- * was nineteen of them. These are the places somebody goes repeatedly in a week. Everything else
- * stays in the grouped directory on My Page, which is still the complete list.
+ * Seven items — six screens plus **All pages** — because the argument against the old toolbar was
+ * never that navigation is wrong, it was nineteen of them. These are the places somebody goes
+ * repeatedly in a week. Everything else stays in the grouped directory on My Page, which is still
+ * the complete list.
+ *
+ * Eight since 22 September: Kris asked for the AI-powered/pricing question "under pricing," which
+ * meant Pricing had to be a place somebody could actually find rather than a box buried in Journey's
+ * setup steps — see the note on `/billing` above. Money is one of the things a leader goes looking
+ * for repeatedly, the same test every other item here passes.
  *
  * Built from `doors()` rather than written out again, so a route that is renamed cannot leave the
  * bar pointing at nothing while the directory quietly stays right.
  */
-export const NAV_HREFS = ['/my-page', '/org', '/scoring', '/board', '/mirrors', '/connections', '/my-page#everywhere'] as const;
+export const NAV_HREFS = ['/my-page', '/org', '/scoring', '/board', '/mirrors', '/connections', '/billing', '/my-page#everywhere'] as const;
 
 export function navDoors(f: DoorsFor): Door[] {
   const all = allDoors(f);
@@ -167,12 +181,14 @@ export function navDoors(f: DoorsFor): Door[] {
     { href: '/board', label: 'Board pack', note: 'What went to the Board for the last closed month.' },
     find('/mirrors') ?? { href: '/mirrors', label: 'Mirrors', note: 'Artifacts your team pins and runs projects through.' },
     find('/connections') ?? { href: '/connections', label: 'Connections', note: 'The systems that feed your numbers.' },
+    find('/billing') ?? { href: '/billing', label: 'Pricing', note: 'What it costs, and whether the AI seat is switched on.' },
     /*
-      The last item on the design's bar, and the reason the bar can stay at six.
+      The last item on the bar, and the reason the bar can stay this short whatever else gets added.
 
-      SPEC has far more than six screens and always will. The complete grouped directory is at the
+      SPEC has far more than eight screens and always will. The complete grouped directory is at the
       foot of My Page — this is the door to it, so the bar never has to grow and nothing is ever
-      only reachable by knowing it is there. Kris drew it on the header he sent on 18 September.
+      only reachable by knowing it is there. Kris drew the original six plus this one on the header
+      he sent on 18 September.
     */
     { href: '/my-page#everywhere', label: 'All pages', note: 'Every screen in SPEC, grouped.' },
   ];

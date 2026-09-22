@@ -170,7 +170,7 @@ describe('a business that wants to start paying can', () => {
 
   /* The button has to exist on the page, not just in the state. */
   it('puts the button on the page, pointing at checkout', () => {
-    const page = readFileSync('src/app/journey/page.tsx', 'utf8');
+    const page = readFileSync('src/app/billing/page.tsx', 'utf8');
     expect(page).toContain('plan.needsCheckout');
     expect(page).toContain('/api/stripe/checkout');
     expect(page).toContain('Start paying');
@@ -180,7 +180,7 @@ describe('a business that wants to start paying can', () => {
   it('tells somebody why the portal has nothing to show, instead of reloading the page', () => {
     const portal = readFileSync('src/app/api/stripe/portal/route.ts', 'utf8');
     expect(portal).toContain('no_subscription=1');
-    const page = readFileSync('src/app/journey/page.tsx', 'utf8');
+    const page = readFileSync('src/app/billing/page.tsx', 'utf8');
     expect(page).toContain('no_subscription');
     expect(page).toContain('Start paying to set one up');
   });

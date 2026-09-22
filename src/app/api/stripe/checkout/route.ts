@@ -57,18 +57,18 @@ export async function POST() {
   // Paying for the business is administration. isTopOfChart keeps GMs created before the
   // administrator level existed (stored as 'full') able to pay.
   if (!(user.access === 'administrator' || isTopOfChart(await getScope(user)))) {
-    return NextResponse.redirect(`${here}/journey`, 303);
+    return NextResponse.redirect(`${here}/billing`, 303);
   }
 
   const stripe = getStripe();
-  // Billing not configured yet — say so on the journey page rather than throwing at the user.
+  // Billing not configured yet — say so on the billing page rather than throwing at the user.
   // The price ids no longer need configuring: they are Stripe's own, in lib/pricing, beside the
   // amounts they name. Only the secret key can be missing now.
-  if (!stripe) return NextResponse.redirect(`${here}/journey?billing_error=1`, 303);
+  if (!stripe) return NextResponse.redirect(`${here}/billing?billing_error=1`, 303);
 
   const tenantRows = await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
   const tenant = tenantRows[0];
-  if (!tenant) return NextResponse.redirect(`${here}/journey`, 303);
+  if (!tenant) return NextResponse.redirect(`${here}/billing`, 303);
 
   /*
     Nothing to bill means nothing to bill, and there are two ways to get there: nobody in the
@@ -78,11 +78,11 @@ export async function POST() {
   */
   const seats = await countSeats(user.tenantId);
   const leadershipSeats = await countLeadershipSeats(user.tenantId);
-  // basic | advanced — this business's own answer to "do you want SPEC AI powered?" (journey page,
+  // basic | advanced — this business's own answer to "do you want SPEC AI powered?" (billing page,
   // lib/plan's setSeatTier). Missing reads as basic — see the note on tenants.seatTier.
   const withAi = tenant.seatTier === 'advanced';
   const bill = seatBill(seats, leadershipSeats, undefined, withAi);
-  if (bill.billable === 0) return NextResponse.redirect(`${here}/journey?nothing_to_bill=1`, 303);
+  if (bill.billable === 0) return NextResponse.redirect(`${here}/billing?nothing_to_bill=1`, 303);
 
   // Billed in the business's own currency, set by where it is (BUILD_SPEC §8.2).
   const currency = currencyForCountry((await headers()).get('x-vercel-ip-country'));
@@ -133,15 +133,15 @@ export async function POST() {
       customer_email: tenant.stripeCustomerId ? undefined : user.email,
       subscription_data: { metadata: { tenantId: tenant.id } },
       metadata: { tenantId: tenant.id },
-      success_url: `${here}/journey?upgraded=1`,
-      cancel_url: `${here}/journey?upgrade_cancelled=1`,
+      success_url: `${here}/billing?upgraded=1`,
+      cancel_url: `${here}/billing?upgrade_cancelled=1`,
       allow_promotion_codes: true,
     });
   } catch (err) {
     console.error('Stripe checkout session failed', err);
-    return NextResponse.redirect(`${here}/journey?billing_error=1`, 303);
+    return NextResponse.redirect(`${here}/billing?billing_error=1`, 303);
   }
 
-  if (!session.url) return NextResponse.redirect(`${here}/journey?billing_error=1`, 303);
+  if (!session.url) return NextResponse.redirect(`${here}/billing?billing_error=1`, 303);
   return NextResponse.redirect(session.url, 303);
 }

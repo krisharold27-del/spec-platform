@@ -366,14 +366,14 @@ export const HELP: HelpGroup[] = [
           'The payment has stopped — an expired card, nearly always. Nothing has been deleted and nothing is lost; '
           + 'everything comes back the moment the card is sorted, including anything you tried to type while it was '
           + 'read-only. A one-person business is never locked, because it owes nothing.',
-        go: { href: '/journey', label: 'Sort the payment' },
+        go: { href: '/billing', label: 'Sort the payment' },
         press: 'Update card',
       },
       {
         ask: 'How do I change the card?',
         also: ['update card', 'billing details', 'invoice', 'receipt'],
-        say: 'Through the billing page, which is where invoices and receipts live too.',
-        go: { href: '/journey', label: 'Billing' },
+        say: 'Through the Pricing page, which is where invoices and receipts live too.',
+        go: { href: '/billing', label: 'Billing' },
         press: 'Billing',
       },
       {
@@ -383,7 +383,7 @@ export const HELP: HelpGroup[] = [
           'No. The business goes read-only — you can see all of it and change none of it — and it stays that way. '
           + 'Nothing is deleted because a card expired. If you genuinely want it gone, ask us and say so out loud; it '
           + 'is deliberately not a button.',
-        go: { href: '/journey', label: 'Billing' },
+        go: { href: '/billing', label: 'Billing' },
       },
     ],
   },
