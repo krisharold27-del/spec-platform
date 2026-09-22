@@ -455,7 +455,7 @@ describe('when it refuses to put a number up', () => {
     ── Where the caveat lives, and why it moved ──────────────────────────────────────────────
 
     It used to be printed inside the pill beside the number. That was mine, not the design's: the
-    drawing's pill holds four things — the ring, the label, the percentage and "Hack Your Power" —
+    drawing's pill holds four things — the ring, the label, the percentage and "HACC Your Power" —
     and adding a fifth is what grew a corner instrument into a slab. Kris, 19 September: *"just do
     what the design says and make it perfectly"*.
 
@@ -479,7 +479,7 @@ describe('when it refuses to put a number up', () => {
     const page = readFileSync('src/components/power-meter.tsx', 'utf8');
     const pill = page.slice(page.indexOf('const inside = ('), page.indexOf('const shell ='));
     expect(pill).toContain('Virtual GM Power Meter');
-    expect(pill).toContain('Hack Your Power');
+    expect(pill).toContain('HACC Your Power');
     expect(pill).toContain('data-power-score');
     // Not the coverage, not a button, not the month. Those belong in the breakdown.
     expect(pill).not.toContain('reading.measured');

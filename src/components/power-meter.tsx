@@ -21,7 +21,7 @@ import {
  *   the page. The four pillar cards are the subject; the meter is the glance.
  *
  *   The design's pill holds four things and no more: the ring, the label, the percentage and
- *   **Hack Your Power**. I had added a button and a coverage line inside it, which is why it grew
+ *   **HACC Your Power**. I had added a button and a coverage line inside it, which is why it grew
  *   into a slab.
  *
  *   The ring's track is `--color-accent-100`, which is `rust-100` here. I had used the surface
@@ -85,7 +85,7 @@ export function PowerMeter({ reading, canRead, period, showing, hrefFor }: Omit<
             {reading.score}%
           </span>
         )}
-        <span className="whitespace-nowrap text-[10.5px] italic text-rust-700">Hack Your Power</span>
+        <span className="whitespace-nowrap text-[10.5px] italic text-rust-700">HACC Your Power</span>
       </span>
     </>
   );

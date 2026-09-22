@@ -53,14 +53,20 @@ The heading beside the Snap Score. The product says **Snap Score — too early t
 enough history, which is a different and more honest sentence: the design's wording assumes a score
 worth reading, and a business in its first month has not got one.
 
-### `SPEC My Page` — Virtual GM Power Meter Hack Your Power
+### `SPEC My Page` — Virtual GM Power Meter HACC Your Power
 
 Not a phrase — two of the pill's four lines, glued together by how the check reads a
 design screen. The corner instrument is one `<button>` in `SPEC My Page.dc.html`,
-holding the label, a percentage behind an `sc-if`, and **Hack Your Power** as three
+holding the label, a percentage behind an `sc-if`, and **HACC Your Power** as three
 sibling elements; a button's whole text is read as one string, and `{{ }}` template
-holes vanish, so "Virtual GM Power Meter" and "Hack Your Power" arrive concatenated
+holes vanish, so "Virtual GM Power Meter" and "HACC Your Power" arrive concatenated
 whether or not the percentage between them was ever going to render.
+
+**HACC, not "Hack".** Kris, 22 September: *"its not hack - its HACC - Haness [Harness]
+Anterior Cingulate Cortex - the key concept of the training and programs to improve
+performance."* The design tool that produced this screen turned his acronym into a
+pun it assumed was intentional. It was not — see the 19 September quote below, and
+`src/components/power-meter.tsx`, which now carries the correct word.
 
 `src/components/power-meter.tsx` carries both, word for word, unconditionally — see
 `PowerMeter`, the pill's two label spans. What sits between them in the product is
