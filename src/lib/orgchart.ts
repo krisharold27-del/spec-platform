@@ -168,7 +168,14 @@ export const PIPE = 10;
  * Height is DERIVED from those numbers rather than typed in, so the two cannot drift: padding, two
  * lines of title at 1.25, the person pill, and the row of tiles.
  */
-export const CARD = { w: 210, pad: 18, radius: 28, title: 16, tile: 26 } as const;
+/*
+  `title: 18` and bold, not 16 and plain. Kris, 23 September, looking at a live chart with a new
+  person on it: *"the role and persons name are not clear - need to make these bigger and bold"*.
+  The 16px/body-weight call above was right for legibility against the display face; it was not
+  right for reading forty cards at a glance, which is what a real chart is used for once real
+  people are on it. `cardHeight` derives from this number, so the two still cannot drift.
+*/
+export const CARD = { w: 210, pad: 18, radius: 28, title: 18, tile: 26 } as const;
 
 /**
  * The ring around a card, and the ring around a selected one.
@@ -216,8 +223,13 @@ export const SEAT_BADGE_ROW = 18;
  *
  * Written from the taller of the two on purpose: an empty role gets 4px of air, and no card loses
  * a word.
+ *
+ * 19px of line rather than 18, now the pill's own text is 14px and bold rather than 12.5px and
+ * plain (see the note on `CARD.title` — the same request covered the name as well as the role).
+ * Vacant stays the same size so the row's height math holds whether or not the card has a name in
+ * it; only the filled pill gets the extra weight.
  */
-export const PERSON_ROW = 27;
+export const PERSON_ROW = 28;
 
 /** The gap above the four S/P/E/C tiles. */
 export const TILE_ROW_GAP = 10;

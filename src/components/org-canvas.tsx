@@ -878,7 +878,7 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                       : `0 0 0 ${CARD_RING}px rgba(122,138,94,0.45), 0 6px 16px -8px rgba(0,0,0,0.18)`,
                   }}
                 >
-                  <span className="font-serif leading-[1.25] text-sage-900" style={{ fontSize: z.title }}>
+                  <span className="font-serif font-semibold leading-[1.25] text-sage-900" style={{ fontSize: z.title }}>
                     {r.title}
                   </span>
                   <span className="mt-1 block text-[12px] text-ink-light" data-team-count={r.id}>
@@ -1019,7 +1019,7 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                     four tiles towards the bottom. Everything centred in a tight block, which is
                     what this was, reads as a label; the design's card reads as a card.
                   */
-                  className={`flex w-full flex-1 items-center justify-center text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
+                  className={`flex w-full flex-1 items-center justify-center font-semibold text-ink [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow:hidden] ${r.ace?.holdingAce ? 'px-5' : ''}`}
                   style={{
                     fontSize: z.title,
                     /*
@@ -1099,7 +1099,7 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                       tooltip says it; painting it a different colour would make it look like a
                       score.
                     */
-                    className={`mt-[5px] inline-block max-w-full truncate rounded-full px-2.5 py-0.5 text-[12.5px] leading-[18px] ${
+                    className={`mt-[5px] inline-block max-w-full truncate rounded-full px-2.5 py-0.5 text-[14px] font-semibold leading-[19px] ${
                       canEdit ? 'cursor-grab' : ''
                     }`}
                     style={{
@@ -1136,7 +1136,7 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                 ) : (
                   /* Vacant is not a pill in the design — it is quiet text, because there is no
                      name to pick up and move. */
-                  <span className="mt-[5px] inline-block text-[12.5px] leading-[18px]" style={{ color: 'rgba(32,30,29,0.55)' }}>
+                  <span className="mt-[5px] inline-block text-[14px] leading-[19px]" style={{ color: 'rgba(32,30,29,0.55)' }}>
                     Vacant
                   </span>
                 )}
