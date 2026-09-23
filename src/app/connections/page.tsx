@@ -71,6 +71,8 @@ export default async function Connections({
   const { aiActive } = await planStateFor(user.tenantId);
   const choosing = typeof sp.choose === 'string' ? sp.choose : undefined;
   const linked = typeof sp.linked === 'string' ? sp.linked : undefined;
+  // Arriving from Coverage's "Connect your job system →": the kind is already chosen.
+  const preset = CATEGORIES.find(c => c.id === sp.category)?.id ?? '';
 
   const live = connections.filter(c => c.status === 'live');
   const authorised = scope.canAdminister;
@@ -290,7 +292,7 @@ export default async function Connections({
       </section>
 
       {authorised && (
-        <section className="card mt-6">
+        <section id="add" className="card mt-6 scroll-mt-6">
           <h2 className="font-serif text-xl text-ink">Add a system</h2>
           <p className="mt-1 text-sm text-ink-light">
             Type whatever you actually run. SPEC only needs to know what kind of number it produces —
@@ -298,7 +300,7 @@ export default async function Connections({
           </p>
           <form action={connectSystem} className="mt-4 grid gap-2 sm:grid-cols-[1.4fr_1.2fr_auto]">
             <input id="conn-name" className="input" name="name" required placeholder="What you call it" aria-label="System name" />
-            <select className="input" name="category" aria-label="What it holds" defaultValue="">
+            <select className="input" name="category" aria-label="What it holds" defaultValue={preset}>
               <option value="">What does it hold?</option>
               {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
