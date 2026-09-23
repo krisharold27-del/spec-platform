@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { LIGHT_COLOUR } from '@/lib/today';
 import {
   HEAVY_POINTS, SHARED_SLOTS, ringOffset, coverageLine, scopeLabel,
-  sourcesOf, type PowerReading, type SlotReading,
+  sourcesOf, sourceLine, type PowerReading, type SlotReading,
 } from '@/lib/power-meter';
 
 /**
@@ -242,7 +242,19 @@ function SlotRow({ reading, quiet = false }: { reading: SlotReading; quiet?: boo
         {!quiet && (
           <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: tone }} aria-hidden />
         )}
-        {reading.slot.name}
+        {/*
+          The name, and under it the SPEC record the number comes from — the design's 23 September
+          breakdown names the source of every KPI. On the quiet rows it rides after the name, the
+          way the design writes "TRIFR · SPEC Safety + Jobs timesheets".
+        */}
+        {quiet ? (
+          <span>{reading.slot.name} · {reading.slot.source}</span>
+        ) : (
+          <span className="grid gap-px">
+            <span>{reading.slot.name}</span>
+            <span className="text-xs text-ink-light" data-power-source>{sourceLine(reading.slot)}</span>
+          </span>
+        )}
         {/*
           Which of the business's own KPIs fed this slot.
 
@@ -252,7 +264,7 @@ function SlotRow({ reading, quiet = false }: { reading: SlotReading; quiet?: boo
         */}
         {!quiet && reading.from.length > 0 && (
           <span className="text-xs text-ink-light">
-            from {sourcesOf(reading).map(s => (s.roles > 1 ? `${s.text} (${s.roles} roles)` : s.text)).join('; ')}
+            your KPIs: {sourcesOf(reading).map(s => (s.roles > 1 ? `${s.text} (${s.roles} roles)` : s.text)).join('; ')}
           </span>
         )}
         {/*

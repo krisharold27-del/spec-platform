@@ -11,11 +11,17 @@ import { SpecLockup } from './spec-mark';
  * Deliberately not the signed-in `Shell` header. Inside, the nav is for somebody doing a job; here
  * it is for somebody deciding whether to start, and the two lists have almost nothing in common.
  */
+/*
+  SPEC's own front door is /spec since 23 September 2026 — the bare address is siteVIP, the trades
+  edition. So "What it is" and the mark go to /spec, and siteVIP gets a link of its own, which keeps
+  every public page one press from every other.
+*/
 const LINKS = [
-  { href: '/', label: 'What it is' },
+  { href: '/spec', label: 'What it is' },
   { href: '/how', label: 'How it works' },
   { href: '/sectors', label: 'By sector' },
   { href: '/pricing', label: 'Pricing' },
+  { href: '/', label: 'siteVIP for trades' },
 ] as const;
 
 export function PublicNav({ current }: { current?: string }) {
@@ -24,7 +30,7 @@ export function PublicNav({ current }: { current?: string }) {
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-3">
         {/* Same floor as the app header's mark: it is the way home from every marketing page,
             and it measured 35px on a phone. */}
-        <Link href="/" aria-label="SPEC home" className="inline-flex min-h-[44px] items-center">
+        <Link href="/spec" aria-label="SPEC home" className="inline-flex min-h-[44px] items-center">
           <SpecLockup line="Nimble and powerful." />
         </Link>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 label-caps">
