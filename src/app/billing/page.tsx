@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { Shell } from '@/components/ui';
-import { planStateFor, costLabel } from '@/lib/plan';
+import { planStateFor, costLabel, seatBreakdown } from '@/lib/plan';
 import { seatLabel } from '@/lib/pricing';
 import { requestCurrency } from '@/lib/request-currency';
 import { getScope } from '@/lib/scope';
@@ -71,6 +71,21 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
       override: (r.holder!.seatKindOverride as 'leadership' | 'team' | null) ?? null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  /*
+    The total, itemised — see `seatBreakdown`. Leadership is counted from the list below so the
+    sentence and the list can never disagree; everyone else with a seat is a team seat.
+  */
+  const leadHeads = seatRows.filter(r => (r.override ?? r.chartKind) === 'leadership').length;
+  const teamHeads = Math.max(0, plan.seats - leadHeads);
+  const breakdown = seatBreakdown({ leadership: leadHeads, team: teamHeads, training: plan.trainingSeats }, currency);
+  const freeIsTeam = teamHeads === 1;
+  const Breakdown = () => breakdown.length > 0 ? (
+    <ul className="mt-2 grid gap-0.5 text-[13px] text-ink-light">
+      {breakdown.map(line => <li key={line}>{line}</li>)}
+      <li>Each extra person adds {seatLabel(currency, 'team')} a month, or {seatLabel(currency, 'leadership')} if they lead a team.</li>
+    </ul>
+  ) : null;
 
   /*
     The banner has to agree with the page under it.
@@ -151,7 +166,8 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">
           <span>
             <b>{costLabel(plan)}</b>
-            <span className="text-ink-light"> · each extra person is {seatLabel(currency, 'team')} a month. Nothing has been charged yet.</span>
+            <span className="text-ink-light"> · Nothing has been charged yet.</span>
+            <Breakdown />
           </span>
           <form action="/api/stripe/checkout" method="post">
             <button className="shrink-0 rounded-full bg-rust-800 px-4 py-2 text-sm font-medium text-cream hover:bg-rust-900">
@@ -162,7 +178,7 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
       )}
       {plan.billing && plan.subscribed && (
         <div className="mb-4 flex items-baseline justify-between gap-3 rounded-lg bg-surface p-4 text-sm">
-          <span><b>{costLabel(plan)}</b> <span className="text-ink-light">· each extra person is {seatLabel(currency, 'team')} a month</span></span>
+          <span><b>{costLabel(plan)}</b><Breakdown /></span>
           <form action="/api/stripe/portal" method="post"><button className="text-sm text-ink-light underline hover:text-rust">Billing</button></form>
         </div>
       )}
@@ -186,6 +202,13 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="text-sm text-ink">
                     <b>{row.name}</b> <span className="text-ink-light">· {row.title}</span>
+                  </span>
+                  <span className="text-[12.5px] font-medium text-ink">
+                    {(row.override ?? row.chartKind) === 'leadership'
+                      ? `Leadership seat · ${seatLabel(currency, 'leadership')} a month`
+                      : freeIsTeam
+                        ? 'Team seat · free — your first seat'
+                        : `Team seat · ${seatLabel(currency, 'team')} a month`}
                   </span>
                   {!scope.canInvite && (
                     <span className="text-[12.5px] text-ink-light">
