@@ -24,6 +24,7 @@ import type { Pillar, RoleScore } from '@/lib/scoring';
 import { Problems } from '@/components/problems';
 import { PowerMeter, PowerBreakdown } from '@/components/power-meter';
 import { powerMeterFor } from '@/lib/power-meter-data';
+import { coverageFor } from '@/lib/coverage-data';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { startHere } from '@/lib/start-here';
 
@@ -128,6 +129,8 @@ export default async function MyPage({
     tenantId: user.tenantId,
     visible: scope.visible,
     snap: snapScore(register),
+    // Each measure's source follows who runs it — "from your safety system" once chosen on Coverage.
+    choices: await coverageFor(user.tenantId),
   });
   // Manages somebody: their scope reaches past their own role. The same population the design gives
   // the number to, worked out from the chart rather than from a flag anybody sets.
