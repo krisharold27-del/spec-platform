@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { OwnSystemLine } from '@/components/own-system-line';
+import { ownSystemFor } from '@/lib/coverage-data';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
@@ -51,6 +53,7 @@ export default async function Crm({ searchParams }: { searchParams: Promise<Reco
   const tab: Tab = openId ? 'deals' : (TABS.find(t => t.key === one(sp.tab))?.key ?? 'deals');
   const cannot = refusedReason(sp);
   const manage = canManage(user.access);
+  const own = await ownSystemFor(user.tenantId, 'crm', tab);
   const today = new Date().toISOString().slice(0, 10);
 
   const view = await loadCrm(user);
@@ -102,6 +105,8 @@ export default async function Crm({ searchParams }: { searchParams: Promise<Reco
           </Link>
         ))}
       </nav>
+
+      <OwnSystemLine line={own.line} connected={own.connected} />
 
       {tab === 'deals' && <Deals view={view} openId={openId} manage={manage} today={today} showStages={one(sp.stages) === '1'} lose={one(sp.lose) === '1'} access={user.access} />}
       {tab === 'activities' && <Activities view={view} today={today} manage={manage} who={one(sp.who) === 'line' ? 'line' : 'me'} tabHref={tabHref} />}
