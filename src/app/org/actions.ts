@@ -13,7 +13,7 @@ import { getRoles, placementShown } from '@/lib/queries';
 import { installTraining } from '@/lib/provision';
 import { canMove, parseRoles, parseCsv, resolveImport, type ChartRole } from '@/lib/orgchart';
 import { PILLARS, evenWeights, type Pillar } from '@/lib/scoring';
-import { addKpi, addMember, teamName, mayHoldTeam } from '@/lib/chart-seats';
+import { addKpi, addMember, teamName, mayHoldTeam, seatKindFromForm } from '@/lib/chart-seats';
 
 /**
  * Changing the shape of the business.
@@ -439,6 +439,12 @@ export async function invitePerson(formData: FormData) {
 
   const scope = await getScope(user);
   if (!scope.canShapeChart(roleId)) outside(scope, user.access);
+  /*
+    Kris, 23 September: *"only someone in a leadership seat can invite someone to join the org
+    chart - they then decide if this is a leadership seat or member seat."* A team seat cannot
+    spend another seat, full stop — see `mayInvite` in lib/scope.
+  */
+  if (!scope.canInvite) refuse('Only somebody on a leadership seat can invite people onto the chart.');
 
   const openRows = await db.select().from(schema.roleAssignments)
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
@@ -448,7 +454,10 @@ export async function invitePerson(formData: FormData) {
   if (placement.userId) refuse('They already have a SPEC login, so there is nothing to send.');
   if (!placement.staffId) refuse('SPEC cannot tell who is in that role. Put the name on the card again.');
 
-  const outcome = await inviteToSeat(user.tenantId, placement.staffId, email);
+  // The same rule that let them invite at all is what lets them choose the seat — see `canInvite`.
+  const seatKind = seatKindFromForm(formData.get('seatKind'), scope.canInvite);
+
+  const outcome = await inviteToSeat(user.tenantId, placement.staffId, email, seatKind);
   if (!outcome.ok) {
     refuse(
       outcome.reason === 'no-email' ? 'That does not look like an email address.'
@@ -468,6 +477,45 @@ export async function invitePerson(formData: FormData) {
     refuse(`${outcome.name} has a seat, but the email did not send. Their invitation is on Setting up → Your business — send them the link yourself.`);
   }
   redirect(`/org?invited=${encodeURIComponent(outcome.email)}`);
+}
+
+/**
+ * Change which seat somebody already invited is billed on — leadership, team, or back to letting
+ * the chart decide.
+ *
+ * Kris, 23 September, after a real misclassified seat at JBI: *"we need the capacity to choose
+ * whether leadership seat or team seat"* — and, the same day, that the choice belongs to whoever
+ * may invite in the first place: *"only someone in a leadership seat can invite someone to join the
+ * org chart - they then decide if this is a leadership seat or member seat."* Same gate as
+ * `invitePerson`, `scope.canInvite`, because this is the same decision made at a different moment —
+ * fixing one after the fact rather than getting it right at the invite. Writing `seatKindOverride`
+ * is the ONLY thing this does: `resolveSeatKind` (lib/chart-seats) is what actually reads it
+ * wherever billing and training eligibility are computed, so there is exactly one place this can
+ * disagree with the bill.
+ */
+export async function setSeatKind(formData: FormData) {
+  const user = await editor();
+  const scope = await getScope(user);
+
+  const roleId = String(formData.get('roleId') ?? '');
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
+  if (!scope.canInvite) refuse('Only somebody on a leadership seat can change how another seat is billed.', roleId);
+
+  const raw = String(formData.get('seatKind') ?? '');
+  const seatKind = raw === 'leadership' || raw === 'team' ? raw : null; // 'auto' (or anything else) clears it
+
+  const openRows = await db.select().from(schema.roleAssignments)
+    .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
+  const placement = placementShown(openRows);
+  if (!placement?.userId) refuse('Nobody with a SPEC login is in that role, so there is nothing to bill differently.', roleId);
+
+  await db.update(schema.users).set({ seatKindOverride: seatKind })
+    .where(and(eq(schema.users.id, placement.userId), eq(schema.users.tenantId, user.tenantId)));
+
+  revalidatePath('/org');
+  revalidatePath('/billing');
+  revalidatePath('/journey');
+  revalidatePath('/training');
 }
 
 /** Take a role off the chart for good. Never used on a role with anybody in it. */

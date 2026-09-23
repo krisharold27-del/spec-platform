@@ -88,15 +88,26 @@ const wrap = (body: string) => `<div style="font-family:sans-serif;font-size:15p
  */
 export async function sendInviteEmail(opts: {
   to: string; name: string; businessName: string; roleTitle: string; token: string;
+  /**
+   * Said plainly so nobody finds out from a bill. Kris, 23 September: *"they see they are joining a
+   * leadership or team member seat."* Optional only for callers this file has not been updated for
+   * yet — every real caller has one, computed the same way billing computes it (`resolveSeatKind`).
+   */
+  seatKind?: 'leadership' | 'team' | null;
 }) {
   if (!resend) throw new Error('Email is not configured, so the invitation was not sent.');
   // The address the invitation was sent from, so the new person lands where their business is.
   const url = seatUrl(await currentOrigin(), opts.token);
+  const seatLine = opts.seatKind === 'leadership' ? 'a Leadership seat'
+    : opts.seatKind === 'team' ? 'a Team seat'
+    : null;
+  const seatHtml = seatLine ? ` — <b>${seatLine}</b>` : '';
+  const seatText = seatLine ? ` — ${seatLine}` : '';
   await sendOrThrow(
     opts.to,
     `Take your seat at ${opts.businessName} on SPEC`,
-    wrap(`<p>Hi ${opts.name},</p><p>You've been given the <b>${opts.roleTitle}</b> role at <b>${opts.businessName}</b> on SPEC.</p><p><a href="${url}" style="display:inline-block;background:#B5502F;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Take your seat</a></p><p style="color:#64748b;font-size:13px">The link is yours alone and works once, for ${SEAT_TOKEN_DAYS} days. You'll choose a password when you take it.</p>`),
-    `Hi ${opts.name},\n\nYou've been given the ${opts.roleTitle} role at ${opts.businessName} on SPEC.\n\nTake your seat: ${url}\n\nThe link is yours alone and works once, for ${SEAT_TOKEN_DAYS} days. You'll choose a password when you take it.`,
+    wrap(`<p>Hi ${opts.name},</p><p>You've been given the <b>${opts.roleTitle}</b> role at <b>${opts.businessName}</b> on SPEC${seatHtml}.</p><p><a href="${url}" style="display:inline-block;background:#B5502F;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Take your seat</a></p><p style="color:#64748b;font-size:13px">The link is yours alone and works once, for ${SEAT_TOKEN_DAYS} days. You'll choose a password when you take it.</p>`),
+    `Hi ${opts.name},\n\nYou've been given the ${opts.roleTitle} role at ${opts.businessName} on SPEC${seatText}.\n\nTake your seat: ${url}\n\nThe link is yours alone and works once, for ${SEAT_TOKEN_DAYS} days. You'll choose a password when you take it.`,
   );
 }
 

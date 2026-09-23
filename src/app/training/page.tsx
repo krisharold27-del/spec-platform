@@ -110,9 +110,9 @@ export default async function Training({ searchParams }: {
     Who may be put on the training upgrade, and who already is — administration only, since it
     changes the bill. Moved here from Settings 22 September, so the control sits beside the
     material it unlocks. Read from the CHART, not from a list of people: `eligibleForTrainingSeat`
-    is the same leadership question `seatKindFor` bills from, so a role that stops leading people
-    stops being offered the seat the same minute, without anybody remembering to change a second
-    thing.
+    is the same leadership question billing resolves from (`resolveSeatKind` — the chart, unless an
+    administrator has stated an override for that person), so a role that stops leading people stops
+    being offered the seat the same minute, without anybody remembering to change a second thing.
   */
   let leadershipSeats: { role: (typeof scope.roles)[number]; person: { id: string; name: string; trainingSeat: boolean } }[] = [];
   let currency: Currency = HOME_CURRENCY;
@@ -123,7 +123,10 @@ export default async function Training({ searchParams }: {
     const billablePeople = allPeople.filter(u => u.invitedAt || u.acceptedAt || u.authUserId);
     const leadsSet = new Set(scope.roles.map(r => r.reportsToRoleId).filter((x): x is string => Boolean(x)));
     leadershipSeats = scope.roles
-      .filter(r => r.holder?.email && eligibleForTrainingSeat({ title: r.title, hasDirectReports: leadsSet.has(r.id) }))
+      .filter(r => r.holder?.email && eligibleForTrainingSeat(
+        { title: r.title, hasDirectReports: leadsSet.has(r.id) },
+        (r.holder!.seatKindOverride as 'leadership' | 'team' | null) ?? null,
+      ))
       .map(r => ({ role: r, person: billablePeople.find(b => b.email === r.holder!.email) }))
       .filter((x): x is { role: typeof x.role; person: NonNullable<typeof x.person> } => Boolean(x.person));
   }

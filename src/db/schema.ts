@@ -250,6 +250,22 @@ export const users = pgTable('users', {
    * a leadership seat — see `eligibleForTrainingSeat` in lib/pricing.
    */
   trainingSeat: boolean('training_seat').notNull().default(false),
+  /**
+   * An administrator's explicit override of which seat this person is billed on — 'leadership' |
+   * 'team' | null.
+   *
+   * Everywhere else, `seatKindFor` (lib/chart-seats) is the only truth: a title, or somebody
+   * reporting to the role. Kris, 23 September, asked for a way past that — *"we need the capacity
+   * to choose whether leadership seat or team seat when sending their email to join"* — after a
+   * misclassified seat on JBI's own chart. Deliberately narrower than "ignore the chart": null
+   * (the default, and the only value anybody has until an administrator touches this) means
+   * nothing has changed — billing keeps reading the chart live, exactly as it always has, and
+   * self-corrects when a role's title or reporting line changes. A non-null value is a stated
+   * choice, made once by an administrator, and it OUTLIVES the chart until an administrator changes
+   * it again or sets it back to null — `resolveSeatKind` (lib/chart-seats) is the one place that
+   * decides which of the two wins, and every caller that bills or grants training goes through it.
+   */
+  seatKindOverride: text('seat_kind_override'), // leadership | team | null
   invitedAt: text('invited_at'),
   /**
    * The "take your seat" link, which the engine requires to be single use, expiring, and bound to

@@ -54,6 +54,39 @@ export const seatKindFor = (role: { title: string; hasDirectReports: boolean }):
   (role.hasDirectReports || LEADER_TITLE.test(role.title) ? 'leadership' : 'team');
 
 /**
+ * What a person is actually billed and trained as — the chart's answer, unless an administrator has
+ * stated otherwise.
+ *
+ * Kris, 23 September, on a real misclassified seat at JBI: *"we need the capacity to choose whether
+ * leadership seat or team seat when sending their email to join."* `seatKindFor` stays exactly what
+ * it was — the chart's own read, argued over at length in the note above it, and still what decides
+ * the DEFAULT offered at the moment somebody is invited. This is the one place that decides which of
+ * the two actually wins once an administrator has touched it: a stated override (`users.seatKindOverride`)
+ * beats the chart, because it is a fact somebody chose on purpose; `null` — the default, and the only
+ * value anybody has until an administrator sets one — defers to the chart exactly as before, so a
+ * business that never uses this stays on the self-correcting rule it always had.
+ */
+export const resolveSeatKind = (
+  role: { title: string; hasDirectReports: boolean },
+  override?: SeatKind | null,
+): SeatKind => override ?? seatKindFor(role);
+
+/**
+ * What an invite form's "leadership / team / auto" field actually means, once who submitted it is
+ * known.
+ *
+ * The choice is administration, the same class of thing as a seat or a grant — `'auto'`, an empty
+ * box, or anybody who is not an administrator all mean the same thing: no override, billing keeps
+ * reading the chart. Never a throw: a non-administrator cannot make this choice, so their form is
+ * read as if the field were not there, rather than the invite itself being refused over a field
+ * they should not have been able to change in the first place.
+ */
+export function seatKindFromForm(raw: FormDataEntryValue | null, canAdminister: boolean): SeatKind | null {
+  if (!canAdminister) return null;
+  return raw === 'leadership' || raw === 'team' ? raw : null;
+}
+
+/**
  * What the card says about its seat.
  *
  * The certified mark is only ever shown on a leadership seat with somebody actually in it. A tick
@@ -61,8 +94,8 @@ export const seatKindFor = (role: { title: string; hasDirectReports: boolean }):
  */
 export function seatBadges(role: {
   title: string; hasDirectReports: boolean; filled: boolean; certified: boolean;
-}): string[] {
-  const kind = seatKindFor(role);
+}, override?: SeatKind | null): string[] {
+  const kind = resolveSeatKind(role, override);
   const badges: string[] = [kind === 'leadership' ? 'Leadership seat' : 'Team seat'];
   if (kind === 'leadership' && role.certified && role.filled) badges.push('✓ SPEC Certified');
   return badges;

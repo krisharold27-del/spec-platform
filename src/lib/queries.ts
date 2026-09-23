@@ -16,7 +16,11 @@ export async function getCurrentPeriod(tenantId: string) {
 
 export interface RoleView {
   id: string; title: string; stream: string; level: string; reportsToRoleId: string | null;
-  holder: { name: string; email: string; access: string } | null;
+  holder: {
+    id: string; name: string; email: string; access: string;
+    /** An administrator's stated override of this person's seat kind — see lib/chart-seats. */
+    seatKindOverride: string | null;
+  } | null;
   /**
    * Someone pencilled into the role who has not been invited yet. They have no account and cost
    * nothing, but the chart should still show the business as the leader has drawn it — a role with
@@ -69,7 +73,10 @@ export async function getRoles(tenantId: string): Promise<RoleView[]> {
     .orderBy(schema.roles.sortOrder);
   const out: RoleView[] = [];
   for (const r of rows) {
-    const a = await db.select({ name: schema.users.name, email: schema.users.email, access: schema.users.access })
+    const a = await db.select({
+      id: schema.users.id, name: schema.users.name, email: schema.users.email, access: schema.users.access,
+      seatKindOverride: schema.users.seatKindOverride,
+    })
       .from(schema.roleAssignments)
       .innerJoin(schema.users, eq(schema.users.id, schema.roleAssignments.userId))
       .where(and(eq(schema.roleAssignments.roleId, r.id), isNull(schema.roleAssignments.toDate)));

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
-  MIN_KPIS, LEADER_TITLE, seatKindFor, seatBadges, pillarReadiness, readinessLine,
+  MIN_KPIS, LEADER_TITLE, seatKindFor, resolveSeatKind, seatKindFromForm, seatBadges,
+  pillarReadiness, readinessLine,
   firstWednesdayNextMonth, monthName, cadence, kpiSuggestions, addKpi, KPI_EXAMPLES,
   teamName, addMember, memberLine, mayHoldTeam, TEAM_DEFAULT_NAME,
 } from '../src/lib/chart-seats';
@@ -62,6 +63,49 @@ describe('which seat a card is', () => {
   it('and a team seat is never certified, because the mark is about leading', () => {
     const badges = seatBadges({ title: 'Electrician', hasDirectReports: false, certified: true, filled: true });
     expect(badges).toEqual(['Team seat']);
+  });
+});
+
+/*
+  ── An administrator's override, on top of the chart's own read ────────────────────────────────
+
+  Kris, 23 September, after a real misclassified seat at JBI: *"we need the capacity to choose
+  whether leadership seat or team seat"* — then, the same day, that the choice belongs to whoever
+  may invite in the first place: *"only someone in a leadership seat can invite someone to join the
+  org chart - they then decide if this is a leadership seat or member seat."* `resolveSeatKind` is
+  the one place both signals meet, and `seatKindFromForm` is the one place a submitted form value
+  becomes — or fails to become — an override.
+*/
+describe('an administrator’s stated override, over the chart’s own read', () => {
+  const teamByChart = { title: 'Ops Admin', hasDirectReports: false };
+  const leaderByChart = { title: 'Operations Manager', hasDirectReports: false };
+
+  it('DEFERS TO THE CHART WHEN NOBODY HAS STATED ONE', () => {
+    expect(resolveSeatKind(teamByChart)).toBe('team');
+    expect(resolveSeatKind(teamByChart, null)).toBe('team');
+    expect(resolveSeatKind(leaderByChart)).toBe('leadership');
+  });
+
+  it('AND WINS OVER THE CHART THE MOMENT ONE IS STATED, in either direction', () => {
+    expect(resolveSeatKind(teamByChart, 'leadership')).toBe('leadership');
+    expect(resolveSeatKind(leaderByChart, 'team')).toBe('team');
+  });
+
+  it('feeds the seat badge the same way, so the card never disagrees with the bill', () => {
+    expect(seatBadges({ ...teamByChart, filled: true, certified: false }, 'leadership')).toEqual(['Leadership seat']);
+    expect(seatBadges({ ...leaderByChart, filled: true, certified: false }, 'team')).toEqual(['Team seat']);
+  });
+
+  it('READS A SUBMITTED FORM VALUE ONLY WHEN THE SUBMITTER MAY ADMINISTER IT', () => {
+    expect(seatKindFromForm('leadership', true)).toBe('leadership');
+    expect(seatKindFromForm('team', true)).toBe('team');
+    expect(seatKindFromForm('leadership', false), 'not their call to make').toBeNull();
+  });
+
+  it('and treats "auto", empty, or nonsense the same as no override at all', () => {
+    for (const raw of ['auto', '', null, 'nonsense']) {
+      expect(seatKindFromForm(raw, true), JSON.stringify(raw)).toBeNull();
+    }
   });
 });
 

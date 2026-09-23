@@ -54,6 +54,16 @@ describe('who may be put on the training seat', () => {
   });
 
   /*
+    Same administrator's-choice signal billing reads — `users.seatKindOverride` — so eligibility can
+    never land on a different answer from what the person is actually billed as. Kris, 23 September.
+  */
+  it('AND FOLLOWS AN ADMINISTRATOR’S OVERRIDE THE SAME WAY BILLING DOES', () => {
+    expect(eligibleForTrainingSeat({ title: 'Ops Admin', hasDirectReports: false }, 'leadership'), 'stated leader, whatever the chart says').toBe(true);
+    expect(eligibleForTrainingSeat({ title: 'Operations Manager', hasDirectReports: true }, 'team'), 'stated team, whatever the chart says').toBe(false);
+    expect(eligibleForTrainingSeat({ title: 'Site Supervisor', hasDirectReports: true }, null), 'no override left is the chart, unchanged').toBe(true);
+  });
+
+  /*
     Design 15 retired the A$44 training seat, and the slot it moved into — the leadership seat with
     the AI on it, at A$227 — was itself retired 22 September, the same day it shipped: Kris, looking
     at the built result, *"i also feel like i don't want to have 2 different prices... make it

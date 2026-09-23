@@ -41,10 +41,20 @@ async function heldRoles(tenantId: string, userId: string) {
   return rows.map(r => ({ roleId: r.roleId, title: r.title, hasDirectReports: leads.has(r.roleId) }));
 }
 
+/**
+ * The same administrator's-choice signal billing reads (`users.seatKindOverride`), so eligibility
+ * here can never land on a different answer from what the person is actually billed as.
+ */
+async function seatOverride(userId: string): Promise<'leadership' | 'team' | null> {
+  const [row] = await db.select({ seatKindOverride: schema.users.seatKindOverride })
+    .from(schema.users).where(eq(schema.users.id, userId));
+  return (row?.seatKindOverride as 'leadership' | 'team' | null) ?? null;
+}
+
 /** Leadership seats only — see `eligibleForTrainingSeat` in lib/pricing for what decides that. */
 export async function eligibleForTraining(tenantId: string, userId: string): Promise<boolean> {
-  const roles = await heldRoles(tenantId, userId);
-  return roles.some(r => eligibleForTrainingSeat(r));
+  const [roles, override] = await Promise.all([heldRoles(tenantId, userId), seatOverride(userId)]);
+  return roles.some(r => eligibleForTrainingSeat(r, override));
 }
 
 /**
@@ -115,8 +125,8 @@ export async function addLibraryToPath(roleId: string, moduleIds: string[]): Pro
  * is a form on a page, and a refusal it can explain is worth more than an exception it cannot.
  */
 export async function giveTrainingSeat(tenantId: string, userId: string): Promise<boolean> {
-  const roles = await heldRoles(tenantId, userId);
-  const eligible = roles.filter(r => eligibleForTrainingSeat(r));
+  const [roles, override] = await Promise.all([heldRoles(tenantId, userId), seatOverride(userId)]);
+  const eligible = roles.filter(r => eligibleForTrainingSeat(r, override));
   if (!eligible.length) return false;
 
   const modules = await installLibrary(tenantId);

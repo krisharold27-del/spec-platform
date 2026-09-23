@@ -12,6 +12,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { getRoles, type RoleView } from './queries';
 import type { CurrentUser } from './auth';
+import { resolveSeatKind, type SeatKind } from './chart-seats';
 
 export interface Scope {
   /** Every role in the tenant — the org chart's structure is not itself a secret. */
@@ -51,6 +52,32 @@ export interface Scope {
    * The moment they place themselves, this collapses back to the ordinary rule.
    */
   canShapeChart(roleId: string): boolean;
+  /**
+   * May this person invite anybody onto the chart at all — and, the same rule, choose which seat
+   * the person they invite is billed on.
+   *
+   * Kris, 23 September: *"only someone in a leadership seat can invite someone to join the org
+   * chart - they then decide if this is a leadership seat or member seat."* A team seat cannot
+   * spend another seat. See `mayInvite`.
+   */
+  canInvite: boolean;
+}
+
+/**
+ * The rule itself, pure — see `Scope.canInvite`.
+ *
+ * The one carve-out is `mayShapeChart`'s own: an administrator with no placement at all cannot yet
+ * hold a leadership seat, because they hold no seat, and day one must not lock the founder out of
+ * the one thing that gets everybody else in. The moment they place themselves, this collapses back
+ * to the ordinary rule — exactly the shape `canShapeChart` already uses, for the same reason.
+ */
+export function mayInvite(access: string, myRoleId: string | null, roles: readonly RoleView[]): boolean {
+  if (!myRoleId) return access === 'administrator';
+  const mine = roles.find(r => r.id === myRoleId);
+  if (!mine) return access === 'administrator';
+  const hasDirectReports = roles.some(r => r.reportsToRoleId === mine.id);
+  const override = (mine.holder?.seatKindOverride as SeatKind | null) ?? null;
+  return resolveSeatKind({ title: mine.title, hasDirectReports }, override) === 'leadership';
 }
 
 /**
@@ -167,6 +194,7 @@ export async function getScope(user: CurrentUser): Promise<Scope> {
     */
     canShapeChart: (roleId: string) =>
       mayShapeChart(user.access, visible, id => roles.some(r => r.id === id), roleId),
+    canInvite: mayInvite(user.access, myRoleId, roles),
   };
 }
 

@@ -43,13 +43,19 @@ export type InviteOutcome =
   | { ok: false; reason: 'no-email' | 'not-placed' | 'already-has-an-account' | 'no-business' };
 
 /**
- * @param staffId  the person, as they already exist on the chart
- * @param email    where the invitation goes
+ * @param staffId   the person, as they already exist on the chart
+ * @param email     where the invitation goes
+ * @param seatKind  an administrator's explicit choice of which seat this person is billed on —
+ *                  'leadership' | 'team' | null. Null (the default) leaves billing reading the
+ *                  chart live, exactly as it always has — see `resolveSeatKind` in lib/chart-seats.
+ *                  Anybody who is not an administrator has this ignored by the caller before it
+ *                  reaches here; this function stores whatever it is handed.
  */
 export async function inviteToSeat(
   tenantId: string,
   staffId: string,
   emailRaw: string,
+  seatKind: 'leadership' | 'team' | null = null,
 ): Promise<InviteOutcome> {
   const email = emailRaw.trim().toLowerCase();
   if (!staffId || !email || !email.includes('@')) return { ok: false, reason: 'no-email' };
@@ -81,9 +87,11 @@ export async function inviteToSeat(
     await db.insert(schema.users).values({
       id: userId, tenantId, email, name: person.name,
       access: role.defaultAccess, authUserId: null, invitedAt: now, acceptedAt: null,
+      seatKindOverride: seatKind,
     });
   } else if (!existing.invitedAt) {
-    await db.update(schema.users).set({ invitedAt: now }).where(eq(schema.users.id, userId));
+    await db.update(schema.users).set({ invitedAt: now, seatKindOverride: seatKind ?? existing.seatKindOverride })
+      .where(eq(schema.users.id, userId));
   }
 
   await db.update(schema.staff).set({ userId }).where(eq(schema.staff.id, staffId));
@@ -102,9 +110,20 @@ export async function inviteToSeat(
     .set({ seatToken: token, seatTokenExpires: seatTokenExpiry() })
     .where(eq(schema.users.id, userId));
 
+  /*
+    What they are actually joining, said plainly in the email — Kris: *"they see they are joining a
+    leadership or team member seat."* The override just stored wins if there is one; otherwise this
+    reads the chart, the same as billing does — `resolveSeatKind` is the one place that decides.
+  */
+  const { resolveSeatKind } = await import('./chart-seats');
+  const led = await db.select({ reportsTo: schema.roles.reportsToRoleId })
+    .from(schema.roles)
+    .where(and(eq(schema.roles.tenantId, tenantId), eq(schema.roles.reportsToRoleId, role.id)));
+  const billedAs = resolveSeatKind({ title: role.title, hasDirectReports: led.length > 0 }, seatKind);
+
   try {
     await sendInviteEmail({
-      to: email, name: person.name, businessName: tenant.name, roleTitle: role.title, token,
+      to: email, name: person.name, businessName: tenant.name, roleTitle: role.title, token, seatKind: billedAs,
     });
   } catch {
     return { ok: true, sent: false, email, name: person.name };

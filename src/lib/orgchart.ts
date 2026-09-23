@@ -12,6 +12,7 @@
  * excluded from the roll-up while it is off, and the page says how many roles that is.
  */
 import type { AceWatchRow } from './ace-watch';
+import type { SeatKind } from './chart-seats';
 
 export interface ChartRole {
   id: string;
@@ -80,6 +81,18 @@ export interface ChartRole {
    * changing its shape would have touched both for the sake of one screen.
    */
   kpiIds?: { safety: string[]; people: string[]; earnings: string[]; compliance: string[] };
+  /**
+   * Whoever holds this role's real login, and what they are billed on — for the "change seat kind"
+   * control. Null whenever there is nobody with an account here (vacant, or only pencilled in):
+   * there is no seat to bill yet, so nothing to override.
+   */
+  billing?: {
+    userId: string;
+    /** What the chart alone would say — `seatKindFor` — shown as the default when no override is set. */
+    chartKind: SeatKind;
+    /** An administrator's stated choice, or null when billing is just following the chart. */
+    override: SeatKind | null;
+  } | null;
 }
 
 /** The four pillars, in the order they are read on a card: S P E C. */

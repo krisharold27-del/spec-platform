@@ -16,7 +16,7 @@ import { AcePips, AceStar } from '@/components/ace-pips';
 import { ChartKey, ChartKeyDetail } from '@/components/chart-key';
 import {
   moveRole, movePerson, breakLink, vacateRole, addRole, removeRole, renameRole, renamePerson,
-  invitePerson, claimRole, requestRights,
+  invitePerson, claimRole, requestRights, setSeatKind,
   addTeam, addTeamMember, removeTeamMember, addRoleKpi, removeRoleKpi,
 } from '@/app/org/actions';
 
@@ -76,10 +76,17 @@ const PILLARS = ['safety', 'people', 'earnings', 'compliance'] as const;
 /** Below this, a shrunk card stops being legible — the frame hands the scrollbar back instead. */
 const MIN_FIT = 0.45;
 
-export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], myRoleId = null, readOnlyReason = null, openTeamId = null, openRoleId = null }: {
+export function OrgCanvas({ roles, rootId, canEdit, canInvite = false, averages, editableIds = [], myRoleId = null, readOnlyReason = null, openTeamId = null, openRoleId = null }: {
   roles: ChartRole[];
   rootId: string | null;
   canEdit: boolean;
+  /**
+   * May the viewer invite anybody, and choose which seat they land on — `scope.canInvite` in
+   * lib/scope. Kris, 23 September: *"only someone in a leadership seat can invite someone to join
+   * the org chart - they then decide if this is a leadership seat or member seat."* Narrower than
+   * `canEdit`: a team seat can still rename a role or move somebody, it just cannot spend a seat.
+   */
+  canInvite?: boolean;
   averages: Rollup;
   /*
     The roles this person can really change — worked out on the server by the same `scope.canEdit`
@@ -1566,26 +1573,85 @@ export function OrgCanvas({ roles, rootId, canEdit, averages, editableIds = [], 
                   )}
 
                   {selected.person && selected.pencilled && (
-                    <form action={invitePerson} className="mt-3 rounded-xl bg-cream p-3">
-                      <input type="hidden" name="roleId" value={selected.id} />
-                      <label className="block text-[13px] text-ink-light" htmlFor="org-invite">
-                        {selected.person} has no SPEC login yet. Send them one:
-                      </label>
-                      <div className="mt-1.5 grid gap-2 sm:grid-cols-[1fr_auto]">
-                        <input
-                          id="org-invite"
-                          name="email"
-                          type="email"
-                          autoComplete="off"
-                          className="min-h-[40px] w-full rounded-md border border-ink/15 bg-surface-raised px-3 py-2 text-sm text-ink"
-                          placeholder="their@email.com"
-                        />
-                        <button className="btn-secondary">Invite {selected.person.split(' ')[0]}</button>
-                      </div>
-                      <p className="mt-2 text-[12px] text-ink-light">
-                        They set their own password when they arrive and land on their own My Page.
-                        The link works once and only for that address.
+                    canInvite ? (
+                      <form action={invitePerson} className="mt-3 rounded-xl bg-cream p-3">
+                        <input type="hidden" name="roleId" value={selected.id} />
+                        <label className="block text-[13px] text-ink-light" htmlFor="org-invite">
+                          {selected.person} has no SPEC login yet. Send them one:
+                        </label>
+                        <div className="mt-1.5 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+                          <input
+                            id="org-invite"
+                            name="email"
+                            type="email"
+                            autoComplete="off"
+                            className="min-h-[40px] w-full rounded-md border border-ink/15 bg-surface-raised px-3 py-2 text-sm text-ink"
+                            placeholder="their@email.com"
+                          />
+                          {/*
+                            They decide which seat, right where they decide to send it — Kris:
+                            *"they then decide if this is a leadership seat or member seat."*
+                            Pre-filled with what the chart itself would say, since that is right
+                            most of the time; free to change before sending.
+                          */}
+                          <label className="sr-only" htmlFor="org-invite-seat">Which seat</label>
+                          <select
+                            id="org-invite-seat"
+                            name="seatKind"
+                            defaultValue={selected.badges.includes('Leadership seat') ? 'leadership' : 'team'}
+                            className="min-h-[40px] rounded-md border border-ink/15 bg-surface-raised px-2 text-sm text-ink"
+                          >
+                            <option value="leadership">Leadership seat</option>
+                            <option value="team">Team seat</option>
+                          </select>
+                          <button className="btn-secondary">Invite {selected.person.split(' ')[0]}</button>
+                        </div>
+                        <p className="mt-2 text-[12px] text-ink-light">
+                          They set their own password when they arrive and land on their own My Page.
+                          The link works once and only for that address.
+                        </p>
+                      </form>
+                    ) : (
+                      <p className="mt-3 text-[12px] text-ink-light">
+                        {selected.person} has no SPEC login yet. Only somebody on a leadership seat
+                        can send it.
                       </p>
+                    )
+                  )}
+
+                  {/*
+                    ── Changing a seat that has already been sent ─────────────────────────────
+
+                    The same decision, made later rather than at the moment of invite — a
+                    misclassified seat someone only noticed after the fact. `resolveSeatKind`
+                    (lib/chart-seats) is the only place that reads this, so it is the only place
+                    billing or a training seat can disagree with what this shows.
+                  */}
+                  {canInvite && selected.billing && (
+                    <form action={setSeatKind} className="mt-3 rounded-xl bg-cream p-3">
+                      <input type="hidden" name="roleId" value={selected.id} />
+                      <label className="block text-[13px] text-ink-light" htmlFor="org-seat-kind">
+                        Billed as
+                      </label>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <select
+                          id="org-seat-kind"
+                          name="seatKind"
+                          defaultValue={selected.billing.override ?? 'auto'}
+                          className="min-h-[36px] rounded-md border border-ink/15 bg-surface-raised px-2 text-sm text-ink"
+                        >
+                          <option value="auto">Auto — from the chart ({selected.billing.chartKind === 'leadership' ? 'Leadership' : 'Team'} seat right now)</option>
+                          <option value="leadership">Leadership seat</option>
+                          <option value="team">Team seat</option>
+                        </select>
+                        <button className="btn-secondary px-2.5 py-[7px] text-xs">Save</button>
+                      </div>
+                      {selected.billing.override && (
+                        <p className="mt-1.5 text-[12px] text-ink-light">
+                          Set by hand — the chart alone would currently say{' '}
+                          {selected.billing.chartKind === 'leadership' ? 'Leadership seat' : 'Team seat'}.
+                        </p>
+                      )}
                     </form>
                   )}
                 </>

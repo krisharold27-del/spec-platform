@@ -7,6 +7,8 @@ import { planStateFor } from '@/lib/plan';
 import { seatLabel, moneyLabel } from '@/lib/pricing';
 import { requestCurrency } from '@/lib/request-currency';
 import { pencilled, roleChangeFor, type AssignmentRow, type RoleRow, type StaffRow } from '@/lib/staff';
+import { getScope } from '@/lib/scope';
+import { seatKindFor } from '@/lib/chart-seats';
 import templates from '../../../../seed/criteria_templates.json';
 import { addRole, removeRole } from '../roles/actions';
 import { nameRole, unplaceStaff, resolveRoleChange, invite } from '../people/actions';
@@ -21,6 +23,7 @@ export const dynamic = 'force-dynamic';
 const ERROR: Record<string, string> = {
   duplicate_head: 'That stream already has a head. A stream has one owner — that is what makes "who owns the numbers" answerable. Add a supervisor or team member under them instead.',
   duplicate_title: 'There is already a role with that name in this stream. Give this one a name that tells them apart — "Supervisor, north crew" rather than a second "Supervisor".',
+  not_leader: 'Only somebody on a leadership seat can invite people onto the chart.',
 };
 
 type TemplateRole = { template_id: string; title: string; stream: string; level: string };
@@ -72,6 +75,12 @@ export default async function Business({ searchParams }: { searchParams: Promise
   const plan = await planStateFor(user.tenantId, currency);
   const gm = roleRows.find(r => r.level === 'gm');
   const waiting = pencilled(assignments, staff);
+  /*
+    Only somebody on a leadership seat may invite at all, and the same rule is what lets them
+    choose which seat the person they invite lands on — see `mayInvite` in lib/scope.
+  */
+  const scope = await getScope(user);
+  const leadsSet = new Set(roleRows.map(r => r.reportsToRoleId).filter((x): x is string => Boolean(x)));
 
   /*
     People who have been invited and have not yet come in, with the link that lets them.
@@ -349,22 +358,42 @@ export default async function Business({ searchParams }: { searchParams: Promise
 
           {waiting.length === 0 ? (
             <p className="mt-3 text-sm text-ink">Everyone on the chart already has an account.</p>
+          ) : !scope.canInvite ? (
+            <p className="mt-3 text-sm text-ink-light">
+              Only somebody on a leadership seat can invite people onto the chart. Ask whoever leads
+              here to send these.
+            </p>
           ) : (
             <ul className="mt-4 divide-y divide-ink/10">
-              {waiting.map(w => (
-                <li key={w.person.id} className="py-3">
-                  <form action={invite} className="flex flex-wrap items-center gap-3">
-                    <input type="hidden" name="staffId" value={w.person.id} />
-                    <div className="w-48">
-                      <b className="text-ink">{w.person.name}</b>
-                      <div className="text-xs text-ink-light">{roleRows.find(r => r.id === w.roleId)?.title}</div>
-                    </div>
-                    <input name="email" type="email" required autoComplete="off" placeholder="Their work email"
-                      className="min-w-0 flex-1 rounded-lg border border-ink/20 px-3 py-2 text-sm" />
-                    <button className="btn-primary shrink-0 text-sm">Send invite</button>
-                  </form>
-                </li>
-              ))}
+              {waiting.map(w => {
+                const role = roleRows.find(r => r.id === w.roleId);
+                const defaultKind = role ? seatKindFor({ title: role.title, hasDirectReports: leadsSet.has(w.roleId) }) : 'team';
+                return (
+                  <li key={w.person.id} className="py-3">
+                    <form action={invite} className="flex flex-wrap items-center gap-3">
+                      <input type="hidden" name="staffId" value={w.person.id} />
+                      <div className="w-48">
+                        <b className="text-ink">{w.person.name}</b>
+                        <div className="text-xs text-ink-light">{role?.title}</div>
+                      </div>
+                      <input name="email" type="email" required autoComplete="off" placeholder="Their work email"
+                        className="min-w-0 flex-1 rounded-lg border border-ink/20 px-3 py-2 text-sm" />
+                      <label className="sr-only" htmlFor={`seatKind-${w.person.id}`}>Which seat</label>
+                      <select
+                        id={`seatKind-${w.person.id}`}
+                        name="seatKind"
+                        defaultValue={defaultKind}
+                        className="shrink-0 rounded-lg border border-ink/20 px-2 py-2 text-sm"
+                        title="Which seat they are joining on — billed differently. The chart already suggests one; change it if this one is not right."
+                      >
+                        <option value="leadership">Leadership seat</option>
+                        <option value="team">Team seat</option>
+                      </select>
+                      <button className="btn-primary shrink-0 text-sm">Send invite</button>
+                    </form>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

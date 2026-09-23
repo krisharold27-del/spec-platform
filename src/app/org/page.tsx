@@ -7,7 +7,7 @@ import { SubmitButton } from '@/components/submit-button';
 import { OrgCanvas } from '@/components/org-canvas';
 import { getCurrentUser, canManage } from '@/lib/auth';
 import { getTenantById, getScorecard, PILLARS } from '@/lib/queries';
-import { seatBadges, MIN_KPIS, cadence } from '@/lib/chart-seats';
+import { seatBadges, seatKindFor, MIN_KPIS, cadence } from '@/lib/chart-seats';
 import { currentPeriod } from '@/lib/period';
 import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
@@ -147,7 +147,15 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
         filled: Boolean(r.holder),
         // SPEC has nothing that could set this yet. See the note on ChartRole.badges.
         certified: false,
-      }),
+      }, r.holder?.seatKindOverride as 'leadership' | 'team' | null ?? null),
+      billing: r.isTeam || !r.holder ? null : {
+        userId: r.holder.id,
+        chartKind: seatKindFor({
+          title: r.title,
+          hasDirectReports: scope.roles.some(other => other.reportsToRoleId === r.id),
+        }),
+        override: (r.holder.seatKindOverride as 'leadership' | 'team' | null) ?? null,
+      },
       kpiCounts: {
         safety: own.filter(c => c.pillar === 'safety' && c.kpi).length,
         people: own.filter(c => c.pillar === 'people' && c.kpi).length,
@@ -342,6 +350,7 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
             roles={roles}
             rootId={rootId}
             canEdit={manage}
+            canInvite={scope.canInvite}
             editableIds={editableIds}
             myRoleId={scope.myRoleId}
             readOnlyReason={readOnlyReason}

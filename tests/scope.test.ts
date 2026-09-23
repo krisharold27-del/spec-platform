@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { mayShapeChart, reachDown, scoredRolesInScope } from '../src/lib/scope';
+import { mayShapeChart, mayInvite, reachDown, scoredRolesInScope } from '../src/lib/scope';
 import { isScored } from '../src/lib/today-data';
+import type { RoleView } from '../src/lib/queries';
 
 /**
  * ── The founder must not be locked out of their own chart ────────────────────────────────────────
@@ -165,5 +166,51 @@ describe('which roles a month is marked from', () => {
     for (const r of [team, member, boss]) {
       expect(listed.has(r.id), `${r.title}`).toBe(isScored(r.level, 4, r.isTeam));
     }
+  });
+});
+
+/*
+  ── Only a leadership seat may spend another seat ───────────────────────────────────────────────
+
+  Kris, 23 September: *"only someone in a leadership seat can invite someone to join the org chart -
+  they then decide if this is a leadership seat or member seat."* `mayInvite` is that gate, and it
+  is deliberately NOT the same question `mayShapeChart` answers — renaming a role and spending a
+  seat are different decisions, and a team seat can still do the first.
+*/
+describe('who may invite somebody onto the chart', () => {
+  const role = (over: Partial<RoleView>): RoleView => ({
+    id: 'me', title: 'Ops Admin', stream: 'operations', level: 'staff', reportsToRoleId: null,
+    holder: null, pencilled: null, isTeam: false, members: [],
+    ...over,
+  });
+
+  it('REFUSES A TEAM SEAT, by title and by the chart both', () => {
+    expect(mayInvite('full', 'me', [role({})])).toBe(false);
+  });
+
+  it('AND ALLOWS A LEADERSHIP SEAT — by title', () => {
+    expect(mayInvite('full', 'me', [role({ title: 'Operations Manager' })])).toBe(true);
+  });
+
+  it('or by the chart — somebody reports to them, whatever they are called', () => {
+    const roles = [role({}), role({ id: 'them', title: 'Electrician', reportsToRoleId: 'me' })];
+    expect(mayInvite('full', 'me', roles)).toBe(true);
+  });
+
+  /*
+    The same override the bill reads — a team-titled role that has been stated leadership by hand
+    may invite; a leader-titled role stated team may not, however it reads on the chart.
+  */
+  it('AND FOLLOWS AN ADMINISTRATOR’S STATED OVERRIDE, the same as billing does', () => {
+    const withOverride = role({ holder: { id: 'u1', name: 'Janine', email: 'j@x.com', access: 'full', seatKindOverride: 'leadership' } });
+    expect(mayInvite('full', 'me', [withOverride])).toBe(true);
+
+    const downgraded = role({ title: 'Operations Manager', holder: { id: 'u2', name: 'Dane', email: 'd@x.com', access: 'full', seatKindOverride: 'team' } });
+    expect(mayInvite('full', 'me', [downgraded])).toBe(false);
+  });
+
+  it('LETS AN UNPLACED ADMINISTRATOR THROUGH, day one, the same carve-out canShapeChart has', () => {
+    expect(mayInvite('administrator', null, [])).toBe(true);
+    expect(mayInvite('full', null, []), 'a plain manager with no seat is not the same case').toBe(false);
   });
 });

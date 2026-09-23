@@ -275,11 +275,12 @@ export const billableSeats = (seats: number) => Math.max(0, seats - FREE_SEATS);
  *
  * ── Why this asks the chart rather than a column ────────────────────────────────────────────────
  *
- * There is no "is a leader" field and there should not be one: it would be a second answer to a
- * question the org chart already answers, and the two would disagree within a week of somebody
- * being promoted. Which seat a person is on is `seatKindFor` in lib/chart-seats — their title says
- * they lead, or somebody reports to their role — and it is read here at the point the count becomes
- * money.
+ * There is no "is a leader" field, on purpose: for almost everybody it would be a second answer to
+ * a question the org chart already answers, and the two would disagree within a week of somebody
+ * being promoted. Which seat a person is on is `resolveSeatKind` in lib/chart-seats — the chart's
+ * own read (`seatKindFor`: their title says they lead, or somebody reports to their role) unless an
+ * administrator has stated an override for them, which is read here at the point the count becomes
+ * money either way.
  *
  * A person with a login and no role on the chart is a TEAM seat. They are not leading anybody in
  * SPEC, and billing the leadership rate for somebody the product cannot even place would be
@@ -299,7 +300,7 @@ export const billableSeats = (seats: number) => Math.max(0, seats - FREE_SEATS);
 async function leadershipSeatCounts(tenantId: string): Promise<{ leadership: number; training: number }> {
   const { db, schema } = await import('../db');
   const { eq, and, isNull, inArray } = await import('drizzle-orm');
-  const { seatKindFor } = await import('./chart-seats');
+  const { resolveSeatKind } = await import('./chart-seats');
 
   const people = (await db.select().from(schema.users).where(eq(schema.users.tenantId, tenantId)))
     .filter(u => u.invitedAt || u.acceptedAt || u.authUserId);
@@ -341,7 +342,11 @@ async function leadershipSeatCounts(tenantId: string): Promise<{ leadership: num
   for (const person of people) {
     const role = byId.get(roleOf.get(person.id) ?? '');
     if (!role) continue;
-    if (seatKindFor({ title: role.title, hasDirectReports: leads.has(role.id) }) === 'leadership') {
+    const kind = resolveSeatKind(
+      { title: role.title, hasDirectReports: leads.has(role.id) },
+      (person.seatKindOverride as 'leadership' | 'team' | null) ?? null,
+    );
+    if (kind === 'leadership') {
       leadership += 1;
       if (person.trainingSeat) training += 1;
     }

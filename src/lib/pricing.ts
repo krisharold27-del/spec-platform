@@ -18,7 +18,7 @@
  * the amounts and the price IDs are transcribed from one document, together, so they cannot drift
  * apart one at a time.
  */
-import { seatKindFor } from './chart-seats';
+import { resolveSeatKind } from './chart-seats';
 
 export type Currency = 'aud' | 'nzd' | 'gbp' | 'eur' | 'usd' | 'cad';
 
@@ -400,9 +400,17 @@ export const TRAINING_SEAT_ON_SALE = true;
  * the question is the same one that decides which seat somebody is on in the first place —
  * `seatKindFor` in lib/chart-seats, read off the chart rather than off a level string that could
  * disagree with it.
+ *
+ * `override` is the same administrator's-choice signal `resolveSeatKind` reads for billing — a
+ * person moved onto the leadership seat by hand is eligible the same way one the chart already
+ * calls a leader is, and one moved onto the team seat by hand is not, however the chart reads.
+ * Eligibility can never disagree with what the person is actually billed as.
  */
-export const eligibleForTrainingSeat = (role: { title: string; hasDirectReports: boolean }): boolean =>
-  TRAINING_SEAT_ON_SALE && seatKindFor(role) === 'leadership';
+export const eligibleForTrainingSeat = (
+  role: { title: string; hasDirectReports: boolean },
+  override?: SeatKind | null,
+): boolean =>
+  TRAINING_SEAT_ON_SALE && resolveSeatKind(role, override) === 'leadership';
 
 export interface PackageSpec {
   label: string;

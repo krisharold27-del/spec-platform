@@ -108,9 +108,31 @@ Kris: *"remember pricing is for leadership seats and team member seats."*
 
 **Leadership seat** — somebody who leads people (their title says so, or somebody reports to their
 role, per `seatKindFor` in `lib/chart-seats`). **Team seat** — everybody else, priced in a pool.
-Never a field anybody sets: which seat a person is on is read off the org chart at the point the
-count becomes money (`lib/plan`'s `countLeadershipSeats`), so it cannot drift from what the chart
-says.
+
+**Corrected 23 September** — this used to say "never a field anybody sets", and that was wrong.
+Kris added Janine, an Ops Admin with nobody reporting to her, and the chart's own rule billed her as
+leadership anyway because `seatKindFor` reads both title *and* whether anybody reports to the role,
+and one of the two agreed by accident. Working as designed, and still the wrong bill. Then, in the
+same conversation: *"we need the capacity to chose whther leadership seat or team seat when sending
+their email to join - then they see they are joining a leadership or team memvber seat."* Asked
+whether the invite screen should merely show the chart's own answer or let somebody genuinely
+override it, he chose the override: **"Let me override it by hand per invite."**
+
+So `users.seatKindOverride` now sits beside the chart's own read — `null` defers to the chart exactly
+as before and self-corrects if the chart changes; set, it is a stated choice that wins until changed
+by hand. `resolveSeatKind(role, override)` in `lib/chart-seats` is the single place this is decided,
+and billing (`lib/plan`), training eligibility (`lib/pricing`'s `eligibleForTrainingSeat`) and the
+org chart's own badge all call it, so the three can never disagree with each other even though one of
+them can now disagree with the chart.
+
+**Who may set it — narrower than who may edit the chart.** Same conversation, straight after:
+*"make it that only someone in a leadership seat can invite someone to join the org chart - they
+then decide if this is a leadership seat or member seat."* `scope.canInvite` (`lib/scope`'s
+`mayInvite`) is true only when the CALLER's own resolved seat is `'leadership'` (or they are an
+unplaced administrator, the same day-one founder carve-out `canShapeChart` already had) — not the
+broader `canEdit`/`canShapeChart`/`canAdminister` gates. That one gate covers both halves: whether
+somebody may invite at all, and whether they may choose the invitee's seat kind or change an existing
+seat's override afterwards.
 
 Six regions, decided per region rather than converted (`lib/pricing`'s `SEAT_PRICES`, transcribed
 from the live Stripe account, is the source of truth — this table is not):

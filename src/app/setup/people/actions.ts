@@ -9,6 +9,8 @@ import { requireManager } from '@/lib/guard';
 import { assertWritable } from '@/lib/plan';
 import { roleChangeFor, type AssignmentRow, type RoleRow, type StaffRow } from '@/lib/staff';
 import { inviteToSeat } from '@/lib/invite';
+import { getScope } from '@/lib/scope';
+import { seatKindFromForm } from '@/lib/chart-seats';
 
 const now = () => new Date().toISOString();
 
@@ -226,8 +228,17 @@ export async function invite(formData: FormData) {
   // Security arrives when it matters: the first seat given out needs the giver's email confirmed.
   if (!(await emailConfirmed())) redirect('/account/verify?next=/setup/business');
 
+  const scope = await getScope(user);
+  /*
+    Kris, 23 September: *"only someone in a leadership seat can invite someone to join the org
+    chart - they then decide if this is a leadership seat or member seat."* Same gate `/org` uses —
+    see `mayInvite` in lib/scope — and the same rule is what lets them choose the seat kind below.
+  */
+  if (!scope.canInvite) redirect('/setup/business?error=not_leader');
+
   const staffId = String(formData.get('staffId') ?? '');
   const email = String(formData.get('email') ?? '');
+  const seatKind = seatKindFromForm(formData.get('seatKind'), scope.canInvite);
 
   /*
     The rule itself lives in lib/invite, because the org chart gives out seats too and two copies
@@ -235,7 +246,7 @@ export async function invite(formData: FormData) {
     for a seat that was never sent. This screen keeps what is its own: who may press the button,
     and where they end up afterwards.
   */
-  const outcome = await inviteToSeat(user.tenantId, staffId, email);
+  const outcome = await inviteToSeat(user.tenantId, staffId, email, seatKind);
   if (!outcome.ok) redirect(outcome.reason === 'no-email' ? '/setup/business?error=email' : '/setup/business');
 
   done(['/setup/business', '/org', '/journey', '/team']);
