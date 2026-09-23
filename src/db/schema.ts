@@ -1200,3 +1200,300 @@ export const boardViewers = pgTable('board_viewers', {
   uniqueIndex('board_viewers_unique').on(t.boardId, t.userId),
   index('board_viewers_tenant').on(t.tenantId),
 ]).enableRLS();
+
+/**
+ * ── Safety ───────────────────────────────────────────────────────────────────────────────────────
+ *
+ * SPEC is the safety system (design 3f, 23 September): no third-party safety product sits behind
+ * these. Four tables, each carrying its own tenant_id so each can be isolated without a join, and
+ * each read and written only through `/safety`. The decisions — notifiable, overdue, clear to work,
+ * who may see what — live in lib/safety, not here.
+ */
+
+/**
+ * One line from somebody on site: a hazard, a near miss, an injury, or "not coping".
+ *
+ * Hazards, near misses and injuries share a table because they are one register read four ways —
+ * the incident register is the injuries, the hazard list is the hazards and near misses, and a near
+ * miss that turns out to be a dangerous incident is the same row, not a copy.
+ *
+ * ── Anonymous means nothing kept ────────────────────────────────────────────────────────────────
+ *
+ * A wellbeing report sent anonymously stores NO reporter, NO role, NO job and only the DATE it was
+ * sent. Not hidden from the screen — absent from the row. An anonymous report that the database can
+ * de-anonymise is a named report with worse manners, and nobody would use it twice.
+ */
+export const safetyReports = pgTable('safety_reports', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** hazard | near_miss | injury | wellbeing — see REPORT_KINDS in lib/safety. */
+  kind: text('kind').notNull(),
+  /** What the person typed, in their own words. Never rewritten. */
+  text: text('text').notNull(),
+  /** The job or site it happened on, as the business names its jobs. Null when unknown or anonymous. */
+  jobRef: text('job_ref'),
+  /** The state or territory the site is in (NSW, VIC, NZ…), for the regulator. Null until known. */
+  state: text('state'),
+  /** Injuries only: first_aid | medical | lost_time | serious. Null until somebody assesses it. */
+  severity: text('severity'),
+  /** SPEC's prompt at the moment of sending — "this looks notifiable" — not a ruling. */
+  notifiable: boolean('notifiable').notNull().default(false),
+  /** When somebody recorded that the regulator was told. */
+  regulatorToldAt: text('regulator_told_at'),
+  /** Null when anonymous. Never backfilled. */
+  reportedBy: text('reported_by').references(() => users.id),
+  /** The reporter's role when they sent it, so the report follows the chart. Null when anonymous. */
+  roleId: text('role_id').references(() => roles.id),
+  anonymous: boolean('anonymous').notNull().default(false),
+  /** Who has it, in the business's words. Proposed from the chart; a leader can change it. */
+  owner: text('owner'),
+  /** Fix-by date, YYYY-MM-DD. */
+  dueAt: text('due_at'),
+  /** open | closed */
+  status: text('status').notNull().default('open'),
+  closedAt: text('closed_at'),
+  /** For an anonymous report, the date only. */
+  createdAt: text('created_at').notNull(),
+}, t => [index('safety_reports_tenant').on(t.tenantId, t.kind)]).enableRLS();
+
+/** What will stop it happening again, who owns it, and by when. */
+export const safetyActions = pgTable('safety_actions', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** The report it came from, if it came from one. An inspection finding may not have. */
+  reportId: text('report_id').references(() => safetyReports.id),
+  text: text('text').notNull(),
+  owner: text('owner'),
+  dueAt: text('due_at'),
+  doneAt: text('done_at'),
+  createdBy: text('created_by'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('safety_actions_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * The on-site record: toolbox talks, SWMS/JSA sign-off, site inspections, vehicle and plant checks.
+ *
+ * One table for four because they are the same shape — something on a date, at a place, done by
+ * somebody, with either a count of who signed or a pass or fail — and a fifth kind should be a word
+ * in lib/safety rather than a migration.
+ */
+export const safetyChecks = pgTable('safety_checks', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** toolbox | swms | inspection | vehicle */
+  kind: text('kind').notNull(),
+  /** "Working at heights", "Ute 14 — weekly check". */
+  title: text('title').notNull(),
+  /** The job, site, vehicle or piece of plant, in the business's words. */
+  place: text('place'),
+  /** Who ran it, drove it, or signs for it. */
+  person: text('person'),
+  /** When it was done, or when it is due if not done yet. YYYY-MM-DD. */
+  onDate: text('on_date'),
+  /** due | done | passed | failed */
+  result: text('result').notNull().default('due'),
+  /** Toolbox and SWMS: how many have signed, of how many who should. */
+  signed: integer('signed'),
+  expected: integer('expected'),
+  createdBy: text('created_by'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('safety_checks_tenant').on(t.tenantId, t.kind)]).enableRLS();
+
+/**
+ * Workers' compensation and return to work.
+ *
+ * The claim itself lives with the insurer. What SPEC holds is the part the business runs: who owns
+ * the case, when the insurer was told, and where suitable duties are up to, week by week.
+ */
+export const safetyClaims = pgTable('safety_claims', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** The injury it follows from. */
+  reportId: text('report_id').references(() => safetyReports.id),
+  worker: text('worker').notNull(),
+  caseOwner: text('case_owner'),
+  lodgedAt: text('lodged_at'),
+  insurerToldAt: text('insurer_told_at'),
+  /** Suitable duties: this week, of how many planned. */
+  dutiesWeek: integer('duties_week'),
+  dutiesWeeks: integer('duties_weeks'),
+  /** open | closed */
+  status: text('status').notNull().default('open'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('safety_claims_tenant').on(t.tenantId)]).enableRLS();
+/* ══ Jobs ═════════════════════════════════════════════════════════════════════════════════════════
+ *
+ * SPEC running the work itself, enquiry to paid (design: SPEC Jobs, 23 September). Eight tables, kept
+ * together at the end of this file so they read as one piece. Every one carries its own tenant_id and
+ * is under the tenant policy in drizzle/0001_rls.sql — none reaches its business through a join.
+ *
+ * Generic on purpose (DECISIONS, 11 September): the shape of a trade business, never one client's
+ * suppliers, rates or award. A supplier is whatever the business types; SPEC names none.
+ *
+ * Money is integer cents throughout. The arithmetic lives in lib/jobs and is tested there.
+ */
+
+/** One piece of work, from the first phone call to the money in the bank. */
+export const jobs = pgTable('jobs', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  /** J-1001 — what the crew and the client call it. */
+  ref: text('ref').notNull(),
+  /** enquiry | quoted | won | scheduled | onsite | invoiced | paid — see STAGES in lib/jobs. */
+  stage: text('stage').notNull().default('enquiry'),
+  title: text('title').notNull(),
+  client: text('client').notNull(),
+  site: text('site').notNull().default(''),
+  /** The price agreed, ex GST. Set from the quote when it goes out; zero until then. */
+  valueCents: integer('value_cents').notNull().default(0),
+  /**
+   * Materials put on the job so far. Null means nobody has recorded any — not zero, because a job
+   * with no materials recorded has not got a flattering margin, it has an unmeasured one.
+   */
+  materialsCents: integer('materials_cents'),
+  createdBy: text('created_by').notNull(),
+  createdAt: text('created_at').notNull(),
+  /** When it entered the stage it is in. */
+  stageAt: text('stage_at').notNull(),
+}, t => [
+  index('jobs_tenant').on(t.tenantId),
+  uniqueIndex('jobs_tenant_ref').on(t.tenantId, t.ref),
+]).enableRLS();
+
+/**
+ * A price for a job. The lines are snapshots — see quote_lines — so a quote that has gone out keeps
+ * the price it went out at, whatever the catalogue does next.
+ */
+export const quotes = pgTable('quotes', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  jobId: text('job_id').notNull().references(() => jobs.id),
+  ref: text('ref').notNull(),
+  /** 25 | 35 | 45 — see MARKUPS in lib/jobs. */
+  markupPct: integer('markup_pct').notNull().default(35),
+  /** draft | sent. SPEC never emails a quote; "sent" is the business saying it went out. */
+  status: text('status').notNull().default('draft'),
+  sentAt: text('sent_at'),
+  sentBy: text('sent_by'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  index('quotes_tenant').on(t.tenantId),
+  index('quotes_job').on(t.jobId),
+]).enableRLS();
+
+/** One line of a quote, carrying its own prices. See QuoteLine in lib/jobs. */
+export const quoteLines = pgTable('quote_lines', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  quoteId: text('quote_id').notNull().references(() => quotes.id),
+  position: integer('position').notNull().default(0),
+  /** item | kit | labour */
+  kind: text('kind').notNull(),
+  /** The catalogue item, kit or labour rate it was built from. Kept for reference, never re-read to price. */
+  refId: text('ref_id').notNull(),
+  name: text('name').notNull(),
+  unitCostCents: integer('unit_cost_cents').notNull().default(0),
+  hours: real('hours').notNull().default(0),
+  rateCostCents: integer('rate_cost_cents').notNull().default(0),
+  rateChargeCents: integer('rate_charge_cents').notNull().default(0),
+  qty: real('qty').notNull().default(1),
+}, t => [
+  index('quote_lines_tenant').on(t.tenantId),
+  index('quote_lines_quote').on(t.quoteId),
+]).enableRLS();
+
+/** The items a business actually uses, at its supplier's price. */
+export const catalogueItems = pgTable('catalogue_items', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  name: text('name').notNull(),
+  category: text('category').notNull().default(''),
+  /** Whoever the business buys it from, as the business writes it. */
+  supplier: text('supplier').notNull().default(''),
+  unit: text('unit').notNull().default('each'),
+  costCents: integer('cost_cents').notNull(),
+  /** The date of the price — from the supplier's file, or the day it was typed. */
+  priceDate: text('price_date'),
+  /** Last put on a quote. Twelve months without is when SPEC suggests retiring it. */
+  lastUsedAt: text('last_used_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('catalogue_items_tenant').on(t.tenantId)]).enableRLS();
+
+/** What an hour costs the business, and what it charges. */
+export const labourRates = pgTable('labour_rates', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  name: text('name').notNull(),
+  costCents: integer('cost_cents').notNull(),
+  chargeCents: integer('charge_cents').notNull(),
+  /** The first rate is the standard one — what a kit's hours and a job's labour are costed at. */
+  position: integer('position').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+}, t => [index('labour_rates_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * A bundle quoted in one line — "switchboard upgrade", "downlight, supply and install".
+ *
+ * Its parts are JSON `[{ itemId, qty }]`, the same judgement as `boards.rows`: nothing else joins to
+ * them or queries across them, and another table would buy a second policy and nothing else.
+ */
+export const kits = pgTable('kits', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  name: text('name').notNull(),
+  components: text('components').notNull().default('[]'),
+  labourHours: real('labour_hours').notNull().default(0),
+  labourRateId: text('labour_rate_id'),
+  extraCostCents: integer('extra_cost_cents').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+}, t => [index('kits_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * Who is on which job, which day.
+ *
+ * A person is `staff:<id>` or `user:<id>` — the same two kinds of person the People screen holds.
+ * One job per person per day, enforced by the database rather than by remembering.
+ */
+export const scheduleBookings = pgTable('schedule_bookings', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  jobId: text('job_id').notNull().references(() => jobs.id),
+  personKey: text('person_key').notNull(),
+  personName: text('person_name').notNull(),
+  /** ISO date. */
+  day: text('day').notNull(),
+  createdBy: text('created_by').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('schedule_bookings_tenant').on(t.tenantId),
+  uniqueIndex('schedule_bookings_person_day').on(t.tenantId, t.personKey, t.day),
+]).enableRLS();
+
+/**
+ * A stretch of work: Start to Finish, on a job or not.
+ *
+ * Normally written by Start and Finish on the phone; typed in by a leader is a complete mode too.
+ * Time on a job is billable; yard, travel between and training are not.
+ */
+export const timesheetEntries = pgTable('timesheet_entries', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  personKey: text('person_key').notNull(),
+  personName: text('person_name').notNull(),
+  /** Null for time not on a client's job. */
+  jobId: text('job_id'),
+  day: text('day').notNull(),
+  startedAt: text('started_at').notNull(),
+  finishedAt: text('finished_at'),
+  minutes: integer('minutes').notNull().default(0),
+  billable: boolean('billable').notNull().default(true),
+  /** phone | typed */
+  source: text('source').notNull().default('phone'),
+  approvedBy: text('approved_by'),
+  approvedAt: text('approved_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('timesheet_entries_tenant').on(t.tenantId),
+  index('timesheet_entries_day').on(t.tenantId, t.day),
+]).enableRLS();
