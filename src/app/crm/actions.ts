@@ -187,6 +187,8 @@ export async function markWon(formData: FormData) {
   const job = await createJob({
     tenantId: user.tenantId, stage: 'won', title: carried.title, client: carried.client, site: carried.site,
     valueCents: carried.valueCents, createdBy: user.name,
+    // The client list already has them — the job links to the same client the deal was with.
+    organisationId: org?.id ?? person?.organisationId ?? null, personId: person?.id ?? null,
   });
   const at = now();
   await setDeal(user.tenantId, deal.id, { status: 'won', closedAt: at, closedBy: user.name, jobId: job.id, lostReason: null, lostNote: null });

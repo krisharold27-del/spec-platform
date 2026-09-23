@@ -615,6 +615,10 @@ function People({ view, q, manage }: { view: CrmView; q: string; manage: boolean
   return (
     <div>
       <SearchBox tab="people" q={q} placeholder="Search people" />
+      <p className="mb-4 text-sm text-ink-light">
+        Everybody here is also on <Link href="/clients?tab=contacts" className="text-rust-700 hover:underline">Clients → Contacts</Link>, with
+        their jobs and one press to start the next one.
+      </p>
       {manage && (
         <form action={addPerson} className="card mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="grid gap-1 text-sm">Name<input className="input" name="name" required maxLength={120} /></label>
@@ -646,6 +650,10 @@ function Organisations({ view, q, manage }: { view: CrmView; q: string; manage: 
   return (
     <div>
       <SearchBox tab="organisations" q={q} placeholder="Search organisations" />
+      <p className="mb-4 text-sm text-ink-light">
+        These are the same clients as <Link href="/clients" className="text-rust-700 hover:underline">Clients</Link>, where
+        each one also shows its sites, every job and what is owed.
+      </p>
       {manage && (
         <form action={addOrganisation} className="card mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="grid gap-1 text-sm">Name<input className="input" name="name" required maxLength={160} /></label>
@@ -662,7 +670,7 @@ function Organisations({ view, q, manage }: { view: CrmView; q: string; manage: 
             const people = view.people.filter(p => p.organisationId === o.id);
             return (
               <li key={o.id} className="grid gap-1 border-b border-ink/10 pb-3 last:border-0 last:pb-0 sm:grid-cols-[1fr_1fr_2fr] sm:items-center">
-                <span className="font-semibold text-ink">{o.name}</span>
+                <Link href={`/clients?${new URLSearchParams({ client: `org:${o.id}` })}`} className="font-semibold text-ink hover:text-rust">{o.name}</Link>
                 <span className="text-sm text-ink-light">
                   {[o.address, o.phone].filter(Boolean).join(' · ') || '—'}
                   {people.length ? ` · ${people.map(p => p.name).join(', ')}` : ''}
