@@ -124,7 +124,9 @@ export function xeroApp(env: NodeJS.ProcessEnv = process.env): XeroApp | null {
   const clientId = env.XERO_CLIENT_ID ?? '';
   const clientSecret = env.XERO_CLIENT_SECRET ?? '';
   if (!clientId || !clientSecret) return null;
-  return { clientId, clientSecret, redirectUri: redirectUri(env.APP_URL ?? undefined) };
+  // XERO_REDIRECT_BASE pins the address registered on the Xero app, so moving APP_URL to a new home
+  // (23 Sept: sitevipapp.com) cannot silently break the connection before Xero's list is updated.
+  return { clientId, clientSecret, redirectUri: redirectUri(env.XERO_REDIRECT_BASE || env.APP_URL || undefined) };
 }
 
 type Fetcher = typeof fetch;
