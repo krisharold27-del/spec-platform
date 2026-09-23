@@ -64,6 +64,7 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
   const seatRows = scope.roles
     .filter(r => !r.isTeam && r.holder)
     .map(r => ({
+      top: !r.reportsToRoleId,
       roleId: r.id,
       title: r.title,
       name: r.holder!.name,
@@ -79,7 +80,13 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
   const leadHeads = seatRows.filter(r => (r.override ?? r.chartKind) === 'leadership').length;
   const teamHeads = Math.max(0, plan.seats - leadHeads);
   const breakdown = seatBreakdown({ leadership: leadHeads, team: teamHeads, training: plan.trainingSeats }, currency);
-  const freeIsTeam = teamHeads === 1;
+  /*
+    The free seat is the first leadership seat — the person who started the business (Kris, 23
+    September). Shown against the leader at the top of the chart, or the first leader listed.
+  */
+  const leaders = seatRows.filter(r => (r.override ?? r.chartKind) === 'leadership');
+  const freeRoleId = (leaders.find(r => r.top) ?? leaders[0])?.roleId
+    ?? (leaders.length === 0 ? seatRows[0]?.roleId : undefined);
   const Breakdown = () => breakdown.length > 0 ? (
     <ul className="mt-2 grid gap-0.5 text-[13px] text-ink-light">
       {breakdown.map(line => <li key={line}>{line}</li>)}
@@ -204,10 +211,10 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
                     <b>{row.name}</b> <span className="text-ink-light">· {row.title}</span>
                   </span>
                   <span className="text-[12.5px] font-medium text-ink">
-                    {(row.override ?? row.chartKind) === 'leadership'
-                      ? `Leadership seat · ${seatLabel(currency, 'leadership')} a month`
-                      : freeIsTeam
-                        ? 'Team seat · free — your first seat'
+                    {row.roleId === freeRoleId
+                      ? `${(row.override ?? row.chartKind) === 'leadership' ? 'Leadership' : 'Team'} seat · free — started the business`
+                      : (row.override ?? row.chartKind) === 'leadership'
+                        ? `Leadership seat · ${seatLabel(currency, 'leadership')} a month`
                         : `Team seat · ${seatLabel(currency, 'team')} a month`}
                   </span>
                   {!scope.canInvite && (
