@@ -1,7 +1,8 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { answerFor } from './status';
-import { powerReading, type Measure, type PowerReading, type SnapReading } from './power-meter';
+import type { Choices } from './coverage';
+import { powerReading, withSources, type Measure, type PowerReading, type SnapReading } from './power-meter';
 
 /**
  * The Power Meter, against the database.
@@ -46,6 +47,8 @@ export interface PowerMeterInput {
    * away from the two screens disagreeing.
    */
   snap?: SnapReading | null;
+  /** Who runs what (Coverage). Only relabels where each measure comes from; never the number. */
+  choices?: Choices;
 }
 
 export interface PowerMeterResult {
@@ -57,6 +60,11 @@ export interface PowerMeterResult {
 }
 
 export async function powerMeterFor(input: PowerMeterInput): Promise<PowerMeterResult> {
+  const result = await readPower(input);
+  return input.choices ? { ...result, reading: withSources(result.reading, input.choices) } : result;
+}
+
+async function readPower(input: PowerMeterInput): Promise<PowerMeterResult> {
   const roleIds = [...input.visible];
   const empty = { reading: powerReading([], input.snap), period: null, stale: false };
   if (!roleIds.length) return empty;

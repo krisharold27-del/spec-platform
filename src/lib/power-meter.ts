@@ -1,4 +1,5 @@
 import type { Pillar, Answer } from './scoring';
+import { sourceFor, type Choices } from './coverage';
 
 /**
  * The Virtual GM Power Meter — one reading of how the business is actually tracking.
@@ -248,6 +249,19 @@ export const sourcesOf = (reading: SlotReading): { text: string; roles: number }
  * incident register". Every heavy hitter names one of SPEC's own records.
  */
 export const sourceLine = (slot: Slot): string => `from ${slot.source}`;
+
+/**
+ * The reading with each slot's source said the way THIS business runs it — "from your safety
+ * system" once it has chosen its own on Coverage. The framework itself is never edited; each slot
+ * is copied with its label changed. See `sourceFor` in lib/coverage.
+ */
+export function withSources(reading: PowerReading, choices: Choices): PowerReading {
+  const relabel = (r: SlotReading): SlotReading => {
+    const source = sourceFor(r.slot.id, r.slot.source, choices);
+    return source === r.slot.source ? r : { ...r, slot: { ...r.slot, source } };
+  };
+  return { ...reading, heavy: reading.heavy.map(relabel), shared: reading.shared.map(relabel) };
+}
 
 /** True when a slot is read from SPEC's own records rather than a connected system. */
 export const fromSpec = (slot: Slot): boolean => slot.source.startsWith('SPEC ');

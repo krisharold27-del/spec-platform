@@ -485,15 +485,16 @@ export function reconcileSubscriptionItems(
  * Nothing had gone wrong in the arithmetic. The table grew a second kind of seat and the bill was
  * still asking the old question, which is why the number looked reasonable and was not.
  *
- * ── The free seat comes off a TEAM seat first ───────────────────────────────────────────────────
+ * ── The free seat is the FIRST LEADERSHIP seat ───────────────────────────────────────────────────
  *
- * The cheaper of the two, which is the less generous reading, and it is the same choice the old
- * version made for the same reason: "the first seat is free" is a rule about money, not about which
- * person. Taking it off a leadership seat would hand back A$134 to make a point about A$17.
+ * Kris, 23 September 2026: *"the first person to sign up gets full access but isn't costed"* and
+ * then, exactly: *"the free seat for each company is the first leadership seat."* For JBI that is
+ * Kris as the originator free, Anthony a paid leadership seat and Janine a paid team seat.
  *
- * If a business has only leadership seats — a business of one, which is every business on its first
- * day — the free one comes off those instead, because the rule has to hold however the business is
- * shaped. That is the case that matters: it is what makes a business of one pay nothing at all.
+ * This reverses the earlier reading (free seat off the cheapest, a team seat, first). That was a
+ * rule about money; the owner's rule is about the person who starts the business — and the person
+ * who starts a business leads it. So the free seat comes off a plain leadership seat, then a trained
+ * one, and off a team seat only when a business has no leader at all.
  */
 /**
  * `trainingSeats` — how many of `leadershipSeats` are ALSO on SPEC's training upgrade, at the
@@ -517,16 +518,18 @@ export function seatBill(
   const training = Math.max(0, Math.min(trainingSeats, leadership));
   const plainLeadership = leadership - training;
 
-  const freeFromTeam = Math.min(FREE_SEATS, team);
-  const billableTeam = team - freeFromTeam;
-  let freeLeft = FREE_SEATS - freeFromTeam;
-
+  // The first leadership seat is free — the person who started the business. See above.
+  let freeLeft = FREE_SEATS;
   const freeFromPlain = Math.min(freeLeft, plainLeadership);
   const billablePlain = plainLeadership - freeFromPlain;
   freeLeft -= freeFromPlain;
 
   const freeFromTraining = Math.min(freeLeft, training);
   const billableTraining = training - freeFromTraining;
+  freeLeft -= freeFromTraining;
+
+  const freeFromTeam = Math.min(freeLeft, team);
+  const billableTeam = team - freeFromTeam;
 
   return {
     leadership: billablePlain + billableTraining,
@@ -787,11 +790,9 @@ export async function assertWritable(tenantId: string): Promise<void> {
  * The bill, itemised — so nobody has to reverse-engineer a total.
  *
  * Kris, 23 September, looking at JBI's Pricing page: *"Janine is not showing as a team member —
- * she is costed as a leadership seat."* She wasn't. JBI is two leaders and one team seat, the first
- * seat is free and comes off a team seat first, so Janine's A$17 was the free one and A$268 was
- * exactly the two leaders. The arithmetic was right and Stripe agreed (2 × A$134). What was wrong
- * was the page: a total of A$268 beside "each extra person is A$17" reads as three people at the
- * wrong price. So the page now says what each kind of seat is, how many, and which one is free.
+ * she is costed as a leadership seat."* A total beside "each extra person is A$17" could not be read
+ * back into people. So the page now says what each kind of seat is, how many, and which one is free
+ * — and, the same day, the free one became the first leadership seat (see seatBill).
  *
  * `team` and `leadership` here are HEAD counts, before the free seat — the page knows them from the
  * people listed under it, which is the whole point: the sentence must match the list.
@@ -816,8 +817,8 @@ export function seatBreakdown(
   }
   const free = counts.leadership + counts.team - bill.billable;
   if (free > 0) {
-    const kind = counts.team > 0 ? 'team seat' : 'leadership seat';
-    lines.push(`1 ${kind} free — the first seat is free, and it comes off a team seat first`);
+    const kind = counts.leadership > 0 ? 'leadership seat' : 'team seat';
+    lines.push(`1 ${kind} free — the first leadership seat, the person who started the business`);
   }
   return lines;
 }
