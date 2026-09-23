@@ -156,12 +156,32 @@ begin
     -- own tenant_id rather than reaching the business through the role it points at, for the same
     -- reason connection_credentials does: this table decides who can see whose scorecards, and a
     -- policy that depends on a join is a policy with one more way to be wrong.
-    'role_grants'
+    'role_grants',
+    -- Safety, added 23 September. Each carries its own tenant_id: an injury, a claim and an
+    -- anonymous wellbeing report are the last rows in SPEC that should ever depend on a join to
+    -- stay inside their own business.
+    'safety_reports', 'safety_actions', 'safety_checks', 'safety_claims'
   ]
   loop
     continue when to_regclass(t) is null;
     execute format('drop policy if exists tenant_isolation on %I', t);
     execute format('create policy tenant_isolation on %I for all using (tenant_id = auth_tenant_id()) with check (tenant_id = auth_tenant_id())', t);
+  end loop;
+end $$;
+
+-- The safety tables are created by the additive deploy (lib/schema-sql), which writes tables and
+-- columns and nothing else — so it never runs the `enable row level security` that schema.ts's
+-- `.enableRLS()` implies. A policy on a table with RLS off is a policy nothing consults. Turned on
+-- here, explicitly, so these four never depend on how their table happened to be created. Harmless
+-- to the app, which connects as the owning role; decisive for every other way in.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['safety_reports', 'safety_actions', 'safety_checks', 'safety_claims']
+  loop
+    continue when to_regclass(t) is null;
+    execute format('alter table %I enable row level security', t);
   end loop;
 end $$;
 
@@ -190,4 +210,24 @@ begin
   if to_regclass('health_pings') is not null then
     execute 'alter table health_pings enable row level security';
   end if;
+end $$;
+
+-- ───────────────────────────────────────────────────────────────────────────────────────────────
+-- Jobs (23 September): the pipeline, quotes and their lines, the catalogue, labour rates, kits, the
+-- schedule and timesheets. Every one carries its own tenant_id, so every one is looped the same way
+-- as the straightforward tables above — no policy here depends on a join. Kept as its own block so
+-- it reads, and merges, as one piece.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array[
+    'jobs', 'quotes', 'quote_lines', 'catalogue_items', 'labour_rates', 'kits',
+    'schedule_bookings', 'timesheet_entries'
+  ]
+  loop
+    continue when to_regclass(t) is null;
+    execute format('drop policy if exists tenant_isolation on %I', t);
+    execute format('create policy tenant_isolation on %I for all using (tenant_id = auth_tenant_id()) with check (tenant_id = auth_tenant_id())', t);
+  end loop;
 end $$;
