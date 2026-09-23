@@ -22,17 +22,19 @@ The same ratchet the wording coverage uses: growth is free, loss is loud.
 ## The roll
 
 SPEC Admin
-SPEC Mirrors
 SPEC Board Pack
 SPEC Cockpit
 SPEC Colour System
 SPEC Connections
+SPEC Coverage
 SPEC Group
 SPEC Home
 SPEC Inbox
+SPEC Jobs
 SPEC Landing
 SPEC Logo Concepts
 SPEC Mascot
+SPEC Mirrors
 SPEC Mobile
 SPEC Monthly Scoring
 SPEC My Page
@@ -40,8 +42,11 @@ SPEC My Scorecard
 SPEC Org Chart
 SPEC People
 SPEC Pricing
+SPEC Safety
 SPEC Sectors
 SPEC Setup
 SPEC Sign In
+SPEC Tech Day
 SPEC Training
 SPEC Weekly Meeting
+siteVIP Landing

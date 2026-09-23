@@ -50,8 +50,12 @@
             <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
           </g>
         </svg>SPEC</a>
+    <a href="SPEC Setup.dc.html">Setup</a>
     <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Jobs.dc.html">Jobs</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Safety.dc.html">Safety</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
     <a href="SPEC Connections.dc.html">Connections</a>
@@ -212,7 +216,6 @@ const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
 const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
 
 const ITEMS = [
-  { id: 'i1', kind: 'Connection', viewer: 'director', title: 'Safety Minder connection', age: 'waiting 12 days', tone: RED, state: 'Board approval', from: 'Requested by Kristopher Harold, GM', detail: 'Scope is incident records and corrective actions, read only.', blocks: 'Blocks: TRIFR has been closed out unmeasured for two months and will be again in September.' },
   { id: 'i2', kind: 'Spend', viewer: 'director', title: 'Yard Lead role — budget approval', age: 'waiting 9 weeks', tone: RED, state: 'Board decision', from: 'Requested by Dane Whitmore, Operations Manager', detail: 'A$78k–92k plus super, NSW band. Recruitment is already shortlisting.', blocks: 'Blocks: two 90-day departures and most of the rework trace to this crew having no manager.' },
   { id: 'i3', kind: 'Scoring', viewer: 'director', title: 'Sign off September scoring', age: 'waiting 2 days', tone: AMBER, state: 'Sign-off', from: 'Submitted by Kristopher Harold, GM', detail: 'Four roles scored, two gates passed, three figures flagged as unmeasurable.', blocks: 'Blocks: the period cannot lock and the board pack cannot issue.' },
   { id: 'i4', kind: 'Training', viewer: 'gm', title: 'Sign off Tom Alderson\u2019s training path', age: 'waiting 6 days', tone: AMBER, state: 'Manager sign-off', from: 'Completed by Tom Alderson, Site Supervisor', detail: 'Every module passed, including Clear to Work end to end.', blocks: 'Blocks: his Ace run cannot start until the path is signed.' },
@@ -230,7 +233,6 @@ const HANDLED = [
 
 const ELSEWHERE = [
   { what: 'Yard Lead budget', who: 'With Justin Bussell, Director', age: '9 weeks', tone: RED },
-  { what: 'Safety Minder connection', who: 'With the board', age: '12 days', tone: RED },
   { what: 'Psychosocial training completion', who: 'With Dane Whitmore', age: '5 days', tone: AMBER },
 ];
 

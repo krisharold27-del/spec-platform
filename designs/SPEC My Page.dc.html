@@ -50,8 +50,12 @@
             <circle cx="50" cy="0" r="2" fill="#f5ead8"></circle>
           </g>
         </svg>SPEC</a>
+    <a href="SPEC Setup.dc.html">Setup</a>
     <a href="#" style="color: var(--color-text); font-weight: 700;">My page</a>
+    <a href="SPEC Jobs.dc.html">Jobs</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Safety.dc.html">Safety</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
     <a href="SPEC Mirrors.dc.html">Mirrors</a>
@@ -114,7 +118,7 @@
           <sc-if value="{{ gm.showLabel }}" hint-placeholder-val="{{ false }}">
             <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1;">{{ gm.pct }}</span>
           </sc-if>
-          <span style="font-size: 10.5px; font-style: italic; color: var(--color-accent-700); white-space: nowrap;">HACC Your Power</span>
+          <span style="font-size: 10.5px; font-style: italic; color: var(--color-accent-700); white-space: nowrap;">Hack Your Power</span>
         </span>
       </button>
     </header>
@@ -137,7 +141,7 @@
             <span style="font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">The five heavy hitters — 75% of the reading</span>
             <sc-for list="{{ gm.bigFive }}" as="bf" hint-placeholder-count="5">
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 12px; background: var(--color-bg);">
-                <span style="display: flex; align-items: center; gap: 10px; font-size: 14px;"><span style="{{ bf.dotStyle }}"></span>{{ bf.name }}</span>
+                <span style="display: flex; align-items: center; gap: 10px; font-size: 14px;"><span style="{{ bf.dotStyle }}"></span><span style="display: grid; gap: 1px;"><span>{{ bf.name }}</span><span style="font-size: 12px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ bf.source }}</span></span></span>
                 <span style="font-size: 12.5px; font-weight: 600; color: {{ bf.tone }};">{{ bf.status }}</span>
               </div>
             </sc-for>
@@ -596,6 +600,20 @@ const OTHER_19_NAMES = [
   'Regulatory breaches', 'Audit pass rate', 'Corrective actions closed on time', 'Licensing currency',
 ];
 
+const OTHER_19_SOURCE = [
+  'SPEC Safety + Jobs timesheets', 'SPEC Safety', 'SPEC Safety', 'SPEC Safety',
+  'SPEC People · leave', 'SPEC Training', 'SPEC pulse', 'SPEC Org chart',
+  'Xero', 'Xero + SPEC Jobs', 'Xero', 'Xero', 'Xero',
+  'SPEC Jobs · invoices', 'SPEC Jobs · revenue ÷ timesheet hours',
+  'SPEC Safety + People', 'SPEC Safety · inspections', 'SPEC Safety · actions', 'SPEC Safety · licences',
+];
+const BIG_FIVE_SOURCE = {
+  'Safety incidents': 'from SPEC Safety · incident register',
+  "Workers' comp claims": 'from SPEC Safety · workers\u2019 comp',
+  'Gross profit margin': 'from SPEC Jobs · job costing',
+  'Contractual breach': 'from SPEC Jobs · variations, claims and service contracts',
+  'Negative staff turnover': 'from SPEC People · exits and exit reasons',
+};
 const GM_METERS = {
   ops: { bigFive: [
     { name: 'Safety incidents', met: true },
@@ -628,12 +646,13 @@ function gmScoreOf(meterKey, gmOpen, otherOpen, toggle, toggleOther, isManager) 
   const missed = m.bigFive.find(b => !b.met);
   const bigFive = m.bigFive.map(b => ({
     name: b.name,
+    source: BIG_FIVE_SOURCE[b.name] || '',
     dotStyle: 'width:9px;height:9px;border-radius:50%;background:' + (b.met ? '#4f7a3f' : '#a63b26') + ';flex:none;',
     status: b.met ? 'Met' : 'Not met',
     tone: b.met ? '#4f7a3f' : '#a63b26',
   }));
   const otherKpis = OTHER_19_NAMES.map((name, i) => ({
-    name,
+    name: name + ' · ' + OTHER_19_SOURCE[i],
     status: m.otherMisses.includes(i) ? 'Not met' : 'Met',
     tone: m.otherMisses.includes(i) ? '#a63b26' : '#4f7a3f',
   }));
@@ -689,7 +708,7 @@ const PERSONAS = {
     reports: [
       { name: 'Labour utilisation', value: '88%', target: 'target 90%', pct: 88, source: 'Simpro · scheduled vs billable', updated: 'Synced 6:04am' },
       { name: 'Margin against quote', value: '30%', target: 'target 32%', pct: 82, source: 'Simpro · job actual vs quoted', updated: 'Synced 6:04am' },
-      { name: 'Corrective actions on time', value: '92%', target: 'target 95%', pct: 92, source: 'Manual — pending Safety Minder', updated: 'Confirmed 5:58am' },
+      { name: 'Corrective actions on time', value: '92%', target: 'target 95%', pct: 92, source: 'SPEC Safety · corrective actions', updated: 'Confirmed 5:58am' },
       { name: 'Tickets current', value: '100%', target: 'target 100%', pct: 100, source: 'Pylon · certifications', updated: 'Synced 5:58am' },
     ],
     meeting: 'Three items this week: the open safety action, the 2% margin gap against quote, and the unfilled Yard Lead role.',

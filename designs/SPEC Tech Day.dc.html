@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); }
+</style>
+</helmet>
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: clamp(28px,5vw,64px); padding: clamp(28px,5vw,56px) 20px;">
+
+  <div style="max-width: 360px; padding-top: 24px;">
+    <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">siteVIP · the tech's phone</span>
+    <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,44px); line-height: 1.1; margin: 0;">Start, photo, sign off. That's the day.</h1>
+    <p style="font-size: 15.5px; line-height: 25px; margin: 16px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Hours clock themselves from Start and Finish. Materials land on the job costing. The client signs on the glass and the invoice goes to the office.</p>
+    <div style="display: grid; gap: 8px; margin-top: 22px;">
+      <sc-for list="{{ jump }}" as="jp" hint-placeholder-count="4">
+        <button type="button" onClick="{{ jp.go }}" style="{{ jp.style }}">{{ jp.label }}</button>
+      </sc-for>
+    </div>
+    <p style="font-size: 13px; margin: 22px 0 0;"><a href="SPEC Jobs.dc.html">See it land on the Jobs board →</a></p>
+  </div>
+
+  <div style="width: 390px; max-width: 100%; height: 800px; border-radius: 48px; background: #201e1d; padding: 12px; box-sizing: border-box; box-shadow: var(--shadow-lg); flex: none;">
+    <div style="width: 100%; height: 100%; border-radius: 38px; background: var(--color-bg); overflow: hidden; display: flex; flex-direction: column;">
+      <div style="display: flex; justify-content: space-between; padding: 14px 26px 6px; font-size: 13px; font-weight: 600;"><span>7:12</span><span>5G ▮▮▮</span></div>
+
+      <div style="padding: 8px 20px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+        <sc-if value="{{ onToday }}" hint-placeholder-val="{{ true }}">
+          <span style="font-family: var(--font-heading); font-size: 22px;">Morning, Sione</span>
+        </sc-if>
+        <sc-if value="{{ notToday }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ back }}" style="cursor: pointer; border: 0; background: transparent; font-family: var(--font-body); font-size: 15px; color: var(--color-accent-700); padding: 10px 0; min-height: 44px;">← Today</button>
+        </sc-if>
+        <span style="font-family: var(--font-heading); font-size: 17px;">site<span style="color: #4f7a3f;">VIP</span></span>
+      </div>
+
+      <div style="flex: 1; overflow-y: auto; padding: 0 16px 20px; display: grid; gap: 12px; align-content: start;">
+
+        <sc-if value="{{ onToday }}" hint-placeholder-val="{{ true }}">
+          <div style="display: grid; gap: 12px;">
+            <div style="background: color-mix(in srgb, #4f7a3f 12%, transparent); border-radius: 18px; padding: 14px 16px; font-size: 14px; line-height: 21px; color: #3d5c31;"><strong>Clear to work.</strong> White card and induction current. Your KPI board: 91% this month.</div>
+            <sc-for list="{{ today }}" as="t" hint-placeholder-count="3">
+              <button type="button" onClick="{{ t.open }}" style="all: unset; cursor: pointer; display: block; background: #fff; border-radius: 20px; padding: 16px 18px; box-shadow: var(--shadow-sm);">
+                <span style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: color-mix(in srgb, var(--color-text) 62%, transparent);"><span>{{ t.time }}</span><span style="{{ t.chip }}">{{ t.state }}</span></span>
+                <span style="display: block; font-size: 17px; font-weight: 700; line-height: 1.3; margin-top: 6px;">{{ t.title }}</span>
+                <span style="display: block; font-size: 14px; margin-top: 4px; color: color-mix(in srgb, var(--color-text) 72%, transparent);">{{ t.site }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onJob }}" hint-placeholder-val="{{ false }}">
+          <div style="display: grid; gap: 12px;">
+            <div style="background: #fff; border-radius: 20px; padding: 18px; box-shadow: var(--shadow-sm);">
+              <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">J-4417 · Tom Reyes supervising</span>
+              <p style="font-family: var(--font-heading); font-size: 22px; line-height: 1.2; margin: 6px 0 0;">Harbourview, Level 3</p>
+              <p style="font-size: 14px; line-height: 21px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Rough-in units 301 to 304. Power off at DB-3 before you start.</p>
+            </div>
+
+            <sc-for list="{{ checks }}" as="c" hint-placeholder-count="5">
+              <button type="button" onClick="{{ c.tap }}" style="{{ c.style }}">
+                <span style="{{ c.tick }}">{{ c.mark }}</span>
+                <span style="display: grid; gap: 2px; text-align: left;">
+                  <span style="font-size: 15.5px; font-weight: 700;">{{ c.label }}</span>
+                  <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 68%, transparent);">{{ c.sub }}</span>
+                </span>
+              </button>
+            </sc-for>
+
+            <button type="button" onClick="{{ primary }}" style="{{ primaryStyle }}">{{ primaryLabel }}</button>
+            <p style="font-size: 12.5px; text-align: center; margin: 0; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ primaryNote }}</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onDone }}" hint-placeholder-val="{{ false }}">
+          <div style="display: grid; gap: 12px; padding-top: 20px;">
+            <div style="width: 76px; height: 76px; border-radius: 50%; background: #4f7a3f; color: #fff; display: grid; place-content: center; font-size: 34px;">✓</div>
+            <p style="font-family: var(--font-heading); font-size: 26px; line-height: 1.2; margin: 6px 0 0;">Signed off. Nice work.</p>
+            <div style="background: #fff; border-radius: 20px; padding: 16px 18px; display: grid; gap: 8px; font-size: 14.5px;">
+              <div style="display: flex; justify-content: space-between;"><span>Hours on the job</span><strong>6.5 h</strong></div>
+              <div style="display: flex; justify-content: space-between;"><span>Materials used</span><strong>3 items</strong></div>
+              <div style="display: flex; justify-content: space-between;"><span>Photos</span><strong>6</strong></div>
+            </div>
+            <p style="font-size: 14px; line-height: 21px; margin: 0; color: color-mix(in srgb, var(--color-text) 75%, transparent);">Your timesheet is done. The office has the invoice ready and Tom has the photos.</p>
+            <button type="button" onClick="{{ back }}" style="cursor: pointer; border: 0; border-radius: 999px; padding: 16px; min-height: 52px; background: var(--color-text); color: #fff; font-family: var(--font-body); font-size: 15.5px; font-weight: 600;">Next job →</button>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display: flex; justify-content: space-around; padding: 10px 12px 22px; background: #fff; font-size: 12px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">
+        <span style="font-weight: 700; color: var(--color-text);">Today</span><span>Report</span><span>My page</span><span>Ask SPEC</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const GREEN = '#4f7a3f', AMBER = '#c67139';
+const chip = t => 'border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;background:color-mix(in srgb, ' + t + ' 14%, transparent);color:' + t + ';';
+const CHECKS = [
+  { key: 'swms', label: 'Sign the SWMS', sub: 'Working at heights · 2 min read', done: 'Signed 7:14' },
+  { key: 'start', label: 'Start the job', sub: 'Starts your hours on this job', done: 'Started 7:15 · clocking' },
+  { key: 'photos', label: 'Add photos', sub: 'Before, during and after', done: '6 photos added' },
+  { key: 'materials', label: 'Materials used', sub: 'Pick from the van stock list', done: '3 items · costed to the job' },
+  { key: 'sign', label: 'Client sign-off', sub: 'They sign on your phone', done: 'Signed by site manager' },
+];
+class Component extends DCLogic {
+  state = { view: 'today', done: {} };
+  renderVals() {
+    const { view, done } = this.state;
+    const next = CHECKS.find(c => !done[c.key]);
+    const tick = key => this.setState(s => ({ done: { ...s.done, [key]: true } }));
+    return {
+      onToday: view === 'today', notToday: view !== 'today', onJob: view === 'job', onDone: view === 'done',
+      back: () => this.setState({ view: 'today', done: {} }),
+      jump: [
+        { label: '1  Today\u2019s jobs', v: 'today', d: {} },
+        { label: '2  On the job', v: 'job', d: { swms: true, start: true } },
+        { label: '3  Ready to sign off', v: 'job', d: { swms: true, start: true, photos: true, materials: true } },
+        { label: '4  Signed off', v: 'done', d: {} },
+      ].map(j => ({
+        label: j.label,
+        go: () => this.setState({ view: j.v, done: j.d }),
+        style: 'cursor:pointer;border:0;text-align:left;border-radius:999px;padding:12px 18px;font-family:var(--font-body);font-size:14px;background:#fff;color:var(--color-text);box-shadow:var(--shadow-sm);',
+      })),
+      today: [
+        { time: '7:00 – 1:30', title: 'Rough-in, units 301–304', site: 'Harbourview, Level 3 · Pyrmont', state: 'Now', tone: GREEN },
+        { time: '2:00 – 3:30', title: 'Fault find, lighting circuit', site: 'Bean There · Newtown', state: 'Next', tone: AMBER },
+        { time: '3:30', title: 'Ute 09 weekly check', site: 'Yard', state: 'Due', tone: AMBER },
+      ].map((t, i) => ({ ...t, chip: chip(t.tone), open: () => i === 0 && this.setState({ view: 'job' }) })),
+      checks: CHECKS.map(c => {
+        const d = !!done[c.key];
+        const isNext = next && next.key === c.key;
+        return {
+          label: c.label, sub: d ? c.done : c.sub,
+          mark: d ? '✓' : '',
+          tap: () => tick(c.key),
+          tick: 'width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-content:center;font-size:15px;font-weight:700;'
+            + (d ? 'background:' + GREEN + ';color:#fff;' : 'background:var(--color-bg);box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--color-text) 25%, transparent);'),
+          style: 'cursor:pointer;border:0;display:flex;align-items:center;gap:14px;border-radius:18px;padding:14px 16px;min-height:64px;font-family:var(--font-body);color:var(--color-text);'
+            + (isNext ? 'background:#fff;box-shadow:0 0 0 2px var(--color-accent),var(--shadow-sm);' : 'background:#fff;box-shadow:var(--shadow-sm);') + (d ? 'opacity:0.85;' : ''),
+        };
+      }),
+      primaryLabel: next ? next.label : 'Finish the job',
+      primaryNote: next ? 'One step at a time. Tap the step or this button.' : 'Stops your hours and sends it to the office.',
+      primary: () => next ? tick(next.key) : this.setState({ view: 'done' }),
+      primaryStyle: 'cursor:pointer;border:0;border-radius:999px;padding:16px;min-height:54px;font-family:var(--font-body);font-size:16px;font-weight:700;color:#fff;background:' + (next ? 'var(--color-accent)' : GREEN) + ';',
+    };
+  }
+}
+</script>
+</body>
+</html>

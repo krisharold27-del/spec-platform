@@ -50,8 +50,12 @@
             <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
           </g>
         </svg>SPEC</a>
+    <a href="SPEC Setup.dc.html">Setup</a>
     <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Jobs.dc.html">Jobs</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Safety.dc.html">Safety</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
     <a href="SPEC Connections.dc.html">Connections</a>
@@ -195,6 +199,37 @@
             </div>
           </section>
         </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isGroups }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <sc-for list="{{ hrGroups }}" as="g" hint-placeholder-count="3">
+          <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,34px);">
+            <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px;">
+              <div style="max-width: 62ch;">
+                <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">{{ g.title }}</h2>
+                <p style="font-size: 14px; line-height: 22px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ g.blurb }}</p>
+              </div>
+              <button type="button" onClick="{{ g.act }}" class="btn btn-secondary" style="flex: none;">{{ g.actionLabel }}</button>
+            </div>
+            <div style="display: grid; gap: 8px; margin-top: 18px;">
+              <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: 14px; background: var(--color-bg);">
+                  <span style="display: flex; align-items: flex-start; gap: 12px; min-width: 0; flex: 1 1 280px;">
+                    <span style="{{ r.dot }}"></span>
+                    <span style="display: grid; gap: 2px; min-width: 0;">
+                      <span style="font-size: 14.5px; font-weight: 600;">{{ r.title }}</span>
+                      <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ r.who }} · {{ r.when }}</span>
+                    </span>
+                  </span>
+                  <span style="{{ r.chip }}">{{ r.state }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <p style="font-size: 12.5px; margin: 14px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Feeds <strong style="color: var(--color-text);">{{ g.feeds }}</strong></p>
+          </section>
+        </sc-for>
       </div>
     </sc-if>
 
@@ -491,6 +526,42 @@ const REGIONS = {
   },
 };
 
+const hrRow = (title, who, when, state, tone) => ({ title, who, when, state, tone });
+const HR_GROUPS = {
+  conduct: [
+    { title: 'Performance reviews', action: 'Open a scorecard', href: 'SPEC My Scorecard.dc.html', feeds: 'People · Managers with a development plan', blurb: 'No separate review form. The review is the last three months of the person\u2019s KPI board, plus one conversation about what comes next.', rows: [
+      hrRow('Dane Whitmore · Operations Manager', '3 months: 91%, 88%, 93%', 'Due Oct', 'On track', '#4f7a3f'),
+      hrRow('Tom Reyes · Site Supervisor', '3 months: 94%, 92%, 95%', 'Ace check Oct', 'Ace in reach', '#4f7a3f'),
+      hrRow('Amrit Kaur · Scheduler', '3 months: 72%, 68%, 70%', 'Overdue 2 weeks', 'Overdue', '#a63b26'),
+    ] },
+    { title: 'Training records', action: 'Go to training', href: 'SPEC Training.dc.html', feeds: 'People · Training completion', blurb: 'Every module finished, in progress or due, pulled from SPEC Training. Nothing to keep up to date by hand.', rows: [
+      hrRow('Sione Tui · Apprentice', 'Psychosocial safety basics', 'Due 30 Sep', 'In progress', '#c67139'),
+      hrRow('Tom Reyes · Site Supervisor', 'Running a toolbox talk', 'Done 2 Sep', 'Complete', '#4f7a3f'),
+    ] },
+    { title: 'Warnings & disciplinary', action: 'Start a fair process', feeds: 'People · Negative turnover', blurb: 'A fair process under the Fair Work Act, one step at a time: raise the concern, offer a support person, meet, give the outcome in writing, set a review date. SPEC will not let a step be skipped.', rows: [
+      hrRow('Lateness to site', 'Marcus Bly · Apprentice', 'Meeting 25 Sep', 'Step 2 of 5 · support person offered', '#c67139'),
+    ] },
+  ],
+  pay: [
+    { title: 'Contracts & onboarding', action: 'Create a contract', feeds: 'Compliance · Contract compliance', blurb: 'Contracts are generated from the role on the org chart: title, award level, pay and start date. Signed online, stored against the person.', rows: [
+      hrRow('Nadia Cole · Estimator', 'Full-time contract', 'Sent 19 Sep', 'Waiting on signature', '#c67139'),
+      hrRow('Sione Tui · Apprentice', 'Training contract', 'Signed 4 Aug', 'Signed', '#4f7a3f'),
+    ] },
+    { title: 'Award & Fair Work pay rules', action: 'Check the award', feeds: 'Compliance · Regulatory breaches', blurb: 'Electrical, Electronic and Communications Contracting Award. SPEC checks each person\u2019s level, rate, allowances and overtime against it every pay run, and flags anyone under.', rows: [
+      hrRow('All 38 people checked', 'Levels, rates and allowances', 'Pay run 18 Sep', 'No one under award', '#4f7a3f'),
+      hrRow('Apprentice pay rise — Sione Tui', '2nd year rate from 1 Oct', 'In 8 days', 'Due', '#c67139'),
+    ] },
+    { title: 'Payroll export', action: 'Export pay run', feeds: 'Earnings · Labour cost', blurb: 'Hours come from Simpro timesheets, leave from SPEC. One click sends the pay run to Xero Payroll.', rows: [
+      hrRow('Pay run · 14\u201320 Sep', '38 people · 1,412 hours', 'Ready 21 Sep', 'Ready to send', '#c67139'),
+      hrRow('Pay run · 7\u201313 Sep', '38 people · 1,398 hours', 'Sent 14 Sep', 'In Xero', '#4f7a3f'),
+    ] },
+    { title: 'Exits & exit reasons', action: 'Record an exit', feeds: 'People · Negative turnover', blurb: 'Every exit gets a reason. Right-reason exits (retirement, a real step up, moving away) never count against the business. Wrong-reason exits do.', rows: [
+      hrRow('Ben Carter · Technician', 'Moved interstate', 'Left 29 Aug', 'Right reason', '#4f7a3f'),
+      hrRow('Liam Ng · Apprentice', 'Felt unsupported on site', 'Left 2 Aug', 'Wrong reason', '#a63b26'),
+    ] },
+  ],
+};
+
 class Component extends DCLogic {
   state = { mode: 'hr', query: '', role: 'o1', showAd: {}, stages: {}, ratings: {}, reviews: {}, leaveDecided: {}, region: 'NSW, Australia' };
 
@@ -504,12 +575,14 @@ class Component extends DCLogic {
     const avg = Math.round((ratings.reduce((t, v) => t + v, 0) / ratings.length) * 10) / 10;
 
     return {
-      headline: hr ? 'The HR system for people businesses' : 'Recruit against the scorecard they will hold',
-      subhead: hr
-        ? 'Records, leave, documents and onboarding, held against the role rather than a spreadsheet. If you already run an HR system, connect it and SPEC reads from that instead.'
+      headline: this.state.mode === 'recruit' ? 'Recruit against the scorecard they will hold' : 'Your HR system. Nothing else to buy.',
+      subhead: this.state.mode !== 'recruit'
+        ? 'Records, leave, reviews, contracts, pay and exits, all held against the role on the org chart. Hours come from Simpro, pay goes to Xero.'
         : 'Every vacancy in the org chart is an open role here. The ad, the shortlist and the interview all come from the eight KPIs the person will actually be measured on.',
       modes: [
         { key: 'hr', label: 'HR' },
+        { key: 'conduct', label: 'Reviews & conduct' },
+        { key: 'pay', label: 'Pay & exits' },
         { key: 'recruit', label: 'Recruitment' },
       ].map(m => ({
         label: m.label,
@@ -518,7 +591,14 @@ class Component extends DCLogic {
           + (this.state.mode === m.key ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);box-shadow:var(--shadow-sm);'),
       })),
       isHr: hr,
-      isRecruit: !hr,
+      isRecruit: this.state.mode === 'recruit',
+      isGroups: !!HR_GROUPS[this.state.mode],
+      hrGroups: (HR_GROUPS[this.state.mode] || []).map(g => ({
+        ...g,
+        actionLabel: g.action,
+        act: () => { if (g.href) window.location.href = g.href; },
+        rows: g.rows.map(r => ({ ...r, chip: chip(r.tone), dot: dotOf(r.tone) })),
+      })),
 
       agentChip: chip(GREEN),
       agentState: 'Agent on',

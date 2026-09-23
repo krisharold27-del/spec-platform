@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+</style>
+</helmet>
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC Setup.dc.html">Setup</a>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="#" style="color: var(--color-text); font-weight: 700;">Jobs</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Safety.dc.html">Safety</a>
+    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
+    <a href="SPEC Board Pack.dc.html">Board pack</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; padding: clamp(28px,4vw,44px) 0 22px;">
+      <div>
+        <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Jobs · JBI Electrical</span>
+        <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0;">Every job, enquiry to paid.</h1>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center; background: var(--color-surface, #fff); border-radius: 999px; padding: 6px 6px 6px 20px; box-shadow: var(--shadow-sm); flex: 1 1 360px; max-width: 480px;">
+        <input type="text" value="{{ draft }}" onInput="{{ setDraft }}" onChange="{{ setDraft }}" onKeyDown="{{ draftKey }}" placeholder="New enquiry: e.g. Sam Lee, switchboard upgrade, Balmain" aria-label="New enquiry" style="flex: 1; min-width: 0; border: 0; background: transparent; font-family: var(--font-body); font-size: 14.5px; color: var(--color-text); outline: none; padding: 10px 0;" />
+        <button type="button" onClick="{{ addEnquiry }}" aria-label="Add enquiry" style="cursor: pointer; border: 0; width: 42px; height: 42px; flex: none; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 19px;">→</button>
+      </div>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 22px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="8">
+          <button type="button" onClick="{{ t.select }}" style="{{ t.style }}">{{ t.label }}</button>
+        </sc-for>
+      </div>
+      <a href="SPEC Coverage.dc.html" style="font-size: 13.5px;">Everything SPEC does, and what it replaces →</a>
+    </div>
+
+    <sc-if value="{{ onQuotes }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: clamp(20px,3vw,28px); align-items: start;">
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(22px,3vw,32px);">
+          <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">Q-2291 · Harris Strata · Chatswood</span>
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 26px; line-height: 1.15; margin: 6px 0 18px;">Switchboard upgrade</h2>
+          <div style="display: grid; gap: 8px;">
+            <sc-for list="{{ qLines }}" as="ql" hint-placeholder-count="4">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--color-bg);">
+                <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 220px;">
+                  <span style="font-size: 14.5px; font-weight: 600;">{{ ql.name }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ql.kind }} · {{ ql.unitLine }}</span>
+                </span>
+                <span style="display: flex; align-items: center; gap: 6px;">
+                  <button type="button" onClick="{{ ql.dec }}" aria-label="Less" style="cursor: pointer; border: 0; width: 32px; height: 32px; border-radius: 50%; background: #fff; font-size: 16px;">−</button>
+                  <span style="min-width: 38px; text-align: center; font-size: 14px; font-weight: 700;">{{ ql.qty }}</span>
+                  <button type="button" onClick="{{ ql.inc }}" aria-label="More" style="cursor: pointer; border: 0; width: 32px; height: 32px; border-radius: 50%; background: #fff; font-size: 16px;">+</button>
+                  <span style="min-width: 84px; text-align: right; font-size: 14px; font-weight: 700;">{{ ql.sell }}</span>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 20px 0 8px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Add from catalogue, kits or labour</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <sc-for list="{{ qAdd }}" as="qa" hint-placeholder-count="6">
+              <button type="button" onClick="{{ qa.add }}" style="cursor: pointer; border: 0; border-radius: 999px; padding: 8px 14px; font-family: var(--font-body); font-size: 13px; background: var(--color-bg); color: var(--color-text);">+ {{ qa.label }}</button>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px);">
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 14px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">The price</p>
+          <div style="display: grid; gap: 9px; font-size: 14.5px;">
+            <sc-for list="{{ qSummary }}" as="qs" hint-placeholder-count="5">
+              <div style="display: flex; justify-content: space-between; gap: 12px;"><span>{{ qs.label }}</span><strong>{{ qs.value }}</strong></div>
+            </sc-for>
+          </div>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 20px 0 8px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Materials markup</p>
+          <div style="display: flex; gap: 8px;">
+            <sc-for list="{{ markups }}" as="mk" hint-placeholder-count="3">
+              <button type="button" onClick="{{ mk.select }}" style="{{ mk.style }}">{{ mk.label }}</button>
+            </sc-for>
+          </div>
+          <div style="margin-top: 22px; padding: 18px 20px; border-radius: 18px; background: var(--color-bg);">
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 32px; line-height: 1; margin: 0;">{{ qTotal }}</p>
+            <p style="font-size: 13px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">inc GST · {{ qMarginLine }}</p>
+            <div style="height: 10px; border-radius: 999px; background: #fff; margin-top: 14px; overflow: hidden;"><div style="{{ qMarginBar }}"></div></div>
+          </div>
+          <button type="button" onClick="{{ sendQuote }}" class="btn btn-primary btn-block" style="margin-top: 18px;">{{ sendLabel }}</button>
+          <p style="font-size: 13px; line-height: 20px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ sendNote }}</p>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onSchedule }}" hint-placeholder-val="{{ false }}">
+      <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,30px); overflow-x: auto;">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px;">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; margin: 0;">Week of 21 September</h2>
+          <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Tap an empty day to book the waiting job there</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 170px repeat(5, minmax(110px, 1fr)); gap: 8px; min-width: 760px;">
+          <span></span>
+          <sc-for list="{{ days }}" as="d" hint-placeholder-count="5">
+            <span style="font-size: 12.5px; font-weight: 700; padding: 4px 8px;">{{ d }}</span>
+          </sc-for>
+          <sc-for list="{{ crewRows }}" as="cr" hint-placeholder-count="5">
+            <span style="display: grid; gap: 2px; padding: 8px 4px;">
+              <span style="font-size: 14px; font-weight: 700;">{{ cr.name }}</span>
+              <span style="font-size: 12px; color: {{ cr.tone }};">{{ cr.note }}</span>
+            </span>
+            <sc-for list="{{ cr.cells }}" as="cell" hint-placeholder-count="5">
+              <button type="button" onClick="{{ cell.tap }}" style="{{ cell.style }}">{{ cell.label }}</button>
+            </sc-for>
+          </sc-for>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; padding: 12px 16px; border-radius: 14px; background: var(--color-bg); font-size: 14px;">
+          <strong>Waiting to be booked:</strong><span>{{ waitingLine }}</span>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ onTime }}" hint-placeholder-val="{{ false }}">
+      <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(22px,3vw,32px);">
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px;">
+          <div style="max-width: 60ch;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; margin: 0;">Timesheets · this week</h2>
+            <p style="font-size: 14px; line-height: 22px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Built from Start and Finish on the phone. Nobody fills in a sheet. Approve them and they go to the job costs and to payroll.</p>
+          </div>
+          <button type="button" onClick="{{ approveAll }}" class="btn btn-secondary">{{ approveLabel }}</button>
+        </div>
+        <div style="display: grid; gap: 8px; margin-top: 18px;">
+          <sc-for list="{{ sheets }}" as="ts" hint-placeholder-count="5">
+            <div style="display: grid; grid-template-columns: minmax(160px, 1.4fr) repeat(3, minmax(90px, 1fr)) auto; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px; background: var(--color-bg); font-size: 14px;">
+              <span style="display: grid; gap: 2px;"><strong>{{ ts.name }}</strong><span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ts.role }}</span></span>
+              <span>{{ ts.hours }} h</span>
+              <span style="color: {{ ts.billTone }};">{{ ts.billable }} billable</span>
+              <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ ts.jobs }}</span>
+              <span style="{{ ts.chip }}">{{ ts.state }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p style="font-size: 12.5px; margin: 14px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Billable hours feed each supervisor's KPI board. JBI target: 86% and above.</p>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ onCatalogue }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px;">
+          <sc-for list="{{ suppliers }}" as="sp" hint-placeholder-count="3">
+            <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px 22px;">
+              <span style="font-size: 15px; font-weight: 700;">{{ sp.name }}</span>
+              <p style="font-size: 13px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ sp.line }}</p>
+              <span style="{{ sp.chip }}">{{ sp.state }}</span>
+            </div>
+          </sc-for>
+        </section>
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(22px,3vw,32px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;">
+            <div>
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; margin: 0;">Catalogue</h2>
+              <p style="font-size: 13.5px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 72%, transparent);">1,240 items you actually use. Supplier prices update themselves. SPEC flags anything not used in 12 months so the list stays lean.</p>
+            </div>
+            <input type="text" value="{{ catQuery }}" onInput="{{ setCatQuery }}" onChange="{{ setCatQuery }}" placeholder="Search items" aria-label="Search catalogue" class="input" style="border-radius: 999px; max-width: 260px;" />
+          </div>
+          <div style="display: grid; gap: 6px; margin-top: 16px;">
+            <sc-for list="{{ catRows }}" as="ci" hint-placeholder-count="6">
+              <div style="display: grid; grid-template-columns: minmax(200px, 2fr) minmax(80px, 1fr) repeat(3, minmax(70px, 0.8fr)); align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; background: var(--color-bg); font-size: 14px;">
+                <span style="display: grid; gap: 2px;"><strong>{{ ci.name }}</strong><span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ ci.cat }} · per {{ ci.unit }}</span></span>
+                <span>{{ ci.supplier }}</span>
+                <span>Cost {{ ci.cost }}</span>
+                <span>Sell {{ ci.sell }}</span>
+                <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ci.updated }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 22px 0 8px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Kits · pre-built bundles you quote in one line</p>
+          <div style="display: grid; gap: 6px;">
+            <sc-for list="{{ kitRows }}" as="kt" hint-placeholder-count="3">
+              <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--color-bg); font-size: 14px;">
+                <strong>{{ kt.name }}</strong><span>{{ kt.line }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onRegister }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+          <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(22px,3vw,32px);">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">{{ g.title }}</h2>
+            <p style="font-size: 14px; line-height: 22px; margin: 8px 0 0; max-width: 64ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ g.blurb }}</p>
+            <div style="display: grid; gap: 8px; margin-top: 16px;">
+              <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: 14px; background: var(--color-bg);">
+                  <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 260px;">
+                    <span style="font-size: 14.5px; font-weight: 600;">{{ r.title }}</span>
+                    <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ r.sub }}</span>
+                  </span>
+                  <span style="{{ r.chip }}">{{ r.state }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onPipeline }}" hint-placeholder-val="{{ true }}">
+    <div>
+    <section aria-label="This month" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px; padding-bottom: 24px;">
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px 22px;">
+          <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ s.label }}</span>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1; margin: 10px 0 0;">{{ s.value }}</p>
+          <p style="font-size: 13px; margin: 8px 0 0; color: {{ s.tone }};">{{ s.note }}</p>
+        </div>
+      </sc-for>
+    </section>
+
+    <section aria-label="Pipeline" style="display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 12px;">
+      <sc-for list="{{ columns }}" as="c" hint-placeholder-count="7">
+        <div style="background: color-mix(in srgb, var(--color-text) 4%, transparent); border-radius: 20px; padding: 14px; display: grid; gap: 10px; align-content: start; min-height: 220px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 4px 4px;">
+            <span style="font-size: 13px; font-weight: 700;">{{ c.label }}</span>
+            <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ c.total }}</span>
+          </div>
+          <sc-for list="{{ c.jobs }}" as="j" hint-placeholder-count="2">
+            <button type="button" onClick="{{ j.open }}" style="{{ j.cardStyle }}">
+              <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <span style="font-size: 12px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ j.id }}</span>
+                <span style="{{ j.flagStyle }}">{{ j.flag }}</span>
+              </span>
+              <span style="display: block; font-size: 14.5px; font-weight: 700; line-height: 1.3; margin-top: 6px;">{{ j.title }}</span>
+              <span style="display: block; font-size: 13px; margin-top: 4px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ j.client }}</span>
+              <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; font-size: 13px;">
+                <strong>{{ j.value }}</strong>
+                <span style="color: {{ j.marginTone }};">{{ j.marginLabel }}</span>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-for>
+    </section>
+
+    <sc-if value="{{ hasOpen }}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Job detail" style="margin-top: 20px; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(24px,3vw,36px);">
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px;">
+          <div>
+            <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ open.id }} · {{ open.stageLabel }}</span>
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px; line-height: 1.15; margin: 6px 0 0;">{{ open.title }}</h2>
+            <p style="font-size: 14.5px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 75%, transparent);">{{ open.client }} · {{ open.site }}</p>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button type="button" onClick="{{ open.next }}" class="btn btn-primary">{{ open.nextLabel }}</button>
+            <button type="button" onClick="{{ close }}" class="btn btn-ghost">Close</button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-top: 24px;">
+          <div style="background: var(--color-bg); border-radius: 20px; padding: 20px 22px;">
+            <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 12px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Job costing</p>
+            <div style="display: grid; gap: 8px; font-size: 14px;">
+              <sc-for list="{{ open.costs }}" as="k" hint-placeholder-count="4">
+                <div style="display: flex; justify-content: space-between; gap: 12px;"><span>{{ k.label }}</span><strong>{{ k.value }}</strong></div>
+              </sc-for>
+            </div>
+            <div style="height: 10px; border-radius: 999px; background: #fff; margin-top: 16px; overflow: hidden;"><div style="{{ open.marginBar }}"></div></div>
+            <p style="font-size: 13.5px; margin: 10px 0 0; color: {{ open.marginTone }};">{{ open.marginLine }}</p>
+          </div>
+          <div style="background: var(--color-bg); border-radius: 20px; padding: 20px 22px;">
+            <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 12px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Crew & safety</p>
+            <div style="display: grid; gap: 8px;">
+              <sc-for list="{{ open.crew }}" as="p" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px;"><span>{{ p.name }}</span><span style="{{ p.chip }}">{{ p.state }}</span></div>
+              </sc-for>
+            </div>
+            <p style="font-size: 13px; margin: 14px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ open.swms }}</p>
+          </div>
+          <div style="background: var(--color-bg); border-radius: 20px; padding: 20px 22px;">
+            <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 12px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">What happened</p>
+            <div style="display: grid; gap: 8px;">
+              <sc-for list="{{ open.log }}" as="l" hint-placeholder-count="3">
+                <div style="font-size: 13.5px; line-height: 20px;"><span style="color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ l.when }}</span> · {{ l.what }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+    </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26';
+const chip = t => 'display:inline-flex;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;white-space:nowrap;background:color-mix(in srgb, ' + t + ' 14%, transparent);color:' + t + ';';
+const STAGES = [
+  { key: 'enquiry', label: 'Enquiry', next: 'Build the quote' },
+  { key: 'quoted', label: 'Quoted', next: 'Mark as won' },
+  { key: 'won', label: 'Won', next: 'Book the crew' },
+  { key: 'scheduled', label: 'Scheduled', next: 'Start on site' },
+  { key: 'onsite', label: 'On site', next: 'Job done, invoice it' },
+  { key: 'invoiced', label: 'Invoiced', next: 'Chase payment' },
+  { key: 'paid', label: 'Paid', next: 'Close the job' },
+];
+const money = n => '$' + Math.round(n).toLocaleString('en-AU');
+const J = (id, stage, title, client, site, quote, labour, materials, crew, flag) => ({ id, stage, title, client, site, quote, labour, materials, crew, flag });
+const SEED = [
+  J('E-118', 'enquiry', 'EV charger install', 'Priya Shah', 'Marrickville', 3200, 0, 0, [], ''),
+  J('E-117', 'enquiry', 'Office LED refit', 'Coastline Dental', 'Manly', 18500, 0, 0, [], 'Reply today'),
+  J('Q-2291', 'quoted', 'Switchboard upgrade', 'Harris Strata', 'Chatswood', 9800, 0, 0, [], 'Follow up'),
+  J('J-4431', 'won', 'Warehouse lighting', 'Metro Freight', 'Botany', 42000, 0, 0, [], 'Needs a crew'),
+  J('J-4430', 'scheduled', 'Energised works, plant room', 'St Clare School', 'Randwick', 27600, 0, 0, ['Tom Reyes', 'Hemi Walker', 'Marcus Bly'], 'SWMS 2 of 3'),
+  J('J-4417', 'onsite', 'Harbourview Apartments, Level 3', 'Harbourview Build', 'Pyrmont', 186000, 81400, 52300, ['Tom Reyes', 'Jai Fenton', 'Sione Tui'], ''),
+  J('J-4402', 'onsite', 'Northside fit-out', 'Northside Health', 'St Leonards', 64000, 31800, 19200, ['Jai Fenton', 'Hemi Walker'], 'Margin slipping'),
+  J('J-4388', 'invoiced', 'Cafe rewire', 'Bean There', 'Newtown', 14200, 5600, 3100, [], '38 days'),
+  J('J-4379', 'paid', 'Townhouse fit-off', 'Ridge Homes', 'Ryde', 22800, 8900, 5200, [], ''),
+];
+const CLEAR = { 'Marcus Bly': false };
+const money2 = n => '$' + n.toFixed(2);
+const TABS = [
+  { key: 'pipeline', label: 'Jobs' }, { key: 'quotes', label: 'Quotes' }, { key: 'schedule', label: 'Schedule' },
+  { key: 'time', label: 'Timesheets' }, { key: 'catalogue', label: 'Catalogue' }, { key: 'stock', label: 'Stock & buying' },
+  { key: 'billing', label: 'Invoices & claims' }, { key: 'service', label: 'Service & assets' },
+];
+const CAT = [
+  { id: 'c1', short: 'TPS 2.5mm cable', name: 'TPS cable 2.5mm\u00b2 twin & earth, 100m', supplier: 'Rexel', cost: 128.40, unit: 'roll', cat: 'Cable', updated: 'Price 1 Sep' },
+  { id: 'c2', short: 'Double GPO', name: 'Double power point, white', supplier: 'MMEM', cost: 9.85, unit: 'each', cat: 'Fittings', updated: 'Price 1 Sep' },
+  { id: 'c3', short: 'LED downlight', name: 'LED downlight 10W, tri-colour', supplier: 'CNW', cost: 14.20, unit: 'each', cat: 'Lighting', updated: 'Price 15 Sep' },
+  { id: 'c4', short: 'RCBO 20A', name: 'RCBO 20A 30mA', supplier: 'Rexel', cost: 42.60, unit: 'each', cat: 'Switchgear', updated: 'Price 1 Sep' },
+  { id: 'c5', short: 'Board 36 pole', name: 'Switchboard enclosure, 36 pole', supplier: 'MMEM', cost: 218.00, unit: 'each', cat: 'Switchgear', updated: 'Price 1 Sep' },
+  { id: 'c6', short: 'Conduit 25mm', name: 'Conduit 25mm, 4m length', supplier: 'CNW', cost: 6.10, unit: 'length', cat: 'Conduit', updated: 'Price 15 Sep' },
+];
+const KITS = [
+  { id: 'k1', short: 'Board upgrade kit', name: 'Switchboard upgrade (36 pole, 8 RCBOs)', cost: 218 + 8 * 42.6 + 35, hrs: 6 },
+  { id: 'k2', short: 'Downlight point', name: 'Downlight, supply and install per point', cost: 14.2 + 3.5, hrs: 0.5 },
+];
+const RATES = [
+  { id: 'r1', name: 'Electrician', cost: 68, charge: 120 },
+  { id: 'r2', name: 'Apprentice', cost: 32, charge: 75 },
+];
+const Q_START = [
+  { kind: 'Kit', ref: 'k1', qty: 1 },
+  { kind: 'Item', ref: 'c2', qty: 4 },
+  { kind: 'Labour', ref: 'r1', qty: 4 },
+  { kind: 'Labour', ref: 'r2', qty: 8 },
+];
+const DAYS = ['Mon 21', 'Tue 22', 'Wed 23', 'Thu 24', 'Fri 25'];
+const CREW = [
+  { name: 'Tom Reyes', role: 'Site Supervisor', clear: true },
+  { name: 'Jai Fenton', role: 'Leading hand', clear: true },
+  { name: 'Hemi Walker', role: 'Electrician', clear: true },
+  { name: 'Sione Tui', role: 'Apprentice', clear: true },
+  { name: 'Marcus Bly', role: 'Apprentice', clear: false },
+];
+const SCHED_START = {
+  'Tom Reyes': ['J-4417', 'J-4417', 'J-4430', 'J-4430', 'J-4417'],
+  'Jai Fenton': ['J-4402', 'J-4402', 'J-4402', '', ''],
+  'Hemi Walker': ['J-4430', 'J-4430', '', '', 'J-4402'],
+  'Sione Tui': ['J-4417', 'J-4417', 'J-4417', '', ''],
+  'Marcus Bly': ['', '', '', '', ''],
+};
+const JOB_TONE = { 'J-4417': GREEN, 'J-4402': AMBER, 'J-4430': '#7a8a5e', 'J-4431': '#c67139' };
+const SHEETS = [
+  { name: 'Tom Reyes', role: 'Site Supervisor', hours: 41.5, bill: 88, jobs: 'J-4417, J-4430', done: true },
+  { name: 'Jai Fenton', role: 'Leading hand', hours: 40, bill: 91, jobs: 'J-4402', done: false },
+  { name: 'Hemi Walker', role: 'Electrician', hours: 38, bill: 79, jobs: 'J-4430, J-4402', done: false },
+  { name: 'Sione Tui', role: 'Apprentice', hours: 38, bill: 84, jobs: 'J-4417', done: false },
+  { name: 'Marcus Bly', role: 'Apprentice', hours: 24, bill: 52, jobs: 'Yard only', done: false },
+];
+const SUPPLIERS = [
+  { name: 'Rexel', line: '412 items in use · price file loaded 1 Sep', state: 'Prices current', tone: GREEN },
+  { name: 'MMEM', line: '538 items in use · price file loaded 1 Sep', state: 'Prices current', tone: GREEN },
+  { name: 'CNW', line: '290 items in use · last file 15 Aug', state: 'New file due', tone: AMBER },
+];
+const rr = (title, sub, state, tone) => ({ title, sub, state, tone });
+const REG = {
+  stock: [
+    { title: 'Van stock', blurb: 'What\u2019s on each van, topped up from the warehouse. Used on a job from the phone, it comes off the van and onto the job cost.', rows: [
+      rr('Ute 09 · Jai Fenton', '146 items · 4 below minimum', 'Top-up list ready', AMBER),
+      rr('Ute 14 · Marcus Bly', '98 items', 'Stock-take due', AMBER),
+    ] },
+    { title: 'Purchase orders', blurb: 'Raised from the job or the quote in one click, sent to the supplier, and matched to their invoice when it arrives.', rows: [
+      rr('PO-3312 · Rexel · J-4431 Warehouse lighting', '$11,840 · 64 high bays', 'Sent · delivery Thu', GREEN),
+      rr('PO-3309 · MMEM · J-4430', '$2,406', 'Delivered · invoice matched', GREEN),
+      rr('PO-3301 · CNW · J-4402', '$1,120 · invoice $1,284', 'Price difference $164', RED),
+    ] },
+    { title: 'Warehouse', blurb: 'One place for yard stock, with stock-takes, transfers to vans and a reorder list built from what jobs will need next week.', rows: [
+      rr('Reorder list for next week', 'Built from the schedule and open quotes', '12 items', AMBER),
+    ] },
+  ],
+  billing: [
+    { title: 'Progress claims', blurb: 'For the big jobs: claim by stage or by percentage complete, with retention held and released on the dates in the contract.', rows: [
+      rr('J-4417 Harbourview · claim 4 of 8', '$23,250 · 5% retention held', 'Due 25 Sep', AMBER),
+      rr('J-4417 Harbourview · claim 3', '$23,250', 'Paid 28 Aug', GREEN),
+    ] },
+    { title: 'Variations', blurb: 'Extra work the client asked for, priced and signed on site before it\u2019s done, so it\u2019s never argued about at invoice time.', rows: [
+      rr('V-12 · J-4402 · extra 6 data points', '$1,860 · signed by client on site', 'Approved', GREEN),
+      rr('V-13 · J-4417 · relocate DB-3', '$3,400', 'Waiting on client', AMBER),
+    ] },
+    { title: 'Invoices & getting paid', blurb: 'Invoice the moment the job is signed off. It goes to Xero on its own. SPEC sends polite reminders at 7, 14 and 30 days and tells you when to call.', rows: [
+      rr('INV-8821 · Bean There · J-4388', '$15,620 · 38 days', 'Call them today', RED),
+      rr('INV-8834 · Ridge Homes · J-4379', '$25,080', 'Paid · in Xero', GREEN),
+    ] },
+  ],
+  service: [
+    { title: 'Service contracts & recurring work', blurb: 'Maintenance agreements that book themselves: the job is created, the tech is scheduled and the client is told, on the cycle in the contract.', rows: [
+      rr('Coastline Dental · quarterly emergency lighting test', 'Next visit 2 Oct', 'Auto-booked', GREEN),
+      rr('Metro Freight · 6-monthly thermal scan', 'Next visit 14 Oct', 'Needs a tech', AMBER),
+    ] },
+    { title: 'Test & tag and site assets', blurb: 'Every asset tested at a client site, with its result, photo and next due date. Clients get their report without asking.', rows: [
+      rr('St Clare School · 214 items', 'Tested Mar · 6 failed and replaced', 'Due Mar 2027', GREEN),
+      rr('Northside Health · 88 items', 'Tested Sep 2025', 'Due now', RED),
+    ] },
+    { title: 'Your vehicles & plant', blurb: 'Rego, servicing and weekly checks for every ute, trailer and bit of plant, shared with SPEC Safety.', rows: [
+      rr('Ute 14', 'Weekly check overdue 3 days', 'Pulled from schedule', RED),
+      rr('EWP scissor lift', 'Service due 12 Oct', 'Booked', GREEN),
+    ] },
+  ],
+};
+
+class Component extends DCLogic {
+  state = { jobs: SEED, openId: 'J-4402', draft: '', tab: 'pipeline', lines: Q_START, markup: 0.35, sent: false, sched: SCHED_START, booked: false, approved: false, catQuery: '' };
+
+  renderVals() {
+    const s = this.state;
+    const base = this.baseVals();
+    const tabs = TABS.map(t => ({
+      label: t.label,
+      select: () => this.setState({ tab: t.key }),
+      style: 'cursor:pointer;border:0;border-radius:999px;padding:10px 18px;font-family:var(--font-body);font-size:14px;white-space:nowrap;'
+        + (t.key === s.tab ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);box-shadow:var(--shadow-sm);'),
+    }));
+
+    const itemOf = l => l.kind === 'Item' ? CAT.find(c => c.id === l.ref) : l.kind === 'Kit' ? KITS.find(k => k.id === l.ref) : RATES.find(r => r.id === l.ref);
+    let matCost = 0, matSell = 0, labCost = 0, labSell = 0, hrs = 0;
+    const qLines = s.lines.map((l, i) => {
+      const it = itemOf(l);
+      let sell;
+      if (l.kind === 'Labour') { labCost += it.cost * l.qty; labSell += it.charge * l.qty; hrs += l.qty; sell = it.charge * l.qty; }
+      else {
+        const c = it.cost * l.qty; matCost += c; matSell += c * (1 + s.markup); sell = c * (1 + s.markup);
+        if (l.kind === 'Kit') { const r = RATES[0]; labCost += r.cost * it.hrs * l.qty; labSell += r.charge * it.hrs * l.qty; hrs += it.hrs * l.qty; sell += r.charge * it.hrs * l.qty; }
+      }
+      const step = l.kind === 'Labour' ? 1 : 1;
+      return {
+        name: it.name, kind: l.kind === 'Labour' ? 'Labour' : l.kind === 'Kit' ? 'Kit · includes ' + it.hrs + ' h labour' : it.supplier,
+        unitLine: l.kind === 'Labour' ? money2(it.charge) + ' per hour' : money2(it.cost) + ' cost per ' + (it.unit || 'kit'),
+        qty: l.kind === 'Labour' ? l.qty + ' h' : String(l.qty),
+        sell: money(sell),
+        inc: () => this.setState(st => ({ sent: false, lines: st.lines.map((x, j) => j === i ? { ...x, qty: x.qty + step } : x) })),
+        dec: () => this.setState(st => ({ sent: false, lines: st.lines.map((x, j) => j === i ? { ...x, qty: x.qty - step } : x).filter(x => x.qty > 0) })),
+      };
+    });
+    const exGst = matSell + labSell, cost = matCost + labCost;
+    const qm = exGst ? (exGst - cost) / exGst : 0;
+    const qTone = qm >= 0.4 ? GREEN : qm >= 0.3 ? AMBER : RED;
+    const addLine = (kind, ref) => this.setState(st => {
+      const idx = st.lines.findIndex(x => x.kind === kind && x.ref === ref);
+      const lines = idx >= 0 ? st.lines.map((x, j) => j === idx ? { ...x, qty: x.qty + 1 } : x) : [...st.lines, { kind, ref, qty: 1 }];
+      return { lines, sent: false };
+    });
+
+    const sched = s.sched;
+    const crewRows = CREW.map(c => ({
+      name: c.name,
+      note: c.clear ? c.role : 'Not clear to work · EWP licence expired',
+      tone: c.clear ? 'color-mix(in srgb, var(--color-text) 62%, transparent)' : RED,
+      cells: DAYS.map((d, di) => {
+        const v = sched[c.name][di];
+        const blocked = !c.clear;
+        const canBook = !v && !blocked && !s.booked;
+        return {
+          label: blocked ? 'Can\u2019t book' : v || (s.booked ? '' : '+ J-4431'),
+          tap: () => { if (canBook) this.setState(st => ({ booked: true, sched: { ...st.sched, [c.name]: st.sched[c.name].map((x, k) => k === di ? 'J-4431' : x) } })); },
+          style: 'cursor:' + (canBook ? 'pointer' : 'default') + ';border:0;border-radius:12px;min-height:52px;padding:8px;font-family:var(--font-body);font-size:13px;font-weight:600;text-align:left;'
+            + (blocked ? 'background:color-mix(in srgb, ' + RED + ' 10%, transparent);color:' + RED + ';'
+              : v ? 'background:color-mix(in srgb, ' + (JOB_TONE[v] || GREEN) + ' 16%, transparent);color:var(--color-text);'
+              : 'background:var(--color-bg);color:color-mix(in srgb, var(--color-text) 45%, transparent);'),
+        };
+      }),
+    }));
+
+    const q = s.catQuery.trim().toLowerCase();
+    return {
+      ...base,
+      tabs,
+      onPipeline: s.tab === 'pipeline', onQuotes: s.tab === 'quotes', onSchedule: s.tab === 'schedule', onTime: s.tab === 'time', onCatalogue: s.tab === 'catalogue',
+      onRegister: !!REG[s.tab],
+      qLines,
+      qAdd: [
+        ...CAT.slice(0, 4).map(c => ({ label: c.short, add: () => addLine('Item', c.id) })),
+        ...KITS.map(k => ({ label: k.short, add: () => addLine('Kit', k.id) })),
+        ...RATES.map(r => ({ label: r.name + ' hour', add: () => addLine('Labour', r.id) })),
+      ],
+      qSummary: [
+        { label: 'Materials (cost ' + money(matCost) + ')', value: money(matSell) },
+        { label: 'Labour (' + hrs + ' h)', value: money(labSell) },
+        { label: 'Total ex GST', value: money(exGst) },
+        { label: 'GST', value: money(exGst * 0.1) },
+        { label: 'Your cost', value: money(cost) },
+      ],
+      markups: [0.25, 0.35, 0.45].map(m => ({
+        label: Math.round(m * 100) + '%',
+        select: () => this.setState({ markup: m, sent: false }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13.5px;font-weight:600;'
+          + (m === s.markup ? 'background:var(--color-text);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+      })),
+      qTotal: money(exGst * 1.1),
+      qMarginLine: Math.round(qm * 100) + '% margin · electrical benchmark 40%',
+      qMarginBar: 'height:100%;border-radius:999px;background:' + qTone + ';width:' + Math.max(4, Math.min(100, qm * 200)) + '%;',
+      sendQuote: () => this.setState({ sent: true }),
+      sendLabel: s.sent ? 'Sent ✓' : 'Send quote to Harris Strata',
+      sendNote: s.sent ? 'Sent. They accept online with one tap, and it becomes a job with the materials, labour and budget already on it.'
+        : qm < 0.4 ? 'Under the 40% benchmark. Try a higher markup or check the labour hours before you send.' : 'Healthy margin. Send it and SPEC follows up in 3 days if there\u2019s no answer.',
+
+      days: DAYS,
+      crewRows,
+      waitingLine: s.booked ? 'Nothing. J-4431 is booked and the crew can see it on their phones.' : 'J-4431 Warehouse lighting, Metro Freight · 3 days, 2 people',
+
+      sheets: SHEETS.map(t => ({ ...t, billable: t.bill + '%', billTone: t.bill >= 86 ? GREEN : t.bill >= 75 ? AMBER : RED, state: s.approved || t.done ? 'Approved' : 'Waiting', chip: chip(s.approved || t.done ? GREEN : AMBER) })),
+      approveAll: () => this.setState({ approved: true }),
+      approveLabel: s.approved ? 'All approved ✓' : 'Approve all',
+
+      suppliers: SUPPLIERS.map(p => ({ ...p, chip: chip(p.tone) + 'margin-top:12px;' })),
+      catQuery: s.catQuery,
+      setCatQuery: e => this.setState({ catQuery: e.target.value }),
+      catRows: CAT.filter(c => !q || (c.name + c.cat + c.supplier).toLowerCase().includes(q)).map(c => ({ ...c, cost: money2(c.cost), sell: money2(c.cost * (1 + s.markup)) })),
+      kitRows: KITS.map(k => ({ name: k.name, line: money(k.cost) + ' materials + ' + k.hrs + ' h labour' })),
+
+      groups: (REG[s.tab] || []).map(g => ({ ...g, rows: g.rows.map(r => ({ ...r, chip: chip(r.tone) })) })),
+    };
+  }
+
+  baseVals() {
+    const { jobs, openId, draft } = this.state;
+    const cost = j => j.labour + j.materials;
+    const margin = j => j.quote && cost(j) ? (j.quote - cost(j)) / j.quote : null;
+    const addEnquiry = () => {
+      const t = this.state.draft.trim(); if (!t) return;
+      const parts = t.split(',').map(s => s.trim());
+      const id = 'E-' + (119 + this.state.jobs.filter(j => j.id.startsWith('E-1')).length);
+      const job = J(id, 'enquiry', parts[1] || parts[0], parts[1] ? parts[0] : 'New client', parts[2] || 'Site to confirm', 0, 0, 0, [], 'New');
+      this.setState(s => ({ jobs: [job, ...s.jobs], draft: '', openId: id }));
+    };
+    const advance = id => this.setState(s => ({ jobs: s.jobs.map(j => {
+      if (j.id !== id) return j;
+      const i = STAGES.findIndex(x => x.key === j.stage);
+      return i < STAGES.length - 1 ? { ...j, stage: STAGES[i + 1].key, flag: '' } : j;
+    }) }));
+    const o = jobs.find(j => j.id === openId);
+    const om = o ? margin(o) : null;
+    const mTone = m => m == null ? 'color-mix(in srgb, var(--color-text) 55%, transparent)' : m >= 0.35 ? GREEN : m >= 0.25 ? AMBER : RED;
+    const debt = jobs.filter(j => j.stage === 'invoiced').reduce((a, j) => a + j.quote, 0);
+    const live = jobs.filter(j => ['onsite', 'scheduled', 'won'].includes(j.stage));
+    return {
+      draft,
+      setDraft: e => this.setState({ draft: e.target.value }),
+      draftKey: e => { if (e.key === 'Enter') addEnquiry(); },
+      addEnquiry,
+      stats: [
+        { label: 'Quotes out', value: money(jobs.filter(j => j.stage === 'quoted').reduce((a, j) => a + j.quote, 0)), note: '1 needs a follow-up', tone: AMBER },
+        { label: 'Work on the books', value: money(live.reduce((a, j) => a + j.quote, 0)), note: live.length + ' live jobs', tone: 'color-mix(in srgb, var(--color-text) 70%, transparent)' },
+        { label: 'Average margin', value: '38%', note: 'Benchmark 40% · electrical', tone: AMBER },
+        { label: 'Owed to you', value: money(debt), note: debt ? 'Oldest 38 days · SPEC is chasing' : 'Nothing owed', tone: debt ? RED : GREEN },
+      ],
+      columns: STAGES.map(st => {
+        const list = jobs.filter(j => j.stage === st.key);
+        return {
+          label: st.label,
+          total: list.length ? money(list.reduce((a, j) => a + j.quote, 0)) : '',
+          jobs: list.map(j => {
+            const m = margin(j);
+            const on = j.id === openId;
+            return {
+              id: j.id, title: j.title, client: j.client,
+              value: j.quote ? money(j.quote) : 'To quote',
+              marginLabel: m == null ? '' : Math.round(m * 100) + '% margin',
+              marginTone: mTone(m),
+              flag: j.flag, flagStyle: j.flag ? chip(j.flag === 'New' ? GREEN : j.flag === 'Margin slipping' || j.flag.includes('days') ? RED : AMBER) : 'display:none;',
+              open: () => this.setState({ openId: j.id }),
+              cardStyle: 'all:unset;cursor:pointer;display:block;background:var(--color-surface, #fff);border-radius:16px;padding:14px 16px;box-sizing:border-box;width:100%;'
+                + (on ? 'box-shadow:0 0 0 2px var(--color-accent),var(--shadow-sm);' : 'box-shadow:var(--shadow-sm);'),
+            };
+          }),
+        };
+      }),
+      hasOpen: !!o,
+      close: () => this.setState({ openId: null }),
+      open: !o ? {} : {
+        id: o.id, title: o.title, client: o.client, site: o.site,
+        stageLabel: STAGES.find(s => s.key === o.stage).label,
+        nextLabel: STAGES.find(s => s.key === o.stage).next,
+        next: () => advance(o.id),
+        costs: [
+          { label: 'Quoted', value: o.quote ? money(o.quote) : 'Not quoted yet' },
+          { label: 'Labour so far', value: money(o.labour) },
+          { label: 'Materials so far', value: money(o.materials) },
+          { label: 'Margin', value: om == null ? '—' : Math.round(om * 100) + '%' },
+        ],
+        marginBar: 'height:100%;border-radius:999px;background:' + mTone(om) + ';width:' + (om == null ? 0 : Math.max(4, Math.min(100, om * 250))) + '%;',
+        marginTone: mTone(om),
+        marginLine: om == null ? 'Margin shows as soon as hours and materials land on the job.'
+          : om >= 0.35 ? 'Healthy. On track for the 40% benchmark.'
+          : 'Below the 40% benchmark. Hours are running over the quote. Worth a look with the supervisor.',
+        crew: o.crew.length ? o.crew.map(n => ({ name: n, state: CLEAR[n] === false ? 'Not clear to work' : 'Clear to work', chip: chip(CLEAR[n] === false ? RED : GREEN) })) : [{ name: 'No crew booked yet', state: '', chip: 'display:none;' }],
+        swms: o.crew.length ? 'SWMS and toolbox talk are on the job card in SPEC Safety.' : 'Book the crew and SPEC checks tickets and SWMS before anyone is sent.',
+        log: [
+          { when: 'Today', what: o.flag === 'Margin slipping' ? 'Hours passed 60% of the labour quote at 50% complete' : 'Job opened in SPEC' },
+          { when: 'This week', what: o.crew.length ? o.crew[0] + ' uploaded 6 photos' : 'Enquiry logged by the office' },
+          { when: 'Xero', what: ['invoiced', 'paid'].includes(o.stage) ? 'Invoice sent to Xero automatically' : 'Invoices go to Xero when the job is done' },
+        ],
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

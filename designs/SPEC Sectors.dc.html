@@ -170,7 +170,7 @@ const SECTORS = {
     line: 'Crews on multiple sites, work won by quote, margin decided before anyone picks up a tool.',
     facts: [{ label: 'Typical labour share', value: '30% of revenue' }, { label: 'Hard gates', value: 'Zero Harm · Clear to Work' }, { label: 'Scored roles at 40 people', value: '12 to 14' }],
     roles: ['Managing Director', 'Operations Manager', 'BD Manager', 'Safety & Compliance Lead', 'Site Supervisor', 'Scheduler', 'Estimator', 'Yard Lead'],
-    systems: ['Simpro', 'Xero', 'HubSpot', 'Groundplan', 'Pylon', 'Safety Minder'],
+    systems: ['Simpro', 'Xero', 'HubSpot', 'Groundplan', 'Pylon'],
     pillars: [
       { name: 'Safety', tone: GREEN, question: 'Are we doing it safely?', gate: 'Zero Harm is a hard gate — LTI, MTI and psychosocial.', kpis: [{ name: 'Toolbox talks held', target: '4 / month' }, { name: 'Corrective actions on time', target: '95%' }] },
       { name: 'People', tone: AMBER, question: 'Does everyone love coming to work?', gate: 'Scored on the role, never the person.', kpis: [{ name: 'One-to-ones held', target: '1 per report' }, { name: 'Retention against target', target: '90%' }] },
@@ -282,7 +282,7 @@ class Component extends DCLogic {
       runAsk: () => {
         const text = this.state.ask.trim();
         if (!text) return;
-        this.setState({ reply: 'Claude would read this as a multi-site, rostered, regulated business. It would propose a role per site plus three group roles, put the regulator\u2019s standard behind Compliance as a hard gate, make shift fill rate and turnover the People numbers, and ask which system holds your roster before proposing an Earnings target it cannot yet measure.' });
+        this.setState({ reply: 'SPEC would read this as a multi-site, rostered, regulated business. It would propose a role per site plus three group roles, put the regulator\u2019s standard behind Compliance as a hard gate, make shift fill rate and turnover the People numbers, and ask which system holds your roster before proposing an Earnings target it cannot yet measure.' });
       },
     };
   }

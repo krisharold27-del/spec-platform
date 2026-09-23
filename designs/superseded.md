@@ -54,6 +54,25 @@ static markup happens to, once a real count sits where the design left a hole.
 **Decided:** 20 September 2026, chasing why `designs:coverage --deep --enforce`
 would not clear 100% on a page nobody had touched.
 
+### `Virtual GM Power Meter Hack Your Power`
+### `Hack Your Power`
+
+**Design:** `SPEC My Page.dc.html` — the Power Meter pill's tagline. The 23 September export
+arrived saying **Hack** Your Power again.
+
+**Why the product does not carry it:** the word is **HACC**, deliberately. Kris, 22 September:
+*"its not hack - its HACC - Haness [Harness] Anterior Cingulate Cortex - the key concept of the
+training and programs to improve performance."* Commit c0b7865 corrected the product, the test that
+pins the pill and the design file itself; the design tool has since re-exported its own pun over the
+correction. `src/components/power-meter.tsx` keeps **HACC Your Power**, and
+`tests/power-meter.test.ts` holds it there. Reverting the product to match the export would undo a
+decision the owner made in words.
+
+The first line is the same tagline glued to the label by the design's single `<button>` — see
+`Virtual GM Power Meter HACC Your Power` in `designs/pinned.md` for why the check reads it that way.
+
+**Decided:** 22 September 2026 (the word); recorded here 23 September 2026, when the export reverted it.
+
 ## Screens that are not product screens
 
 Some pages in the design project are references rather than things the product
@@ -189,3 +208,29 @@ additive by design, and dropping a column on the way past is how a rollback beco
 a data loss.
 
 **Decided:** 18 September 2026.
+
+### `Simpro linked · jobs, sites, crews and vehicles`
+
+**Design:** `SPEC Safety.dc.html` — the status pill in the page header.
+
+**Why the product does not carry it:** it names a vendor, and the never list is
+explicit — connectors are by category, never by vendor, in the schema or the UI.
+The designs were drawn around one client's job system (DECISIONS.md, 11
+September: build the shape generically). `/safety` carries the same pill by
+category: *"Your job system is linked · jobs, sites, crews and vehicles"* when a
+live job-management connection exists, and *"Manual · no job system connected"*
+when it does not — manual being a complete mode, not a lesser one.
+
+**Decided:** 23 September 2026, building `/safety`.
+
+### `Tagged to your Simpro job:`
+
+**Design:** `SPEC Safety.dc.html` — the line under the one-line report box.
+
+**Why the product does not carry it:** the same rule — no vendor names. The
+report box says *"Tagged to your job"* (and *"from your job system"* when one is
+connected), with the job the person last reported against, and lets them change
+it. Nothing about the behaviour is lost; only the brand is.
+
+**Decided:** 23 September 2026, building `/safety`.
+

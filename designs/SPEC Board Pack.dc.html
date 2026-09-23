@@ -50,8 +50,12 @@
             <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
           </g>
         </svg>SPEC</a>
+    <a href="SPEC Setup.dc.html">Setup</a>
     <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Jobs.dc.html">Jobs</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Safety.dc.html">Safety</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="#" style="color: var(--color-text); font-weight: 700;">Board pack</a>
     <a href="SPEC Connections.dc.html">Connections</a>
@@ -282,7 +286,7 @@ const tile = (v, size) => 'width:' + (size + 13) + 'px;height:' + (size + 13) + 
 const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
 
 const PILLARS = [
-  { name: 'Safety', score: 96, prev: 92, line: 'Zero Harm held all month. Four of five KPIs measured; TRIFR still has no system behind it.' },
+  { name: 'Safety', score: 96, prev: 92, line: 'Zero Harm held all month. All five KPIs measured; TRIFR now calculated in SPEC Safety.' },
   { name: 'People', score: 84, prev: 86, line: 'Two 90-day departures in the yard crew and one one-to-one not held. The only pillar moving the wrong way.' },
   { name: 'Earnings', score: 91, prev: 88, line: 'Revenue at 94% of plan, margin recovered to 30% against a 32% target. Rework, not pricing.' },
   { name: 'Compliance', score: 100, prev: 100, line: 'Clear to Work held. Licences current, plant checks logged on the day.' },
@@ -310,13 +314,11 @@ const TRENDS = [
 ];
 
 const ASKS = [
-  { what: 'Approve the Safety Minder connection', why: 'TRIFR has been closed out unmeasured for two months. The connection is requested and waiting on the board; scope is incident records, read only.', pillar: 'Safety', owner: 'Decision sits with the Director' },
   { what: 'Fill the Yard Lead role', why: 'Unfilled since July. The crew has no direct manager, which is where both 90-day departures came from and where rework is concentrated.', pillar: 'People', owner: 'Budget approval needed' },
   { what: 'Confirm the 32% margin target for FY27', why: 'Held at 30% for three months. Either the target moves or the quoting rule does, and the GM needs the call before October quoting.', pillar: 'Earnings', owner: 'Decision sits with the board' },
 ];
 
 const FLAGS = [
-  { what: 'TRIFR — Safety', why: 'No system behind it. Closed out for September rather than scored. Connecting Safety Minder makes it measurable from October.' },
   { what: 'Engagement and eNPS — People', why: 'Not collected this period. People is scored on the measures that exist, so the figure understates what is not known.' },
   { what: 'Defects at handover — Compliance', why: 'Pylon field unmapped. Reported by exception until the mapping is approved.' },
 ];

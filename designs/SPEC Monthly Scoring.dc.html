@@ -50,8 +50,12 @@
             <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
           </g>
         </svg>SPEC</a>
+    <a href="SPEC Setup.dc.html">Setup</a>
     <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Jobs.dc.html">Jobs</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Safety.dc.html">Safety</a>
     <a href="#" style="color: var(--color-text); font-weight: 700;">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
     <a href="SPEC Connections.dc.html">Connections</a>
@@ -278,7 +282,7 @@ const ROLES = [
 const ROWS = {
   gm: [
     { id: 'g1', pillar: 'Safety', name: 'Zero Incidents', target: 'target 0', value: '0', fed: false, source: 'Manual — GM confirmation', pct: 100 },
-    { id: 'g2', pillar: 'Safety', name: 'TRIFR', target: 'downward trend', value: '', fed: false, source: 'No system — Safety Minder not connected', pct: 0, unmeasurable: true },
+    { id: 'g2', pillar: 'Safety', name: 'TRIFR', target: 'downward trend', value: '0.0', fed: true, source: 'SPEC Safety · incident register + Simpro hours', pct: 100 },
     { id: 'g3', pillar: 'People', name: 'One-to-ones held', target: 'target 4', value: '4', fed: false, source: 'Manual — SPEC meeting log', pct: 100 },
     { id: 'g4', pillar: 'Earnings', name: 'Revenue against plan', target: 'target 100%', value: '94%', fed: true, source: 'Xero · refreshed 9 Sep', pct: 94 },
     { id: 'g5', pillar: 'Earnings', name: 'Net margin', target: 'target 12%', value: '9.4%', fed: true, source: 'Xero · refreshed 9 Sep', pct: 78 },
@@ -286,7 +290,7 @@ const ROWS = {
   ],
   ops: [
     { id: 'o1', pillar: 'Safety', name: 'Inspections completed', target: 'target 8', value: '8', fed: true, source: 'Simpro · 6:04am', pct: 100 },
-    { id: 'o2', pillar: 'Safety', name: 'Corrective actions on time', target: 'target 95%', value: '92%', fed: false, source: 'Manual — pending Safety Minder', pct: 92 },
+    { id: 'o2', pillar: 'Safety', name: 'Corrective actions on time', target: 'target 95%', value: '92%', fed: false, source: 'SPEC Safety · corrective actions', pct: 92 },
     { id: 'o3', pillar: 'People', name: 'One-to-ones held', target: 'target 7', value: '6', fed: false, source: 'Manual — SPEC meeting log', pct: 86 },
     { id: 'o4', pillar: 'Earnings', name: 'Margin against quote', target: 'target 32%', value: '30%', fed: true, source: 'Simpro · job actual vs quoted', pct: 94 },
     { id: 'o5', pillar: 'Earnings', name: 'Labour utilisation', target: 'target 90%', value: '88%', fed: true, source: 'Simpro · scheduled vs billable', pct: 88 },
@@ -438,7 +442,7 @@ class Component extends DCLogic {
 
       flags: flagged.map(f => ({ what: f.name + ' — ' + f.pillar, why: f.source + '. Closed out for September rather than scored.' }))
         .concat(gatesPass ? [] : [{ what: 'Hard gate failed', why: 'A failed gate is reported on its own. It is not averaged into any pillar.' }]),
-      flagsLine: flagged.length ? 'Connect Safety Minder and TRIFR becomes a scored KPI next month.' : 'Nothing flagged — every number has a source.',
+      flagsLine: flagged.length ? 'Flagged items are closed out rather than scored.' : 'Nothing flagged — every number has a source.',
 
       rollup: byPillar.map(p => ({
         name: p.name,

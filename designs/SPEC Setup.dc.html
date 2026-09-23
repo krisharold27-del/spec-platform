@@ -52,7 +52,10 @@
         </svg>SPEC</a>
     <a href="#" style="color: var(--color-text); font-weight: 700;">Setup</a>
     <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Jobs.dc.html">Jobs</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Safety.dc.html">Safety</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
     <a href="SPEC Connections.dc.html">Connections</a>
@@ -384,7 +387,7 @@ const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26', GREY = '#8c8681';
 const chip = tone => 'display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-size:12.5px;white-space:nowrap;background:color-mix(in srgb, ' + tone + ' 14%, transparent);color:' + tone + ';';
 const dotOf = tone => 'width:12px;height:12px;border-radius:50%;display:block;flex:none;margin-top:5px;background:' + tone + ';';
 const MIN_KPIS_SETUP = 2;
-const STACK_SYSTEMS = ['Simpro', 'Xero', 'MYOB', 'HubSpot', 'Pylon', 'Microsoft 365', 'Safety Minder'];
+const STACK_SYSTEMS = ['Simpro', 'Xero', 'MYOB', 'HubSpot', 'Pylon', 'Microsoft 365'];
 const STACK_FINANCE = ['Xero', 'MYOB'];
 const STACK_CORE = ['Simpro'];
 const stackChipOf = (name, comp) => {
@@ -428,7 +431,7 @@ const KPI_ROLES = ['Operations Manager', 'BD Manager', 'Site Supervisor'];
 const KPIS = {
   'Operations Manager': [
     { id: 'k1', pillar: 'Safety', name: 'Inspections completed', proposed: '8 / month', source: 'Simpro · inspection records' },
-    { id: 'k2', pillar: 'Safety', name: 'Corrective actions on time', proposed: '95%', source: 'Safety Minder · once connected' },
+    { id: 'k2', pillar: 'Safety', name: 'Corrective actions on time', proposed: '95%', source: 'SPEC Safety · built in' },
     { id: 'k3', pillar: 'People', name: 'One-to-ones held', proposed: '1 per report / month', source: 'SPEC meeting log' },
     { id: 'k4', pillar: 'People', name: 'Retention against target', proposed: '90%', source: 'Payroll · terminations' },
     { id: 'k5', pillar: 'Earnings', name: 'Margin against quote', proposed: '32%', source: 'Simpro · job actual vs quoted' },
@@ -448,7 +451,7 @@ const KPIS = {
   ],
   'Site Supervisor': [
     { id: 's1', pillar: 'Safety', name: 'Toolbox talks held', proposed: '4 / month', source: 'Simpro · sign-on records' },
-    { id: 's2', pillar: 'Safety', name: 'Hazards closed', proposed: '100%', source: 'Safety Minder · once connected' },
+    { id: 's2', pillar: 'Safety', name: 'Hazards closed', proposed: '100%', source: 'SPEC Safety · built in' },
     { id: 's3', pillar: 'People', name: 'Crew one-to-ones', proposed: '1 per crew member', source: 'SPEC meeting log' },
     { id: 's4', pillar: 'People', name: 'Apprentice hours signed', proposed: '100%', source: 'Manual · supervisor confirmation' },
     { id: 's5', pillar: 'Earnings', name: 'Jobs completed on time', proposed: '90%', source: 'Simpro · completion date' },
@@ -486,7 +489,7 @@ class Component extends DCLogic {
     size: '26–60',
     claudeOn: true,
     keptRoles: ROLES.reduce((a, r) => { a[r.id] = true; return a; }, {}),
-    stack: { Simpro: true, Xero: true, MYOB: false, HubSpot: true, Pylon: false, 'Microsoft 365': true, 'Safety Minder': false },
+    stack: { Simpro: true, Xero: true, MYOB: false, HubSpot: true, Pylon: false, 'Microsoft 365': true },
     kpiRole: 'Operations Manager',
     agreedValues: {},
     agreed: {},

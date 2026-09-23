@@ -51,7 +51,10 @@
           </g>
         </svg>SPEC</a>
     <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Jobs.dc.html">Jobs</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Safety.dc.html">Safety</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
     <a href="#" style="color: var(--color-text); font-weight: 700;">Connections</a>
@@ -317,7 +320,6 @@ const SYSTEMS = [
   { name: 'Simpro', category: 'Operations', tone: GREEN, connected: true, meta: 'Jobs, quotes and scheduling · synced 6:04am', status: 'Healthy', feeds: ['Earnings', 'Safety'], mapping: [{ kpi: 'Margin against quote', field: 'Job actual vs quoted' }, { kpi: 'Labour utilisation', field: 'Scheduled vs billable hours' }, { kpi: 'Jobs completed on time', field: 'Job · completion date' }] },
   { name: 'Xero', category: 'Finance', tone: GREEN, connected: true, meta: 'Actuals refreshed 9 Sep · nightly', status: 'Healthy', feeds: ['Earnings'], mapping: [{ kpi: 'Revenue against plan', field: 'Tracking category · Plan' }, { kpi: 'Gross margin', field: 'P&L · Gross profit %' }, { kpi: 'Net margin', field: 'P&L · Net profit %' }] },
   { name: 'HubSpot', category: 'Sales', tone: GREEN, connected: true, meta: 'Pipeline, quotes and win rate · hourly', status: 'Healthy', feeds: ['Earnings'], mapping: [{ kpi: 'Quoted work won', field: 'Deals · won / quoted' }, { kpi: 'Pipeline against plan', field: 'Pipeline value · stage weighted' }] },
-  { name: 'Safety Minder', category: 'Safety', tone: AMBER, connected: false, meta: 'Not connected — TRIFR cannot be measured', status: 'Pending', feeds: ['Safety'], mapping: [{ kpi: 'TRIFR', field: 'Incidents · rolling 12 months' }, { kpi: 'Corrective actions on time', field: 'Actions · due date' }, { kpi: 'Tickets current', field: 'Certifications · expiry' }] },
   { name: 'Groundplan', category: 'Operations', tone: GREEN, connected: true, meta: 'Take-offs and plan mark-ups · daily', status: 'Healthy', feeds: ['Earnings'], mapping: [{ kpi: 'Estimating accuracy', field: 'Take-off vs installed quantities' }] },
   { name: 'Pylon', category: 'Operations', tone: AMBER, connected: true, meta: 'Design and compliance calculations · two things not feeding yet', status: 'Needs review', feeds: ['Compliance'], mapping: [{ kpi: 'Designs signed off', field: 'Project · approval status' }, { kpi: 'Defects at handover', field: 'Not feeding yet' }] },
   { name: 'Payroll / rostering', category: 'People', tone: GREY, connected: false, meta: 'Starters, leavers and rostered hours', status: 'Available', feeds: ['People', 'Earnings'], mapping: [] },
@@ -340,8 +342,6 @@ const SENSITIVE = {
 };
 
 const MANUAL = [
-  { kpi: 'Zero Incidents', pillar: 'Safety', who: 'GM confirmation' },
-  { kpi: 'Days Without Harm', pillar: 'Safety', who: 'GM confirmation' },
   { kpi: 'Engagement & eNPS', pillar: 'People', who: 'Not collected' },
   { kpi: 'Plant checks logged', pillar: 'Compliance', who: 'Signed by operator' },
 ];
@@ -351,7 +351,6 @@ const RED = '#a63b26';
 const HEALTH = [
   { name: 'Simpro', sync: 'Synced 6:04am · every 15 minutes', reliability: '100% of syncs, 30 days', state: 'Healthy', tone: GREEN, impact: 'Feeding margin against quote and labour utilisation. Both current.' },
   { name: 'Xero', sync: 'Synced 2:10am · nightly', reliability: '29 of 30 nights', state: 'Healthy', tone: GREEN, impact: 'Feeding revenue against plan. One missed night last month, recovered on the next run.' },
-  { name: 'Safety Minder', sync: 'Last successful sync 28 Aug · 14 days ago', reliability: 'Login expired — needs reconnecting', state: 'Stale', tone: RED, impact: 'TRIFR and incidents closed are not being fed. Both are marked Not tracked on the scorecard rather than carried forward at last known value.' },
   { name: 'HubSpot', sync: 'Synced 6:02am · hourly', reliability: '100% of syncs, 30 days', state: 'Healthy', tone: GREEN, impact: 'Feeding pipeline value and quoted work won.' },
   { name: 'Groundplan', sync: 'Synced 5:51am · daily', reliability: '26 of 30 days', state: 'Watch', tone: AMBER, impact: 'Four missed runs this month. Take-off accuracy is still counting, but a fifth miss stops it counting for September.' },
 ];
@@ -359,7 +358,6 @@ const HEALTH = [
 const LOG = [
   { what: "Pylon changed — 'Defects at handover' isn't feeding a KPI yet", who: 'Kristopher Harold, GM · 9 Sep' },
   { what: 'Xero reconnected after its login expired', who: 'Kristopher Harold, GM · 9 Sep' },
-  { what: 'Safety Minder connection requested', who: 'Justin Bussell, Director · 2 Sep' },
   { what: 'Groundplan connected', who: 'Kristopher Harold, GM · 14 Aug' },
 ];
 

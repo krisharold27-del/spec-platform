@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: var(--color-bg); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+</style>
+</helmet>
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+
+  <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
+    <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
+          </circle>
+          <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
+          </g>
+          <g transform="translate(50 50)">
+            <g fill="#f5ead8">
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
+            </g>
+          </g>
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
+          </g>
+        </svg>SPEC</a>
+    <a href="SPEC Setup.dc.html">Setup</a>
+    <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Jobs.dc.html">Jobs</a>
+    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Safety.dc.html">Safety</a>
+    <a href="SPEC Connections.dc.html">Connections</a>
+    <a href="SPEC Home.dc.html">All pages</a>
+  </nav>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
+
+    <header style="padding: clamp(28px,4vw,44px) 0 24px; max-width: 760px;">
+      <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">Everything SPEC does · JBI Electrical</span>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0;">One system, or as many as you like.</h1>
+      <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Every part of running a trade business, and what it replaces. For each one, run it in SPEC or keep the system you already have. Either way you work from one screen.</p>
+    </header>
+
+    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; padding-bottom: 24px;">
+      <sc-for list="{{ totals }}" as="t" hint-placeholder-count="3">
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px 22px;">
+          <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ t.label }}</span>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 34px; line-height: 1; margin: 10px 0 0;">{{ t.value }}</p>
+          <p style="font-size: 13px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 72%, transparent);">{{ t.note }}</p>
+        </div>
+      </sc-for>
+    </section>
+
+    <div style="display: grid; gap: clamp(20px,3vw,28px);">
+      <sc-for list="{{ areas }}" as="a" hint-placeholder-count="3">
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(22px,3vw,32px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 0;">{{ a.title }}</h2>
+            <a href="{{ a.href }}" style="font-size: 13.5px;">Open {{ a.short }} →</a>
+          </div>
+          <p style="font-size: 14px; line-height: 22px; margin: 8px 0 18px; max-width: 66ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ a.blurb }}</p>
+          <div style="display: grid; gap: 8px;">
+            <sc-for list="{{ a.rows }}" as="r" hint-placeholder-count="6">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: 14px; background: var(--color-bg);">
+                <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 320px;">
+                  <span style="font-size: 14.5px; font-weight: 700;">{{ r.name }}</span>
+                  <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ r.what }}</span>
+                </span>
+                <span style="display: flex; gap: 6px; flex: none;">
+                  <button type="button" onClick="{{ r.useSpec }}" style="{{ r.specStyle }}">SPEC</button>
+                  <sc-if value="{{ r.hasOwn }}" hint-placeholder-val="{{ true }}">
+                    <button type="button" onClick="{{ r.useOwn }}" style="{{ r.ownStyle }}">{{ r.own }}</button>
+                  </sc-if>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </sc-for>
+    </div>
+
+    <p style="font-size: 13.5px; line-height: 21px; margin: 24px 0 0; max-width: 70ch; color: color-mix(in srgb, var(--color-text) 72%, transparent);">Accounting stays in Xero or MYOB, because your accountant, the bank and the ATO all work there. SPEC sends it the invoices, bills and pay runs, so nobody types them twice.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const GREEN = '#4f7a3f';
+const R = (key, name, what, own) => ({ key, name, what, own });
+const AREAS = [
+  { key: 'jobs', title: 'Jobs, quoting and money', short: 'Jobs', href: 'SPEC Jobs.dc.html', blurb: 'Everything from the first phone call to the money in the bank. This is the whole of what Simpro does, in SPEC.', rows: [
+    R('leads', 'Enquiries & leads', 'Calls, emails and web forms on one list, with who\u2019s following up.', 'Simpro'),
+    R('quotes', 'Quoting', 'Build from the catalogue, kits and labour rates. Markup, margin and GST worked out as you go. Client accepts online.', 'Simpro'),
+    R('jobs', 'Jobs & projects', 'Service jobs and big projects, split into stages, with budget against actual on every one.', 'Simpro'),
+    R('schedule', 'Scheduling & dispatch', 'Drag crews onto days. Anyone not clear to work can\u2019t be booked. Crews see it on their phone.', 'Simpro'),
+    R('mobile', 'Field app', 'Job card, SWMS, photos, materials used and client sign-off on the phone.', 'Simpro'),
+    R('time', 'Timesheets & labour', 'Hours from Start and Finish on the phone, costed to the job, billable % to the KPI board.', 'Simpro'),
+    R('catalogue', 'Catalogue & supplier prices', 'The items you actually use, with supplier price files loaded automatically.', 'Simpro'),
+    R('kits', 'Kits & pre-builds', 'Bundles of items and labour you quote in one line.', 'Simpro'),
+    R('costing', 'Job costing & margin', 'Labour, materials and variations landing on the job live, with a warning when the margin slips.', 'Simpro'),
+    R('stock', 'Stock, vans & warehouse', 'Van stock, yard stock, stock-takes and reorder lists built from the schedule.', 'Simpro'),
+    R('po', 'Purchase orders & supplier bills', 'Order from the job, match the supplier invoice, flag price differences.', 'Simpro'),
+    R('variations', 'Variations', 'Extra work priced and signed on site before it\u2019s done.', 'Simpro'),
+    R('claims', 'Progress claims & retention', 'Claim by stage or percentage, with retention held and released on time.', 'Simpro'),
+    R('invoicing', 'Invoicing & debtors', 'Invoice on sign-off, sent to Xero, with reminders at 7, 14 and 30 days.', 'Simpro'),
+    R('service', 'Service contracts & recurring work', 'Maintenance agreements that book themselves.', 'Simpro'),
+    R('assets', 'Test & tag, client assets', 'Every tested item with result, photo and next due date.', 'Simpro'),
+    R('customers', 'Customers & sites', 'Every client, site, contact and job history in one place.', 'HubSpot'),
+  ] },
+  { key: 'hr', title: 'People and HR', short: 'People', href: 'SPEC People.dc.html', blurb: 'The complete HR system, built around the role on the org chart.', rows: [
+    R('recruit', 'Recruitment', 'Vacancies from empty seats on the org chart, scored against the KPIs the person will hold.', ''),
+    R('records', 'Employee records & documents', 'Everyone\u2019s details, licences and documents against their role.', ''),
+    R('contracts', 'Contracts & onboarding', 'Contracts built from the role, signed online, with a first-week plan.', ''),
+    R('leave', 'Leave requests & balances', 'Request on the phone, approve in one tap, balances always current.', ''),
+    R('reviews', 'Performance reviews', 'The last three months of the KPI board, plus one conversation.', ''),
+    R('training', 'Training records', 'Every module finished, due or overdue, from SPEC Training.', ''),
+    R('conduct', 'Warnings & fair process', 'A Fair Work process one step at a time, so no step is missed.', ''),
+    R('award', 'Award & pay rules', 'Every person checked against their award level, rates and allowances each pay run.', ''),
+    R('payroll', 'Payroll export', 'Hours and leave sent to Xero Payroll in one click.', 'Xero'),
+    R('exits', 'Exits & exit reasons', 'Right-reason and wrong-reason exits, feeding negative turnover.', ''),
+  ] },
+  { key: 'safety', title: 'Safety', short: 'Safety', href: 'SPEC Safety.dc.html', blurb: 'The complete safety system. Zero harm, run from one place.', rows: [
+    R('incidents', 'Incidents & injuries', 'From first aid up, tagged to the job, with what changed after.', ''),
+    R('notifiable', 'SafeWork notifiable events', 'Flagged the moment a report looks notifiable, with the steps to take.', ''),
+    R('comp', 'Workers\u2019 comp & return to work', 'Insurer told within 48 hours, suitable duties planned week by week.', ''),
+    R('hazards', 'Hazards & near misses', 'Reported in one line, with an owner and a date to fix it.', ''),
+    R('psych', 'Wellbeing & psychosocial', 'Raised privately or anonymously, seen only by the GM.', ''),
+    R('actions', 'Corrective actions', 'Who fixes it by when. Overdue actions go to the weekly meeting.', ''),
+    R('toolbox', 'Toolbox talks & sign-on', 'Crew signs on from the phone. Missing names show up on their own.', ''),
+    R('swms', 'SWMS & JSA sign-off', 'Every crew member signs before high-risk work starts.', ''),
+    R('inspections', 'Site inspections & audits', 'Every active site inspected monthly. Findings become actions.', ''),
+    R('vehicles', 'Vehicle & plant checks', 'Weekly checks. A failed vehicle is pulled from the schedule.', ''),
+    R('tickets', 'Licences & tickets', 'Warned 60 days before expiry. Not clear to work means can\u2019t be booked.', ''),
+  ] },
+];
+class Component extends DCLogic {
+  state = { own: AREAS[0].rows.reduce((a, r) => { a[r.key] = true; return a; }, { payroll: true }) };
+  renderVals() {
+    const own = this.state.own;
+    const pill = on => 'cursor:pointer;border:0;border-radius:999px;padding:7px 14px;font-family:var(--font-body);font-size:13px;font-weight:600;white-space:nowrap;'
+      + (on ? 'background:' + GREEN + ';color:#fff;' : 'background:#fff;color:color-mix(in srgb, var(--color-text) 65%, transparent);');
+    const all = AREAS.flatMap(a => a.rows);
+    const inOwn = all.filter(r => r.own && own[r.key]).length;
+    const systems = [...new Set(all.filter(r => r.own && own[r.key]).map(r => r.own))];
+    return {
+      totals: [
+        { label: 'Things SPEC does', value: String(all.length), note: 'Across jobs, HR and safety' },
+        { label: 'Running in SPEC', value: String(all.length - inOwn), note: 'Nothing else to buy for these' },
+        { label: 'From connected systems', value: String(inOwn), note: systems.length ? 'From ' + systems.join(', ') + ', read and written by SPEC' : 'Nothing connected. SPEC runs it all' },
+      ],
+      areas: AREAS.map(a => ({
+        ...a,
+        rows: a.rows.map(r => {
+          const isOwn = !!(r.own && own[r.key]);
+          return {
+            name: r.name, what: r.what, own: r.own, hasOwn: !!r.own,
+            specStyle: pill(!isOwn), ownStyle: pill(isOwn),
+            useSpec: () => this.setState(s => ({ own: { ...s.own, [r.key]: false } })),
+            useOwn: () => this.setState(s => ({ own: { ...s.own, [r.key]: true } })),
+          };
+        }),
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

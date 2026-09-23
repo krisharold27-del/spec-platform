@@ -50,8 +50,12 @@
             <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
           </g>
         </svg>SPEC</a>
+    <a href="SPEC Setup.dc.html">Setup</a>
     <a href="SPEC My Page.dc.html">My page</a>
+    <a href="SPEC Jobs.dc.html">Jobs</a>
     <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Safety.dc.html">Safety</a>
     <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
     <a href="SPEC Board Pack.dc.html">Board pack</a>
     <a href="SPEC Connections.dc.html">Connections</a>
@@ -284,17 +288,17 @@ const PILLARS = {
     letter: 'S',
     tone: GREEN,
     question: 'Are we doing it safely?',
-    summary: '4 of 5 confirmed clean — TRIFR pending Safety Minder',
+    summary: '5 of 5 confirmed clean',
     rows: [
       { name: 'Zero Incidents', target: '0 (non-negotiable)', result: '0', status: 'Confirmed', source: 'Manual — GM confirmation' },
       { name: 'Zero Workers Compensation Claims', target: '0', result: '0', status: 'Confirmed', source: 'Manual — GM confirmation' },
       { name: 'LTI / MTI Count', target: '0 (non-negotiable)', result: '0', status: 'Confirmed', source: 'Manual — GM confirmation' },
-      { name: 'TRIFR', target: 'Downward trend', result: 'N/A this month', status: 'Not tracked', source: 'Pending Safety Minder connection — closed out for Aug without a system to measure it' },
+      { name: 'TRIFR', target: 'Downward trend', result: '0.0', status: 'Confirmed', source: 'SPEC Safety · incident register + Simpro hours' },
       { name: 'Days Without Harm', sub: 'physical & psychosocial', target: 'Uninterrupted', result: 'Uninterrupted', status: 'Confirmed', source: 'Manual — GM confirmation' },
     ],
     sources: [
       { name: 'Manual — GM confirmation', detail: 'Kristopher Harold, GM' },
-      { name: 'Safety Minder', detail: 'Not connected yet' },
+      { name: 'SPEC Safety', detail: 'Built in · reads hours from Simpro' },
       { name: 'Zero Harm gate', detail: 'Pass for 1–31 Aug 2026' },
     ],
     staff: [
@@ -303,8 +307,8 @@ const PILLARS = {
       { person: 'Vacant', title: 'Yard Lead', status: 'Not tracked', tone: GREY, note: 'Role unfilled — the crew is covering inspections.' },
     ],
     comments: [
-      { author: 'Justin Bussell, Director', when: '2 days ago', body: 'Four clean is fine. Get Safety Minder connected so TRIFR is measured rather than closed out.' },
-      { author: 'Kristopher Harold, GM', when: '5 days ago', body: 'TRIFR has no system behind it this month, so it is marked not tracked rather than scored.' },
+      { author: 'Justin Bussell, Director', when: '2 days ago', body: 'Five clean. TRIFR is now measured in SPEC Safety.' },
+      { author: 'Kristopher Harold, GM', when: '5 days ago', body: 'Confirmed. TRIFR is 0.0 from the SPEC Safety register and Simpro hours.' },
     ],
   },
   People: {
