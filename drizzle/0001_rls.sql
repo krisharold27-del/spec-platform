@@ -250,3 +250,19 @@ begin
     execute format('create policy tenant_isolation on %I for all using (tenant_id = auth_tenant_id()) with check (tenant_id = auth_tenant_id())', t);
   end loop;
 end $$;
+
+-- ───────────────────────────────────────────────────────────────────────────────────────────────
+-- Coverage (23 September): who runs each capability — SPEC or the business's own system. Carries
+-- its own tenant_id, looped the same way as the blocks above.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['coverage_choices']
+  loop
+    continue when to_regclass(t) is null;
+    execute format('alter table %I enable row level security', t);
+    execute format('drop policy if exists tenant_isolation on %I', t);
+    execute format('create policy tenant_isolation on %I for all using (tenant_id = auth_tenant_id()) with check (tenant_id = auth_tenant_id())', t);
+  end loop;
+end $$;
