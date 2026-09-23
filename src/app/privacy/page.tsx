@@ -15,7 +15,7 @@ export default function Privacy() {
       </p>
 
       <div className="prose-sm mt-8 space-y-5 text-sm leading-6 text-ink-light">
-        <p>SPEC Business Solutions ("we", "us") handles personal information in line with the Australian Privacy Act 1988 and the Australian Privacy Principles. This policy covers the SPEC app (specbizhq.com and app.specbizhq.com).</p>
+        <p>SPEC Business Solutions ("we", "us") handles personal information in line with the Australian Privacy Act 1988 and the Australian Privacy Principles. This policy covers the SPEC app (sitevipapp.com).</p>
 
         <h2 className="text-base font-semibold text-ink">What we collect</h2>
         <p>When you sign up or are assigned a role: your name, work email, and the business you're part of. When you use SPEC: the org chart, KPIs, targets, scorecard answers, notes, gate figures, and diagnostic answers your business enters. We don't ask for or want anything beyond what running the platform needs — no financial account numbers, no government ID, no data about your own customers or staff beyond what a role needs (name, email, access level).</p>
