@@ -504,12 +504,30 @@ export async function invitePerson(formData: FormData) {
  * disagree with the bill.
  */
 export async function setSeatKind(formData: FormData) {
+  /*
+    ── Posted from /billing too, so it answers on /billing (23 September) ──────────────────────────
+
+    The Pricing page posts here as well as the chart card. A refusal used to send the person to the
+    CHART with the reason, and a success said nothing at all — so pressing Save on /billing either
+    jumped somewhere else or appeared to do nothing, and whether the live subscription moved was
+    something only the Vercel logs knew. From /billing both now land back on /billing, the refusal
+    in words and the save with what happened to the subscription (`?seat_sync=`).
+  */
+  const fromBilling = formData.get('from') === 'billing';
+  const no = (reason: string, roleId?: string): never => {
+    if (fromBilling) redirect(`/billing?cannot=${encodeURIComponent(reason)}`);
+    refuse(reason, roleId);
+  };
+
   const user = await editor();
   const scope = await getScope(user);
 
   const roleId = String(formData.get('roleId') ?? '');
-  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
-  if (!scope.canInvite) refuse('Only somebody on a leadership seat can change how another seat is billed.', roleId);
+  if (!scope.canShapeChart(roleId)) {
+    if (fromBilling) no('That role is outside what your account can change.');
+    outside(scope, user.access);
+  }
+  if (!scope.canInvite) no('Only somebody on a leadership seat can change how another seat is billed.', roleId);
 
   const raw = String(formData.get('seatKind') ?? '');
   const seatKind = raw === 'leadership' || raw === 'team' ? raw : null; // 'auto' (or anything else) clears it
@@ -517,10 +535,10 @@ export async function setSeatKind(formData: FormData) {
   const openRows = await db.select().from(schema.roleAssignments)
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
   const placement = placementShown(openRows);
-  if (!placement?.userId) refuse('Nobody with a SPEC login is in that role, so there is nothing to bill differently.', roleId);
+  if (!placement?.userId) no('Nobody with a SPEC login is in that role, so there is nothing to bill differently.', roleId);
 
   await db.update(schema.users).set({ seatKindOverride: seatKind })
-    .where(and(eq(schema.users.id, placement.userId), eq(schema.users.tenantId, user.tenantId)));
+    .where(and(eq(schema.users.id, placement!.userId!), eq(schema.users.tenantId, user.tenantId)));
 
   revalidatePath('/org');
   revalidatePath('/billing');
@@ -528,7 +546,9 @@ export async function setSeatKind(formData: FormData) {
   revalidatePath('/training');
   // The whole reason this button exists — pushed straight through to the live subscription rather
   // than waiting for somebody to notice the invoice is wrong. See the note on syncSubscriptionSeats.
-  await syncSubscriptionSeats(user.tenantId);
+  const outcome = await syncSubscriptionSeats(user.tenantId);
+  // Outside any try: redirect() works by throwing.
+  if (fromBilling) redirect(`/billing?seat_sync=${outcome.status}`);
 }
 
 /** Take a role off the chart for good. Never used on a role with anybody in it. */
