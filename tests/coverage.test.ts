@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import {
-  AREAS, CAPABILITIES, capabilitiesIn, CONNECTED_LABEL, defaultChoices, choose, readChoices,
-  totalsOf, connectedNote,
+  AREAS, AREA_CATEGORY, CAPABILITIES, capabilitiesIn, CONNECTED_LABEL, SYSTEM_NOUN, defaultChoices, choose,
+  chooseArea, areaRunner, effectiveChoices, rowsFor, totalsOf, connectedNote, connectionState, connectHref,
+  connectLabel, CONNECTION_WORDS, MODULE_TABS, ownLine, SLOT_CAPABILITY, sourceFor,
 } from '../src/lib/coverage';
+import { FRAMEWORK, sourceLine, withSources, powerReading } from '../src/lib/power-meter';
 import { CATEGORIES, COMMON_SYSTEMS } from '../src/lib/systems';
 
 /** The design's own rows: R('key', 'Name', 'what', 'Vendor'). */
@@ -33,13 +35,23 @@ describe('the capability map', () => {
     expect(new Set(CAPABILITIES.map(c => c.key)).size).toBe(38);
   });
 
-  it('offers a connected system on exactly the rows the design does', () => {
-    expect(CAPABILITIES.filter(c => c.connect).map(c => c.key))
-      .toEqual(designRows.filter(r => r.own).map(r => r.key));
+  /*
+    The design offers another system only on the rows where one business happened to run one. Kris,
+    23 September: "they can choose to use their own system if they choose and connect it". So every
+    row can be handed over: the design's rows keep the kind of system the design names, and every
+    other row falls to its area's own kind.
+  */
+  it('offers the business’s own system on every row — the design’s kind where it names one, the area’s otherwise', () => {
+    for (const c of CAPABILITIES) expect(c.connect, c.key).toBeTruthy();
+    const named = new Set(designRows.filter(r => r.own).map(r => r.key));
+    for (const c of CAPABILITIES.filter(x => !named.has(x.key))) expect(c.connect, c.key).toBe(AREA_CATEGORY[c.area]);
+    expect(CAPABILITIES.find(c => c.key === 'customers')!.connect).toBe('crm');
+    expect(CAPABILITIES.find(c => c.key === 'payroll')!.connect).toBe('financials');
+    expect(AREA_CATEGORY).toEqual({ jobs: 'job_management', hr: 'payroll', safety: 'safety' });
   });
 
   it('names categories, never vendors', () => {
-    const text = JSON.stringify({ AREAS, CAPABILITIES, CONNECTED_LABEL });
+    const text = JSON.stringify({ AREAS, CAPABILITIES, CONNECTED_LABEL, SYSTEM_NOUN });
     for (const vendor of [...COMMON_SYSTEMS, 'Xero Payroll', 'SafeWork', 'Fair Work']) {
       expect(text.toLowerCase()).not.toContain(vendor.toLowerCase());
     }
@@ -49,38 +61,185 @@ describe('the capability map', () => {
 });
 
 describe('the switch', () => {
-  it('starts in SPEC unless the business already told SPEC it runs that kind of system', () => {
-    const none = defaultChoices([]);
-    expect(Object.values(none).every(v => v === 'spec')).toBe(true);
-    const withJobs = defaultChoices(['job_management']);
-    expect(withJobs.quotes).toBe('connected');
-    expect(withJobs.customers).toBe('spec');
-    expect(withJobs.payroll).toBe('spec');
-    expect(defaultChoices(['financials']).payroll).toBe('connected');
+  it('starts every capability in SPEC — nothing is written until somebody changes one', () => {
+    const d = defaultChoices();
+    expect(Object.keys(d)).toHaveLength(38);
+    expect(Object.values(d).every(v => v === 'spec')).toBe(true);
+    expect(effectiveChoices([])).toEqual(d);
   });
 
-  it('cannot hand a SPEC-only capability to a connected system', () => {
-    const c = defaultChoices([]);
-    expect(choose(c, 'incidents', 'connected').incidents).toBe('spec');
-    expect(choose(c, 'quotes', 'connected').quotes).toBe('connected');
-    expect(choose(c, 'nonsense', 'connected')).toBe(c);
+  it('hands any capability to the business’s own system, and back', () => {
+    const c = defaultChoices();
+    expect(choose(c, 'incidents', 'own').incidents).toBe('own');
+    expect(choose(choose(c, 'quotes', 'own'), 'quotes', 'spec').quotes).toBe('spec');
+    expect(choose(c, 'nonsense', 'own')).toBe(c);
+    expect(choose(c, 'quotes', 'connected' as never)).toBe(c);
   });
 
-  it('reads stored choices defensively', () => {
-    const d = defaultChoices([]);
-    expect(readChoices(null, d)).toEqual(d);
-    expect(readChoices('not json', d)).toEqual(d);
-    expect(readChoices('{"quotes":"connected","incidents":"connected","x":"spec","jobs":7}', d))
-      .toEqual({ ...d, quotes: 'connected' });
+  it('one press sets a whole area, and only that area', () => {
+    const jobs = chooseArea(defaultChoices(), 'jobs', 'own');
+    expect(capabilitiesIn('jobs').every(c => jobs[c.key] === 'own')).toBe(true);
+    expect(capabilitiesIn('hr').every(c => jobs[c.key] === 'spec')).toBe(true);
+    expect(areaRunner(jobs, 'jobs')).toBe('own');
+    expect(areaRunner(jobs, 'safety')).toBe('spec');
+    expect(areaRunner(choose(jobs, 'quotes', 'spec'), 'jobs')).toBe('mixed');
+    expect(areaRunner(chooseArea(jobs, 'jobs', 'spec'), 'jobs')).toBe('spec');
+    expect(chooseArea(jobs, 'nowhere' as never, 'own')).toBe(jobs);
   });
 
-  it('totals the way the design does', () => {
-    const none = totalsOf(defaultChoices([]));
+  it('reads stored rows defensively — anything unrecognised is SPEC', () => {
+    expect(effectiveChoices([
+      { capability: 'quotes', choice: 'own' },
+      { capability: 'incidents', choice: 'spec' },
+      { capability: 'x', choice: 'own' },
+      { capability: 'jobs', choice: 'connected' },
+    ])).toEqual({ ...defaultChoices(), quotes: 'own' });
+  });
+
+  it('writes only what differs from SPEC — back to SPEC deletes the row', () => {
+    expect(rowsFor(['quotes', 'nope'], 'own')).toEqual({ set: ['quotes'], clear: [] });
+    expect(rowsFor(['quotes', 'leads'], 'spec')).toEqual({ set: [], clear: ['quotes', 'leads'] });
+  });
+
+  it('totals the way the design does, and never claims anything arrives', () => {
+    const none = totalsOf(defaultChoices());
     expect(none).toEqual({ total: 38, inSpec: 38, connected: 0, systems: [] });
     expect(connectedNote(none)).toBe('Nothing connected. SPEC runs it all');
-    const some = totalsOf(defaultChoices(['job_management', 'financials']));
-    expect(some.connected).toBe(17);
-    expect(some.inSpec).toBe(21);
-    expect(connectedNote(some)).toBe('From your job system, your accounting system, read and written by SPEC');
+    const some = totalsOf(choose(chooseArea(defaultChoices(), 'jobs', 'own'), 'customers', 'spec'));
+    expect(some.connected).toBe(16);
+    expect(some.inSpec).toBe(22);
+    expect(connectedNote(some)).toBe('Run in your job system');
+    expect(connectedNote(totalsOf(chooseArea(defaultChoices(), 'hr', 'own'))))
+      .toBe('Run in your HR system, your accounting system');
+  });
+});
+
+describe('own system → connect it', () => {
+  const conns = [
+    { category: 'job_management', status: 'live' },
+    { category: 'payroll', status: 'requested' },
+    { category: 'safety', status: 'broken' },
+  ];
+
+  it('is connected only when a connection of that kind is live', () => {
+    expect(connectionState('job_management', conns)).toBe('live');
+    expect(connectionState('payroll', conns)).toBe('waiting');
+    expect(connectionState('safety', conns)).toBe('waiting');
+    expect(connectionState('crm', conns)).toBe('none');
+    expect(connectionState('crm', [...conns, { category: 'crm', status: 'requested' }, { category: 'crm', status: 'live' }])).toBe('live');
+  });
+
+  it('links straight to the right place on Connections, by what the system is', () => {
+    expect(connectHref('job_management')).toBe('/connections?category=job_management#add');
+    expect(connectLabel('job_management')).toBe('Connect your job system');
+    expect(connectLabel('payroll')).toBe('Connect your HR system');
+    expect(connectLabel('financials')).toBe('Connect your accounting system');
+    expect(connectLabel('crm')).toBe('Connect your CRM');
+    expect(CONNECTION_WORDS.live).toBe('Connected');
+  });
+
+  it('never paints not-yet-connected red', () => {
+    const map = readFileSync('src/app/coverage/coverage-map.tsx', 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
+    expect(map).not.toMatch(/\bred\b|text-red|bg-red|pillTone\('red'\)|danger/i);
+    expect(map).toContain('connectLabel(category)');
+  });
+});
+
+describe('the modules respect the choice', () => {
+  it('say nothing while everything runs in SPEC', () => {
+    const d = defaultChoices();
+    for (const m of Object.keys(MODULE_TABS) as (keyof typeof MODULE_TABS)[]) {
+      for (const tab of Object.keys(MODULE_TABS[m].tabs)) expect(ownLine(m, tab, d)).toBeNull();
+    }
+  });
+
+  it('name the whole area when the whole area is handed over', () => {
+    const jobs = chooseArea(defaultChoices(), 'jobs', 'own');
+    expect(ownLine('jobs', 'quotes', jobs)).toEqual({ text: 'You run jobs in your own job system.', category: 'job_management' });
+    expect(ownLine('safety', 'today', chooseArea(defaultChoices(), 'safety', 'own'))!.text).toBe('You run safety in your own safety system.');
+    expect(ownLine('people', 'have', chooseArea(defaultChoices(), 'hr', 'own'))!.text).toBe('You run HR in your own HR system.');
+  });
+
+  it('name just the tab’s own capabilities when only some are handed over', () => {
+    const c = choose(choose(defaultChoices(), 'stock', 'own'), 'po', 'own');
+    expect(ownLine('jobs', 'stock', c)!.text).toBe('You run Stock, vans & warehouse and Purchase orders & supplier bills in your own job system.');
+    expect(ownLine('jobs', 'quotes', c)).toBeNull();
+    expect(ownLine('safety', 'today', choose(defaultChoices(), 'hazards', 'own'))!.text).toContain('Hazards & near misses');
+    expect(ownLine('people', 'pay', choose(defaultChoices(), 'payroll', 'own'))).toEqual({
+      text: 'You run Payroll export in your own accounting system.', category: 'financials',
+    });
+  });
+
+  it('the CRM follows Customers & sites, which is part of Jobs', () => {
+    expect(ownLine('crm', 'deals', choose(defaultChoices(), 'customers', 'own'))).toEqual({
+      text: 'You run Customers & sites in your own CRM.', category: 'crm',
+    });
+    expect(ownLine('crm', 'deals', choose(defaultChoices(), 'quotes', 'own'))).toBeNull();
+  });
+
+  it('every tab named is a real capability', () => {
+    const keys = new Set(CAPABILITIES.map(c => c.key));
+    for (const m of Object.values(MODULE_TABS)) for (const list of Object.values(m.tabs)) for (const k of list) expect(keys.has(k), k).toBe(true);
+    for (const k of Object.values(SLOT_CAPABILITY)) expect(keys.has(k), k).toBe(true);
+  });
+
+  it('each module draws the line at the top, linking back to Coverage', () => {
+    for (const f of ['src/app/jobs/page.tsx', 'src/app/safety/page.tsx', 'src/app/people/page.tsx', 'src/app/crm/page.tsx']) {
+      expect(readFileSync(f, 'utf8'), f).toContain('<OwnSystemLine');
+    }
+    const line = readFileSync('src/components/own-system-line.tsx', 'utf8');
+    expect(line).toContain('/coverage');
+    expect(line).toContain('Switch back to SPEC');
+  });
+});
+
+describe('where a number comes from follows the choice', () => {
+  it('SPEC’s own record while it runs in SPEC; the business’s own system when it does not', () => {
+    const d = defaultChoices();
+    expect(sourceFor('safety_incident', 'SPEC Safety · incident register', d)).toBe('SPEC Safety · incident register');
+    const own = chooseArea(d, 'safety', 'own');
+    expect(sourceFor('safety_incident', 'SPEC Safety · incident register', own)).toBe('your safety system');
+    expect(sourceFor('turnover', 'SPEC People · exits and exit reasons', chooseArea(d, 'hr', 'own'))).toBe('your HR system');
+    expect(sourceFor('gross_profit', 'SPEC Jobs · job costing', chooseArea(d, 'jobs', 'own'))).toBe('your job system');
+    // Two records, or none of the 38: the label does not move.
+    expect(sourceFor('trifr', 'SPEC Safety + Jobs timesheets', own)).toBe('SPEC Safety + Jobs timesheets');
+    expect(sourceFor('net_margin', 'your accounting system', own)).toBe('your accounting system');
+  });
+
+  it('the Power Meter reading carries it through to the breakdown', () => {
+    const own = chooseArea(defaultChoices(), 'safety', 'own');
+    const reading = withSources(powerReading([]), own);
+    const incident = reading.heavy.find(r => r.slot.id === 'safety_incident')!;
+    expect(sourceLine(incident.slot)).toBe('from your safety system');
+    expect(sourceLine(reading.heavy.find(r => r.slot.id === 'gross_profit')!.slot)).toBe('from SPEC Jobs · job costing');
+    // The framework itself is never edited.
+    expect(FRAMEWORK[0].source).toBe('SPEC Safety · incident register');
+    expect(withSources(powerReading([]), defaultChoices()).heavy[0].slot.source).toBe('SPEC Safety · incident register');
+  });
+});
+
+/*
+  Categories, never vendors — on every screen, not only the ones built this week.
+
+  The People page offered to connect two named HR products, long after the never list said
+  otherwise. Every page and component is read with its comments stripped; the one exception is
+  Connections talking about the one connector SPEC really has, which is named because it speaks that
+  company's API (see `isXero` in lib/systems). The People page is read whole, comments included.
+*/
+describe('no vendor on any screen', () => {
+  const VENDORS = /\b(bamboo ?hr|employment ?hero|keypay|tanda|simpro|aroflo|servicem8|fergus|tradify|hubspot|salesforce|pipedrive|zoho|myob|quickbooks|safety ?minder|pylon|hammertech|donesafe|sitedocs|xero)\b/i;
+  const code = (t: string) => t.replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+  const walk = (dir: string): string[] => readdirSync(dir, { withFileTypes: true })
+    .flatMap(e => (e.isDirectory() ? walk(`${dir}/${e.name}`) : /\.tsx?$/.test(e.name) ? [`${dir}/${e.name}`] : []));
+
+  it('names no HR, job, safety, CRM or accounting product in any page or component', () => {
+    const files = [...walk('src/app'), ...walk('src/components')].filter(f => !f.startsWith('src/app/connections/'));
+    expect(files.length).toBeGreaterThan(50);
+    for (const f of files) expect(code(readFileSync(f, 'utf8')), f).not.toMatch(VENDORS);
+  });
+
+  it('and the People page names none even in its notes', () => {
+    for (const f of walk('src/app/people')) expect(readFileSync(f, 'utf8'), f).not.toMatch(VENDORS);
+    expect(readFileSync('src/app/people/page.tsx', 'utf8')).toContain('Connect your HR system');
   });
 });

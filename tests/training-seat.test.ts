@@ -102,12 +102,13 @@ describe('a bill made of three kinds of seat', () => {
   */
   it('CHARGES THE LEADERSHIP RATE ONLY FOR THE PEOPLE WHO LEAD', () => {
     // Forty people, six of them leading somebody, one seat free.
+    // The free seat is the first leadership seat, so five leaders and all 34 team seats are billed.
     const bill = seatBill(40, 6, 'aud');
-    expect(bill.leadership).toBe(6);
-    expect(bill.team).toBe(33);
+    expect(bill.leadership).toBe(5);
+    expect(bill.team).toBe(34);
     expect(bill.training).toBe(0);
     expect(bill.leadership + bill.team + FREE_SEATS).toBe(40);
-    expect(bill.monthlyCost).toBe(6 * LEADER + 33 * TEAM);
+    expect(bill.monthlyCost).toBe(5 * LEADER + 34 * TEAM);
   });
 
   it('AND IS NOWHERE NEAR THE LEADERSHIP RATE FOR EVERYBODY, which is what it used to be', () => {
@@ -127,32 +128,32 @@ describe('a bill made of three kinds of seat', () => {
     // `bill.leadership` is every billed leadership seat, plain and trained together (6); `bill.training`
     // is the trained subset of it (2) — never added on top, which is why the cost uses only four at
     // the plain rate.
+    // The free seat comes off a plain leader, so three plain, two trained, 34 team.
     const bill = seatBill(40, 6, 'aud', 2);
-    expect(bill.leadership).toBe(6);
+    expect(bill.leadership).toBe(5);
     expect(bill.training).toBe(2);
-    expect(bill.team).toBe(33);
-    expect(bill.monthlyCost).toBe(4 * LEADER + 2 * TRAINING + 33 * TEAM);
+    expect(bill.team).toBe(34);
+    expect(bill.monthlyCost).toBe(3 * LEADER + 2 * TRAINING + 34 * TEAM);
   });
 
   it('never charges a trained seat that is not also counted as a leader', () => {
     // trainingSeats can never exceed leadershipSeats — the training seat is a leadership seat, first.
     const bill = seatBill(10, 2, 'aud', 9);
     expect(bill.training).toBeLessThanOrEqual(2);
-    expect(bill.leadership + bill.training).toBe(bill.leadership + Math.min(9, 2));
+    expect(bill.leadership).toBeLessThanOrEqual(2);
   });
 
   /*
-    The free seat comes off a team seat, not off the dearer ones — the less generous reading, and
-    the same choice the old version made. Taking it off a trained leadership seat would hand back
-    A$227 to make a point about A$17.
+    Kris, 23 September: "the free seat for each company is the first leadership seat" — the person
+    who started the business, who leads it. A team seat is free only when there is no leader.
   */
-  it('takes the free seat off a team seat, not off either leadership rate', () => {
-    expect(seatBill(2, 1, 'aud').monthlyCost).toBe(LEADER);
-    expect(seatBill(2, 1, 'aud').team).toBe(0);
-    expect(seatBill(2, 1, 'aud').leadership).toBe(1);
+  it('takes the free seat off the first leadership seat, not a team seat', () => {
+    expect(seatBill(2, 1, 'aud').monthlyCost).toBe(17);
+    expect(seatBill(2, 1, 'aud').team).toBe(1);
+    expect(seatBill(2, 1, 'aud').leadership).toBe(0);
   });
 
-  it('and off a plain leadership seat before a trained one, when there is no team seat to take it from', () => {
+  it('and off a plain leadership seat before a trained one', () => {
     // Two leaders, one trained, nobody else — the free seat comes off the plain one, leaving only
     // the trained seat billed. `bill.leadership` is the total leadership count billed (plain and
     // trained together), which is why it still reads 1 even though the plain seat itself is free.
@@ -182,9 +183,9 @@ describe('a bill made of three kinds of seat', () => {
 
   it('bills in the region’s own prices, never converted', () => {
     expect(seatBill(5, 2, 'gbp').monthlyCost)
-      .toBe(2 * SEAT_PRICES.gbp.leadership + 2 * SEAT_PRICES.gbp.team);
+      .toBe(1 * SEAT_PRICES.gbp.leadership + 3 * SEAT_PRICES.gbp.team);
     expect(seatBill(5, 2, 'gbp', 1).monthlyCost)
-      .toBe(1 * SEAT_PRICES.gbp.leadership + 1 * SEAT_PRICES.gbp.leadershipWithTraining + 2 * SEAT_PRICES.gbp.team);
+      .toBe(1 * SEAT_PRICES.gbp.leadershipWithTraining + 3 * SEAT_PRICES.gbp.team);
   });
 
   /*
@@ -194,20 +195,20 @@ describe('a bill made of three kinds of seat', () => {
     `SEAT_PRICES` in lib/pricing.
   */
   it('PRICES EVERY BUSINESS THE SAME WAY, there being only one price to be on', () => {
-    expect(planState(t('basic'), 40, 'aud', 6).monthlyCost).toBe(6 * LEADER + 33 * TEAM);
+    expect(planState(t('basic'), 40, 'aud', 6).monthlyCost).toBe(5 * LEADER + 34 * TEAM);
   });
 
   it('reaches the plan state, so the page shows the real number', () => {
     const s = planState(t('basic'), 40, 'aud', 6, 2);
     expect(s.seats).toBe(40);
-    expect(s.leadershipSeats).toBe(6);
+    expect(s.leadershipSeats).toBe(5);
     expect(s.trainingSeats).toBe(2);
-    expect(s.teamSeats).toBe(33);
-    expect(s.monthlyCost).toBe(4 * LEADER + 2 * TRAINING + 33 * TEAM);
+    expect(s.teamSeats).toBe(34);
+    expect(s.monthlyCost).toBe(3 * LEADER + 2 * TRAINING + 34 * TEAM);
   });
 
   it('holds at twenty thousand seats', () => {
     const bill = seatBill(20_000, 2_000, 'aud');
-    expect(bill.monthlyCost).toBe(2_000 * LEADER + 17_999 * TEAM);
+    expect(bill.monthlyCost).toBe(1_999 * LEADER + 18_000 * TEAM);
   });
 });

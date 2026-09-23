@@ -23,15 +23,15 @@ describe('seat-based plan', () => {
     business it was free while charging it.
 
     Five people, one of whom leads the other four — the shape of a small business — so the bill is
-    one leadership seat and three team seats, with the free one taken off the cheaper kind.
+    four team seats: the free seat is the first leadership seat (Kris, 23 September).
   */
   it('bills per person AFTER THE FIRST, who is free', () => {
     const s = planState(t('basic'), 5, 'aud', 1);
     expect(s.seats, 'five people are in it').toBe(5);
     expect(s.billable, 'four of them are charged for').toBe(4);
-    expect(s.leadershipSeats).toBe(1);
-    expect(s.teamSeats).toBe(3);
-    const total = SEAT_PRICE_MONTHLY + 3 * SEAT_PRICES.aud.team;
+    expect(s.leadershipSeats).toBe(0);
+    expect(s.teamSeats).toBe(4);
+    const total = 4 * SEAT_PRICES.aud.team;
     expect(s.monthlyCost).toBe(total);
     expect(costLabel(s)).toBe(`A$${total} a month · 5 people, first seat free`);
   });
@@ -59,9 +59,9 @@ describe('seat-based plan', () => {
   it('starts charging at the second person, not the first', () => {
     expect(planState(t('trial'), 1).billing).toBe(false);
     expect(planState(t('trial'), 2).billing).toBe(true);
-    // A leader and somebody they lead: the free seat comes off the cheaper one, so the bill is
-    // the leadership seat.
-    expect(planState(t('trial'), 2, 'aud', 1).monthlyCost).toBe(SEAT_PRICE_MONTHLY);
+    // A leader and somebody they lead: the leader started it and is free, so the bill is the
+    // team seat.
+    expect(planState(t('trial'), 2, 'aud', 1).monthlyCost).toBe(SEAT_PRICES.aud.team);
     // And two people who lead nobody is two team seats, one of them free.
     expect(planState(t('trial'), 2).monthlyCost).toBe(SEAT_PRICES.aud.team);
   });
@@ -76,12 +76,12 @@ describe('seat-based plan', () => {
   it('holds at twenty thousand seats', () => {
     // Two thousand of them leading somebody, which is about the ratio a business of that size has.
     expect(planState(t('basic'), 20_000, 'aud', 2_000).monthlyCost)
-      .toBe(2_000 * SEAT_PRICE_MONTHLY + 17_999 * SEAT_PRICES.aud.team);
+      .toBe(1_999 * SEAT_PRICE_MONTHLY + 18_000 * SEAT_PRICES.aud.team);
   });
 
   it('bills in the business’s own currency, at the regional price — never converted', () => {
     const s = planState(t('basic'), 5, 'gbp', 1);
-    const four = SEAT_PRICES.gbp.leadership + 3 * SEAT_PRICES.gbp.team;
+    const four = 4 * SEAT_PRICES.gbp.team;
     expect(s.monthlyCost).toBe(four);
     expect(costLabel(s)).toBe(`£${four} a month · 5 people, first seat free`);
   });

@@ -86,12 +86,13 @@ describe('reconcileSubscriptionItems — pushing a chart change onto a LIVE subs
 
   it('adds the training line separately, never folded into the plain leadership one', () => {
     const existing = [{ id: 'si_leader', price: STRIPE_PRICES.leader, quantity: 6 }];
-    // Two of the six leaders go on the training upgrade — plain leadership drops to four.
+    // Two of the six leaders go on the training upgrade, and the first leader is the free seat —
+    // plain leadership drops to three.
     const target = lineItemsFor(seatBill(40, 6, 'aud', 2));
     const items = reconcileSubscriptionItems(existing, target);
-    expect(items).toContainEqual({ id: 'si_leader', quantity: 4 });
+    expect(items).toContainEqual({ id: 'si_leader', quantity: 3 });
     expect(items).toContainEqual({ price: STRIPE_PRICES.leaderTraining, quantity: 2 });
-    expect(items).toContainEqual({ price: STRIPE_PRICES.team, quantity: 33 });
+    expect(items).toContainEqual({ price: STRIPE_PRICES.team, quantity: 34 });
   });
 
   it('matches by price id, never by array position — an unrelated line is left alone', () => {
