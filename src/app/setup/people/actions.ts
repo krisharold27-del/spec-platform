@@ -48,8 +48,9 @@ async function chartFor(tenantId: string) {
  * subscription. `tenantId` is optional because not every caller moves a person who could hold a
  * seat — `addStaff` only adds a name to the directory, nothing is placed and nothing can be billed
  * differently. Every action that opens or closes a role assignment passes it, because the staff row
- * being moved may already be linked to a real login (see the note on `leadershipSeatCounts` in
- * lib/plan) — best-effort and silent on failure, see `syncSubscriptionSeats`.
+ * being moved may already be linked to a real login (see the note on `classifySeats` in
+ * lib/plan) — best-effort, never breaks the write, and every outcome is logged as `[seat-sync]`; see
+ * `syncSubscriptionSeats`.
  */
 async function done(paths = ['/setup/business', '/org', '/journey'], tenantId?: string) {
   for (const p of paths) revalidatePath(p);
