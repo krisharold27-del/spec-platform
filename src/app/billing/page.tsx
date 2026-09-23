@@ -6,6 +6,9 @@ import { Shell } from '@/components/ui';
 import { planStateFor, costLabel } from '@/lib/plan';
 import { seatLabel } from '@/lib/pricing';
 import { requestCurrency } from '@/lib/request-currency';
+import { getScope } from '@/lib/scope';
+import { seatKindFor } from '@/lib/chart-seats';
+import { setSeatKind } from '@/app/org/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +48,29 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
   const currency = await requestCurrency();
   const plan = await planStateFor(user.tenantId, currency);
+
+  /*
+    Every billed person, in one flat list, so changing what somebody is billed as does not require
+    finding their exact box on the chart first.
+    Kris, 23 September, having just been sent hunting across the org chart for Janine's card:
+    *"this should be possible to change from any leadership seat - this is too hard - make it
+    simple."* The control already existed on the chart card — `setSeatKind` in `app/org/actions.ts`
+    — this is the same action, reachable from a screen built for scanning names rather than reading
+    a diagram. Gated by `scope.canInvite` exactly as the chart is: the same leadership-seat rule,
+    just a shorter path to it.
+  */
+  const scope = await getScope(user);
+  const leadsSet = new Set(scope.roles.map(r => r.reportsToRoleId).filter((x): x is string => Boolean(x)));
+  const seatRows = scope.roles
+    .filter(r => !r.isTeam && r.holder)
+    .map(r => ({
+      roleId: r.id,
+      title: r.title,
+      name: r.holder!.name,
+      chartKind: seatKindFor({ title: r.title, hasDirectReports: leadsSet.has(r.id) }),
+      override: (r.holder!.seatKindOverride as 'leadership' | 'team' | null) ?? null,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   /*
     The banner has to agree with the page under it.
@@ -138,6 +164,61 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
         <div className="mb-4 flex items-baseline justify-between gap-3 rounded-lg bg-surface p-4 text-sm">
           <span><b>{costLabel(plan)}</b> <span className="text-ink-light">· each extra person is {seatLabel(currency, 'team')} a month</span></span>
           <form action="/api/stripe/portal" method="post"><button className="text-sm text-ink-light underline hover:text-rust">Billing</button></form>
+        </div>
+      )}
+
+      {/*
+        Who is billed as what — every person with a login, in one list, sorted by name rather than
+        by where they sit on the chart. See the note above on why this exists.
+      */}
+      {seatRows.length > 0 && (
+        <div className="mt-6 rounded-2xl bg-surface p-6 sm:p-8">
+          <p className="font-serif text-[19px] text-ink">Who is billed as what</p>
+          <p className="mt-1 max-w-[58ch] text-[13.5px] leading-[21px] text-ink-light">
+            Read off the chart by default — the title, or whether anybody reports to the role.{' '}
+            {scope.canInvite
+              ? 'Change it by hand here for anybody the chart alone gets wrong, from any leadership seat — no need to find their card first.'
+              : 'Only somebody on a leadership seat can change one.'}
+          </p>
+          <ul className="mt-4 grid gap-2">
+            {seatRows.map(row => (
+              <li key={row.roleId} className="rounded-xl bg-cream px-4 py-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm text-ink">
+                    <b>{row.name}</b> <span className="text-ink-light">· {row.title}</span>
+                  </span>
+                  {!scope.canInvite && (
+                    <span className="text-[12.5px] text-ink-light">
+                      {(row.override ?? row.chartKind) === 'leadership' ? 'Leadership seat' : 'Team seat'}
+                    </span>
+                  )}
+                </div>
+                {scope.canInvite && (
+                  <form action={setSeatKind} className="mt-2 flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="roleId" value={row.roleId} />
+                    <label className="sr-only" htmlFor={`seat-kind-${row.roleId}`}>Billed as, {row.name}</label>
+                    <select
+                      id={`seat-kind-${row.roleId}`}
+                      name="seatKind"
+                      defaultValue={row.override ?? 'auto'}
+                      className="min-h-[36px] rounded-md border border-ink/15 bg-surface-raised px-2 text-sm text-ink"
+                    >
+                      <option value="auto">Auto — from the chart ({row.chartKind === 'leadership' ? 'Leadership' : 'Team'} seat right now)</option>
+                      <option value="leadership">Leadership seat</option>
+                      <option value="team">Team seat</option>
+                    </select>
+                    <button className="btn-secondary px-2.5 py-[7px] text-xs">Save</button>
+                    {row.override && (
+                      <span className="text-[12px] text-ink-light">
+                        Set by hand — the chart alone would say{' '}
+                        {row.chartKind === 'leadership' ? 'Leadership' : 'Team'}.
+                      </span>
+                    )}
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </Shell>
