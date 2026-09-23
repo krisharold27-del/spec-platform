@@ -144,7 +144,14 @@ after every write that can change what a business owes — an invite, a seat-kin
 moved or swapped, a role reparented, a role vacated — from `lib/invite`, `app/org/actions.ts` and
 `app/setup/people/actions.ts`. Best-effort, like every other Stripe-adjacent write: it swallows its
 own errors so a Stripe hiccup never breaks the chart edit that triggered it, and the very next write
-anywhere on the chart tries again.
+anywhere on the chart tries again. **Never silently** (corrected 23 September, after two saves on
+/billing left JBI's subscription on the old count with nothing in the logs): every ending — no key, no
+subscription id, already in step, updated, failed — is one `[seat-sync]` log line and a returned
+outcome; a save on /billing lands back there saying which; and /billing compares the live
+subscription with its own bill on load (cached a minute, streamed, never blocking) and offers
+"Bring the subscription into line" when they differ. The bill, the checkout, the sync and the rows on
+/billing are one count — `classifySeats` in `lib/plan`, active roles only. A price-override env var
+that differs from `lib/pricing` is ignored on a live key and named on /status.
 
 Six regions, decided per region rather than converted (`lib/pricing`'s `SEAT_PRICES`, transcribed
 from the live Stripe account, is the source of truth — this table is not):
