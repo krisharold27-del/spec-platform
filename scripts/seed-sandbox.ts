@@ -77,7 +77,7 @@ async function main() {
   await db.insert(schema.systemConnections).values({ id: randomUUID(), tenantId, name: 'Job management system', category: 'job_management', ownerIsSelf: true, status: 'live', createdAt: now() });
 
   console.log(`Sandbox ready: 6 roles (Growth left open), 5 people, ${marked} KPIs marked for ${period.period}, both gates, a board chair.`);
-  console.log(`Sign in at https://app.specbizhq.com/signin with ${EMAIL}. No email has been sent.`);
+  console.log(`Sign in at https://www.sitevipapp.com/signin with ${EMAIL}. No email has been sent.`);
 }
 
 main().then(() => process.exit(0), err => { console.error('Sandbox not created:', err.message); process.exit(1); });

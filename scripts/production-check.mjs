@@ -21,7 +21,7 @@
 
 import { execFileSync } from 'node:child_process';
 
-const BASE = (process.argv[2] ?? process.env.PRODUCTION_URL ?? 'https://www.specbizhq.com').replace(/\/$/, '');
+const BASE = (process.argv[2] ?? process.env.PRODUCTION_URL ?? 'https://www.sitevipapp.com').replace(/\/$/, '');
 
 const failures = [];
 const notes = [];
