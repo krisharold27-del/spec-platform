@@ -231,3 +231,22 @@ begin
     execute format('create policy tenant_isolation on %I for all using (tenant_id = auth_tenant_id()) with check (tenant_id = auth_tenant_id())', t);
   end loop;
 end $$;
+
+-- ───────────────────────────────────────────────────────────────────────────────────────────────
+-- CRM (23 September): stages, organisations, people, deals, activities and each deal's history.
+-- Every one carries its own tenant_id, so every one is looped the same way as the Jobs block above —
+-- no policy here depends on a join. Kept as its own block so it reads, and merges, as one piece.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array[
+    'crm_stages', 'crm_organisations', 'crm_people', 'crm_deals', 'crm_activities', 'crm_deal_events'
+  ]
+  loop
+    continue when to_regclass(t) is null;
+    execute format('alter table %I enable row level security', t);
+    execute format('drop policy if exists tenant_isolation on %I', t);
+    execute format('create policy tenant_isolation on %I for all using (tenant_id = auth_tenant_id()) with check (tenant_id = auth_tenant_id())', t);
+  end loop;
+end $$;
