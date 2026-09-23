@@ -376,7 +376,9 @@ export default async function Business({ searchParams }: { searchParams: Promise
                         <b className="text-ink">{w.person.name}</b>
                         <div className="text-xs text-ink-light">{role?.title}</div>
                       </div>
+                      {/* The staff list may already have their email — never asked for twice. */}
                       <input name="email" type="email" required autoComplete="off" placeholder="Their work email"
+                        defaultValue={staffRows.find(s => s.id === w.person.id)?.email ?? ''}
                         className="min-w-0 flex-1 rounded-lg border border-ink/20 px-3 py-2 text-sm" />
                       <label className="sr-only" htmlFor={`seatKind-${w.person.id}`}>Which seat</label>
                       <select
