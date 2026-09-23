@@ -160,7 +160,7 @@ from the live Stripe account, is the source of truth — this table is not):
 
 Each also has an Advanced (with-AI) rate — not sellable yet, see `AI_TIER_ON_SALE` in `lib/plan`.
 
-**The first seat is free**, and comes off a team seat first (the cheaper of the two) — see
+**The first seat is free**, and it is the first leadership seat — the person who started the business (Kris, 23 September); a team seat is free only when there is no leader — see
 `FREE_SEATS`/`seatBill` in `lib/plan`. **No minimum. No tier that unlocks features. People on the
 chart without a seat are free. Board roles are free.** A lapsed subscription goes read-only; export
 always works.
