@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   FRAMEWORK, HEAVY_SLOTS, SHARED_SLOTS, HEAVY_POINTS, SHARED_POINTS, TOTAL_POINTS,
-  powerReading, readSlot, bandOf, ringOffset, coverageLine, scopeLabel, sourcesOf,
+  powerReading, readSlot, bandOf, ringOffset, coverageLine, scopeLabel, sourcesOf, sourceLine, fromSpec,
   readSnapSlot, SNAP_MET_AT,
   type Measure, type Slot,
 } from '../src/lib/power-meter';
@@ -605,4 +605,33 @@ it('AND THE PINNED "25% SHARED" ON MY PAGE IS STILL THIS CONSTANT', () => {
   expect(SHARED_POINTS).toBe(25);
   const page = readFileSync('src/components/power-meter.tsx', 'utf8');
   expect(page).toContain('Everything else — 25% shared');
+});
+
+/*
+  SPEC My Page.dc.html, 23 September: the breakdown now names the SOURCE of every KPI, and all five
+  heavy hitters come from SPEC's own records — Safety, Jobs, People. A connected system is named by
+  its category, never by a vendor.
+*/
+describe('where every measure comes from', () => {
+  it('EVERY ONE OF THE 25 NAMES ITS SOURCE', () => {
+    for (const slot of FRAMEWORK) expect(slot.source.length).toBeGreaterThan(3);
+    expect(sourceLine(FRAMEWORK[0])).toBe('from SPEC Safety · incident register');
+  });
+
+  it('ALL FIVE HEAVY HITTERS COME FROM SPEC’S OWN RECORDS — SAFETY, JOBS, PEOPLE', () => {
+    const heavy = FRAMEWORK.filter(s => s.weight === 'heavy');
+    expect(heavy.every(fromSpec)).toBe(true);
+    const areas = new Set(heavy.map(s => s.source.split(' · ')[0]));
+    expect([...areas].sort()).toEqual(['SPEC Jobs', 'SPEC People', 'SPEC Safety']);
+  });
+
+  it('AND NAMES NO VENDOR — A CONNECTED SYSTEM IS A CATEGORY', () => {
+    for (const slot of FRAMEWORK) expect(slot.source).not.toMatch(/xero|myob|simpro|quickbooks|pylon/i);
+  });
+
+  it('AND THE BREAKDOWN DRAWS IT ON EVERY ROW', () => {
+    const page = readFileSync('src/components/power-meter.tsx', 'utf8');
+    expect(page).toContain('sourceLine(reading.slot)');
+    expect(page).toContain('{reading.slot.name} · {reading.slot.source}');
+  });
 });

@@ -32,7 +32,9 @@ const NOT_PAGES: Record<string, string> = {
   'SPEC Admin': 'at /settings, which is what the business calls it',
   'SPEC Setup': 'at /setup',
   'SPEC Inbox': 'at /inbox, where approvals wait',
-  'SPEC Landing': 'the address itself, /',
+  // 23 September 2026: the bare address became siteVIP, and SPEC's own front door moved to /spec.
+  'SPEC Landing': 'SPEC’s own front door, at /spec since the bare address became siteVIP',
+  'siteVIP Landing': 'the address itself, / — the trades edition of SPEC',
 };
 
 /**
@@ -88,6 +90,13 @@ describe('one thing, one name', () => {
     expect(addressFor('SPEC My Page')).toBe('/my-page');
     expect(addressFor('SPEC Cockpit')).toBe('/cockpit');
     expect(addressFor('SPEC Connections')).toBe('/connections');
+  });
+
+  // The two front doors, each where its exception says it is.
+  it('has the siteVIP door at / and the SPEC door at /spec', () => {
+    expect(existsSync('src/app/page.tsx')).toBe(true);
+    expect(readFileSync('src/app/page.tsx', 'utf8')).toContain('<SiteVipMark');
+    expect(readFileSync('src/app/spec/page.tsx', 'utf8')).toContain('<ProblemBox');
   });
 
   /*

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CHARTER } from '../src/lib/charter';
+import { SITEVIP_FLOW, SITEVIP_SYSTEMS, defaultOwnSystems, startHref, systemsLine } from '../src/lib/sitevip';
 
 /**
  * The public site, checked as source rather than rendered.
@@ -39,8 +40,17 @@ const PUBLIC_PAGES = [
   'src/app/how/page.tsx',
   'src/app/pricing/page.tsx',
   'src/app/sectors/page.tsx',
+  'src/app/spec/page.tsx',
   'src/app/page.tsx',
 ];
+
+/*
+  SPEC's own front door moved from `/` to `/spec` on 23 September 2026, whole, when the bare address
+  became siteVIP, the trades edition. Every rule below about the SPEC front door is held against the
+  page where it now lives — none of them was relaxed in the move.
+*/
+const SPEC_DOOR = 'src/app/spec/page.tsx';
+const SITEVIP_DOOR = 'src/app/page.tsx';
 
 describe('the public pages stay public', () => {
   // A marketing page that redirects to sign-in is worse than no marketing page.
@@ -106,7 +116,7 @@ describe('the front door asks before it tells', () => {
    * before any pitch, and the proof still comes before the price.
    */
   it('leads with the problem box, not with a pitch', () => {
-    const src = read('src/app/page.tsx');
+    const src = read(SPEC_DOOR);
     const box = src.indexOf('<ProblemBox');
     expect(box, 'the front door no longer opens with the problem box').toBeGreaterThan(-1);
 
@@ -131,7 +141,7 @@ describe('the front door asks before it tells', () => {
       when it did change, this failed while the rule it is protecting was perfectly intact. A test
       that breaks on a copy edit teaches people to edit the test.
     */
-    const src = read('src/app/page.tsx');
+    const src = read(SPEC_DOOR);
     const pricing = src.indexOf('<span className="label-caps">Pricing</span>');
     expect(pricing, 'the pricing section has moved or been renamed').toBeGreaterThan(-1);
     expect(pricing).toBeGreaterThan(src.indexOf('<ProblemBox'));
@@ -140,11 +150,11 @@ describe('the front door asks before it tells', () => {
   // Both doors still lead in. Somebody who would rather see the product than talk about themselves
   // must not be forced to type a problem to get anywhere.
   it('keeps the look-around for people who would rather not talk about themselves', () => {
-    expect(read('src/app/page.tsx')).toContain('href="/look"');
+    expect(read(SPEC_DOOR)).toContain('href="/look"');
   });
 
   it('offers the argument rather than making it', () => {
-    const src = read('src/app/page.tsx');
+    const src = read(SPEC_DOOR);
     for (const href of ['/how', '/sectors', '/pricing']) expect(src).toContain(`href="${href}"`);
   });
 });
@@ -162,9 +172,92 @@ describe('the public navigation', () => {
 
   it('reaches every public page from every public page', () => {
     const nav = words('src/components/public-nav.tsx');
-    for (const href of ['/', '/how', '/sectors', '/pricing', '/signin']) {
+    for (const href of ['/', '/spec', '/how', '/sectors', '/pricing', '/signin']) {
       expect(nav).toMatch(new RegExp(`['"]${href}['"]`));
     }
+  });
+});
+
+describe('siteVIP, the front door at /', () => {
+  it('is siteVIP, powered by SPEC, and says so in the title', () => {
+    const src = words(SITEVIP_DOOR);
+    expect(src).toContain('<SiteVipMark powered');
+    expect(words('src/components/sitevip-mark.tsx')).toContain('POWERED BY SPEC');
+    expect(src).toMatch(/title: 'siteVIP/);
+    expect(src).toContain("canonical: '/'");
+  });
+
+  // The SPEC front door was moved, not lost — and the one that moved it must still point at it.
+  it('keeps the SPEC front door one press away', () => {
+    expect(code(SITEVIP_DOOR)).toContain('href="/spec"');
+    expect(words(SITEVIP_DOOR)).toContain('siteVIP is the trades edition of');
+    expect(read(SPEC_DOOR)).toContain('<ProblemBox');
+    expect(read(SPEC_DOOR)).toContain("canonical: '/spec'");
+  });
+
+  it('sends somebody already signed in to their day, exactly as the SPEC door does', () => {
+    for (const p of [SITEVIP_DOOR, SPEC_DOOR]) {
+      expect(words(p), p).toContain('if (await getCurrentUser().catch(() => null)) redirect(DEFAULT_AFTER_SIGN_IN)');
+    }
+  });
+
+  /*
+    The business name typed on the front door travels to sign-up in the parameter sign-up already
+    reads, so it is filled in there and never asked for twice.
+  */
+  it('carries the business name into sign-up rather than asking again', () => {
+    expect(startHref('  Harbour Electrical  ')).toBe('/signup?business=Harbour%20Electrical');
+    expect(startHref('A & B Plumbing')).toBe('/signup?business=A%20%26%20B%20Plumbing');
+    expect(startHref('')).toBe('/signup');
+    expect(startHref(null)).toBe('/signup');
+    expect(startHref('x'.repeat(500)).length).toBeLessThan(230);
+    expect(read('src/app/signup/page.tsx')).toContain('sp.business');
+    const box = code('src/components/sitevip-landing.tsx');
+    // A real form onto sign-up with the same field name, so it works before any script has loaded.
+    expect(box).toContain('action="/signup"');
+    expect(box).toContain('name="business"');
+    expect(box).toContain('startHref(biz)');
+  });
+
+  it('does nothing on Enter with an empty box', () => {
+    expect(code('src/components/sitevip-landing.tsx')).toMatch(/e\.key === 'Enter' && !biz\.trim\(\)\) e\.preventDefault\(\)/);
+  });
+
+  it('counts the systems somebody keeps, in plain words', () => {
+    const own = defaultOwnSystems();
+    expect(Object.values(own).filter(Boolean)).toHaveLength(1); // the books start on "keep"
+    expect(systemsLine(own)).toBe('siteVIP runs the rest and talks to your 1 connected system, so you still work from one screen.');
+    const none = Object.fromEntries(SITEVIP_SYSTEMS.map(s => [s.job, false]));
+    expect(systemsLine(none)).toBe('Everything runs in siteVIP. Nothing to connect.');
+    const all = Object.fromEntries(SITEVIP_SYSTEMS.map(s => [s.job, true]));
+    expect(systemsLine(all)).toContain(`your ${SITEVIP_SYSTEMS.length} connected systems`);
+  });
+
+  /*
+    The never list: no vendor in the UI, connectors by category. The design named four products;
+    none of them may reach the page, the component or the words behind them.
+  */
+  it('names categories of system, never a vendor', () => {
+    const vendors = /\b(simpro|xero|hubspot|myob|aroflo|servicem8|quickbooks|salesforce|employment hero|deputy)\b/i;
+    for (const p of [SITEVIP_DOOR, 'src/components/sitevip-landing.tsx', 'src/lib/sitevip.ts']) {
+      expect(code(p), p).not.toMatch(vendors);
+    }
+    for (const s of SITEVIP_SYSTEMS) expect(s.own, s.job).not.toMatch(vendors);
+    for (const f of SITEVIP_FLOW) expect(f.line, f.label).not.toMatch(vendors);
+  });
+});
+
+describe('the one home', () => {
+  it('resolves every canonical address against www.sitevipapp.com', () => {
+    const layout = words('src/app/layout.tsx');
+    expect(layout).toContain('metadataBase: new URL(`https://${HOME_HOST}`)');
+    expect(read('src/lib/home-address.ts')).toContain("HOME_HOST = 'www.sitevipapp.com'");
+    for (const p of ['src/app/robots.ts', 'src/app/sitemap.ts']) {
+      expect(read(p), p).toContain('HOME_HOST');
+      expect(read(p), p).not.toContain('specbizhq');
+    }
+    const map = read('src/app/sitemap.ts');
+    for (const path of ["'/'", "'/spec'", "'/pricing'"]) expect(map).toContain(path);
   });
 });
 
