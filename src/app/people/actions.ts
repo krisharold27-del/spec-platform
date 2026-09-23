@@ -10,6 +10,9 @@ import { assertWritable } from '@/lib/plan';
 import { PILLARS } from '@/lib/scoring';
 import { STAGES } from '@/lib/people';
 import { refuseTo } from '@/lib/refuse';
+import { getCurrentUser } from '@/lib/auth';
+import { directoryPerson, mayEditContact, staffOfUser } from '@/lib/directory-data';
+import { contactField, isoDay } from '@/lib/directory';
 
 /**
  * Hiring against a role.
@@ -206,4 +209,58 @@ export async function decideLeave(formData: FormData) {
     .set({ state, decidedBy: user.name, decidedAt: new Date().toISOString() })
     .where(and(eq(schema.leaveEntries.id, id), eq(schema.leaveEntries.tenantId, user.tenantId)));
   revalidatePath('/people');
+}
+
+/* ── The staff list ────────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * A person's phone, email and start date, from the staff list.
+ *
+ * Not `requireManager`: anybody may keep their own number right. Who may change whose is decided in
+ * one place — `mayEditContact` in lib/directory-data — and re-checked here against the list as the
+ * server reads it, never against anything the form says about the person.
+ *
+ * A login's email is its sign-in address and is never changed from here; an email is only kept
+ * for somebody without a login yet, where it is also the address their invitation will offer.
+ */
+export async function saveStaffContact(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+
+  const key = String(formData.get('key') ?? '').slice(0, 80);
+  const q = String(formData.get('q') ?? '').slice(0, 80);
+  const back: (cannot?: string) => never = cannot => {
+    const sp = new URLSearchParams({ mode: 'staff' });
+    if (q) sp.set('q', q);
+    if (cannot) sp.set('cannot', cannot);
+    redirect(`/people?${sp.toString()}`);
+  };
+
+  const { person, scope, selfKey } = await directoryPerson(user, key);
+  if (!person) back('That person is not in this business.');
+  if (!mayEditContact(person, user, scope, selfKey)) back('Only the person themselves, or somebody they report to, can change their details.');
+
+  const phone = contactField(formData.get('phone'), 40);
+  const rawStart = String(formData.get('startDate') ?? '').trim();
+  const startDate = isoDay(rawStart);
+  if (rawStart && !startDate) back('That start date is not a day.');
+
+  if (person.userId) {
+    await db.update(schema.users).set({ phone, startDate })
+      .where(and(eq(schema.users.id, person.userId), eq(schema.users.tenantId, user.tenantId)));
+    // Keep the staff row they were invited from in step, so the two never say different things.
+    const row = await staffOfUser(user.tenantId, person.userId);
+    if (row) {
+      await db.update(schema.staff).set({ phone, startDate })
+        .where(and(eq(schema.staff.id, row.id), eq(schema.staff.tenantId, user.tenantId)));
+    }
+  } else if (person.staffId) {
+    const email = contactField(formData.get('email'), 160);
+    if (email && !/^[^\s@]+@[^\s@]+$/.test(email)) back('That email is not an address.');
+    await db.update(schema.staff).set({ phone, email, startDate })
+      .where(and(eq(schema.staff.id, person.staffId), eq(schema.staff.tenantId, user.tenantId)));
+  }
+  revalidatePath('/people');
+  back();
 }

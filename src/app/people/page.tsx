@@ -30,6 +30,7 @@ import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
 import { HR_TABS, tabOf, hrefOf, lastThree, lastPayWeek, exitsFrom, trainingStateOf, trainingSummary } from '@/lib/hr';
 import { ConductTab, PayTab, type ReviewPerson, type TrainingRow, type ContractRow, type ExitRow } from './hr-tabs';
+import { StaffListTab } from './staff-list';
 
 export const dynamic = 'force-dynamic';
 
@@ -307,7 +308,9 @@ export default async function People({ searchParams }: { searchParams: Promise<R
 
       <OwnSystemLine line={own.line} connected={own.connected} className="mt-6" />
 
-      {tab === 'conduct' ? (
+      {tab === 'staff' ? (
+        <StaffListTab user={user} q={typeof sp.q === 'string' ? sp.q.slice(0, 80) : ''} />
+      ) : tab === 'conduct' ? (
         <ConductTab reviews={reviews} training={trainingRows} />
       ) : tab === 'pay' ? (
         <PayTab
