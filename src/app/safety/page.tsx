@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { OwnSystemLine } from '@/components/own-system-line';
+import { ownSystemFor } from '@/lib/coverage-data';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
@@ -63,6 +65,7 @@ export default async function Safety({ searchParams }: { searchParams: Promise<R
   const sp = await searchParams;
   const cannot = refusedReason(sp);
   const tab: TabKey = TABS.some(t => t.key === sp.tab) ? (sp.tab as TabKey) : 'today';
+  const own = await ownSystemFor(user.tenantId, 'safety', tab);
   const initialKind = typeof sp.kind === 'string' ? sp.kind : 'hazard';
   const sentId = typeof sp.sent === 'string' ? sp.sent.slice(0, 64) : '';
 
@@ -341,6 +344,8 @@ export default async function Safety({ searchParams }: { searchParams: Promise<R
           );
         })}
       </nav>
+
+      <OwnSystemLine line={own.line} connected={own.connected} />
 
       {tab === 'today' && (
         <div className="grid gap-6">
