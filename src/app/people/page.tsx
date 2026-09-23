@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { OwnSystemLine } from '@/components/own-system-line';
+import { ownSystemFor } from '@/lib/coverage-data';
+import { connectHref } from '@/lib/coverage';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
@@ -69,6 +72,7 @@ export default async function People({ searchParams }: { searchParams: Promise<R
   // Why SPEC said no, if it just did. See lib/refuse.
   const cannot = refusedReason(sp);
   const tab = tabOf(mode);
+  const own = await ownSystemFor(user.tenantId, 'people', tab);
   const hiring = tab === 'hiring';
 
   const scope = await getScope(user);
@@ -300,6 +304,8 @@ export default async function People({ searchParams }: { searchParams: Promise<R
           </Link>
         ))}
       </div>
+
+      <OwnSystemLine line={own.line} connected={own.connected} className="mt-6" />
 
       {tab === 'conduct' ? (
         <ConductTab reviews={reviews} training={trainingRows} />
@@ -704,19 +710,25 @@ export default async function People({ searchParams }: { searchParams: Promise<R
         The way out to an HR system somebody already pays for.
 
         The design offers this and the page did not, which left the impression that SPEC wants to be
-        a second place to keep staff records. It does not: a business running BambooHR or Employment
-        Hero should have SPEC read from it, and a business with neither should be told plainly that
-        this IS the system. That removes the most common objection on this screen.
+        a second place to keep staff records. It does not: a business already running an HR system
+        can connect it and choose it on Coverage, and a business without one should be told plainly
+        that this IS the system. Named by category, never by product — CLAUDE.md's never list, held
+        by tests/coverage.test.ts.
       */}
       <section className="mt-12 rounded-2xl bg-surface p-6">
         <h2 className="font-serif text-xl text-ink">Already have an HR system?</h2>
         <p className="mt-1 max-w-2xl text-sm text-ink-light">
-          Connect BambooHR or Employment Hero and SPEC reads from it instead. If you do not have one,
-          this is it — no second system to buy.
+          Connect your HR system and choose it on Coverage — up to you. If you do not have one, this is
+          it — no second system to buy.
         </p>
-        <Link href="/connections" className="btn-secondary mt-4 inline-block">
-          Open the connection centre
-        </Link>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href={connectHref('payroll')} className="btn-secondary inline-block">
+            Connect your HR system
+          </Link>
+          <Link href="/coverage#hr" className="btn-secondary inline-block">
+            Open Coverage
+          </Link>
+        </div>
       </section>
 
       <Problems screen="people" />
