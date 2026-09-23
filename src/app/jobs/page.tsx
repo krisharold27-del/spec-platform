@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { OwnSystemLine } from '@/components/own-system-line';
+import { ownSystemFor } from '@/lib/coverage-data';
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
@@ -65,6 +67,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const tab: Tab = (TABS.find(t => t.key === one(sp.tab))?.key ?? 'pipeline');
   const cannot = refusedReason(sp);
   const manage = canManage(user.access);
+  const own = await ownSystemFor(user.tenantId, 'jobs', tab);
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
 
@@ -133,6 +136,8 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
           </Link>
         ))}
       </nav>
+
+      <OwnSystemLine line={own.line} connected={own.connected} />
 
       {tab === 'pipeline' && (
         <Pipeline jobs={costed} openId={one(sp.job)} crew={crew} quotes={quotes} manage={manage} now={now} tabHref={tabHref} hasRate={!!standard} />
