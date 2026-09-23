@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
   STEPS, EMPTY_DAY, apply, canDo, canFinish, nextStep, isDone, timesheet, hoursLabel, clock, doneLine,
   primaryLabel, primaryNote, summary, revive, storageKey, cleanMaterials, minutesBetween,
+  bookedOn, validClock, dayNear, daysAround, officeMinutes, hhmm,
   type TechDayState, type TechDayAction,
 } from '../src/lib/tech-day';
 
@@ -169,11 +170,86 @@ describe('the page', () => {
   });
 
   /*
-    Nothing is stored on a server for this yet — there is no jobs or timesheet table — and the page
-    has to say so rather than let a tech believe the office has their hours.
+    Since 23 September Start and Finish reach the office's timesheets. Photos, materials and the
+    sign-off still have no store, and the page has to say so — and say so again whenever the office
+    did not get the hours — rather than let a tech believe the office has what it has not.
   */
-  it('says plainly that the day is kept on this phone for now', () => {
+  it('says plainly what stays on this phone, and when the office did not get the hours', () => {
+    expect(phone).toMatch(/stay on this phone/i);
     expect(phone).toMatch(/kept on this phone/i);
+    expect(phone).toMatch(/office did not get/i);
     expect(phone).not.toMatch(/has the invoice ready/);
+  });
+
+  it('takes its jobs from the office’s schedule, and writes Start and Finish to the timesheets', () => {
+    expect(page).toContain('schema.scheduleBookings');
+    expect(phone).toContain('clockOn(');
+    expect(phone).toContain('clockOff(');
+  });
+});
+
+describe('Start and Finish at the office', () => {
+  const actions = readFileSync('src/app/tech-day/actions.ts', 'utf8');
+
+  it('writes only the signed-in person’s own time — never a person the phone names', () => {
+    expect(actions).toContain('`user:${user.id}`');
+    expect(actions).not.toMatch(/input\.(personKey|person|userId)/);
+  });
+
+  it('puts a job on the entry only when the office booked this person on it', () => {
+    expect(actions).toContain('schema.scheduleBookings');
+    expect(actions).toContain('inArray(schema.scheduleBookings.personKey, keys)');
+  });
+
+  it('counts minutes from the server’s own clock, not the phone’s', () => {
+    expect(actions).toContain('officeMinutes(entry.createdAt, new Date())');
+  });
+});
+
+describe('the office’s side, pure', () => {
+  const at = (iso: string) => new Date(iso);
+
+  it('takes the office’s entry only while a job is running, and only once', () => {
+    const running = run({ type: 'open', job: JOB }, { type: 'swms', by: 'Sam', at: T('07:00') }, { type: 'start', at: T('07:10') });
+    const saved = apply(running, { type: 'saved', entryId: 'e1' });
+    expect(saved.entryId).toBe('e1');
+    expect(apply(saved, { type: 'saved', entryId: 'e2' }).entryId).toBe('e1');
+    expect(apply(opened(), { type: 'saved', entryId: 'e1' }).entryId).toBeNull();
+  });
+
+  it('keeps the scheduled job and the entry across a reload', () => {
+    const s = apply(
+      run({ type: 'open', job: { title: 'Rough-in', site: 'Unit 3', jobId: 'j1', ref: 'J-1004' } }, { type: 'swms', by: 'Sam', at: T('07:00') }, { type: 'start', at: T('07:10') }),
+      { type: 'saved', entryId: 'e1' },
+    );
+    const back = revive(JSON.stringify(s));
+    expect(back.entryId).toBe('e1');
+    expect(back.job).toEqual({ title: 'Rough-in', site: 'Unit 3', jobId: 'j1', ref: 'J-1004' });
+    expect(revive(JSON.stringify({ job: { title: 'Typed' } })).job).toEqual({ title: 'Typed', site: '', jobId: null, ref: null });
+  });
+
+  it('shows the phone’s own day of bookings, once each, in J-number order', () => {
+    const b = (jobId: string, ref: string, day: string) => ({ jobId, ref, title: ref, site: '', client: 'C', day });
+    const list = [b('a', 'J-1010', '2026-09-23'), b('b', 'J-1002', '2026-09-23'), b('a', 'J-1010', '2026-09-23'), b('c', 'J-1001', '2026-09-24')];
+    expect(bookedOn(list, '2026-09-23').map(x => x.ref)).toEqual(['J-1002', 'J-1010']);
+    expect(bookedOn(list, '2026-09-22')).toEqual([]);
+  });
+
+  it('accepts a clock time and a day only in their proper shape, and the day only near the server’s', () => {
+    expect(validClock('07:14')).toBe('07:14');
+    for (const bad of ['7:14', '24:00', '07:60', '', null, 714]) expect(validClock(bad)).toBeNull();
+    const now = at('2026-09-23T22:00:00Z');
+    expect(dayNear('2026-09-24', now)).toBe('2026-09-24'); // a phone east of the server
+    expect(dayNear('2026-09-22', now)).toBe('2026-09-22');
+    expect(dayNear('2026-09-26', now)).toBeNull();
+    expect(dayNear('2026-13-40', now)).toBeNull();
+    expect(daysAround(now)).toEqual(['2026-09-22', '2026-09-23', '2026-09-24']);
+  });
+
+  it('labels with the phone’s clock and caps a forgotten Finish at a day', () => {
+    expect(hhmm(new Date(2026, 8, 23, 7, 4))).toBe('07:04');
+    expect(officeMinutes('2026-09-23T07:00:00Z', at('2026-09-23T13:30:00Z'))).toBe(390);
+    expect(officeMinutes('2026-09-20T07:00:00Z', at('2026-09-23T13:30:00Z'))).toBe(1440);
+    expect(officeMinutes('2026-09-23T13:30:00Z', at('2026-09-23T07:00:00Z'))).toBe(0);
   });
 });

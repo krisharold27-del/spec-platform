@@ -358,9 +358,11 @@ describe('where it lives', () => {
     expect((NAV_HREFS as readonly string[])).toContain('/crm');
     const bar = navDoors({ businesses: 1, runsSpec: false }).map(d => d.href); expect(bar.indexOf('/crm')).toBe(bar.indexOf('/jobs') + 1);
   });
-  it('is where the coverage map sends SPEC’s own CRM', () => {
+  it('the coverage map sends "Customers & sites" to the whole client list, which the CRM feeds', () => {
+    // Was /crm until 23 September, when /clients became "every client, site, contact and job
+    // history in one place" — the capability's own words.
     const cap = CAPABILITIES.find(c => c.connect === 'crm');
-    expect(cap?.href).toBe('/crm');
+    expect(cap?.href).toBe('/clients');
   });
 });
 

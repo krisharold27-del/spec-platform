@@ -106,7 +106,7 @@ describe('the navigation bar', () => {
   */
   const f = { businesses: 1, runsSpec: false };
 
-  it('IS TWELVE ITEMS, not nineteen — Jobs, People and Safety joined on 23 September', () => {
+  it('IS FOURTEEN ITEMS, not nineteen — Jobs, CRM, Clients, People and Safety joined on 23 September', () => {
     /*
       The argument was never that navigation is wrong. It was that nineteen of them is.
 
@@ -117,7 +117,7 @@ describe('the navigation bar', () => {
       pages" is what lets the bar stay this short whatever else is added — SPEC has far more than
       nine screens and always will, and nothing may be reachable only by knowing it is there.
     */
-    expect(navDoors(f)).toHaveLength(13);
+    expect(navDoors(f)).toHaveLength(14);
     expect(navDoors(f).length).toBeLessThan(allDoors(f).length);
   });
 
@@ -156,7 +156,7 @@ describe('the navigation bar', () => {
       written before the rename and nobody updated it — so it was asserting the old name as though
       it were the design's.
     */
-    expect(labels).toEqual(['Setup', 'My page', 'Jobs', 'CRM', 'Org chart', 'People', 'Safety', 'Pricing', 'Scoring', 'Board pack', 'Mirrors', 'Connections', 'All pages']);
+    expect(labels).toEqual(['Setup', 'My page', 'Jobs', 'CRM', 'Clients', 'Org chart', 'People', 'Safety', 'Pricing', 'Scoring', 'Board pack', 'Mirrors', 'Connections', 'All pages']);
   });
 
   it('THE BAR AND THE DIRECTORY CANNOT DISAGREE', () => {

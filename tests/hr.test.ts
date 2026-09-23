@@ -8,7 +8,9 @@ import { FRAMEWORK } from '../src/lib/power-meter';
 
 describe('the People tabs', () => {
   it('are the design’s four, in its order', () => {
-    expect(HR_TABS.map(t => t.label)).toEqual(['Who you have', 'Reviews & conduct', 'Pay & exits', 'Who you need']);
+    expect(HR_TABS.map(t => t.label)).toEqual(['Who you have', 'Staff list', 'Reviews & conduct', 'Pay & exits', 'Who you need']);
+    expect(tabOf('staff')).toBe('staff');
+    expect(hrefOf('staff')).toBe('/people?mode=staff');
   });
 
   it('keep the old hiring link working, and never error on an unknown mode', () => {
