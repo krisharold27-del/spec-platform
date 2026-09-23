@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   SEAT_PRICES, currencyForCountry, digitRoot, seatLabel, everyPublishedSeatPrice,
   seatPrice, RULE_OF_EIGHT, pricesObeyingTheRule, STRIPE_PRICES, STRIPE_PRODUCTS,
-  RETIRED_STRIPE_PRICES, RETIRED_STRIPE_PRODUCTS, taxInclusive, type Currency,
+  RETIRED_STRIPE_PRICES, RETIRED_STRIPE_PRODUCTS, taxInclusive, lineItemsFor, type Currency,
 } from '../src/lib/pricing';
 import { seatKindFor } from '../src/lib/chart-seats';
 
@@ -125,5 +125,47 @@ describe('the currency follows where the business is', () => {
   it('anywhere else pays in US dollars; no country known falls back to Australia', () => {
     expect(currencyForCountry('SG')).toBe('usd');
     expect(currencyForCountry(null)).toBe('aud');
+  });
+});
+
+/*
+  ── A trained leader was being billed twice ─────────────────────────────────────────────────────
+
+  Found while writing `tests/subscription-sync.test.ts`, not looking for it. `seatBill` (lib/plan)
+  deliberately returns `leadership` as plain-and-trained TOGETHER — "6" for a business with 4 plain
+  leaders and 2 trained ones — so that `bill.leadership + bill.team` is always every billed seat.
+  This function read that combined number straight onto the plain leadership price, and then added a
+  SEPARATE line for the 2 trained seats at the training price — charging those 2 people once as
+  plain leaders and again as trained ones. A business of forty with six leaders, two of them
+  trained, was one call away from being billed for eight leadership-rate seats a month instead of
+  six. Nothing had ever exercised a non-zero `training` here; there was no test for this function at
+  all before this one.
+*/
+describe('lineItemsFor — never bills a trained leader on two lines', () => {
+  it('splits the plain leadership line from the training one, never overlapping', () => {
+    const lines = lineItemsFor({ leadership: 6, team: 33, training: 2 });
+    expect(lines).toContainEqual({ price: STRIPE_PRICES.leader, quantity: 4 });
+    expect(lines).toContainEqual({ price: STRIPE_PRICES.leaderTraining, quantity: 2 });
+    expect(lines).toContainEqual({ price: STRIPE_PRICES.team, quantity: 33 });
+    expect(lines).toHaveLength(3);
+  });
+
+  it('never sends a line for a seat kind the business has none of', () => {
+    expect(lineItemsFor({ leadership: 0, team: 5 })).toEqual([{ price: STRIPE_PRICES.team, quantity: 5 }]);
+    expect(lineItemsFor({ leadership: 2, team: 0 })).toEqual([{ price: STRIPE_PRICES.leader, quantity: 2 }]);
+    expect(lineItemsFor({ leadership: 0, team: 0 })).toEqual([]);
+  });
+
+  it('drops the plain leadership line entirely when every leader is trained', () => {
+    const lines = lineItemsFor({ leadership: 2, team: 0, training: 2 });
+    expect(lines).toEqual([{ price: STRIPE_PRICES.leaderTraining, quantity: 2 }]);
+  });
+
+  it('a business with no training upgrade at all gets no third line', () => {
+    const lines = lineItemsFor({ leadership: 4, team: 10 });
+    expect(lines).toEqual([
+      { price: STRIPE_PRICES.leader, quantity: 4 },
+      { price: STRIPE_PRICES.team, quantity: 10 },
+    ]);
   });
 });

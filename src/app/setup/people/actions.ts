@@ -11,6 +11,7 @@ import { roleChangeFor, type AssignmentRow, type RoleRow, type StaffRow } from '
 import { inviteToSeat } from '@/lib/invite';
 import { getScope } from '@/lib/scope';
 import { seatKindFromForm } from '@/lib/chart-seats';
+import { syncSubscriptionSeats } from '@/lib/plan';
 
 const now = () => new Date().toISOString();
 
@@ -42,8 +43,17 @@ async function chartFor(tenantId: string) {
   };
 }
 
-function done(paths = ['/setup/business', '/org', '/journey']) {
+/**
+ * Revalidate, and push any billing change this write may have caused onto the live Stripe
+ * subscription. `tenantId` is optional because not every caller moves a person who could hold a
+ * seat — `addStaff` only adds a name to the directory, nothing is placed and nothing can be billed
+ * differently. Every action that opens or closes a role assignment passes it, because the staff row
+ * being moved may already be linked to a real login (see the note on `leadershipSeatCounts` in
+ * lib/plan) — best-effort and silent on failure, see `syncSubscriptionSeats`.
+ */
+async function done(paths = ['/setup/business', '/org', '/journey'], tenantId?: string) {
   for (const p of paths) revalidatePath(p);
+  if (tenantId) await syncSubscriptionSeats(tenantId);
 }
 
 /**
@@ -75,7 +85,7 @@ export async function nameRole(formData: FormData) {
     await db.insert(schema.staff).values({ id: staffId, tenantId: user.tenantId, name, userId: null, createdAt: now() });
     await openAssignment(roleId, staffId);
   }
-  done();
+  await done(['/setup/business', '/org', '/journey'], user.tenantId);
   redirect('/setup/business');
 }
 
@@ -85,7 +95,8 @@ export async function addStaff(formData: FormData) {
   const name = String(formData.get('name') ?? '').trim();
   if (!name) redirect('/setup/business?error=name');
   await db.insert(schema.staff).values({ id: randomUUID(), tenantId: user.tenantId, name, userId: null, createdAt: now() });
-  done();
+  // No role assignment touched — nobody's billing can have changed. See the note on `done`.
+  await done();
   redirect('/setup/business');
 }
 
@@ -112,7 +123,7 @@ export async function placeStaff(formData: FormData) {
   if (change) redirect(`/setup/business?change=${staffId}&to=${roleId}`);
 
   await openAssignment(roleId, staffId);
-  done();
+  await done(['/setup/business', '/org', '/journey'], user.tenantId);
   redirect('/setup/business');
 }
 
@@ -138,7 +149,7 @@ export async function resolveRoleChange(formData: FormData) {
   }
   // On a merge the existing assignment is simply left open — they hold both.
   await openAssignment(toRoleId, staffId);
-  done();
+  await done(['/setup/business', '/org', '/journey'], user.tenantId);
   redirect('/setup/business');
 }
 
@@ -212,7 +223,7 @@ export async function unplaceStaff(formData: FormData) {
   if (!chart.roles.some(r => r.id === roleId)) redirect('/setup/business');
   await db.update(schema.roleAssignments).set({ toDate: now() })
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
-  done();
+  await done(['/setup/business', '/org', '/journey'], user.tenantId);
   redirect('/setup/business');
 }
 
@@ -249,7 +260,8 @@ export async function invite(formData: FormData) {
   const outcome = await inviteToSeat(user.tenantId, staffId, email, seatKind);
   if (!outcome.ok) redirect(outcome.reason === 'no-email' ? '/setup/business?error=email' : '/setup/business');
 
-  done(['/setup/business', '/org', '/journey', '/team']);
+  // No tenantId here: `inviteToSeat` already pushed this seat onto Stripe itself.
+  await done(['/setup/business', '/org', '/journey', '/team', '/billing']);
   if (!outcome.sent) redirect(`/setup/business?notsent=${encodeURIComponent(outcome.email)}`);
   redirect('/setup/business?invited=1');
 }

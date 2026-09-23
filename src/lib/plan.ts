@@ -16,7 +16,7 @@
  * what the system will do — before spending a cent or entering a card.
  */
 
-import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatPrice, trainingSeatPrice, type Currency } from './pricing';
+import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatPrice, trainingSeatPrice, lineItemsFor, type Currency } from './pricing';
 
 /** Per active named seat, per month, in the home currency (AUD). Other regions: see lib/pricing. */
 /** The leadership seat, which is the one the free-first-seat rule is about. */
@@ -365,6 +365,106 @@ export async function countLeadershipSeats(tenantId: string): Promise<number> {
  */
 export async function countTrainingSeats(tenantId: string): Promise<number> {
   return (await leadershipSeatCounts(tenantId)).training;
+}
+
+/**
+ * Pushes the current seat counts onto a business's LIVE Stripe subscription, if it has one.
+ *
+ * ── The gap this closes ──────────────────────────────────────────────────────────────────────────
+ *
+ * A subscription's quantity was set once, at the moment of checkout (`api/stripe/checkout/route.ts`),
+ * and never touched again. Kris, 23 September, once the seat-kind override shipped and he could see
+ * how easily a chart drifts from what it started as: *"yes stripe needs to auto sync as I could
+ * never keep up if there are 100's of companys."* A business that grows from six leaders to nine, or
+ * moves somebody like Janine onto team, kept paying the day-one number until somebody opened Stripe
+ * by hand — fine at one business, impossible at a hundred.
+ *
+ * This is the second half of that. It is called after every write that can change what a business
+ * owes — a new invite, a seat-kind override, a person moved or swapped, a role reparented (which
+ * changes who leads whom), a role vacated — from `lib/invite`, `app/org/actions.ts` and
+ * `app/setup/people/actions.ts`. A business that has never subscribed is a no-op: there is nothing
+ * to reconcile, and its first checkout simply reads the chart as it stands then.
+ *
+ * ── Why it swallows its own errors ───────────────────────────────────────────────────────────────
+ *
+ * Best-effort, the same shape as `email.ts`'s `send`: a Stripe hiccup must never break the org-chart
+ * edit that triggered it — nobody should see "something went wrong" because Stripe's API was briefly
+ * unreachable while they renamed a role. The chart and the bill can disagree for as long as that
+ * takes to clear, never silently forever, because the very next write anywhere on the chart tries
+ * again.
+ *
+ * This shipped once before, briefly, as part of the Basic/Advanced seat-tier choice (22 September)
+ * and was retired with it the same day — not because syncing was wrong, but because the tier it was
+ * built to push never had a second business on it. The mechanism was right; only its reason for
+ * existing was premature. See DECISIONS.md, 22 and 23 September.
+ */
+export async function syncSubscriptionSeats(tenantId: string): Promise<void> {
+  try {
+    const { getStripe } = await import('./stripe');
+    const stripe = getStripe();
+    if (!stripe) return; // no Stripe key configured on this deployment — nothing to push
+
+    const { db, schema } = await import('../db');
+    const { eq } = await import('drizzle-orm');
+    const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, tenantId)))[0];
+    if (!tenant?.stripeSubscriptionId) return; // never subscribed — the next checkout reads the chart fresh
+
+    const seats = await countSeats(tenantId);
+    const leadershipSeats = await countLeadershipSeats(tenantId);
+    const trainingSeats = await countTrainingSeats(tenantId);
+    const bill = seatBill(seats, leadershipSeats, undefined, trainingSeats);
+    const target = lineItemsFor(bill);
+
+    const subscription = await stripe.subscriptions.retrieve(tenant.stripeSubscriptionId);
+    const existing = subscription.items.data.map(i => ({ id: i.id, price: i.price.id, quantity: i.quantity ?? 0 }));
+
+    const items = reconcileSubscriptionItems(existing, target);
+    if (items.length === 0) return; // already matches — nothing to push
+
+    await stripe.subscriptions.update(tenant.stripeSubscriptionId, {
+      items,
+      proration_behavior: 'create_prorations',
+    });
+  } catch (err) {
+    // Never let a billing-sync failure break the write that triggered it — see the note above.
+    console.error('syncSubscriptionSeats failed — Stripe and the chart may disagree until the next write', err);
+  }
+}
+
+export type SubscriptionItemUpdate =
+  | { id: string; quantity?: number; deleted?: true }
+  | { price: string; quantity: number };
+
+/**
+ * The plain diff behind `syncSubscriptionSeats`, pulled out so it can be tested without a Stripe
+ * client or a database — the arithmetic, not the API call, is where a mistake bills somebody the
+ * wrong amount.
+ *
+ * Matches by price id first — a business that only grew a team seat should not see its unrelated
+ * leadership line "change" for no reason a customer could explain from their invoice — updates
+ * quantity only where it actually differs, adds a line the subscription does not have yet, and
+ * deletes whatever the subscription still carries that the new bill does not (a seat kind this
+ * business no longer has any of).
+ */
+export function reconcileSubscriptionItems(
+  existing: readonly { id: string; price: string; quantity: number }[],
+  target: readonly { price: string; quantity: number }[],
+): SubscriptionItemUpdate[] {
+  const items: SubscriptionItemUpdate[] = [];
+  const claimed = new Set<string>();
+
+  for (const line of target) {
+    const match = existing.find(i => i.price === line.price && !claimed.has(i.id));
+    if (match) {
+      claimed.add(match.id);
+      if (match.quantity !== line.quantity) items.push({ id: match.id, quantity: line.quantity });
+    } else {
+      items.push({ price: line.price, quantity: line.quantity });
+    }
+  }
+  for (const old of existing) if (!claimed.has(old.id)) items.push({ id: old.id, deleted: true });
+
+  return items;
 }
 
 /**

@@ -191,10 +191,25 @@ export function lineItemsFor(
   bill: { leadership: number; team: number; training?: number },
 ): { price: string; quantity: number }[] {
   const lines: { price: string; quantity: number }[] = [];
-  if (bill.leadership > 0) {
+  /*
+    ── `bill.leadership` is the TOTAL leadership count, trained seats included ─────────────────────
+    See the note on `seatBill` in lib/plan: it returns `leadership: billablePlain + billableTraining`
+    on purpose, so `bill.leadership + bill.team` is always every billed seat — the number
+    `countLeadershipSeats`-style callers actually want. But that means the PLAIN leadership price
+    must only ever be charged for the seats not already counted at the dearer training price, or a
+    trained leader is billed twice: once here, once on the training line below.
+
+    Found writing the test for this function rather than in it — nothing had ever exercised a
+    non-zero `training` here, because no test constructed one. A business of forty with six leaders,
+    two of them trained, would have been charged for eight leadership-rate seats instead of six —
+    4 plain + 2 trained at A$134 each on top of the 2 at A$227, rather than 4 at A$134 and 2 at A$227.
+  */
+  const training = Math.max(0, bill.training ?? 0);
+  const plainLeadership = Math.max(0, bill.leadership - training);
+  if (plainLeadership > 0) {
     lines.push({
       price: stripePriceId('leader', 'STRIPE_PRICE_SEAT_MONTHLY'),
-      quantity: bill.leadership,
+      quantity: plainLeadership,
     });
   }
   if (bill.team > 0) {
@@ -203,15 +218,12 @@ export function lineItemsFor(
       quantity: bill.team,
     });
   }
-  /*
-    A third line, only when somebody is actually on the training upgrade. `bill.leadership` above is
-    already the PLAIN leadership count — `seatBill` (lib/plan) splits a trained leader out of it — so
-    this never double-charges the same seat at two prices.
-  */
-  if (bill.training && bill.training > 0) {
+  // A third line, only when somebody is actually on the training upgrade — at its own price,
+  // never on top of the plain leadership line above.
+  if (training > 0) {
     lines.push({
       price: stripePriceId('leaderTraining', 'STRIPE_PRICE_SEAT_TRAINING_MONTHLY'),
-      quantity: bill.training,
+      quantity: training,
     });
   }
   return lines;

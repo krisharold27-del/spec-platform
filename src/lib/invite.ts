@@ -101,6 +101,14 @@ export async function inviteToSeat(
   await db.update(schema.roleAssignments).set({ userId })
     .where(and(eq(schema.roleAssignments.staffId, staffId), isNull(schema.roleAssignments.toDate)));
 
+  /*
+    A seat has just started being charged — push it onto Stripe now rather than waiting for
+    somebody to notice the invoice is short. Best-effort: see the note on `syncSubscriptionSeats`
+    in lib/plan.
+  */
+  const { syncSubscriptionSeats } = await import('./plan');
+  await syncSubscriptionSeats(tenantId);
+
   // Already invited before: their existing link is the one that works. Nothing more to send.
   if (existing?.invitedAt) return { ok: true, sent: true, email, name: person.name };
 

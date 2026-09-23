@@ -8,7 +8,7 @@ import { requireManager } from '@/lib/guard';
 import { emailConfirmed } from '@/lib/auth';
 import { inviteToSeat } from '@/lib/invite';
 import { getScope } from '@/lib/scope';
-import { assertWritable } from '@/lib/plan';
+import { assertWritable, syncSubscriptionSeats } from '@/lib/plan';
 import { getRoles, placementShown } from '@/lib/queries';
 import { installTraining } from '@/lib/provision';
 import { canMove, parseRoles, parseCsv, resolveImport, type ChartRole } from '@/lib/orgchart';
@@ -121,6 +121,10 @@ export async function moveRole(formData: FormData) {
 
   await db.update(schema.roles).set({ reportsToRoleId: ontoId }).where(eq(schema.roles.id, roleId));
   revalidatePath('/org');
+  revalidatePath('/billing');
+  // Reparenting can change who leads whom — the moved role's own holder, or whoever used to be
+  // the only thing reporting to its old or new parent. See the note on syncSubscriptionSeats.
+  await syncSubscriptionSeats(user.tenantId);
 }
 
 /**
@@ -137,6 +141,9 @@ export async function breakLink(formData: FormData) {
   await db.update(schema.roles).set({ reportsToRoleId: null })
     .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
   revalidatePath('/org');
+  revalidatePath('/billing');
+  // The old parent may have just lost its last direct report — see the note on syncSubscriptionSeats.
+  await syncSubscriptionSeats(user.tenantId);
 }
 
 /**
@@ -191,7 +198,10 @@ export async function movePerson(formData: FormData) {
     });
   }
 
-  for (const path of ['/org', '/my-page', '/people', '/team']) revalidatePath(path);
+  for (const path of ['/org', '/my-page', '/people', '/team', '/billing']) revalidatePath(path);
+  // A swap can change what one or both of the people just moved are billed as — see the note on
+  // syncSubscriptionSeats.
+  await syncSubscriptionSeats(user.tenantId);
 
   /*
     ── Say what the drag did, both halves of it ─────────────────────────────────────────────────
@@ -516,6 +526,9 @@ export async function setSeatKind(formData: FormData) {
   revalidatePath('/billing');
   revalidatePath('/journey');
   revalidatePath('/training');
+  // The whole reason this button exists — pushed straight through to the live subscription rather
+  // than waiting for somebody to notice the invoice is wrong. See the note on syncSubscriptionSeats.
+  await syncSubscriptionSeats(user.tenantId);
 }
 
 /** Take a role off the chart for good. Never used on a role with anybody in it. */
@@ -608,7 +621,9 @@ export async function claimRole(formData: FormData) {
     id: randomUUID(), roleId, userId: user.id, staffId: null, fromDate: today,
   });
 
-  for (const path of ['/org', '/my-page', '/people', '/team', '/setup/business']) revalidatePath(path);
+  for (const path of ['/org', '/my-page', '/people', '/team', '/setup/business', '/billing']) revalidatePath(path);
+  // Claiming a role can change what the claimer is billed as. See the note on syncSubscriptionSeats.
+  await syncSubscriptionSeats(user.tenantId);
   redirect(`/org?claimed=${encodeURIComponent(role.title)}`);
 }
 
@@ -694,6 +709,10 @@ export async function vacateRole(formData: FormData) {
   await db.update(schema.roleAssignments).set({ toDate: new Date().toISOString().slice(0, 10) })
     .where(and(eq(schema.roleAssignments.roleId, roleId), isNull(schema.roleAssignments.toDate)));
   revalidatePath('/org');
+  revalidatePath('/billing');
+  // Whoever just left may have had a login — vacant is a team seat, not a leadership one. See the
+  // note on syncSubscriptionSeats.
+  await syncSubscriptionSeats(user.tenantId);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

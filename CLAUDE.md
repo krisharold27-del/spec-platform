@@ -134,6 +134,18 @@ broader `canEdit`/`canShapeChart`/`canAdminister` gates. That one gate covers bo
 somebody may invite at all, and whether they may choose the invitee's seat kind or change an existing
 seat's override afterwards.
 
+**A live subscription now follows the chart, not just the checkout.** Corrected 23 September, right
+after the override above shipped and Kris saw how easily a chart drifts from what it started as:
+*"yes stripe needs to auto sync as I could never keep up if there are 100's of companys."* A
+subscription's quantity used to be set once, at the moment of checkout, and never touched again — a
+business that grew from six leaders to nine, or moved somebody onto team, kept paying the day-one
+number until an administrator opened Stripe by hand. `syncSubscriptionSeats` (`lib/plan`) is called
+after every write that can change what a business owes — an invite, a seat-kind override, a person
+moved or swapped, a role reparented, a role vacated — from `lib/invite`, `app/org/actions.ts` and
+`app/setup/people/actions.ts`. Best-effort, like every other Stripe-adjacent write: it swallows its
+own errors so a Stripe hiccup never breaks the chart edit that triggered it, and the very next write
+anywhere on the chart tries again.
+
 Six regions, decided per region rather than converted (`lib/pricing`'s `SEAT_PRICES`, transcribed
 from the live Stripe account, is the source of truth — this table is not):
 
