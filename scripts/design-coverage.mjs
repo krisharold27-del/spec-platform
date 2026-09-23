@@ -169,6 +169,12 @@ const SAMPLE_IDENTITIES = [
     the product's real labels.
   */
   'Harbourview', 'Northline', 'Kelvin Rd', 'Ruby',
+  /*
+    The Tech Day design's tech and supervisor ("Morning, Sione", "J-4417 · Tom Reyes supervising").
+    The phone greets whoever is signed in by their own first name, and a job's supervisor will come
+    from the business's own records.
+  */
+  'Sione', 'Tom Reyes',
 ];
 
 /** A month and a year, or a day and a month — a heading the product builds from real dates. */

@@ -41,9 +41,27 @@ const check = (label, condition, detail = '') => {
 };
 const text = () => page.textContent('body').then(t => t ?? '');
 
-// ── The door ─────────────────────────────────────────────────────────────────────────────────────
+// ── The siteVIP door, at the bare address ────────────────────────────────────────────────────────
+// Since 23 September the bare address is siteVIP, the trades edition. Its one ask is the business
+// name, and Enter carries it into sign-up so it is never asked for twice.
 await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 let body = await text();
+check('the bare address is siteVIP', /The trades edition of SPEC/.test(body) && /POWERED BY SPEC/.test(body), body.slice(0, 120));
+check('and the SPEC front door is one press away', (await page.locator('a[href="/spec"]').count()) > 0);
+await page.press('input[aria-label="Your business name"]', 'Enter');
+await page.waitForTimeout(400);
+check('Enter on an empty box goes nowhere', new URL(page.url()).pathname === '/', page.url());
+await page.fill('input[aria-label="Your business name"]', `${BUSINESS} Trades`);
+await Promise.all([
+  page.waitForURL('**/signup**', { timeout: 20_000 }).catch(() => {}),
+  page.press('input[aria-label="Your business name"]', 'Enter'),
+]);
+check('ENTER CARRIES THE BUSINESS NAME INTO SIGN-UP',
+  (await page.inputValue('input[name="business"]').catch(() => '')) === `${BUSINESS} Trades`, page.url());
+
+// ── The SPEC door, at /spec ──────────────────────────────────────────────────────────────────────
+await page.goto(`${BASE}/spec`, { waitUntil: 'networkidle' });
+body = await text();
 /*
   The virtual GM — design export 9, and the reason it is checked HERE rather than by the coverage
   script: that script asks whether a phrase exists in the source, not whether anybody can see it.

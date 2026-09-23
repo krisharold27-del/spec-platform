@@ -59,13 +59,15 @@ const PAIRS = [
   ['SPEC Mirrors.dc.html', '/mirrors', 'mirrors'],
   ['SPEC Setup.dc.html', '/setup', 'setup'],
   ['SPEC Board Pack.dc.html', '/board', 'board-pack'],
-  ['SPEC Landing.dc.html', '/', 'landing'],
+  ['SPEC Landing.dc.html', '/spec', 'landing'],
+  ['siteVIP Landing.dc.html', '/', 'sitevip-landing'],
   ['SPEC Pricing.dc.html', '/pricing', 'pricing'],
   ['SPEC Admin.dc.html', '/settings', 'admin'],
   ['SPEC Group.dc.html', '/group', 'group'],
   ['SPEC Sectors.dc.html', '/sectors', 'sectors'],
   ['SPEC Org Chart.dc.html', '/org', 'org-chart'],
   ['SPEC Mobile.dc.html', '/site', 'mobile'],
+  ['SPEC Tech Day.dc.html', '/tech-day', 'tech-day'],
 ];
 
 /**

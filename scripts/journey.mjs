@@ -80,6 +80,11 @@ try {
   // ── 1. A stranger walks in and looks around, asked for nothing ────────────────────────────────
   await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
   check('front door loads', at(page) === '/');
+  // The bare address is siteVIP since 23 September; SPEC's own front door, with the look-around, is
+  // one press from it at /spec.
+  check('and it is siteVIP, the trades edition', (await page.locator('text=The trades edition of SPEC').count()) > 0);
+  await page.goto(`${BASE}/spec`, { waitUntil: 'networkidle' });
+  check('SPEC\'s own front door is at /spec', at(page) === '/spec', at(page));
 
   await page.click('text=Have a look inside');
   await page.waitForLoadState('networkidle');

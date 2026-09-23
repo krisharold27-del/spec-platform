@@ -35,7 +35,8 @@ page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0
 const text = () => page.evaluate(() => document.body.innerText);
 
 // ── A visitor walks in ───────────────────────────────────────────────────────────────────────────
-await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+// The look-around is on SPEC's own front door, at /spec since the bare address became siteVIP.
+await page.goto(`${BASE}/spec`, { waitUntil: 'networkidle' });
 await page.click('text=Have a look inside');
 await page.waitForLoadState('networkidle');
 
