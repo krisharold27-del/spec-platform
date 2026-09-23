@@ -138,7 +138,7 @@ function ClientsTab({ view, q, manage }: { view: ClientsView; q: string; manage:
         </section>
       )}
 
-      <Search tab="clients" q={q} placeholder="Search clients, sites, contacts, J-numbers" csv="/clients/clients.csv" />
+      <Search tab="clients" q={q} placeholder="Search clients, sites, contacts, J-numbers" csv="/clients/export-clients" />
 
       {manage && (
         <details className="card mb-4">
@@ -386,7 +386,7 @@ function ContactsTab({ view, q, manage }: { view: ClientsView; q: string; manage
   const orgs = view.clients.filter(c => c.kind === 'organisation');
   return (
     <div>
-      <Search tab="contacts" q={q} placeholder="Search names, clients, numbers" csv="/clients/contacts.csv" />
+      <Search tab="contacts" q={q} placeholder="Search names, clients, numbers" csv="/clients/export-contacts" />
       {manage && (
         <details className="card mb-4">
           <summary className="cursor-pointer font-serif text-lg text-ink">Add a contact</summary>
