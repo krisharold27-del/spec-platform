@@ -1497,3 +1497,146 @@ export const timesheetEntries = pgTable('timesheet_entries', {
   index('timesheet_entries_tenant').on(t.tenantId),
   index('timesheet_entries_day').on(t.tenantId, t.day),
 ]).enableRLS();
+
+/* ══ CRM ══════════════════════════════════════════════════════════════════════════════════════════
+ *
+ * Sales work before a job exists (23 September): a pipeline of deals by stage, the organisations and
+ * people they are with, the activities that move them, and each deal's history. A won deal becomes a
+ * job in the Jobs pipeline above and keeps its id. Six tables, kept together as one block.
+ *
+ * Every one carries its own tenant_id, indexed, and is under the tenant policy in
+ * drizzle/0001_rls.sql. No foreign keys — the same shape production has (see CLAUDE.md, "Your
+ * database is not the one that ships"); every id that arrives from a form is re-read with the
+ * business's tenant_id before anything is changed.
+ *
+ * Money is integer cents. The forecast — open value, weighted value, won this month, win rate — is
+ * computed from these rows on every read (lib/crm) and never stored.
+ */
+
+/**
+ * A column on the board. SPEC proposes a trade business's five (lib/crm DEFAULT_STAGES); the business
+ * renames them, sets what each is worth to the forecast, and how long a deal may sit before it is
+ * flagged as going quiet.
+ */
+export const crmStages = pgTable('crm_stages', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  name: text('name').notNull(),
+  position: integer('position').notNull().default(0),
+  /** Whole percent, 0–100. */
+  probability: integer('probability').notNull().default(0),
+  /** Days without anything happening before a deal here is flagged. */
+  rotDays: integer('rot_days').notNull().default(7),
+  createdAt: text('created_at').notNull(),
+}, t => [index('crm_stages_tenant').on(t.tenantId)]).enableRLS();
+
+/** A business the business sells to. */
+export const crmOrganisations = pgTable('crm_organisations', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  name: text('name').notNull(),
+  address: text('address').notNull().default(''),
+  phone: text('phone').notNull().default(''),
+  createdBy: text('created_by').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [index('crm_organisations_tenant').on(t.tenantId)]).enableRLS();
+
+/** A person the business deals with. Belongs to an organisation, or to nobody (a homeowner). */
+export const crmPeople = pgTable('crm_people', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  organisationId: text('organisation_id'),
+  name: text('name').notNull(),
+  email: text('email').notNull().default(''),
+  phone: text('phone').notNull().default(''),
+  createdBy: text('created_by').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('crm_people_tenant').on(t.tenantId),
+  index('crm_people_org').on(t.tenantId, t.organisationId),
+]).enableRLS();
+
+/**
+ * One piece of work being sold.
+ *
+ * Owned by a ROLE on the org chart, with the holder's name kept beside it as it was when given —
+ * role first, person second, and it is the role that decides who may see it: the owner and everybody
+ * above them in their own line, never sideways.
+ */
+export const crmDeals = pgTable('crm_deals', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  title: text('title').notNull(),
+  organisationId: text('organisation_id'),
+  personId: text('person_id'),
+  /** Where the work is, if known. Carried onto the job when the deal is won. */
+  site: text('site').notNull().default(''),
+  /** What the work is worth, ex GST. */
+  valueCents: integer('value_cents').notNull().default(0),
+  stageId: text('stage_id').notNull(),
+  /** open | won | lost */
+  status: text('status').notNull().default('open'),
+  ownerRoleId: text('owner_role_id'),
+  ownerName: text('owner_name').notNull().default(''),
+  /** ISO date. */
+  expectedClose: text('expected_close'),
+  notes: text('notes').notNull().default(''),
+  /** One of LOST_REASONS in lib/crm, and the words when it was "Other". */
+  lostReason: text('lost_reason'),
+  lostNote: text('lost_note'),
+  closedAt: text('closed_at'),
+  closedBy: text('closed_by'),
+  /** The job a won deal became, in the Jobs pipeline. */
+  jobId: text('job_id'),
+  createdBy: text('created_by').notNull(),
+  createdAt: text('created_at').notNull(),
+  /** When it entered the stage it is in. */
+  stageAt: text('stage_at').notNull(),
+}, t => [
+  index('crm_deals_tenant').on(t.tenantId),
+  index('crm_deals_owner').on(t.tenantId, t.ownerRoleId),
+]).enableRLS();
+
+/**
+ * Something to do on a deal, by a day: a call, a meeting, a site visit, an email to send yourself,
+ * a task. SPEC sends nothing — an email here is a reminder, not a message.
+ */
+export const crmActivities = pgTable('crm_activities', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  dealId: text('deal_id').notNull(),
+  /** call | meeting | site_visit | email | task */
+  kind: text('kind').notNull(),
+  subject: text('subject').notNull(),
+  /** ISO date. */
+  dueDate: text('due_date').notNull(),
+  ownerRoleId: text('owner_role_id'),
+  ownerName: text('owner_name').notNull().default(''),
+  doneAt: text('done_at'),
+  doneBy: text('done_by'),
+  createdBy: text('created_by').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('crm_activities_tenant').on(t.tenantId),
+  index('crm_activities_deal').on(t.tenantId, t.dealId),
+]).enableRLS();
+
+/**
+ * A deal's history — created, moved, won, lost, reopened, a note, an activity ticked off. Appended,
+ * never edited: what happened to a deal stays what happened.
+ */
+export const crmDealEvents = pgTable('crm_deal_events', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  dealId: text('deal_id').notNull(),
+  /** created | stage | won | lost | reopened | note | done | owner */
+  kind: text('kind').notNull(),
+  fromStageId: text('from_stage_id'),
+  toStageId: text('to_stage_id'),
+  text: text('text').notNull().default(''),
+  byName: text('by_name').notNull(),
+  at: text('at').notNull(),
+}, t => [
+  index('crm_deal_events_tenant').on(t.tenantId),
+  index('crm_deal_events_deal').on(t.tenantId, t.dealId),
+]).enableRLS();
