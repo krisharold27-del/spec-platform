@@ -347,16 +347,21 @@ export async function bookCrew(formData: FormData) {
   const week = str(formData, 'week', 10);
   const day = str(formData, 'day', 10);
   const job = await ownJob(user.tenantId, str(formData, 'jobId'));
-  if (!job || !/^\d{4}-\d{2}-\d{2}$/.test(day)) back('schedule', { week });
+  // Booked from the job itself (the Crew card on a job) goes back to the job; from the grid, the grid.
+  const fromJob = str(formData, 'from', 10) === 'job' && job;
+  const retreat: (cannot?: string) => never = cannot => fromJob
+    ? back('pipeline', { job: job.id }, cannot)
+    : back('schedule', job ? { week, book: job.id } : { week }, cannot);
+  if (!job || !/^\d{4}-\d{2}-\d{2}$/.test(day)) retreat(job ? 'Pick the day to book them for.' : undefined);
 
   const crew = await crewFor(user);
   const person = crew.find(c => c.key === str(formData, 'person'));
-  if (!person) back('schedule', { week }, 'That person is not in your part of the chart.');
+  if (!person) retreat('That person is not in your part of the chart.');
 
   const [taken] = await db.select({ id: schema.scheduleBookings.id }).from(schema.scheduleBookings)
     .where(and(eq(schema.scheduleBookings.tenantId, user.tenantId), eq(schema.scheduleBookings.personKey, person.key), eq(schema.scheduleBookings.day, day)));
   const refusal = bookingRefusal(person, Boolean(taken));
-  if (refusal) back('schedule', { week, book: job.id }, refusal);
+  if (refusal) retreat(refusal);
 
   await db.insert(schema.scheduleBookings).values({
     id: randomUUID(), tenantId: user.tenantId, jobId: job.id, personKey: person.key, personName: person.name,
@@ -367,6 +372,8 @@ export async function bookCrew(formData: FormData) {
       .where(and(eq(schema.jobs.id, job.id), eq(schema.jobs.tenantId, user.tenantId)));
   }
   revalidatePath('/jobs');
+  revalidatePath('/tech-day');
+  if (fromJob) back('pipeline', { job: job.id });
   back('schedule', { week, book: job.id });
 }
 

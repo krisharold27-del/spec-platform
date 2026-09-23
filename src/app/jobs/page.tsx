@@ -347,7 +347,12 @@ function JobDetail({ job, crew, bookings, quotes, manage, now, tabHref, hasRate,
         <div>
           <span className="text-xs text-ink-light">{job.ref} · {stage.label}</span>
           <h2 className="mt-1 font-serif text-2xl text-ink">{job.title}</h2>
-          <p className="mt-1 text-sm text-ink-light">{job.client}{job.site ? ` · ${job.site}` : ' · site to confirm'}</p>
+          <p className="mt-1 text-sm text-ink-light">
+            {job.organisationId || job.personId
+              ? <Link href={`/clients?${new URLSearchParams({ client: job.organisationId ? `org:${job.organisationId}` : `person:${job.personId}` })}`} className="hover:text-rust">{job.client}</Link>
+              : job.client}
+            {job.site ? ` · ${job.site}` : ' · site to confirm'}
+          </p>
           {fromDeal && (
             <Link href={`/crm?deal=${fromDeal.id}`} className="mt-1 inline-block text-xs text-rust-700 hover:underline">From the deal “{fromDeal.title}” in the CRM →</Link>
           )}
@@ -407,6 +412,27 @@ function JobDetail({ job, crew, bookings, quotes, manage, now, tabHref, hasRate,
               );
             }) : <p className="text-sm text-ink-light">No crew booked yet</p>}
           </div>
+          {/*
+            Book somebody from the staff list without leaving the job. The same action as the grid,
+            so the same server-side Clear to Work gate: somebody not clear is refused there, not here —
+            the disabled option is a courtesy, never the check.
+          */}
+          {manage && job.stage !== 'paid' && crew.length > 0 && (
+            <form action={bookCrew} className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+              <input type="hidden" name="jobId" value={job.id} />
+              <input type="hidden" name="from" value="job" />
+              <select className="input sm:col-span-2" name="person" required defaultValue="" aria-label="Who to book">
+                <option value="" disabled>Book somebody…</option>
+                {crew.map(c => (
+                  <option key={c.key} value={c.key} disabled={c.clear === 'blocked'}>
+                    {c.name} · {c.roleTitle}{c.clear === 'blocked' ? ' — not clear to work' : c.clear === 'unknown' ? ' — not established' : ''}
+                  </option>
+                ))}
+              </select>
+              <input className="input" type="date" name="day" required defaultValue={now.toISOString().slice(0, 10)} aria-label="Which day" />
+              <SubmitButton className="btn-secondary shrink-0" pending="Booking…">Book</SubmitButton>
+            </form>
+          )}
           <p className="mt-3.5 text-xs text-ink-light">
             {people.length
               ? 'Everybody on this job was Clear to Work when they were booked. The gate is checked again at every booking.'
