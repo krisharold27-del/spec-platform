@@ -298,6 +298,14 @@ export const users = pgTable('users', {
    * informed buries a managing director.
    */
   notifyLevel: text('notify_level'),
+  /**
+   * How the rest of the business reaches this person, and the day they started with it — the staff
+   * list (People → Staff list, 23 September). Additive and optional: empty is "not recorded", never
+   * invented. The start date falls back to the person's first placement on the chart when unset.
+   * A plain directory, visible to everybody in the business; nothing here is a score.
+   */
+  phone: text('phone'),
+  startDate: text('start_date'),
 }, t => [uniqueIndex('users_tenant_email').on(t.tenantId, t.email), index('users_auth_user').on(t.authUserId)]).enableRLS();
 
 /**
@@ -454,6 +462,15 @@ export const staff = pgTable('staff', {
   /** Set once invited. Until then this person has no account and costs nothing. */
   userId: text('user_id').references(() => users.id),
   createdAt: text('created_at').notNull(),
+  /**
+   * The staff list's contact fields (23 September). Optional, typed by a leader or by the person —
+   * a pencilled-in name still has a phone. When the person is later invited, the email here is the
+   * one the invitation offers, so the business is never asked for it twice.
+   */
+  phone: text('phone'),
+  email: text('email'),
+  /** The day they started with the business, when it is known. ISO date. */
+  startDate: text('start_date'),
 }, t => [index('staff_tenant').on(t.tenantId)]).enableRLS();
 
 /**
@@ -1343,6 +1360,13 @@ export const jobs = pgTable('jobs', {
   stage: text('stage').notNull().default('enquiry'),
   title: text('title').notNull(),
   client: text('client').notNull(),
+  /**
+   * The client on the client list (23 September) — a CRM organisation, and/or the person the work is
+   * for. `client` stays the words the job was logged with and is never rewritten; these link it.
+   * Null on a job logged before the client list existed until it is linked by name (/clients).
+   */
+  organisationId: text('organisation_id'),
+  personId: text('person_id'),
   site: text('site').notNull().default(''),
   /** The price agreed, ex GST. Set from the quote when it goes out; zero until then. */
   valueCents: integer('value_cents').notNull().default(0),
@@ -1358,6 +1382,7 @@ export const jobs = pgTable('jobs', {
 }, t => [
   index('jobs_tenant').on(t.tenantId),
   uniqueIndex('jobs_tenant_ref').on(t.tenantId, t.ref),
+  index('jobs_organisation').on(t.tenantId, t.organisationId),
 ]).enableRLS();
 
 /**
