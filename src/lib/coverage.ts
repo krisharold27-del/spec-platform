@@ -121,7 +121,7 @@ export const CAPABILITIES: Capability[] = [
   C('jobs', 'invoicing', 'Invoicing & debtors', 'Invoice on sign-off, sent to your accounting system, with reminders at 7, 14 and 30 days.', 'job_management'),
   C('jobs', 'service', 'Service contracts & recurring work', 'Maintenance agreements that book themselves.', 'job_management'),
   C('jobs', 'assets', 'Test & tag, client assets', 'Every tested item with result, photo and next due date.', 'job_management'),
-  C('jobs', 'customers', 'Customers & sites', 'Every client, site, contact and job history in one place.', 'crm', '/crm'),
+  C('jobs', 'customers', 'Customers & sites', 'Every client, site, contact and job history in one place.', 'crm', '/clients'),
 
   // People and HR — 10
   C('hr', 'recruit', 'Recruitment', 'Vacancies from empty seats on the org chart, scored against the KPIs the person will hold.'),
@@ -269,7 +269,7 @@ export const CONNECTION_WORDS: Record<ConnectionState, string> = {
 
 /* ── The modules respect the choice ──────────────────────────────────────────────────────────── */
 
-export type ModuleKey = 'jobs' | 'safety' | 'people' | 'crm';
+export type ModuleKey = 'jobs' | 'safety' | 'people' | 'crm' | 'clients';
 
 /**
  * Which capabilities each tab of each module is the SPEC screen for. A tab not listed covers its
@@ -302,6 +302,7 @@ export const MODULE_TABS: Record<ModuleKey, { area: AreaKey | null; tabs: Record
     area: 'hr',
     tabs: {
       have: ['records', 'leave', 'training'],
+      staff: ['records'],
       conduct: ['reviews', 'training', 'conduct'],
       pay: ['contracts', 'award', 'payroll', 'exits'],
       hiring: ['recruit'],
@@ -309,6 +310,8 @@ export const MODULE_TABS: Record<ModuleKey, { area: AreaKey | null; tabs: Record
   },
   // The CRM is one capability of the Jobs area — "Customers & sites" — not an area of its own.
   crm: { area: null, tabs: { '*': ['customers'] } },
+  // The client list and contacts are the same capability, seen whole — see lib/clients.
+  clients: { area: null, tabs: { '*': ['customers'] } },
 };
 
 const AREA_WORDS: Record<AreaKey, string> = { jobs: 'jobs', hr: 'HR', safety: 'safety' };

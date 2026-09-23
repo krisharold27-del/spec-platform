@@ -47,6 +47,13 @@ export interface Material {
 export interface TechJob {
   title: string;
   site: string;
+  /**
+   * The job on the office's schedule this is, when it is one (23 September). Null for a job the tech
+   * named themselves — their hours still reach the timesheets, as time not on a scheduled job.
+   */
+  jobId?: string | null;
+  /** "J-1004", for the phone to show. */
+  ref?: string | null;
 }
 
 /** Everything the phone holds about one job's day. Serialisable, so it survives a reload. */
@@ -63,6 +70,11 @@ export interface TechDayState {
   signedBy: string | null;
   signedAt: string | null;
   finishedAt: string | null;
+  /**
+   * The office's timesheet entry Start opened — set once the office has it. Null means the hours
+   * are still only on this phone (no signal at Start), and Finish says so.
+   */
+  entryId: string | null;
 }
 
 export const EMPTY_DAY: TechDayState = {
@@ -75,6 +87,7 @@ export const EMPTY_DAY: TechDayState = {
   signedBy: null,
   signedAt: null,
   finishedAt: null,
+  entryId: null,
 };
 
 export type TechDayAction =
@@ -85,6 +98,8 @@ export type TechDayAction =
   | { type: 'materials'; items: Material[] }
   | { type: 'sign'; by: string; at: string }
   | { type: 'finish'; at: string }
+  /** The office has the Start: the timesheet entry it wrote. */
+  | { type: 'saved'; entryId: string }
   | { type: 'reset' };
 
 /** Is this step done? */
@@ -137,8 +152,14 @@ export function apply(s: TechDayState, a: TechDayAction): TechDayState {
       if (!title) return s;
       // Opening a job only replaces a day that has not started — never one with hours on it.
       if (s.job && s.startedAt && !s.finishedAt) return s;
-      return { ...EMPTY_DAY, job: { title, site: a.job.site.trim().slice(0, 160) } };
+      return {
+        ...EMPTY_DAY,
+        job: { title, site: a.job.site.trim().slice(0, 160), jobId: a.job.jobId ?? null, ref: a.job.ref ?? null },
+      };
     }
+    case 'saved':
+      // Only a running job takes an entry, and only once.
+      return s.startedAt && !s.finishedAt && !s.entryId && a.entryId ? { ...s, entryId: a.entryId } : s;
     case 'swms': {
       const by = a.by.trim().slice(0, 120);
       if (!by || !canDo(s, 'swms')) return s;
@@ -254,7 +275,11 @@ export function revive(raw: string | null | undefined): TechDayState {
     if (!v || typeof v !== 'object') return EMPTY_DAY;
     const str = (x: unknown) => (typeof x === 'string' ? x : null);
     const job = v.job && typeof v.job.title === 'string'
-      ? { title: v.job.title, site: typeof v.job.site === 'string' ? v.job.site : '' }
+      ? {
+          title: v.job.title, site: typeof v.job.site === 'string' ? v.job.site : '',
+          jobId: typeof v.job.jobId === 'string' ? v.job.jobId : null,
+          ref: typeof v.job.ref === 'string' ? v.job.ref : null,
+        }
       : null;
     return {
       job,
@@ -266,8 +291,68 @@ export function revive(raw: string | null | undefined): TechDayState {
       signedBy: str(v.signedBy),
       signedAt: str(v.signedAt),
       finishedAt: str(v.finishedAt),
+      entryId: str(v.entryId),
     };
   } catch {
     return EMPTY_DAY;
   }
+}
+
+/* ── The office's side: the schedule in, the timesheet out (23 September) ──────────────────────── */
+
+/**
+ * A booking on the office's schedule, as the phone receives it. The page reads the bookings either
+ * side of today (the server's day is UTC; the phone's is local) and the phone keeps its own day's.
+ */
+export interface Booked {
+  jobId: string;
+  ref: string;
+  title: string;
+  site: string;
+  client: string;
+  day: string;
+}
+
+/** Today's booked jobs on this phone's own calendar day, once each, in J-number order. */
+export function bookedOn(booked: readonly Booked[], day: string): Booked[] {
+  const seen = new Set<string>();
+  return booked
+    .filter(b => b.day === day && !seen.has(b.jobId) && Boolean(seen.add(b.jobId)))
+    .sort((a, b) => a.ref.localeCompare(b.ref, 'en', { numeric: true }));
+}
+
+/** "07:14" on the phone's own clock — the shape a typed timesheet entry already takes. */
+export function hhmm(d: Date): string {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** A clock time the phone sent, or null. */
+export const validClock = (s: unknown): string | null =>
+  typeof s === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(s) ? s : null;
+
+/**
+ * The phone's day, accepted only when it is within a day of the server's — a phone's calendar may
+ * be a timezone away from the server's, never a week.
+ */
+export function dayNear(day: unknown, now: Date): string | null {
+  if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const t = Date.parse(`${day}T00:00:00Z`);
+  if (Number.isNaN(t)) return null;
+  const today = Date.parse(`${now.toISOString().slice(0, 10)}T00:00:00Z`);
+  return Math.abs(t - today) <= 86_400_000 ? day : null;
+}
+
+/** The three calendar days a phone anywhere could call today. */
+export function daysAround(now: Date): string[] {
+  const d = Date.parse(`${now.toISOString().slice(0, 10)}T00:00:00Z`);
+  return [-1, 0, 1].map(k => new Date(d + k * 86_400_000).toISOString().slice(0, 10));
+}
+
+/**
+ * The minutes the office records, from ITS clock: Start's moment to Finish's. The phone's clock
+ * only labels the entry — hours are never a number the phone chose. Capped at a day, since a clock
+ * left running overnight is a forgotten Finish for a leader to fix, not sixteen billable hours.
+ */
+export function officeMinutes(startedIso: string, now: Date): number {
+  return Math.min(24 * 60, minutesBetween(startedIso, now.toISOString()));
 }

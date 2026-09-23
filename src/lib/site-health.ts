@@ -59,6 +59,11 @@ export interface HealthFacts {
    * See lib/claude.checkClaudeReading.
    */
   claude?: { state: string; detail?: string };
+  /**
+   * The NAMES of any Stripe price-override settings set to something other than SPEC's own price
+   * (lib/pricing `divergentPriceOverrides`). Names only — never a value.
+   */
+  priceOverrides?: string[];
 }
 
 const VERCEL = 'In Vercel: your project → Settings → Environment Variables → Add New. Then Deployments → the top one → ⋮ → Redeploy.';
@@ -350,6 +355,27 @@ export function lines(f: HealthFacts): HealthLine[] {
             fix: `Add STRIPE_SECRET_KEY. ${VERCEL}`,
           },
   );
+
+  /*
+    ── A leftover price setting (23 September) ──────────────────────────────────────────────────
+
+    Vercel was found holding a `STRIPE_PRICE_SEAT_MONTHLY` from before the price ids moved into
+    lib/pricing. An override that names a different price bills that price on every checkout and
+    every subscription sync, and nothing anywhere said it was there. On a live key lib/pricing now
+    ignores it (and logs that it has); this line says it exists so it can be deleted. Silent when
+    none is set, because the ordinary deployment has none.
+  */
+  const overrides = f.priceOverrides ?? [];
+  if (overrides.length) {
+    out.push({
+      what: 'Seat prices',
+      severity: 'limited',
+      word: 'Tidy up',
+      says: `${overrides.join(' and ')} ${overrides.length === 1 ? 'is' : 'are'} set to a different price than SPEC's own. `
+        + 'On a live key SPEC ignores it and bills its own prices; on a test key it is used.',
+      fix: `If this is the live site, delete ${overrides.join(' and ')} in Vercel (Settings → Environment Variables), then redeploy.`,
+    });
+  }
 
   return out;
 }

@@ -16,7 +16,8 @@
  * what the system will do — before spending a cent or entering a card.
  */
 
-import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatPrice, trainingSeatPrice, lineItemsFor, type Currency } from './pricing';
+import { resolveSeatKind } from './chart-seats';
+import { SEAT_PRICES, HOME_CURRENCY, moneyLabel, seatLabel, seatPrice, trainingSeatPrice, lineItemsFor, type Currency, type SeatKind } from './pricing';
 
 /** Per active named seat, per month, in the home currency (AUD). Other regions: see lib/pricing. */
 /** The leadership seat, which is the one the free-first-seat rule is about. */
@@ -119,6 +120,13 @@ export interface PlanState {
   leadershipSeats: number;
   /** And how many are team seats. The two add up to `billable`, never to `seats`. */
   teamSeats: number;
+  /**
+   * HEAD counts, before the free seat: how many people are on each kind of seat. The two add up to
+   * `seats`. `/billing` itemises from these, so its list, its total and the subscription sync are all
+   * one count (see `classifySeats`) rather than the page re-deriving leaders from its own list.
+   */
+  leadershipHeads: number;
+  teamHeads: number;
   /**
    * How many of `leadershipSeats` are ALSO on SPEC's training upgrade, at the dearer of the two
    * leadership prices. A subset of `leadershipSeats`, never added on top of it — see `seatBill`.
@@ -286,9 +294,9 @@ export const billableSeats = (seats: number) => Math.max(0, seats - FREE_SEATS);
  * SPEC, and billing the leadership rate for somebody the product cannot even place would be
  * charging A$134 for a row in a table.
  */
-/**
- * The same walk of the chart, done once, for both `countLeadershipSeats` and `countTrainingSeats` —
- * one DB round trip rather than two functions each rebuilding the same maps.
+/*
+ * The same walk of the chart, done once (`seatCountsFor`), for the total, the checkout, the
+ * subscription sync and each row on /billing — one set of reads rather than each rebuilding the maps.
  *
  * Training is read here rather than trusted off `users.trainingSeat` alone: the column says an
  * administrator once put this person on it, but eligibility is `seatKindFor` read off the CURRENT
@@ -297,75 +305,189 @@ export const billableSeats = (seats: number) => Math.max(0, seats - FREE_SEATS);
  * the same way `countLeadershipSeats` already stops billing them at the leadership rate the moment
  * the chart says team.
  */
-async function leadershipSeatCounts(tenantId: string): Promise<{ leadership: number; training: number }> {
-  const { db, schema } = await import('../db');
-  const { eq, and, isNull, inArray } = await import('drizzle-orm');
-  const { resolveSeatKind } = await import('./chart-seats');
 
-  const people = (await db.select().from(schema.users).where(eq(schema.users.tenantId, tenantId)))
-    .filter(u => u.invitedAt || u.acceptedAt || u.authUserId);
-  if (!people.length) return { leadership: 0, training: 0 };
+/**
+ * One person's seat, decided once, for every screen and for Stripe.
+ *
+ * ── Why this is a pure function now (23 September) ──────────────────────────────────────────────
+ *
+ * The bill used to be counted twice, two slightly different ways. `/billing` listed people from
+ * `getRoles` — ACTIVE roles only, account holders only, team nodes left out — and itemised the
+ * total from that list. The header, the checkout and `syncSubscriptionSeats` counted from this file,
+ * which read EVERY role ever drawn, removed ones included. Removing a role deactivates it and keeps
+ * its reporting line (a locked month keeps the structure it had), so a role once drafted under
+ * somebody, then removed, went on making that somebody "a person with direct reports" here and
+ * nowhere else. The page itemised a team seat; the subscription sync counted a leader; and when
+ * the sync's leader count happened to equal what Stripe already charged, it compared, found
+ * nothing to change, and returned — correctly, by its own count, and silently.
+ *
+ * So the rule is written once, here, with the chart handed in, and `/billing` reads each person's
+ * kind from the same map the bill is counted from. The page's list and the subscription cannot
+ * disagree without this function disagreeing with itself.
+ *
+ *   - Only ACTIVE roles place anybody, and only active roles make anybody a leader.
+ *   - A team node's members are team seats unless somebody set an override (schema note on
+ *     `roles.isTeam`: "everybody in one is a team seat").
+ *   - An account-holder placement wins over a staff-linked one, as `placementShown` does on the card.
+ *   - Somebody placed on two roles is a leader if either role makes them one — decided, not left to
+ *     whichever row the database returned last.
+ *   - Somebody with a login and no active role is a team seat.
+ */
+export interface SeatChart {
+  /** Everybody in the business with a way in — invited, accepted or signed up. */
+  people: readonly { id: string; seatKindOverride: string | null; trainingSeat: boolean }[];
+  roles: readonly { id: string; title: string; reportsTo: string | null; active: boolean; isTeam: boolean }[];
+  /** OPEN placements only (no `toDate`). */
+  placements: readonly { roleId: string; userId: string | null; staffId: string | null }[];
+  /** staff row id → the login it was linked to. */
+  staffOwner: ReadonlyMap<string, string>;
+}
 
-  const roles = await db.select({
-    id: schema.roles.id, title: schema.roles.title, reportsTo: schema.roles.reportsToRoleId,
-  }).from(schema.roles).where(eq(schema.roles.tenantId, tenantId));
-  if (!roles.length) return { leadership: 0, training: 0 };
+export interface SeatCounts {
+  seats: number;
+  leadership: number;
+  training: number;
+  /** userId → the seat that person is billed on. Every person in `people` has an entry. */
+  kinds: Map<string, SeatKind>;
+}
 
-  const byId = new Map(roles.map(r => [r.id, r]));
-  const leads = new Set(roles.map(r => r.reportsTo).filter((x): x is string => Boolean(x)));
+export function classifySeats(chart: SeatChart): SeatCounts {
+  const active = chart.roles.filter(r => r.active);
+  const byId = new Map(active.map(r => [r.id, r]));
+  const leads = new Set(active.map(r => r.reportsTo).filter((x): x is string => Boolean(x)));
 
-  const placements = await db.select().from(schema.roleAssignments)
-    .where(and(
-      inArray(schema.roleAssignments.roleId, roles.map(r => r.id)),
-      isNull(schema.roleAssignments.toDate),
-    ));
-
-  /*
-    A person can be on the chart two ways: an assignment carrying their user id, or one carrying a
-    staff row that was later linked to their account. Both are read, and the user-id assignment
-    wins — it is the one `placementShown` draws the card from, and a bill that disagrees with the
-    chart is a bill nobody can check.
-  */
-  const staffOwner = new Map((await db.select().from(schema.staff)
-    .where(eq(schema.staff.tenantId, tenantId)))
-    .filter(s => s.userId)
-    .map(s => [s.id, s.userId as string]));
-
-  const roleOf = new Map<string, string>();
-  for (const a of placements) {
-    if (a.staffId) { const uid = staffOwner.get(a.staffId); if (uid) roleOf.set(uid, a.roleId); }
+  const direct = new Map<string, string[]>();
+  const viaStaff = new Map<string, string[]>();
+  for (const a of chart.placements) {
+    if (!byId.has(a.roleId)) continue;
+    if (a.userId) direct.set(a.userId, [...(direct.get(a.userId) ?? []), a.roleId]);
+    else if (a.staffId) {
+      const uid = chart.staffOwner.get(a.staffId);
+      if (uid) viaStaff.set(uid, [...(viaStaff.get(uid) ?? []), a.roleId]);
+    }
   }
-  for (const a of placements) if (a.userId) roleOf.set(a.userId, a.roleId);
 
+  const kinds = new Map<string, SeatKind>();
   let leadership = 0;
   let training = 0;
-  for (const person of people) {
-    const role = byId.get(roleOf.get(person.id) ?? '');
-    if (!role) continue;
-    const kind = resolveSeatKind(
-      { title: role.title, hasDirectReports: leads.has(role.id) },
-      (person.seatKindOverride as 'leadership' | 'team' | null) ?? null,
-    );
+  for (const person of chart.people) {
+    const roleIds = direct.get(person.id) ?? viaStaff.get(person.id) ?? [];
+    const override = person.seatKindOverride === 'leadership' || person.seatKindOverride === 'team'
+      ? person.seatKindOverride : null;
+    let kind: SeatKind = 'team';
+    for (const id of roleIds) {
+      const role = byId.get(id)!;
+      const k = role.isTeam
+        ? (override ?? 'team')
+        : resolveSeatKind({ title: role.title, hasDirectReports: leads.has(role.id) }, override);
+      if (k === 'leadership') { kind = 'leadership'; break; }
+    }
+    kinds.set(person.id, kind);
     if (kind === 'leadership') {
       leadership += 1;
       if (person.trainingSeat) training += 1;
     }
   }
-  return { leadership, training };
+  return { seats: chart.people.length, leadership, training, kinds };
+}
+
+/** The whole count, read from the database once. See `classifySeats` for the rule. */
+export async function seatCountsFor(tenantId: string): Promise<SeatCounts> {
+  const { db, schema } = await import('../db');
+  const { eq, and, isNull, inArray } = await import('drizzle-orm');
+
+  const people = (await db.select().from(schema.users).where(eq(schema.users.tenantId, tenantId)))
+    .filter(u => u.invitedAt || u.acceptedAt || u.authUserId);
+  if (!people.length) return { seats: 0, leadership: 0, training: 0, kinds: new Map() };
+
+  const roles = await db.select({
+    id: schema.roles.id, title: schema.roles.title, reportsTo: schema.roles.reportsToRoleId,
+    active: schema.roles.active, isTeam: schema.roles.isTeam,
+  }).from(schema.roles).where(eq(schema.roles.tenantId, tenantId));
+
+  const placements = roles.length ? await db.select({
+    roleId: schema.roleAssignments.roleId, userId: schema.roleAssignments.userId, staffId: schema.roleAssignments.staffId,
+  }).from(schema.roleAssignments)
+    .where(and(
+      inArray(schema.roleAssignments.roleId, roles.map(r => r.id)),
+      isNull(schema.roleAssignments.toDate),
+    )) : [];
+
+  const staffOwner = new Map((await db.select().from(schema.staff)
+    .where(eq(schema.staff.tenantId, tenantId)))
+    .filter(s => s.userId)
+    .map(s => [s.id, s.userId as string]));
+
+  return classifySeats({
+    people: people.map(p => ({ id: p.id, seatKindOverride: p.seatKindOverride ?? null, trainingSeat: Boolean(p.trainingSeat) })),
+    roles, placements, staffOwner,
+  });
 }
 
 export async function countLeadershipSeats(tenantId: string): Promise<number> {
-  return (await leadershipSeatCounts(tenantId)).leadership;
+  return (await seatCountsFor(tenantId)).leadership;
 }
 
 /**
  * How many leadership seats also carry SPEC's training upgrade — the count `seatBill` charges at
  * `SEAT_PRICES.leadershipWithTraining` rather than the plain leadership rate. See the note on
- * `leadershipSeatCounts` for why this reads the chart rather than trusting the column alone.
+ * `classifySeats` for why this reads the chart rather than trusting the column alone.
  */
 export async function countTrainingSeats(tenantId: string): Promise<number> {
-  return (await leadershipSeatCounts(tenantId)).training;
+  return (await seatCountsFor(tenantId)).training;
 }
+
+/**
+ * What one run of `syncSubscriptionSeats` did — every way it can end, named, so none of them is
+ * silent. Each is also logged as one `[seat-sync]` line (search the Vercel logs for `seat-sync`).
+ */
+export type SeatSyncOutcome =
+  | { status: 'no_stripe' }
+  | { status: 'no_subscription' }
+  | { status: 'in_step'; subscriptionId: string; target: { price: string; quantity: number }[] }
+  | { status: 'updated'; subscriptionId: string; target: { price: string; quantity: number }[]; items: SubscriptionItemUpdate[] }
+  | { status: 'failed'; subscriptionId?: string; reason: string };
+
+/** The narrow slice of the Stripe client the sync uses — so a test can hand in a fake one. */
+export interface SeatSyncStripe {
+  subscriptions: {
+    retrieve(id: string): Promise<{ status?: string; items: { data: { id: string; price: { id: string }; quantity?: number | null }[] } }>;
+    update(id: string, params: { items: SubscriptionItemUpdate[]; proration_behavior: 'create_prorations' }): Promise<unknown>;
+  };
+}
+
+export interface SeatSyncDeps {
+  stripe: () => SeatSyncStripe | null | Promise<SeatSyncStripe | null>;
+  subscriptionIdOf: (tenantId: string) => Promise<string | null | undefined>;
+  counts: (tenantId: string) => Promise<Pick<SeatCounts, 'seats' | 'leadership' | 'training'>>;
+  log: (line: string) => void;
+  error: (line: string, err?: unknown) => void;
+}
+
+const liveDeps: SeatSyncDeps = {
+  stripe: async () => (await import('./stripe')).getStripe() as unknown as SeatSyncStripe | null,
+  subscriptionIdOf: async tenantId => {
+    const { db, schema } = await import('../db');
+    const { eq } = await import('drizzle-orm');
+    const row = (await db.select({ id: schema.tenants.stripeSubscriptionId }).from(schema.tenants)
+      .where(eq(schema.tenants.id, tenantId)))[0];
+    return row?.id ?? null;
+  },
+  counts: tenantId => seatCountsFor(tenantId),
+  log: line => console.log(line),
+  error: (line, err) => console.error(line, err),
+};
+
+const describeLines = (lines: readonly { price: string; quantity: number }[]) =>
+  lines.length ? lines.map(l => `${l.price}×${l.quantity}`).join(' + ') : '(nothing)';
+
+/**
+ * The live subscription, recently seen — so `/billing` can compare it with the page on every load
+ * without asking Stripe on every load. Per server instance, a minute long, and cleared by a sync.
+ */
+const SEEN_TTL_MS = 60_000;
+const seen = new Map<string, { at: number; lines: { id: string; price: string; quantity: number }[]; status?: string }>();
+export const forgetSeenSubscription = (subscriptionId: string) => { seen.delete(subscriptionId); };
 
 /**
  * Pushes the current seat counts onto a business's LIVE Stripe subscription, if it has one.
@@ -398,36 +520,109 @@ export async function countTrainingSeats(tenantId: string): Promise<number> {
  * built to push never had a second business on it. The mechanism was right; only its reason for
  * existing was premature. See DECISIONS.md, 22 and 23 September.
  */
-export async function syncSubscriptionSeats(tenantId: string): Promise<void> {
+export async function syncSubscriptionSeats(
+  tenantId: string,
+  deps: SeatSyncDeps = liveDeps,
+): Promise<SeatSyncOutcome> {
+  /*
+    ── Every ending says so (23 September) ────────────────────────────────────────────────────────
+
+    This used to have three ways to finish that wrote nothing anywhere: no key on this deployment,
+    no subscription id on the business, and "already matches". Only a thrown error was logged. On
+    23 September Kris pressed Save on /billing twice, Stripe did not move, and the logs had nothing
+    to say — which could have been any of the three, and nothing could tell them apart. Now each is a
+    `[seat-sync]` line naming the tenant, the target and what Stripe was already charging, and the
+    outcome is returned so the page that called it can say what happened.
+  */
+  const tag = `[seat-sync] tenant=${tenantId}`;
+  let subscriptionId: string | undefined;
   try {
-    const { getStripe } = await import('./stripe');
-    const stripe = getStripe();
-    if (!stripe) return; // no Stripe key configured on this deployment — nothing to push
+    const stripe = await deps.stripe();
+    if (!stripe) {
+      deps.log(`${tag} skipped: no STRIPE_SECRET_KEY on this deployment — nothing pushed`);
+      return { status: 'no_stripe' };
+    }
 
-    const { db, schema } = await import('../db');
-    const { eq } = await import('drizzle-orm');
-    const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, tenantId)))[0];
-    if (!tenant?.stripeSubscriptionId) return; // never subscribed — the next checkout reads the chart fresh
+    subscriptionId = (await deps.subscriptionIdOf(tenantId)) ?? undefined;
+    if (!subscriptionId) {
+      deps.log(`${tag} skipped: the business has no subscription id — the next checkout reads the chart fresh`);
+      return { status: 'no_subscription' };
+    }
 
-    const seats = await countSeats(tenantId);
-    const leadershipSeats = await countLeadershipSeats(tenantId);
-    const trainingSeats = await countTrainingSeats(tenantId);
-    const bill = seatBill(seats, leadershipSeats, undefined, trainingSeats);
+    const counts = await deps.counts(tenantId);
+    const bill = seatBill(counts.seats, counts.leadership, undefined, counts.training);
     const target = lineItemsFor(bill);
 
-    const subscription = await stripe.subscriptions.retrieve(tenant.stripeSubscriptionId);
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const existing = subscription.items.data.map(i => ({ id: i.id, price: i.price.id, quantity: i.quantity ?? 0 }));
+    seen.set(subscriptionId, { at: Date.now(), lines: existing, status: subscription.status });
 
     const items = reconcileSubscriptionItems(existing, target);
-    if (items.length === 0) return; // already matches — nothing to push
+    const facts = `sub=${subscriptionId} status=${subscription.status ?? '?'} seats=${counts.seats} leaders=${counts.leadership} `
+      + `training=${counts.training} target=${describeLines(target)} stripe=${describeLines(existing)}`;
+    if (items.length === 0) {
+      deps.log(`${tag} in step: ${facts}`);
+      return { status: 'in_step', subscriptionId, target };
+    }
 
-    await stripe.subscriptions.update(tenant.stripeSubscriptionId, {
-      items,
-      proration_behavior: 'create_prorations',
-    });
+    await stripe.subscriptions.update(subscriptionId, { items, proration_behavior: 'create_prorations' });
+    seen.delete(subscriptionId);
+    deps.log(`${tag} updated: ${facts} changes=${JSON.stringify(items)}`);
+    return { status: 'updated', subscriptionId, target, items };
   } catch (err) {
     // Never let a billing-sync failure break the write that triggered it — see the note above.
-    console.error('syncSubscriptionSeats failed — Stripe and the chart may disagree until the next write', err);
+    const reason = err instanceof Error ? err.message : String(err);
+    deps.error(`${tag} FAILED${subscriptionId ? ` sub=${subscriptionId}` : ''} — Stripe and the chart may disagree until the next write: ${reason}`, err);
+    return { status: 'failed', subscriptionId, reason };
+  }
+}
+
+/**
+ * What the live subscription charges against what the page says it should — for `/billing`, on
+ * every load, never in the way of it: a minute's cache (`seen`), a timeout, and any failure is an
+ * answer ('unknown') rather than an error.
+ */
+export type SubscriptionCheck =
+  | { status: 'in_step' }
+  | { status: 'differs'; stripe: { price: string; quantity: number }[]; target: { price: string; quantity: number }[] }
+  | { status: 'unknown'; reason: string };
+
+export function compareSubscription(
+  existing: readonly { id: string; price: string; quantity: number }[],
+  counts: Pick<SeatCounts, 'seats' | 'leadership' | 'training'>,
+): SubscriptionCheck {
+  const target = lineItemsFor(seatBill(counts.seats, counts.leadership, undefined, counts.training));
+  return reconcileSubscriptionItems(existing, target).length === 0
+    ? { status: 'in_step' }
+    : { status: 'differs', stripe: existing.map(({ price, quantity }) => ({ price, quantity })), target };
+}
+
+export async function checkSubscription(
+  subscriptionId: string,
+  counts: Pick<SeatCounts, 'seats' | 'leadership' | 'training'>,
+  opts: { stripe?: () => SeatSyncStripe | null | Promise<SeatSyncStripe | null>; timeoutMs?: number; now?: number } = {},
+): Promise<SubscriptionCheck> {
+  const now = opts.now ?? Date.now();
+  const cached = seen.get(subscriptionId);
+  if (cached && now - cached.at < SEEN_TTL_MS) return compareSubscription(cached.lines, counts);
+  try {
+    const stripe = await (opts.stripe ?? liveDeps.stripe)();
+    if (!stripe) return { status: 'unknown', reason: 'no key on this deployment' };
+    const sub = await Promise.race([
+      stripe.subscriptions.retrieve(subscriptionId),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('no answer within the time allowed')), opts.timeoutMs ?? 2500)),
+    ]);
+    const lines = sub.items.data.map(i => ({ id: i.id, price: i.price.id, quantity: i.quantity ?? 0 }));
+    seen.set(subscriptionId, { at: now, lines, status: sub.status });
+    const result = compareSubscription(lines, counts);
+    if (result.status === 'differs') {
+      console.warn(`[seat-sync] check: sub=${subscriptionId} differs from the page — target=${describeLines(result.target)} stripe=${describeLines(result.stripe)}`);
+    }
+    return result;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.warn(`[seat-sync] check: sub=${subscriptionId} could not be read: ${reason}`);
+    return { status: 'unknown', reason };
   }
 }
 
@@ -562,6 +757,8 @@ export function planState(
     billable,
     leadershipSeats: bill.leadership,
     teamSeats: bill.team,
+    leadershipHeads: Math.max(0, Math.min(leadershipSeats, seats)),
+    teamHeads: Math.max(0, seats - Math.max(0, Math.min(leadershipSeats, seats))),
     trainingSeats: bill.training,
     currency,
     // What it WOULD cost, kept even on a beta. A free arrangement somebody cannot see the value of
@@ -665,12 +862,14 @@ export async function planStateFor(tenantId: string, currency: Currency = HOME_C
   const { eq } = await import('drizzle-orm');
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, tenantId)))[0];
   if (!tenant) throw new Error('Business not found.');
+  // One walk of the chart — the same one the checkout and the subscription sync read.
+  const counts = await seatCountsFor(tenantId);
   return planState({
     id: tenant.id, plan: tenant.plan, startDate: tenant.startDate, tier: tenant.tier,
     // Without this the page cannot tell a business that has paid from one that never could, which
     // is exactly the gap that left the product with no way to start a subscription at all.
     stripeSubscriptionId: tenant.stripeSubscriptionId,
-  }, await countSeats(tenantId), currency, await countLeadershipSeats(tenantId), await countTrainingSeats(tenantId));
+  }, counts.seats, currency, counts.leadership, counts.training);
 }
 
 /**

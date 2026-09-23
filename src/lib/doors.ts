@@ -63,6 +63,7 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
       doors: [
         { href: '/jobs', label: 'Jobs', note: 'Quote it, win it, book the crew, do the job, invoice it.' },
         { href: '/crm', label: 'CRM', note: 'Every deal before it is a job, and the next call to make on each.' },
+        { href: '/clients', label: 'Clients', note: 'Every client and everyone at them — sites, jobs, what is owed, one press to start the next job.' },
         { href: '/tech-day', label: 'Tech day', note: 'The tech\'s phone day, SWMS to client sign-off.' },
         { href: '/coverage', label: 'Coverage', note: 'SPEC or your own system, capability by capability.' },
       ],
@@ -182,7 +183,7 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
  * Built from `doors()` rather than written out again, so a route that is renamed cannot leave the
  * bar pointing at nothing while the directory quietly stays right.
  */
-export const NAV_HREFS = ['/setup', '/my-page', '/jobs', '/crm', '/org', '/people', '/safety', '/billing', '/scoring', '/board', '/mirrors', '/connections', '/my-page#everywhere'] as const;
+export const NAV_HREFS = ['/setup', '/my-page', '/jobs', '/crm', '/clients', '/org', '/people', '/safety', '/billing', '/scoring', '/board', '/mirrors', '/connections', '/my-page#everywhere'] as const;
 
 export function navDoors(f: DoorsFor): Door[] {
   const all = allDoors(f);
@@ -202,6 +203,12 @@ export function navDoors(f: DoorsFor): Door[] {
     find('/jobs') ?? { href: '/jobs', label: 'Jobs', note: 'Quote it, win it, book the crew, do the job, invoice it.' },
     // CRM beside Jobs: the deals before there is a job, then the job. Kris asked for it 23 September.
     find('/crm') ?? { href: '/crm', label: 'CRM', note: 'Deals, people and follow-ups, before there is a job.' },
+    /*
+      Clients after CRM (23 September) — Kris: "we must have full client lists, we must have
+      contacts". The CRM is the selling; this is everybody the business works for, sold to or not.
+      No separate Staff item: the staff list is a tab of People, which is already on the bar.
+    */
+    find('/clients') ?? { href: '/clients', label: 'Clients', note: 'Every client and everyone at them.' },
     find('/org') ?? { href: '/org', label: 'Org chart', note: 'Who does what, and who reports to whom.' },
     find('/people') ?? { href: '/people', label: 'People', note: 'Who you have, who is clear to work, who you need.' },
     find('/safety') ?? { href: '/safety', label: 'Safety', note: 'Report it, fix it, and who is clear to work.' },

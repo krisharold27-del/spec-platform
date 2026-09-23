@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { eligibleForTrainingSeat } from './pricing';
 import { LIBRARY, libraryOrder } from './training-library';
@@ -29,13 +29,21 @@ async function heldRoles(tenantId: string, userId: string) {
     .select({ roleId: schema.roles.id, title: schema.roles.title })
     .from(schema.roleAssignments)
     .innerJoin(schema.roles, eq(schema.roles.id, schema.roleAssignments.roleId))
-    .where(and(eq(schema.roles.tenantId, tenantId), eq(schema.roleAssignments.userId, userId)));
+    // Open placements on active roles only — the same chart `classifySeats` (lib/plan) bills from.
+    // A closed placement or a removed role used to count here and nowhere in the bill.
+    .where(and(
+      eq(schema.roles.tenantId, tenantId), eq(schema.roleAssignments.userId, userId),
+      eq(schema.roles.active, true), isNull(schema.roleAssignments.toDate),
+    ));
   if (!rows.length) return [];
 
   const reportsIn = await db
     .select({ reportsTo: schema.roles.reportsToRoleId })
     .from(schema.roles)
-    .where(and(eq(schema.roles.tenantId, tenantId), inArray(schema.roles.reportsToRoleId, rows.map(r => r.roleId))));
+    .where(and(
+      eq(schema.roles.tenantId, tenantId), eq(schema.roles.active, true),
+      inArray(schema.roles.reportsToRoleId, rows.map(r => r.roleId)),
+    ));
   const leads = new Set(reportsIn.map(r => r.reportsTo).filter((x): x is string => Boolean(x)));
 
   return rows.map(r => ({ roleId: r.roleId, title: r.title, hasDirectReports: leads.has(r.roleId) }));

@@ -19,16 +19,22 @@ import { light, type Light, LIGHT_LABEL } from './today';
 
 /* ── The tabs ─────────────────────────────────────────────────────────────────────────────────── */
 
-export type HrTab = 'have' | 'conduct' | 'pay' | 'hiring';
+export type HrTab = 'have' | 'staff' | 'conduct' | 'pay' | 'hiring';
 
 /**
- * The four tabs, in the design's order: HR, Reviews & conduct, Pay & exits, Recruitment.
+ * The tabs, in the design's order — HR, Reviews & conduct, Pay & exits, Recruitment — with the
+ * staff list beside HR.
  *
  * `mode` is the URL's word for each; `hiring` predates the other two and is kept so an existing
  * link to `/people?mode=hiring` still lands where it did.
  */
 export const HR_TABS: { tab: HrTab; mode: string | null; label: string }[] = [
   { tab: 'have', mode: null, label: 'Who you have' },
+  /*
+    The whole business on one list (23 September) — see lib/directory. Second, beside "Who you have",
+    because it is the same question asked of everybody rather than of the viewer's own line.
+  */
+  { tab: 'staff', mode: 'staff', label: 'Staff list' },
   { tab: 'conduct', mode: 'conduct', label: 'Reviews & conduct' },
   { tab: 'pay', mode: 'pay', label: 'Pay & exits' },
   { tab: 'hiring', mode: 'hiring', label: 'Who you need' },

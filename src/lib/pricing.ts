@@ -161,8 +161,56 @@ export type StripePriceKey = keyof typeof STRIPE_PRICES;
  * (a deployment can be pointed at test-mode prices without a release), `STRIPE_PRICES` is the
  * fallback and the truth.
  */
-export const stripePriceId = (key: StripePriceKey, envName: string): string =>
-  process.env[envName] || STRIPE_PRICES[key];
+export const stripePriceId = (key: StripePriceKey, envName: string): string => {
+  const override = process.env[envName]?.trim();
+  if (!override || override === STRIPE_PRICES[key]) return STRIPE_PRICES[key];
+  /*
+    ── On a LIVE key an override is ignored, and says so (23 September) ──────────────────────────
+
+    The override exists for one reason: pointing a TEST-mode deployment at test-mode prices. On the
+    live account `STRIPE_PRICES` is the truth by construction — it was transcribed from it — so an
+    override that differs from it there can only be a leftover. On 23 September Vercel was found
+    still holding a stale-looking `STRIPE_PRICE_SEAT_MONTHLY` from before the 19 September handoff,
+    and a leftover is not harmless: every checkout and every subscription sync would bill whatever price it names — an archived one
+    (Stripe refuses, the sync logs and gives up, the bill stays wrong) or a live one at a retired
+    amount (Stripe accepts and charges it). Neither is visible on any page.
+
+    So on a live key the code's own id wins, a line is logged every time, and /status names the
+    setting (never its value) until it is deleted. On a test key, or with no key, it works as before.
+  */
+  if (stripeKeyMode() === 'live') {
+    console.warn(`[stripe-price] ${envName} is set to a price that is not SPEC's own ${key} price — ignored on the live key; using ${STRIPE_PRICES[key]}. Delete ${envName} in Vercel.`);
+    return STRIPE_PRICES[key];
+  }
+  return override;
+};
+
+/** Which Stripe account mode the configured secret key is for — never the key, never its prefix. */
+export function stripeKeyMode(): 'live' | 'test' | 'none' {
+  const key = process.env.STRIPE_SECRET_KEY?.trim() ?? '';
+  if (!key) return 'none';
+  return /^(sk|rk)_live_/.test(key) ? 'live' : 'test';
+}
+
+/** Every price override setting, keyed by the price it overrides. The names are fixed; see `lineItemsFor`. */
+export const PRICE_OVERRIDE_SETTINGS: Readonly<Record<'leader' | 'team' | 'leaderTraining', string>> = {
+  leader: 'STRIPE_PRICE_SEAT_MONTHLY',
+  team: 'STRIPE_PRICE_TEAM_SEAT_MONTHLY',
+  leaderTraining: 'STRIPE_PRICE_SEAT_TRAINING_MONTHLY',
+};
+
+/**
+ * The NAMES of any price-override settings that are set to something other than SPEC's own price.
+ * For /status: names only, never a value.
+ */
+export function divergentPriceOverrides(): string[] {
+  return (Object.entries(PRICE_OVERRIDE_SETTINGS) as [StripePriceKey, string][])
+    .filter(([key, env]) => {
+      const v = process.env[env]?.trim();
+      return Boolean(v) && v !== STRIPE_PRICES[key];
+    })
+    .map(([, env]) => env);
+}
 
 /**
  * The Advanced/AI-priced TEAM seat, retired 22 September along with the tier it billed and never
@@ -208,13 +256,13 @@ export function lineItemsFor(
   const plainLeadership = Math.max(0, bill.leadership - training);
   if (plainLeadership > 0) {
     lines.push({
-      price: stripePriceId('leader', 'STRIPE_PRICE_SEAT_MONTHLY'),
+      price: stripePriceId('leader', PRICE_OVERRIDE_SETTINGS.leader),
       quantity: plainLeadership,
     });
   }
   if (bill.team > 0) {
     lines.push({
-      price: stripePriceId('team', 'STRIPE_PRICE_TEAM_SEAT_MONTHLY'),
+      price: stripePriceId('team', PRICE_OVERRIDE_SETTINGS.team),
       quantity: bill.team,
     });
   }
@@ -222,11 +270,24 @@ export function lineItemsFor(
   // never on top of the plain leadership line above.
   if (training > 0) {
     lines.push({
-      price: stripePriceId('leaderTraining', 'STRIPE_PRICE_SEAT_TRAINING_MONTHLY'),
+      price: stripePriceId('leaderTraining', PRICE_OVERRIDE_SETTINGS.leaderTraining),
       quantity: training,
     });
   }
   return lines;
+}
+
+/**
+ * A subscription line in words, for a person reading /billing — never a price id.
+ * A price SPEC does not recognise is said to be one, rather than guessed at.
+ */
+export function describeSubscriptionLine(line: { price: string; quantity: number }): string {
+  const n = line.quantity;
+  const name = line.price === STRIPE_PRICES.leader ? (n === 1 ? 'leadership seat' : 'leadership seats')
+    : line.price === STRIPE_PRICES.team ? (n === 1 ? 'team seat' : 'team seats')
+      : line.price === STRIPE_PRICES.leaderTraining ? (n === 1 ? 'trained leadership seat' : 'trained leadership seats')
+        : (n === 1 ? 'seat at a price SPEC no longer uses' : 'seats at a price SPEC no longer uses');
+  return `${n} ${name}`;
 }
 
 /** The products those prices hang off, for anybody checking the account against this file. */

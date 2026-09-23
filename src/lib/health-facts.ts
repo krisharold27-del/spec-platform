@@ -2,6 +2,7 @@ import { checkSchema, driftLine } from './schema-check';
 import { checkEmailSending } from './email';
 import { checkClaudeReading } from './claude';
 import type { HealthFacts } from './site-health';
+import { divergentPriceOverrides } from './pricing';
 
 /**
  * Gathering the facts about whether SPEC is working — the one place that asks.
@@ -137,5 +138,6 @@ export async function healthFacts(): Promise<HealthFacts> {
       : { status: shape.status },
     email,
     claude,
+    priceOverrides: divergentPriceOverrides(),
   };
 }

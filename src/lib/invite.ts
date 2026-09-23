@@ -126,7 +126,8 @@ export async function inviteToSeat(
   const { resolveSeatKind } = await import('./chart-seats');
   const led = await db.select({ reportsTo: schema.roles.reportsToRoleId })
     .from(schema.roles)
-    .where(and(eq(schema.roles.tenantId, tenantId), eq(schema.roles.reportsToRoleId, role.id)));
+    // Active roles only — a removed role keeps its reporting line but leads nobody (see classifySeats).
+    .where(and(eq(schema.roles.tenantId, tenantId), eq(schema.roles.reportsToRoleId, role.id), eq(schema.roles.active, true)));
   const billedAs = resolveSeatKind({ title: role.title, hasDirectReports: led.length > 0 }, seatKind);
 
   try {
