@@ -1640,3 +1640,22 @@ export const crmDealEvents = pgTable('crm_deal_events', {
   index('crm_deal_events_tenant').on(t.tenantId),
   index('crm_deal_events_deal').on(t.tenantId, t.dealId),
 ]).enableRLS();
+
+/**
+ * Who runs each capability on the Coverage map: SPEC, or the business's own system.
+ *
+ * One row per capability somebody CHANGED from the default. No row is SPEC — the default is never
+ * written, so switching back to SPEC deletes the row. `capability` is a key from `lib/coverage`'s
+ * CAPABILITIES; `choice` is 'spec' | 'own' (only 'own' is ever stored today, and 'spec' is still
+ * read correctly if it ever is). Changed by a manager, the same gate as Jobs and Safety.
+ */
+export const coverageChoices = pgTable('coverage_choices', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  capability: text('capability').notNull(),
+  choice: text('choice').notNull(),
+  updatedBy: text('updated_by').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  uniqueIndex('coverage_choices_tenant_capability').on(t.tenantId, t.capability),
+]).enableRLS();
