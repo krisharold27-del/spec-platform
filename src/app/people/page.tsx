@@ -25,6 +25,8 @@ import { Problems } from '@/components/problems';
 import type { Pillar } from '@/lib/scoring';
 import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
+import { HR_TABS, tabOf, hrefOf, lastThree, lastPayWeek, exitsFrom, trainingStateOf, trainingSummary } from '@/lib/hr';
+import { ConductTab, PayTab, type ReviewPerson, type TrainingRow, type ContractRow, type ExitRow } from './hr-tabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,7 +68,8 @@ export default async function People({ searchParams }: { searchParams: Promise<R
   const mode = typeof sp.mode === 'string' ? sp.mode : undefined;
   // Why SPEC said no, if it just did. See lib/refuse.
   const cannot = refusedReason(sp);
-  const hiring = mode === 'hiring';
+  const tab = tabOf(mode);
+  const hiring = tab === 'hiring';
 
   const scope = await getScope(user);
   const period = await currentPeriod(user.tenantId);
@@ -184,6 +187,77 @@ export default async function People({ searchParams }: { searchParams: Promise<R
     .sort((a, b) => ORDER[stateOf(a, now)] - ORDER[stateOf(b, now)]);
 
   const vacancies = people.filter(p => p.placement === 'vacant');
+
+  /*
+    Reviews & conduct, and Pay & exits — SPEC People.dc.html, 23 September. Loaded only for the tab
+    that is open: three months of scorecards per person is the heaviest read on this page, and the
+    other tabs never show it. Everything here is read from what SPEC already holds; see lib/hr.
+  */
+  const held = people.filter(p => p.placement !== 'vacant' && p.name);
+  const reviews: ReviewPerson[] = [];
+  const trainingRows: TrainingRow[] = [];
+  if (tab === 'conduct') {
+    const months = lastThree(await db.select().from(schema.periods).where(eq(schema.periods.tenantId, user.tenantId)));
+    for (const p of held.filter(x => x.scored)) {
+      const scores = [];
+      for (const m of months) {
+        const { score } = await getScorecard(p.roleId, m.id);
+        scores.push({ period: m.period, score: score.overall, status: m.status });
+      }
+      reviews.push({ roleId: p.roleId, name: p.name!, roleTitle: p.roleTitle, months: scores });
+    }
+    for (const p of held) {
+      const assignment = assignments.find(a => a.roleId === p.roleId);
+      const path = curriculum.filter(x => x.roleId === p.roleId).sort((a, b) => a.sortOrder - b.sortOrder);
+      if (!path.length) continue;
+      const lines = path.map(c => {
+        const record = records.find(x => x.userId === assignment?.userId && x.moduleId === c.moduleId);
+        const due = dueDateFor(assignment?.fromDate ?? null, c.dueDays);
+        const complete = (record?.progress ?? 0) >= 100;
+        return {
+          module: modules.find(m => m.id === c.moduleId)?.title ?? 'A module',
+          state: trainingStateOf(record?.progress ?? null, dueState(due, complete, now) === 'overdue'),
+          due,
+        };
+      });
+      trainingRows.push({ key: p.roleId, name: p.name!, roleTitle: p.roleTitle, ...trainingSummary(lines) });
+    }
+  }
+
+  const contracts: ContractRow[] = [];
+  const exits: ExitRow[] = [];
+  let accountingConnected = false;
+  if (tab === 'pay') {
+    for (const p of held) {
+      const role = visible.find(r => r.id === p.roleId);
+      const boss = role?.reportsToRoleId ? visible.find(r => r.id === role.reportsToRoleId)?.title ?? null : null;
+      contracts.push({
+        roleId: p.roleId, roleTitle: p.roleTitle, businessName: tenant.name, reportsTo: boss, person: p.name,
+        startDate: assignments.find(a => a.roleId === p.roleId)?.fromDate?.slice(0, 10) ?? null,
+        kpis: criteria.filter(c => c.roleId === p.roleId && c.active && c.kpi).map(c => ({ pillar: c.pillar as Pillar, text: c.text })),
+      });
+    }
+    // Every placement on the visible roles, open and closed — the chart's own history of who left.
+    const history = roleIds.length
+      ? await db.select().from(schema.roleAssignments).where(inArray(schema.roleAssignments.roleId, roleIds))
+      : [];
+    for (const e of exitsFrom(history)) {
+      exits.push({
+        key: `${e.roleId}:${e.userId ?? e.staffId}`,
+        name: nameOf(e.staffId, e.userId),
+        roleTitle: visible.find(r => r.id === e.roleId)?.title ?? 'A role',
+        left: e.left.slice(0, 10),
+      });
+    }
+    const connections = await db.select().from(schema.systemConnections)
+      .where(and(
+        eq(schema.systemConnections.tenantId, user.tenantId),
+        eq(schema.systemConnections.category, 'financials'),
+        // The business's connections only — a person's own mailbox is never on a business list.
+        isNull(schema.systemConnections.personalFor),
+      ));
+    accountingConnected = connections.some(c => c.status === 'live');
+  }
   const candidates = await db.select().from(schema.candidates)
     .where(eq(schema.candidates.tenantId, user.tenantId));
 
@@ -216,15 +290,28 @@ export default async function People({ searchParams }: { searchParams: Promise<R
       </section>
 
       <div className="flex flex-wrap gap-2">
-        <Link href="/people" className={`rounded-full px-4 py-2 text-sm ${!hiring ? 'bg-rust text-cream' : 'bg-surface text-ink hover:bg-cream'}`}>
-          Who you have
-        </Link>
-        <Link href="/people?mode=hiring" className={`rounded-full px-4 py-2 text-sm ${hiring ? 'bg-rust text-cream' : 'bg-surface text-ink hover:bg-cream'}`}>
-          Who you need
-        </Link>
+        {HR_TABS.map(t => (
+          <Link
+            key={t.tab}
+            href={hrefOf(t.tab)}
+            className={`rounded-full px-4 py-2 text-sm ${tab === t.tab ? 'bg-rust text-cream' : 'bg-surface text-ink hover:bg-cream'}`}
+          >
+            {t.label}
+          </Link>
+        ))}
       </div>
 
-      {!hiring ? (
+      {tab === 'conduct' ? (
+        <ConductTab reviews={reviews} training={trainingRows} />
+      ) : tab === 'pay' ? (
+        <PayTab
+          contracts={contracts}
+          payWeek={lastPayWeek(now)}
+          inRoles={held.length}
+          accountingConnected={accountingConnected}
+          exits={exits}
+        />
+      ) : !hiring ? (
         <>
           <section className="card mt-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
