@@ -71,7 +71,12 @@ export function CoverageMap({ tenantId, defaults }: { tenantId: string; defaults
                 return (
                   <div key={c.key} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-cream px-4 py-3" data-capability={c.key}>
                     <span className="grid min-w-0 flex-[1_1_320px] gap-0.5">
-                      <span className="text-[14.5px] font-bold text-ink">{c.name}</span>
+                      <span className="text-[14.5px] font-bold text-ink">
+                        {c.name}
+                        {c.href && !own && (
+                          <Link href={c.href} className="ml-2 text-[13px] font-normal text-rust-700 hover:underline">Open in SPEC →</Link>
+                        )}
+                      </span>
                       <span className="text-[13px] leading-[19px] text-ink-light">{c.what}</span>
                     </span>
                     <span className="flex shrink-0 gap-1.5" role="group" aria-label={`Who runs ${c.name}`}>
