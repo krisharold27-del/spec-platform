@@ -449,7 +449,7 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
 
               The design lists connectors with a state beside each. What is drawn here is this
               business's OWN connections, read from the register — not a menu of logos SPEC does not
-              talk to yet. A card that offers to connect BambooHR when nothing behind it can would be
+              talk to yet. A card that offers to connect a named HR product when nothing behind it can would be
               the same lie the feed wording was.
             */}
             <div className="grid content-start gap-3 rounded-[20px] bg-cream p-6">
