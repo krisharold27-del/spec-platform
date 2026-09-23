@@ -15,7 +15,7 @@ export default function Terms() {
       </p>
 
       <div className="prose-sm mt-8 space-y-5 text-sm leading-6 text-ink-light">
-        <p>These terms cover your use of SPEC (the app at specbizhq.com and app.specbizhq.com), operated by SPEC Business Solutions ("we", "us"), a business based in Victoria, Australia. By creating a business on SPEC you agree to these terms. If you don't agree, don't use the service.</p>
+        <p>These terms cover your use of SPEC (the app at sitevipapp.com), operated by SPEC Business Solutions ("we", "us"), a business based in Victoria, Australia. By creating a business on SPEC you agree to these terms. If you don't agree, don't use the service.</p>
 
         <h2 className="text-base font-semibold text-ink">What SPEC is</h2>
         <p>SPEC is a self-serve operating system for running a business against four pillars — Safety, People, Earnings, Compliance — with role-based scorecards, KPIs, and a monthly board output generated from your own data. It's a tool your business uses to track and report on itself; it doesn't manage your business for you, and nothing it produces is professional advice (financial, legal, safety, or otherwise).</p>
