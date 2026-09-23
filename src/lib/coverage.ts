@@ -61,10 +61,12 @@ export interface Capability {
   what: string;
   /** Which kind of connected system can run this instead. Null: SPEC runs it, nothing replaces it. */
   connect: ConnectCategory | null;
+  /** Where SPEC's own version of it lives, when it has a screen of its own. */
+  href?: string;
 }
 
-const C = (area: AreaKey, key: string, name: string, what: string, connect: ConnectCategory | null = null): Capability =>
-  ({ key, area, name, what, connect });
+const C = (area: AreaKey, key: string, name: string, what: string, connect: ConnectCategory | null = null, href?: string): Capability =>
+  ({ key, area, name, what, connect, ...(href ? { href } : {}) });
 
 /** The 38, in the design's order. */
 export const CAPABILITIES: Capability[] = [
@@ -85,7 +87,7 @@ export const CAPABILITIES: Capability[] = [
   C('jobs', 'invoicing', 'Invoicing & debtors', 'Invoice on sign-off, sent to your accounting system, with reminders at 7, 14 and 30 days.', 'job_management'),
   C('jobs', 'service', 'Service contracts & recurring work', 'Maintenance agreements that book themselves.', 'job_management'),
   C('jobs', 'assets', 'Test & tag, client assets', 'Every tested item with result, photo and next due date.', 'job_management'),
-  C('jobs', 'customers', 'Customers & sites', 'Every client, site, contact and job history in one place.', 'crm'),
+  C('jobs', 'customers', 'Customers & sites', 'Every client, site, contact and job history in one place.', 'crm', '/crm'),
 
   // People and HR — 10
   C('hr', 'recruit', 'Recruitment', 'Vacancies from empty seats on the org chart, scored against the KPIs the person will hold.'),

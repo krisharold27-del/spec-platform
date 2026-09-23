@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 import { db, schema } from '../db';
 import type { CurrentUser } from './auth';
 import { getScope } from './scope';
@@ -8,6 +9,7 @@ import { isScored } from './today-data';
 import { dueDateFor, dueState } from './training';
 import { blockingReasons } from './obligations';
 import { clearToWork } from './people';
+import { nextRef, type StageKey } from './jobs';
 
 /**
  * The crew — the people a job can be booked with — and whether each of them is clear to work.
@@ -109,4 +111,31 @@ export async function standardRate(tenantId: string) {
     .where(eq(schema.labourRates.tenantId, tenantId))
     .orderBy(schema.labourRates.position, schema.labourRates.createdAt);
   return rates[0] ?? null;
+}
+
+/**
+ * The one way a job comes into being.
+ *
+ * An enquiry typed on the Jobs screen starts here at `enquiry`; a deal won in the CRM starts here at
+ * `won`, carrying its client, site and value, because the selling is already done. Either way the
+ * reference comes from the same series, so the two routes can never hand out the same J-number.
+ */
+export async function createJob(input: {
+  tenantId: string;
+  stage: StageKey;
+  title: string;
+  client: string;
+  site: string;
+  valueCents?: number;
+  createdBy: string;
+}): Promise<{ id: string; ref: string }> {
+  const refs = await db.select({ ref: schema.jobs.ref }).from(schema.jobs).where(eq(schema.jobs.tenantId, input.tenantId));
+  const id = randomUUID();
+  const ref = nextRef('J', refs.map(r => r.ref));
+  const at = new Date().toISOString();
+  await db.insert(schema.jobs).values({
+    id, tenantId: input.tenantId, ref, stage: input.stage, title: input.title, client: input.client,
+    site: input.site, valueCents: input.valueCents ?? 0, createdBy: input.createdBy, createdAt: at, stageAt: at,
+  });
+  return { id, ref };
 }

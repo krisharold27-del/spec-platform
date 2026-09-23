@@ -782,3 +782,42 @@ export async function assertWritable(tenantId: string): Promise<void> {
   const state = await planStateFor(tenantId);
   if (state.readOnly) await refuseWrite('lapsed');
 }
+
+/**
+ * The bill, itemised — so nobody has to reverse-engineer a total.
+ *
+ * Kris, 23 September, looking at JBI's Pricing page: *"Janine is not showing as a team member —
+ * she is costed as a leadership seat."* She wasn't. JBI is two leaders and one team seat, the first
+ * seat is free and comes off a team seat first, so Janine's A$17 was the free one and A$268 was
+ * exactly the two leaders. The arithmetic was right and Stripe agreed (2 × A$134). What was wrong
+ * was the page: a total of A$268 beside "each extra person is A$17" reads as three people at the
+ * wrong price. So the page now says what each kind of seat is, how many, and which one is free.
+ *
+ * `team` and `leadership` here are HEAD counts, before the free seat — the page knows them from the
+ * people listed under it, which is the whole point: the sentence must match the list.
+ */
+export function seatBreakdown(
+  counts: { leadership: number; team: number; training?: number },
+  currency: Currency = HOME_CURRENCY,
+): string[] {
+  const training = Math.max(0, Math.min(counts.training ?? 0, counts.leadership));
+  const bill = seatBill(counts.leadership + counts.team, counts.leadership, currency, training);
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const lines: string[] = [];
+  const plainPaid = bill.leadership - bill.training;
+  if (plainPaid > 0) {
+    lines.push(`${plural(plainPaid, 'leadership seat', 'leadership seats')} × ${seatLabel(currency, 'leadership')} = ${moneyLabel(currency, plainPaid * seatPrice(currency, 'leadership'))}`);
+  }
+  if (bill.training > 0) {
+    lines.push(`${plural(bill.training, 'trained leadership seat', 'trained leadership seats')} × ${moneyLabel(currency, trainingSeatPrice(currency))} = ${moneyLabel(currency, bill.training * trainingSeatPrice(currency))}`);
+  }
+  if (bill.team > 0) {
+    lines.push(`${plural(bill.team, 'team seat', 'team seats')} × ${seatLabel(currency, 'team')} = ${moneyLabel(currency, bill.team * seatPrice(currency, 'team'))}`);
+  }
+  const free = counts.leadership + counts.team - bill.billable;
+  if (free > 0) {
+    const kind = counts.team > 0 ? 'team seat' : 'leadership seat';
+    lines.push(`1 ${kind} free — the first seat is free, and it comes off a team seat first`);
+  }
+  return lines;
+}
