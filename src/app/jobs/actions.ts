@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
 import { assertWritable } from '@/lib/plan';
-import { crewFor } from '@/lib/jobs-data';
+import { crewFor, createJob } from '@/lib/jobs-data';
 import {
   parseEnquiry, nextRef, nextStage, lineFrom, priceQuote, MARKUPS, DEFAULT_MARKUP,
   toCents, minutesBetween, bookingRefusal, workWeek, parseComponents, parsePriceFile,
@@ -52,13 +52,9 @@ export async function addEnquiry(formData: FormData) {
   const parsed = parseEnquiry(str(formData, 'enquiry', 400));
   if (!parsed) back('pipeline', {}, 'Type who it is for and what they want — for example “Sam Lee, switchboard upgrade, Balmain”.');
 
-  const refs = await db.select({ ref: schema.jobs.ref }).from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId));
-  const id = randomUUID();
-  const at = now();
-  await db.insert(schema.jobs).values({
-    id, tenantId: user.tenantId, ref: nextRef('J', refs.map(r => r.ref)),
-    stage: 'enquiry', title: parsed.title, client: parsed.client, site: parsed.site,
-    createdBy: user.name, createdAt: at, stageAt: at,
+  const { id } = await createJob({
+    tenantId: user.tenantId, stage: 'enquiry', title: parsed.title, client: parsed.client, site: parsed.site,
+    createdBy: user.name,
   });
   revalidatePath('/jobs');
   back('pipeline', { job: id });

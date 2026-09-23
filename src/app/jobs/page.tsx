@@ -196,6 +196,11 @@ async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasR
   const stats = pipelineStats(jobs);
   const oldestOwed = jobs.filter(j => j.stage === 'invoiced').reduce((a, j) => Math.max(a, daysSince(j.stageAt, now)), 0);
   const open = jobs.find(j => j.id === openId) ?? null;
+  // A job that was won in the CRM links back to the deal it came from.
+  const [fromDeal] = open
+    ? await db.select({ id: schema.crmDeals.id, title: schema.crmDeals.title }).from(schema.crmDeals)
+        .where(and(eq(schema.crmDeals.tenantId, open.tenantId), eq(schema.crmDeals.jobId, open.id)))
+    : [];
 
   const tiles: { label: string; value: string; note: string; light: Light }[] = [
     { label: 'Quotes out', value: money(stats.quotesOutCents), note: stats.quotesOut ? `${stats.quotesOut} waiting on an answer` : 'None out right now', light: 'pending' },
@@ -283,7 +288,7 @@ async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasR
 
       {open && (
         <JobDetail
-          job={open} crew={crew} manage={manage} now={now} tabHref={tabHref} hasRate={hasRate}
+          job={open} crew={crew} manage={manage} now={now} tabHref={tabHref} hasRate={hasRate} fromDeal={fromDeal ?? null}
           bookings={bookings.filter(b => b.jobId === open.id)}
           quotes={quotes.filter(q => q.jobId === open.id)}
         />
@@ -292,10 +297,11 @@ async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasR
   );
 }
 
-function JobDetail({ job, crew, bookings, quotes, manage, now, tabHref, hasRate }: {
+function JobDetail({ job, crew, bookings, quotes, manage, now, tabHref, hasRate, fromDeal }: {
   job: Costed; crew: CrewMember[]; bookings: (typeof schema.scheduleBookings.$inferSelect)[];
   quotes: (typeof schema.quotes.$inferSelect)[]; manage: boolean; now: Date;
   tabHref: (k: string, e?: Record<string, string>) => string; hasRate: boolean;
+  fromDeal: { id: string; title: string } | null;
 }) {
   const stage = STAGES.find(s => s.key === job.stage) ?? STAGES[0];
   const light = marginLight(job.margin);
@@ -304,7 +310,7 @@ function JobDetail({ job, crew, bookings, quotes, manage, now, tabHref, hasRate 
   const days = [...new Set(bookings.map(b => b.day))].sort();
 
   const log: { when: string; what: string }[] = [
-    { when: job.createdAt.slice(0, 10), what: `Enquiry logged by ${job.createdBy}` },
+    { when: job.createdAt.slice(0, 10), what: fromDeal ? `Won in the CRM by ${job.createdBy}` : `Enquiry logged by ${job.createdBy}` },
     ...(sent?.sentAt ? [{ when: sent.sentAt.slice(0, 10), what: `${sent.ref} went out${sent.sentBy ? `, recorded by ${sent.sentBy}` : ''}` }] : []),
     ...(days.length ? [{ when: days[0], what: `Crew booked for ${days.length} ${days.length === 1 ? 'day' : 'days'}` }] : []),
     ...(job.minutes ? [{ when: 'So far', what: `${Math.round((job.minutes / 60) * 10) / 10} hours recorded on the job` }] : []),
@@ -337,6 +343,9 @@ function JobDetail({ job, crew, bookings, quotes, manage, now, tabHref, hasRate 
           <span className="text-xs text-ink-light">{job.ref} · {stage.label}</span>
           <h2 className="mt-1 font-serif text-2xl text-ink">{job.title}</h2>
           <p className="mt-1 text-sm text-ink-light">{job.client}{job.site ? ` · ${job.site}` : ' · site to confirm'}</p>
+          {fromDeal && (
+            <Link href={`/crm?deal=${fromDeal.id}`} className="mt-1 inline-block text-xs text-rust-700 hover:underline">From the deal “{fromDeal.title}” in the CRM →</Link>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {next}
