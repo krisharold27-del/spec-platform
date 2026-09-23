@@ -1,14 +1,16 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { Shell } from '@/components/ui';
-import { planStateFor, costLabel, seatBreakdown } from '@/lib/plan';
-import { seatLabel } from '@/lib/pricing';
+import { planStateFor, costLabel, seatBreakdown, seatCountsFor, checkSubscription, type SeatCounts } from '@/lib/plan';
+import { seatLabel, describeSubscriptionLine } from '@/lib/pricing';
 import { requestCurrency } from '@/lib/request-currency';
 import { getScope } from '@/lib/scope';
 import { seatKindFor } from '@/lib/chart-seats';
 import { setSeatKind } from '@/app/org/actions';
+import { resyncSubscription } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +41,16 @@ const BILLING_NOTICE: Record<string, { tone: 'ok' | 'warn'; text: string }> = {
     text: "Somebody here is on SPEC's training material, and the training price hasn't been set up in Stripe yet. "
       + "Nothing has been charged. Email manager@specbizhq.com and we'll switch it on — it takes a minute at our end.",
   },
+  /*
+    What pressing Save (or "Bring the subscription into line") did to the live subscription —
+    `syncSubscriptionSeats`' own outcome, carried back by the action. Before 23 September a save here
+    said nothing, whichever of five things had happened.
+  */
+  'seat_sync=updated': { tone: 'ok', text: 'Saved. The subscription now charges exactly what this page shows, from today, pro rata.' },
+  'seat_sync=in_step': { tone: 'ok', text: 'Saved. The subscription already charged exactly what this page shows, so nothing about the bill changed.' },
+  'seat_sync=no_subscription': { tone: 'ok', text: 'Saved. There is no running subscription yet, so there was nothing to change — the first payment will read the chart as it is.' },
+  'seat_sync=no_stripe': { tone: 'warn', text: 'Saved here, but this copy of SPEC cannot reach the payment system, so the subscription was NOT changed. Email manager@specbizhq.com and we will put it right at our end.' },
+  'seat_sync=failed': { tone: 'warn', text: 'Saved here, but the subscription could not be changed just then, so it is still charging the old amount. Press "Bring the subscription into line" below to try again; if it fails twice, email manager@specbizhq.com.' },
   billing_error: { tone: 'warn', text: "We couldn't open the payment page just then. Nothing has been charged. Try again, and if it happens twice email manager@specbizhq.com and we'll sort it at our end." },
 };
 
@@ -48,6 +60,9 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
   const tenant = (await db.select().from(schema.tenants).where(eq(schema.tenants.id, user.tenantId)))[0]!;
   const currency = await requestCurrency();
   const plan = await planStateFor(user.tenantId, currency);
+  // The same walk of the chart the total above and the subscription sync are counted from — see
+  // `classifySeats`. Each row's label reads from it, so the list cannot disagree with the bill.
+  const counts = await seatCountsFor(user.tenantId);
 
   /*
     Every billed person, in one flat list, so changing what somebody is billed as does not require
@@ -68,23 +83,30 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
       roleId: r.id,
       title: r.title,
       name: r.holder!.name,
+      userId: r.holder!.id,
       chartKind: seatKindFor({ title: r.title, hasDirectReports: leadsSet.has(r.id) }),
       override: (r.holder!.seatKindOverride as 'leadership' | 'team' | null) ?? null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   /*
-    The total, itemised — see `seatBreakdown`. Leadership is counted from the list below so the
-    sentence and the list can never disagree; everyone else with a seat is a team seat.
+    The total, itemised — see `seatBreakdown`.
+
+    ── From the bill's own count, not from the list (23 September) ─────────────────────────────
+    This used to count leaders from the rows below, which are read from ACTIVE roles only, while
+    the total, the checkout and the subscription sync counted from every role ever drawn. A removed
+    role still reporting to somebody made them a leader for Stripe and a team seat here, so this
+    page could itemise A$151 while the sync pushed the old count and found nothing to change. Both
+    now read `classifySeats`, and each row's label below reads its person's kind from the same map.
   */
-  const leadHeads = seatRows.filter(r => (r.override ?? r.chartKind) === 'leadership').length;
-  const teamHeads = Math.max(0, plan.seats - leadHeads);
-  const breakdown = seatBreakdown({ leadership: leadHeads, team: teamHeads, training: plan.trainingSeats }, currency);
+  const kindOf = (row: { userId: string; override: 'leadership' | 'team' | null; chartKind: 'leadership' | 'team' }) =>
+    counts.kinds.get(row.userId) ?? row.override ?? row.chartKind;
+  const breakdown = seatBreakdown({ leadership: plan.leadershipHeads, team: plan.teamHeads, training: plan.trainingSeats }, currency);
   /*
     The free seat is the first leadership seat — the person who started the business (Kris, 23
     September). Shown against the leader at the top of the chart, or the first leader listed.
   */
-  const leaders = seatRows.filter(r => (r.override ?? r.chartKind) === 'leadership');
+  const leaders = seatRows.filter(r => kindOf(r) === 'leadership');
   const freeRoleId = (leaders.find(r => r.top) ?? leaders[0])?.roleId
     ?? (leaders.length === 0 ? seatRows[0]?.roleId : undefined);
   const Breakdown = () => breakdown.length > 0 ? (
@@ -107,7 +129,11 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
     is not, the honest thing is to say a payment happened somewhere and it was not here — which is
     also exactly right for the ordinary case where the webhook is two seconds behind the browser.
   */
-  const flag = Object.keys(BILLING_NOTICE).find(k => sp[k]) ?? '';
+  const flag = Object.keys(BILLING_NOTICE).find(k => {
+    const [key, value] = k.split('=');
+    return value === undefined ? Boolean(sp[key]) : sp[key] === value;
+  }) ?? '';
+  const cannot = typeof sp.cannot === 'string' ? sp.cannot : null;
   const notice: { tone: 'ok' | 'warn'; text: string } | undefined =
     flag === 'upgraded' && !plan.subscribed
       ? {
@@ -118,6 +144,11 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
 
   return (
     <Shell title="Pricing" subtitle={costLabel(plan)}>
+      {cannot && (
+        <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm text-ink">
+          Not saved. {cannot}
+        </div>
+      )}
       {notice && (
         <div className={`mb-4 rounded-lg border-l-4 p-4 text-sm ${notice.tone === 'ok' ? 'border-sage-600 bg-sage-100 text-sage-900' : 'border-rust-400 bg-surface text-ink'}`}>
           {notice.text}
@@ -189,6 +220,17 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
           <form action="/api/stripe/portal" method="post"><button className="text-sm text-ink-light underline hover:text-rust">Billing</button></form>
         </div>
       )}
+      {/*
+        Does the live subscription charge what this page says? Asked on every load, streamed in
+        after the page (Suspense), cached for a minute, and silent unless the answer is "no" — see
+        `checkSubscription`. Added 23 September after two saves here left the subscription on the
+        old count with nothing anywhere to say so.
+      */}
+      {plan.subscribed && tenant.stripeSubscriptionId && (
+        <Suspense fallback={null}>
+          <SubscriptionAgreement subscriptionId={tenant.stripeSubscriptionId} counts={counts} canFix={scope.canInvite} />
+        </Suspense>
+      )}
 
       {/*
         Who is billed as what — every person with a login, in one list, sorted by name rather than
@@ -212,20 +254,21 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
                   </span>
                   <span className="text-[12.5px] font-medium text-ink">
                     {row.roleId === freeRoleId
-                      ? `${(row.override ?? row.chartKind) === 'leadership' ? 'Leadership' : 'Team'} seat · free — started the business`
-                      : (row.override ?? row.chartKind) === 'leadership'
+                      ? `${kindOf(row) === 'leadership' ? 'Leadership' : 'Team'} seat · free — started the business`
+                      : kindOf(row) === 'leadership'
                         ? `Leadership seat · ${seatLabel(currency, 'leadership')} a month`
                         : `Team seat · ${seatLabel(currency, 'team')} a month`}
                   </span>
                   {!scope.canInvite && (
                     <span className="text-[12.5px] text-ink-light">
-                      {(row.override ?? row.chartKind) === 'leadership' ? 'Leadership seat' : 'Team seat'}
+                      {kindOf(row) === 'leadership' ? 'Leadership seat' : 'Team seat'}
                     </span>
                   )}
                 </div>
                 {scope.canInvite && (
                   <form action={setSeatKind} className="mt-2 flex flex-wrap items-center gap-2">
                     <input type="hidden" name="roleId" value={row.roleId} />
+                    <input type="hidden" name="from" value="billing" />
                     <label className="sr-only" htmlFor={`seat-kind-${row.roleId}`}>Billed as, {row.name}</label>
                     <select
                       id={`seat-kind-${row.roleId}`}
@@ -252,5 +295,35 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
         </div>
       )}
     </Shell>
+  );
+}
+
+/**
+ * The one line that says when the live subscription and this page disagree — and the fix beside it.
+ * Renders nothing when they agree or when the answer could not be had in time; the latter is logged
+ * (`[seat-sync] check`) rather than shown, because "could not check" on every slow load would be a
+ * warning nobody reads.
+ */
+async function SubscriptionAgreement({ subscriptionId, counts, canFix }: { subscriptionId: string; counts: SeatCounts; canFix: boolean }) {
+  const check = await checkSubscription(subscriptionId, counts);
+  if (check.status !== 'differs') return null;
+  const say = (lines: { price: string; quantity: number }[]) =>
+    lines.length ? lines.map(describeSubscriptionLine).join(' and ') : 'nothing';
+  return (
+    <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm text-ink">
+      <p>
+        <b>The subscription is not charging what this page shows.</b> It is billing {say(check.stripe)};
+        this page's bill is {say(check.target)}.
+      </p>
+      {canFix ? (
+        <form action={resyncSubscription} className="mt-2">
+          <button className="rounded-full bg-rust-800 px-4 py-2 text-sm font-medium text-cream hover:bg-rust-900">
+            Bring the subscription into line
+          </button>
+        </form>
+      ) : (
+        <p className="mt-1 text-ink-light">Somebody on a leadership seat can bring it into line from this page.</p>
+      )}
+    </div>
   );
 }
