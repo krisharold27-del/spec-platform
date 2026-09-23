@@ -59,10 +59,19 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
       ],
     },
     {
+      title: 'The work',
+      doors: [
+        { href: '/jobs', label: 'Jobs', note: 'Quote it, win it, book the crew, do the job, invoice it.' },
+        { href: '/tech-day', label: 'Tech day', note: 'The tech\'s phone day, SWMS to client sign-off.' },
+        { href: '/coverage', label: 'Coverage', note: 'SPEC or your own system, capability by capability.' },
+      ],
+    },
+    {
       title: 'Your people',
       doors: [
         { href: '/org', label: 'Org chart', note: 'Who does what, and who reports to whom.' },
         { href: '/people', label: 'People', note: 'Who you have, who is clear to work, who you need.' },
+        { href: '/safety', label: 'Safety', note: 'Report it, fix it, and who is clear to work.' },
         { href: '/training', label: 'Training', note: 'What each role has to know, and who has done it.' },
         { href: '/team', label: 'Team roll-up', note: 'How the roles beneath you are scoring.' },
       ],
@@ -172,7 +181,7 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
  * Built from `doors()` rather than written out again, so a route that is renamed cannot leave the
  * bar pointing at nothing while the directory quietly stays right.
  */
-export const NAV_HREFS = ['/setup', '/my-page', '/org', '/billing', '/scoring', '/board', '/mirrors', '/connections', '/my-page#everywhere'] as const;
+export const NAV_HREFS = ['/setup', '/my-page', '/jobs', '/org', '/people', '/safety', '/billing', '/scoring', '/board', '/mirrors', '/connections', '/my-page#everywhere'] as const;
 
 export function navDoors(f: DoorsFor): Door[] {
   const all = allDoors(f);
@@ -185,7 +194,14 @@ export function navDoors(f: DoorsFor): Door[] {
     */
     { href: '/setup', label: 'Setup', note: 'Roles, KPIs and the things still to do.' },
     { href: '/my-page', label: 'My page', note: 'Your day, and everything else opens from it.' },
+    /*
+      23 September design: "Setup · My page · Jobs · Org chart · People · Safety · …" — SPEC now runs
+      the jobs, the HR and the safety itself, so those are places somebody goes every day.
+    */
+    find('/jobs') ?? { href: '/jobs', label: 'Jobs', note: 'Quote it, win it, book the crew, do the job, invoice it.' },
     find('/org') ?? { href: '/org', label: 'Org chart', note: 'Who does what, and who reports to whom.' },
+    find('/people') ?? { href: '/people', label: 'People', note: 'Who you have, who is clear to work, who you need.' },
+    find('/safety') ?? { href: '/safety', label: 'Safety', note: 'Report it, fix it, and who is clear to work.' },
     find('/billing') ?? { href: '/billing', label: 'Pricing', note: 'What it costs, and Stripe billing.' },
     { href: '/scoring', label: 'Scoring', note: 'Mark the month, and close it when it is done.' },
     /*

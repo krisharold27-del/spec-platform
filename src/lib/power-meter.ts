@@ -68,6 +68,14 @@ export interface Slot {
   weight: Weight;
   /** How SPEC recognises one of a business's own criteria as this measure. */
   matches: RegExp;
+  /**
+   * Where in SPEC this measure is recorded — named on every row of the breakdown.
+   *
+   * `SPEC My Page.dc.html`, 23 September: the breakdown names the source of every KPI, and all five
+   * heavy hitters come from SPEC's own records (Safety, Jobs, People). A connected system is named
+   * by its category, never by a vendor — CLAUDE.md's never list.
+   */
+  source: string;
 }
 
 /** Each of the five. Five times fifteen is seventy-five. */
@@ -83,23 +91,23 @@ export const SHARED_POINTS = 25;
  */
 const HEAVY: Slot[] = [
   {
-    id: 'safety_incident', name: 'Safety incidents', pillar: 'safety', weight: 'heavy',
+    id: 'safety_incident', name: 'Safety incidents', pillar: 'safety', weight: 'heavy', source: 'SPEC Safety · incident register',
     matches: /\b(safety incident|incident|injur|lti|recordable|near miss.*incident)/i,
   },
   {
-    id: 'workers_comp', name: "Workers' comp claims", pillar: 'safety', weight: 'heavy',
+    id: 'workers_comp', name: "Workers' comp claims", pillar: 'safety', weight: 'heavy', source: 'SPEC Safety · workers’ comp',
     matches: /\b(workers'? ?comp|workcover|compensation claim)/i,
   },
   {
-    id: 'gross_profit', name: 'Gross profit margin', pillar: 'earnings', weight: 'heavy',
+    id: 'gross_profit', name: 'Gross profit margin', pillar: 'earnings', weight: 'heavy', source: 'SPEC Jobs · job costing',
     matches: /\b(gross profit|gross margin|\bgp ?%|\bgp margin)/i,
   },
   {
-    id: 'contract_breach', name: 'Contractual breach', pillar: 'compliance', weight: 'heavy',
+    id: 'contract_breach', name: 'Contractual breach', pillar: 'compliance', weight: 'heavy', source: 'SPEC Jobs · variations, claims and service contracts',
     matches: /\b(contract(ual)? breach|breach of contract|contract compliance|contractual (work )?obligation)/i,
   },
   {
-    id: 'turnover', name: 'Negative staff turnover', pillar: 'people', weight: 'heavy',
+    id: 'turnover', name: 'Negative staff turnover', pillar: 'people', weight: 'heavy', source: 'SPEC People · exits and exit reasons',
     matches: /\b(staff turnover|turnover rate|negative turnover|attrition|retention|regretted departure|nobody wants to leave)/i,
   },
 ];
@@ -120,28 +128,28 @@ const NEVER_MATCHES = /(?!)/;
  * early warning.
  */
 const SHARED: Slot[] = [
-  { id: 'trifr', name: 'TRIFR', pillar: 'safety', weight: 'shared', matches: /\btrifr\b|total recordable/i },
-  { id: 'lti', name: 'Lost time injuries', pillar: 'safety', weight: 'shared', matches: /\blost time\b|\blti\b/i },
-  { id: 'near_miss', name: 'Near-miss reporting rate', pillar: 'safety', weight: 'shared', matches: /near[- ]?miss/i },
-  { id: 'safety_actions', name: 'Safety actions closed on time', pillar: 'safety', weight: 'shared', matches: /safety action|hazard.*clos|toolbox|inspection/i },
+  { id: 'trifr', name: 'TRIFR', pillar: 'safety', weight: 'shared', source: 'SPEC Safety + Jobs timesheets', matches: /\btrifr\b|total recordable/i },
+  { id: 'lti', name: 'Lost time injuries', pillar: 'safety', weight: 'shared', source: 'SPEC Safety', matches: /\blost time\b|\blti\b/i },
+  { id: 'near_miss', name: 'Near-miss reporting rate', pillar: 'safety', weight: 'shared', source: 'SPEC Safety', matches: /near[- ]?miss/i },
+  { id: 'safety_actions', name: 'Safety actions closed on time', pillar: 'safety', weight: 'shared', source: 'SPEC Safety', matches: /safety action|hazard.*clos|toolbox|inspection/i },
 
-  { id: 'absenteeism', name: 'Absenteeism', pillar: 'people', weight: 'shared', matches: /absentee|sick leave|unplanned leave/i },
-  { id: 'training_done', name: 'Training completion', pillar: 'people', weight: 'shared', matches: /training (completion|complete|done)|\btrained\b|inducti|competenc/i },
-  { id: 'engagement', name: 'Engagement / satisfaction', pillar: 'people', weight: 'shared', matches: /engagement|satisfaction|one[- ]to[- ]one|1:1/i },
-  { id: 'dev_plans', name: 'Managers with a dev plan', pillar: 'people', weight: 'shared', matches: /development (plan|pathway)|dev plan|succession/i },
+  { id: 'absenteeism', name: 'Absenteeism', pillar: 'people', weight: 'shared', source: 'SPEC People · leave', matches: /absentee|sick leave|unplanned leave/i },
+  { id: 'training_done', name: 'Training completion', pillar: 'people', weight: 'shared', source: 'SPEC Training', matches: /training (completion|complete|done)|\btrained\b|inducti|competenc/i },
+  { id: 'engagement', name: 'Engagement / satisfaction', pillar: 'people', weight: 'shared', source: 'SPEC pulse', matches: /engagement|satisfaction|one[- ]to[- ]one|1:1/i },
+  { id: 'dev_plans', name: 'Managers with a dev plan', pillar: 'people', weight: 'shared', source: 'SPEC Org chart', matches: /development (plan|pathway)|dev plan|succession/i },
 
-  { id: 'budget_miss', name: 'Budget misses', pillar: 'earnings', weight: 'shared', matches: /budget miss|over budget|budget variance/i },
-  { id: 'revenue_budget', name: 'Revenue vs budget', pillar: 'earnings', weight: 'shared', matches: /revenue (vs|against) budget|sales (vs|against) budget|revenue (at or )?(above|at) target/i },
-  { id: 'net_margin', name: 'Net profit margin', pillar: 'earnings', weight: 'shared', matches: /net (profit|margin)|\bnpat\b|bottom line/i },
-  { id: 'cash_flow', name: 'Cash flow', pillar: 'earnings', weight: 'shared', matches: /cash ?flow|cash at bank|liquidity/i },
-  { id: 'revenue_growth', name: 'Revenue growth rate', pillar: 'earnings', weight: 'shared', matches: /revenue growth|sales growth|growth rate/i },
-  { id: 'debtor_days', name: 'Debtor days', pillar: 'earnings', weight: 'shared', matches: /debtor|receivab|days sales outstanding|\bdso\b|overdue invoice|\b90 days\b/i },
-  { id: 'productivity', name: 'Productivity (revenue per work hour)', pillar: 'earnings', weight: 'shared', matches: /productivity|revenue per|per (work )?hour|utilisation|utilization|billable/i },
+  { id: 'budget_miss', name: 'Budget misses', pillar: 'earnings', weight: 'shared', source: 'your accounting system', matches: /budget miss|over budget|budget variance/i },
+  { id: 'revenue_budget', name: 'Revenue vs budget', pillar: 'earnings', weight: 'shared', source: 'your accounting system + SPEC Jobs', matches: /revenue (vs|against) budget|sales (vs|against) budget|revenue (at or )?(above|at) target/i },
+  { id: 'net_margin', name: 'Net profit margin', pillar: 'earnings', weight: 'shared', source: 'your accounting system', matches: /net (profit|margin)|\bnpat\b|bottom line/i },
+  { id: 'cash_flow', name: 'Cash flow', pillar: 'earnings', weight: 'shared', source: 'your accounting system', matches: /cash ?flow|cash at bank|liquidity/i },
+  { id: 'revenue_growth', name: 'Revenue growth rate', pillar: 'earnings', weight: 'shared', source: 'your accounting system', matches: /revenue growth|sales growth|growth rate/i },
+  { id: 'debtor_days', name: 'Debtor days', pillar: 'earnings', weight: 'shared', source: 'SPEC Jobs · invoices', matches: /debtor|receivab|days sales outstanding|\bdso\b|overdue invoice|\b90 days\b/i },
+  { id: 'productivity', name: 'Productivity (revenue per work hour)', pillar: 'earnings', weight: 'shared', source: 'SPEC Jobs · revenue ÷ timesheet hours', matches: /productivity|revenue per|per (work )?hour|utilisation|utilization|billable/i },
 
-  { id: 'regulatory', name: 'Regulatory breaches', pillar: 'compliance', weight: 'shared', matches: /regulator|notifiable|infringement|prosecut|\bbreaches\b/i },
-  { id: 'audit', name: 'Audit pass rate', pillar: 'compliance', weight: 'shared', matches: /audit/i },
-  { id: 'corrective', name: 'Corrective actions closed on time', pillar: 'compliance', weight: 'shared', matches: /corrective action|non[- ]?conformance|\bncr\b/i },
-  { id: 'licensing', name: 'Licensing currency', pillar: 'compliance', weight: 'shared', matches: /licen[cs]|ticket|accredit|certificat|registration current/i },
+  { id: 'regulatory', name: 'Regulatory breaches', pillar: 'compliance', weight: 'shared', source: 'SPEC Safety + People', matches: /regulator|notifiable|infringement|prosecut|\bbreaches\b/i },
+  { id: 'audit', name: 'Audit pass rate', pillar: 'compliance', weight: 'shared', source: 'SPEC Safety · inspections', matches: /audit/i },
+  { id: 'corrective', name: 'Corrective actions closed on time', pillar: 'compliance', weight: 'shared', source: 'SPEC Safety · actions', matches: /corrective action|non[- ]?conformance|\bncr\b/i },
+  { id: 'licensing', name: 'Licensing currency', pillar: 'compliance', weight: 'shared', source: 'SPEC Safety · licences', matches: /licen[cs]|ticket|accredit|certificat|registration current/i },
 
   /*
     ── The twenty-fifth, and the only one no business writes down ──────────────────────────────
@@ -161,7 +169,7 @@ const SHARED: Slot[] = [
     corrective actions. It is the one slot that genuinely spans all four pillars, and compliance is
     the least wrong home rather than the right one.
   */
-  { id: 'snap_score', name: 'Problems closed out (Snap Score)', pillar: 'compliance', weight: 'shared', matches: NEVER_MATCHES },
+  { id: 'snap_score', name: 'Problems closed out (Snap Score)', pillar: 'compliance', weight: 'shared', source: 'SPEC improvement register', matches: NEVER_MATCHES },
 ];
 
 export const FRAMEWORK: Slot[] = [...HEAVY, ...SHARED];
@@ -234,6 +242,15 @@ export const sourcesOf = (reading: SlotReading): { text: string; roles: number }
   for (const m of reading.from) seen.set(m.text, (seen.get(m.text) ?? 0) + 1);
   return [...seen].map(([text, roles]) => ({ text, roles }));
 };
+
+/**
+ * Where a slot's number is recorded, said the way the breakdown says it: "from SPEC Safety ·
+ * incident register". Every heavy hitter names one of SPEC's own records.
+ */
+export const sourceLine = (slot: Slot): string => `from ${slot.source}`;
+
+/** True when a slot is read from SPEC's own records rather than a connected system. */
+export const fromSpec = (slot: Slot): boolean => slot.source.startsWith('SPEC ');
 
 /**
  * How a slot stands, given everything feeding it.
