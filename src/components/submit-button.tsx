@@ -12,12 +12,16 @@ export function SubmitButton({
     place for the same decision to live and disagree from.
   */
   style,
+  // Two buttons on one form that mean two things ("Start a job" / "Start a quote") say which by value.
+  name,
+  value,
 }: {
   children: React.ReactNode; pending?: string; className?: string; style?: React.CSSProperties;
+  name?: string; value?: string;
 }) {
   const { pending: busy } = useFormStatus();
   return (
-    <button type="submit" disabled={busy} aria-busy={busy} style={style} className={`${className} disabled:cursor-wait disabled:opacity-60`}>
+    <button type="submit" name={name} value={value} disabled={busy} aria-busy={busy} style={style} className={`${className} disabled:cursor-wait disabled:opacity-60`}>
       {busy ? pending : children}
     </button>
   );

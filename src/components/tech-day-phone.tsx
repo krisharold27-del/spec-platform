@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { clockOn, clockOff } from '@/app/tech-day/actions';
 import { SiteVipMark } from '@/components/sitevip-mark';
 import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import {
   STEPS, EMPTY_DAY, apply, canDo, doneLine, isDone, nextStep, primaryLabel, primaryNote, revive,
-  storageKey, summary, timesheet, clock, hoursLabel,
-  type Material, type StepKey, type TechDayAction, type TechDayState,
+  storageKey, summary, timesheet, clock, hoursLabel, bookedOn, hhmm,
+  type Material, type StepKey, type TechDayAction, type TechDayState, type Booked, type TechJob,
 } from '@/lib/tech-day';
 
 export interface ClearToWork {
@@ -18,6 +20,15 @@ export interface ClearToWork {
 interface DoneJob {
   title: string;
   minutes: number;
+}
+
+/** A Start the office has with no Finish yet — from this phone or another. */
+export interface OfficeEntry {
+  entryId: string;
+  /** The office's own moment of Start. */
+  startedAt: string;
+  title: string;
+  jobId: string | null;
 }
 
 /** Browser storage can be missing or refuse (private mode, full) — the day still runs without it. */
@@ -46,9 +57,16 @@ function KeptHere({ children }: { children: React.ReactNode }) {
  * The tech's phone. Every tap goes through `apply` in lib/tech-day, so the order the page allows is
  * the order the tests hold — a SWMS before Start, the on-job steps after it, Finish last.
  */
-export function TechDayPhone({ userId, name, firstName, clear }: {
+export function TechDayPhone({ userId, name, firstName, clear, booked = [], open = null }: {
   userId: string; name: string; firstName: string; clear: ClearToWork;
+  /** The office's bookings for this person, either side of today — the phone keeps its own day's. */
+  booked?: Booked[];
+  /** An office Start with no Finish, if there is one. */
+  open?: OfficeEntry | null;
 }) {
+  const router = useRouter();
+  /** What the office said about the last Start or Finish, when it could not take it. */
+  const [officeNote, setOfficeNote] = useState<string | null>(null);
   const [day, setDay] = useState('');
   const [s, setS] = useState<TechDayState>(EMPTY_DAY);
   const [finished, setFinished] = useState<DoneJob[]>([]);
@@ -70,7 +88,13 @@ export function TechDayPhone({ userId, name, firstName, clear }: {
     try { setFinished(JSON.parse(load(`${k}.finished`) ?? '[]') as DoneJob[]); } catch { setFinished([]); }
     setSignature(load(`${k}.signature`));
     if (kept.job && !kept.finishedAt) setView('job');
-  }, [userId]);
+    // The office already has this phone's Start (the answer was lost on the way back): take its entry.
+    if (kept.startedAt && !kept.finishedAt && !kept.entryId && open) {
+      const joined = apply(kept, { type: 'saved', entryId: open.entryId });
+      setS(joined);
+      save(k, JSON.stringify(joined));
+    }
+  }, [userId, open]);
 
   // The clock the running timesheet counts against.
   useEffect(() => {
@@ -87,13 +111,33 @@ export function TechDayPhone({ userId, name, firstName, clear }: {
     setNow(nowIso());
   }, [key]);
 
+  /** Start: the hours begin on the phone at once, and the office is told. No signal never stops work. */
+  const startNow = () => {
+    if (!canDo(s, 'start')) return;
+    act({ type: 'start', at: nowIso() });
+    setPanel(null);
+    setOfficeNote(null);
+    clockOn({ jobId: s.job?.jobId ?? null, day: localDay(), clock: hhmm(new Date()) })
+      .then(r => { if (r.ok) act({ type: 'saved', entryId: r.entryId }); else setOfficeNote(r.reason); })
+      .catch(() => setOfficeNote('No signal — your Start is kept on this phone. Tell your supervisor your start time.'));
+  };
+
+  /** Finish: stop the office's clock too, when it has the Start. */
+  const finishAtOffice = (entryId: string | null) => {
+    if (!entryId) return;
+    clockOff({ entryId, clock: hhmm(new Date()) })
+      .then(r => { if (!r.ok) setOfficeNote(r.reason); else router.refresh(); })
+      .catch(() => setOfficeNote('No signal — the office did not get your Finish. Tell your supervisor your finish time.'));
+  };
+
   const primary = () => {
     const n = nextStep(s);
-    if (n === 'start') { act({ type: 'start', at: nowIso() }); setPanel(null); return; }
+    if (n === 'start') { startNow(); return; }
     if (n === 'finish') {
       const at = nowIso();
       const done = apply(s, { type: 'finish', at });
       act({ type: 'finish', at });
+      finishAtOffice(s.entryId);
       const list = [...finished, { title: done.job?.title ?? 'Job', minutes: timesheet(done, at).minutes }];
       setFinished(list);
       if (key) save(`${key}.finished`, JSON.stringify(list));
@@ -115,7 +159,7 @@ export function TechDayPhone({ userId, name, firstName, clear }: {
   };
 
   const tap = (k: StepKey) => {
-    if (k === 'start' && canDo(s, 'start')) { act({ type: 'start', at: nowIso() }); setPanel(null); return; }
+    if (k === 'start' && canDo(s, 'start')) { startNow(); return; }
     if (canDo(s, k)) setPanel(p => (p === k ? null : k));
   };
 
@@ -154,7 +198,28 @@ export function TechDayPhone({ userId, name, firstName, clear }: {
               </button>
             )}
 
-            {(!s.job || s.finishedAt) && <OpenJob onOpen={job => { act({ type: 'open', job }); setView('job'); }} />}
+            {/* A Start the office has that this phone does not — begun on another phone. */}
+            {open && !(s.startedAt && !s.finishedAt) && (
+              <div className="grid gap-2 rounded-[20px] bg-white px-[18px] py-4 shadow-sm">
+                <span className="text-[13px] text-ink-light">Started {clock(open.startedAt)} on another phone</span>
+                <span className="text-[17px] font-bold leading-snug">{open.title}</span>
+                <button type="button" onClick={() => finishAtOffice(open.entryId)} className="btn-primary min-h-[48px] text-base">Finish it here</button>
+              </div>
+            )}
+
+            {(!s.job || s.finishedAt) && (
+              <BookedJobs
+                jobs={bookedOn(booked, day)}
+                onOpen={job => { act({ type: 'open', job }); setView('job'); }}
+              />
+            )}
+
+            {(!s.job || s.finishedAt) && (
+              <OpenJob
+                booked={bookedOn(booked, day).length > 0}
+                onOpen={job => { act({ type: 'open', job }); setView('job'); }}
+              />
+            )}
 
             {finished.length > 0 && (
               <section className="rounded-[20px] bg-white px-[18px] py-4 shadow-sm">
@@ -168,9 +233,10 @@ export function TechDayPhone({ userId, name, firstName, clear }: {
               </section>
             )}
 
+            {officeNote && <KeptHere>{officeNote}</KeptHere>}
             <KeptHere>
-              Booked jobs land here once the office schedules you on the Jobs board. Until then your day is
-              kept on this phone.
+              Jobs the office books you on land here. Start and Finish go straight to the office&rsquo;s
+              timesheets; photos, materials and sign-offs stay on this phone for now.
             </KeptHere>
           </>
         )}
@@ -178,7 +244,7 @@ export function TechDayPhone({ userId, name, firstName, clear }: {
         {view === 'job' && s.job && (
           <>
             <div className="rounded-[20px] bg-white p-[18px] shadow-sm">
-              <span className="text-[12.5px] text-ink-light">On the job</span>
+              <span className="text-[12.5px] text-ink-light">On the job{s.job.ref ? ` · ${s.job.ref}` : ''}</span>
               <p className="mt-1.5 font-serif text-[22px] leading-tight">{s.job.title}</p>
               {s.job.site && <p className="mt-2 text-sm leading-[21px] text-ink-light">{s.job.site}</p>}
             </div>
@@ -252,13 +318,17 @@ export function TechDayPhone({ userId, name, firstName, clear }: {
               </>
             )}
             {sheet.running && (
-              <KeptHere>Clocking since {clock(sheet.start!)} · {hoursLabel(sheet.minutes)} so far. Kept on this phone for now.</KeptHere>
+              <KeptHere>
+                Clocking since {clock(sheet.start!)} · {hoursLabel(sheet.minutes)} so far.{' '}
+                {s.entryId ? 'The office has your Start.' : 'Kept on this phone — the office has not got your Start yet.'}
+              </KeptHere>
             )}
+            {officeNote && <KeptHere>{officeNote}</KeptHere>}
           </>
         )}
 
         {view === 'done' && (
-          <DoneScreen s={s} now={now} signature={signature} onNext={nextJob} />
+          <DoneScreen s={s} now={now} signature={signature} onNext={nextJob} note={officeNote} />
         )}
       </main>
 
@@ -308,8 +378,30 @@ function ClearCard({ clear }: { clear: ClearToWork }) {
   );
 }
 
-/** Name the job you are on. Replaced by the office's schedule once jobs are stored. */
-function OpenJob({ onOpen }: { onOpen: (job: { title: string; site: string }) => void }) {
+/** The jobs the office booked you on today, one press to open. */
+function BookedJobs({ jobs, onOpen }: { jobs: Booked[]; onOpen: (job: TechJob) => void }) {
+  if (!jobs.length) return null;
+  return (
+    <section className="grid gap-2 rounded-[20px] bg-white px-[18px] py-4 shadow-sm">
+      <h2 className="text-[15px] font-bold">Today&rsquo;s jobs</h2>
+      {jobs.map(j => (
+        <button
+          key={j.jobId}
+          type="button"
+          onClick={() => onOpen({ title: j.title, site: j.site, jobId: j.jobId, ref: j.ref })}
+          className="grid min-h-[56px] gap-0.5 rounded-2xl bg-cream px-4 py-3 text-left"
+        >
+          <span className="text-[12.5px] text-ink-light">{j.ref} · {j.client}</span>
+          <span className="text-[16px] font-bold leading-snug">{j.title}</span>
+          {j.site && <span className="text-sm text-ink-light">{j.site}</span>}
+        </button>
+      ))}
+    </section>
+  );
+}
+
+/** Name a job that is not on the schedule — the hours still reach the office, as not on a booked job. */
+function OpenJob({ onOpen, booked }: { onOpen: (job: TechJob) => void; booked: boolean }) {
   const [title, setTitle] = useState('');
   const [site, setSite] = useState('');
   return (
@@ -317,8 +409,10 @@ function OpenJob({ onOpen }: { onOpen: (job: { title: string; site: string }) =>
       onSubmit={e => { e.preventDefault(); if (title.trim()) onOpen({ title, site }); }}
       className="grid gap-2 rounded-[20px] bg-white px-[18px] py-4 shadow-sm"
     >
-      <h2 className="text-[15px] font-bold">Today&rsquo;s jobs</h2>
-      <p className="text-[13px] leading-5 text-ink-light">Nothing booked for you here yet. Start the job you&rsquo;re on:</p>
+      <h2 className="text-[15px] font-bold">{booked ? 'Somewhere else?' : 'Today’s jobs'}</h2>
+      <p className="text-[13px] leading-5 text-ink-light">
+        {booked ? 'On a job that isn’t on your schedule? Name it:' : 'Nothing booked for you today. Start the job you’re on:'}
+      </p>
       <input className="input py-3 text-base" value={title} onChange={e => setTitle(e.target.value)} maxLength={160} required placeholder="The job — e.g. rough-in, units 301–304" aria-label="The job" />
       <input className="input py-3 text-base" value={site} onChange={e => setSite(e.target.value)} maxLength={160} placeholder="Where — site and suburb" aria-label="Where" />
       <button type="submit" className="btn-primary min-h-[48px] text-base">Open the job</button>
@@ -471,7 +565,7 @@ function SignPanel({ onSign }: { onSign: (by: string, image: string | null) => v
   );
 }
 
-function DoneScreen({ s, now, signature, onNext }: { s: TechDayState; now: string; signature: string | null; onNext: () => void }) {
+function DoneScreen({ s, now, signature, onNext, note }: { s: TechDayState; now: string; signature: string | null; onNext: () => void; note: string | null }) {
   const sum = summary(s, now);
   const sheet = timesheet(s, now);
   return (
@@ -490,10 +584,12 @@ function DoneScreen({ s, now, signature, onNext }: { s: TechDayState; now: strin
         {signature && <img src={signature} alt={`Signature of ${s.signedBy ?? 'the client'}`} className="h-20 w-full rounded-lg bg-cream object-contain" />}
       </div>
       <p className="text-sm leading-[21px] text-ink-light">
-        Your timesheet built itself from Start and Finish. It is kept on this phone for now: the office&rsquo;s
-        Jobs board does not take timesheets, photos or sign-offs from the phone yet, so tell your supervisor
-        the job is done the way you do today.
+        {s.entryId
+          ? 'Your timesheet built itself from Start and Finish and is on the office’s Timesheets, waiting for approval. '
+          : 'Your timesheet built itself from Start and Finish, but the office did not get it — tell your supervisor your hours. '}
+        Photos, materials and the sign-off stay on this phone for now, so tell your supervisor the job is done the way you do today.
       </p>
+      {note && <p className="text-[12.5px] leading-5 text-ink-light">{note}</p>}
       <button type="button" onClick={onNext} className="min-h-[52px] rounded-full bg-ink px-4 py-4 text-[15.5px] font-semibold text-white">
         Next job &rarr;
       </button>
