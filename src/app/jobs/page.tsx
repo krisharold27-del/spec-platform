@@ -18,7 +18,9 @@ import { photoHref, photoLine } from '@/lib/photos';
 import { catalogueHealth, catalogueAlert, KEEP_IT_SHORT } from '@/lib/catalogue-health';
 import { wipRow, wipStats, wipLine, byWipAttention, wipMoney, WIP_LABEL } from '@/lib/wip';
 import { runForward, cashStats, cashAdvice, cashLine, cashLabel, DEFAULT_BUFFER_CENTS, type Week } from '@/lib/cashflow';
-import { reworkStats, reworkLine, reworkMoney, pattern, CAUSES, causeLabel, recoverFrom, REWORK_TARGET } from '@/lib/rework';
+import { seatOf, tabsFor, maySeeTab, stripMoney, insteadGoTo } from '@/lib/sight';
+import { seatFor } from '@/lib/seat-of';
+import { reworkStats, reworkLine, reworkMoney, pattern, CAUSES, causeLabel, recoverFrom, REWORK_TARGET, unpaidRework, carriedLine, carriedCents, RECOVERY_GOES_STALE_DAYS } from '@/lib/rework';
 import { reviewStats, reviewLine, needsReply, isComplaint, thankYou, mayAsk } from '@/lib/reviews';
 import { ACES, runOf, runLine, boardScore, towards, under, ACE_STANDARD, type BoardLine, type AceMonth } from '@/lib/ace';
 import { JobPhoto } from '@/components/job-photo';
@@ -143,12 +145,33 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const tab: Tab = (TABS.find(t => t.key === one(sp.tab))?.key ?? 'pipeline');
   const cannot = refusedReason(sp);
   const manage = canManage(user.access);
+
+  /*
+    ── What this person may SEE, which is not what they may change ─────────────────────────────
+
+    Kris, 25 September: a subcontractor sees their own work only, and for employees, money is
+    leadership. Until now this screen was gated on being signed in and nothing else — every tab
+    rendered for everybody, so any login could read every margin, the cash position and the whole
+    customer list. Nobody decided that; it is what happens when permission is built as "may I press
+    this" and sight is left to whatever the page happens to render.
+  */
+  const seat = await seatFor(user);
+  const allowed = tabsFor(seat, TABS);
+  if (!maySeeTab(seat, tab)) {
+    /*
+      Sent to their own work rather than shown a locked door. Somebody who has followed a link from
+      a colleague has not done anything wrong, and a refusal that ends the journey teaches people
+      the product is against them.
+    */
+    redirect(`${insteadGoTo(seat)}?instead=jobs`);
+  }
+
   const own = await ownSystemFor(user.tenantId, 'jobs', tab);
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
 
   /* Everything this business has recorded for Jobs, read once and scoped by tenant in the query. */
-  const [jobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows, chaseRows] = await Promise.all([
+  const [allJobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows, chaseRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
     db.select().from(schema.quotes).where(eq(schema.quotes.tenantId, user.tenantId)).orderBy(schema.quotes.createdAt),
     db.select().from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, user.tenantId)).orderBy(schema.catalogueItems.name),
@@ -187,6 +210,14 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
     reviewLink: schema.tenants.reviewLink,
     cashBufferCents: schema.tenants.cashBufferCents,
   }).from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
+
+  /*
+    Taken out of the rows rather than hidden in the markup. Filtering the TABS is not enough on its
+    own — the board itself carries a value on every card, so a team member reading the pipeline
+    would still be reading the order book — and a number that reaches the page and is styled away
+    is a number that is still in the page.
+  */
+  const jobs = stripMoney(allJobs, seat);
 
   const items: CatalogueItem[] = itemRows.map(i => ({ id: i.id, name: i.name, unit: i.unit, supplier: i.supplier, costCents: i.costCents }));
   const kits: Kit[] = kitRows.map(k => ({
@@ -235,11 +266,14 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       <nav aria-label="Jobs" className="mb-6 grid gap-3">
         <div className="flex flex-wrap gap-2">
           {TAB_GROUPS.map(g => {
+            /* A group with nothing in it for this seat is not drawn at all. */
+            const mine = g.tabs.filter(k => maySeeTab(seat, k));
+            if (mine.length === 0) return null;
             const here = g.key === groupOf(tab).key;
             return (
               <Link
                 key={g.key}
-                href={tabHref(g.tabs[0])}
+                href={tabHref(mine[0])}
                 aria-current={here ? 'true' : undefined}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${here ? 'bg-ink text-white' : 'bg-surface text-ink-light shadow-sm hover:bg-cream'}`}
               >
@@ -249,7 +283,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
           })}
         </div>
         <div className="flex flex-wrap gap-2">
-          {groupOf(tab).tabs.map(key => {
+          {groupOf(tab).tabs.filter(key => maySeeTab(seat, key)).map(key => {
             const t = TABS.find(x => x.key === key)!;
             return (
               <Link
@@ -2284,6 +2318,15 @@ function Rework({ rows, jobs, crew, manage, minutes }: {
   }));
   const stats = reworkStats(calls, minutes / 60);
   const found = pattern(calls);
+  /*
+    Kris, 25 September: "anything re work or call back that isnt paid is a key power meter
+    detractor". Revenue here is what has actually been billed, so the share is against money that
+    exists rather than against a pipeline.
+  */
+  const billedCents = jobs
+    .filter(j => j.stage === 'invoiced' || j.stage === 'paid')
+    .reduce((t, j) => t + (j.valueCents ?? 0), 0);
+  const unpaid = unpaidRework(calls, billedCents);
 
   return (
     <div className="grid gap-6">
@@ -2291,16 +2334,24 @@ function Rework({ rows, jobs, crew, manage, minutes }: {
         <h2 className="font-serif text-xl text-ink">Callbacks &amp; rework</h2>
         <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
           The cost nobody sees: on a timesheet, going back to a job looks like ordinary work. The
-          only way it becomes a number is by being counted on its own.
+          only way it becomes a number is by being counted on its own. Anything here that never got
+          paid for comes off gross profit with nothing on the other side of the entry — which is why
+          it moves one of the Power Meter&rsquo;s five heavy hitters rather than a shared measure.
         </p>
         <p className="mt-3 text-sm font-semibold text-ink">{reworkLine(stats)}</p>
+        <p className="mt-1.5 text-sm text-ink">{carriedLine(unpaid)}</p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: 'Rework rate', value: `${Math.round(stats.rate * 1000) / 10}%`, note: `target under ${Math.round(REWORK_TARGET * 100)}%`, light: (stats.overTarget ? 'red' : 'green') as Light },
             { label: 'Callbacks', value: String(stats.callbacks), note: `${Math.round(stats.hours)} hours going back`, light: 'pending' as Light },
             { label: 'Cost', value: reworkMoney(stats.costCents), note: 'labour and materials', light: 'pending' as Light },
-            { label: 'Recovered', value: reworkMoney(stats.recoveredCents), note: 'claimed back or invoiced', light: (stats.recoveredCents ? 'green' : 'pending') as Light },
+            /*
+              Not "recovered" — what was NOT. The old tile said how much came back, which reads as
+              good news beside a figure that is entirely bad news, and left the number Kris calls
+              the detractor as something you had to work out by subtracting.
+            */
+            { label: 'Never paid for', value: reworkMoney(unpaid.carriedCents), note: 'done twice, earned once', light: (unpaid.carriedCents ? 'red' : 'green') as Light },
           ].map(t => (
             <div key={t.label} className="card-inset">
               <span className="label-caps">{t.label}</span>
@@ -2309,6 +2360,34 @@ function Rework({ rows, jobs, crew, manage, minutes }: {
             </div>
           ))}
         </div>
+
+        {unpaid.byDefault.length > 0 && (
+          /*
+            The sharpest thing on the screen, and it was invisible until now: these are not mistakes
+            about who was at fault — the fault was recorded correctly. They are claims and invoices
+            that were never raised, which means the business already decided it was owed this money
+            and then did not ask for it. Unlike the rest of rework, this half can be got back.
+          */
+          <section className="mt-4 rounded-2xl p-5" style={{ background: LIGHT_COLOUR.amber }}>
+            <p className="font-serif text-[17px]" style={{ color: LIGHT_INK.amber }}>
+              {reworkMoney(unpaid.byDefaultCents)} somebody else was meant to pay
+            </p>
+            <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[20px]" style={{ color: LIGHT_INK.amber }}>
+              Recorded against a supplier, a subcontractor or a customer, and nothing has come back
+              after {RECOVERY_GOES_STALE_DAYS} days. At this point it is not a claim in progress,
+              it is one nobody raised — and the business is carrying it without having chosen to.
+            </p>
+            <ul className="mt-3 grid gap-1.5">
+              {unpaid.byDefault.map(r => (
+                <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-2 text-[13px]"
+                  style={{ color: LIGHT_INK.amber }}>
+                  <span>{r.jobRef} · {causeLabel(r.cause)} · {r.at}</span>
+                  <span>{reworkMoney(carriedCents(r))} to chase {recoverFrom(r.cause) ?? ''}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {found && (
           <p className="mt-4 rounded-2xl px-4 py-3 text-sm text-ink" style={{ background: `color-mix(in srgb, ${LIGHT_COLOUR.amber} 14%, transparent)` }}>

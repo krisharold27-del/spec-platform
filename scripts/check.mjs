@@ -420,6 +420,12 @@ const JOURNEYS = [
     that only works at desk width fails the only test this page has.
   */
   ['growth', 'work coming in without anybody remembering to look', 'growth-journey'],
+  /*
+    Who can see what. Driven as three seats rather than three people, because the thing that has to
+    be proved is that typing ?tab=cash does not get past it — filtering the tab row only hides the
+    door.
+  */
+  ['sight', 'a subbie and a team member never reaching the money', 'sight-journey'],
   ['setup', 'setting a whole business up in one sitting, with an HR admin', 'setup-journey'],
   ['join', 'a tradie doing their own half on their phone, with no account', 'join-journey'],
   /*

@@ -354,6 +354,9 @@ export const WORKFLOWS: Workflow[] = [
     'The subbie is on the job, checked, and their claim is paid against it.', 'operations', ['licensing', 'regulatory', 'gross_profit'], [
     { does: 'Their insurances, licences and checks are current — all six.', by: 'office', where: '/people?mode=subbies' },
     { does: 'A subbie missing any of the six cannot be booked.', by: 'spec', where: '/people?mode=subbies' },
+    { does: 'They work through the app exactly as an employee does — Take 5, the job, photos, hours — so nothing arrives as a docket to be typed up.', by: 'field', where: '/tech-day' },
+    { does: 'Their hours come off their own day and land on the job cost. Nobody transcribes anything.', by: 'spec', where: '/jobs?tab=time' },
+    { does: 'What they can SEE is the one thing that differs: their own work, never a margin, a customer list or anybody else.', by: 'spec', where: '/tech-day' },
     { does: 'Their claim goes against the job cost.', by: 'spec', where: '/jobs?tab=billing' },
   ]),
 
@@ -482,7 +485,8 @@ export const WORKFLOWS: Workflow[] = [
   W('people', 'onboard-subbie', 'Take on a subcontractor',
     'A subbie is engaged.',
     'All six checks current, or they cannot be booked.', 'operations', ['licensing', 'regulatory'], [
-    { does: 'Ticked as a subcontractor rather than an employee.', by: 'office', where: '/people?mode=setup' },
+    { does: 'Ticked as a subcontractor rather than an employee. The tick beats the chart — a subbie running a crew this month is still a subbie.', by: 'office', where: '/people?mode=setup' },
+    { does: 'They get the same phone link as anybody else and put their own licences and tickets in.', by: 'worker', where: '/join' },
     { does: 'All six checks: insurances, licence, ABN and the rest.', by: 'office', where: '/people?mode=subbies' },
     { does: 'Anything within 30 days of expiring is chased.', by: 'spec', where: '/people?mode=subbies' },
   ]),
