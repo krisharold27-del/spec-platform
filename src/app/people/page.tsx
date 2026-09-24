@@ -229,6 +229,14 @@ export default async function People({ searchParams }: { searchParams: Promise<R
     }
   }
 
+  /* The file actually held on a person — contracts and conduct processes, and the last pay run. */
+  const personRecords = (tab === 'conduct' || tab === 'pay')
+    ? await db.select().from(schema.peopleRecords).where(eq(schema.peopleRecords.tenantId, user.tenantId))
+    : [];
+  const payRunRows = tab === 'pay'
+    ? await db.select().from(schema.payRuns).where(eq(schema.payRuns.tenantId, user.tenantId))
+    : [];
+
   const contracts: ContractRow[] = [];
   const exits: ExitRow[] = [];
   let accountingConnected = false;
@@ -311,9 +319,20 @@ export default async function People({ searchParams }: { searchParams: Promise<R
       {tab === 'staff' ? (
         <StaffListTab user={user} q={typeof sp.q === 'string' ? sp.q.slice(0, 80) : ''} />
       ) : tab === 'conduct' ? (
-        <ConductTab reviews={reviews} training={trainingRows} />
+        <ConductTab
+          reviews={reviews}
+          training={trainingRows}
+          conduct={personRecords.filter(r => r.kind === 'conduct')}
+          people={held.map(p => p.name).filter((n): n is string => Boolean(n))}
+          manage={manage}
+        />
       ) : tab === 'pay' ? (
         <PayTab
+          signed={personRecords.filter(r => r.kind === 'contract')}
+          roles={visible.map(r => ({ id: r.id, title: r.title }))}
+          people={held.map(p => p.name).filter((n): n is string => Boolean(n))}
+          run={[...payRunRows].sort((a, b) => b.fromDate.localeCompare(a.fromDate))[0] ?? null}
+          manage={manage}
           contracts={contracts}
           payWeek={lastPayWeek(now)}
           inRoles={held.length}

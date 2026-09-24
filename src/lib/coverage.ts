@@ -161,13 +161,13 @@ export const CAPABILITIES: Capability[] = [
   // People and HR — 10
   C('hr', 'recruit', 'Recruitment', 'Vacancies from empty seats on the org chart, scored against the KPIs the person will hold.', 'yes', '/people — vacancies come from empty seats on the chart, candidates scored against the four pillars.'),
   C('hr', 'records', 'Employee records & documents', 'Everyone’s details, licences and documents against their role.', 'yes', '/people — the staff list and documents, held against the role.'),
-  C('hr', 'contracts', 'Contracts & onboarding', 'Contracts built from the role, signed online, with a first-week plan.', 'partly', 'A contract is drafted from the role. It is not signed online.'),
+  C('hr', 'contracts', 'Contracts & onboarding', 'Contracts built from the role, signed online, with a first-week plan.', 'yes', '/people?mode=pay — drafted from the role on the chart, sent, and the person’s acceptance recorded with a timestamp. Nothing is in force until they accept, and the screen says so.'),
   C('hr', 'leave', 'Leave requests & balances', 'Request on the phone, approve in one tap, balances always current.', 'yes', '/people — requested, approved, and shown against who is available.'),
   C('hr', 'reviews', 'Performance reviews', 'The last three months of the KPI board, plus one conversation.', 'yes', '/people — Reviews & conduct, built from the last three months of the KPI board.'),
   C('hr', 'training', 'Training records', 'Every module finished, due or overdue, from SPEC Training.', 'yes', '/training — the path for each role and who has done it.'),
-  C('hr', 'conduct', 'Warnings & fair process', 'A fair process one step at a time, so no step is missed.', 'partly', 'The fair-process steps are on Reviews & conduct. No warning record is kept.'),
-  C('hr', 'award', 'Award & pay rules', 'Every person checked against their award level, rates and allowances each pay run.', 'partly', 'The award is named and checked on Pay & exits. It does not run against every pay run.'),
-  C('hr', 'payroll', 'Payroll export', 'Hours and leave sent to your accounting system’s payroll in one step.', 'partly', 'Hours export to the accounting system. Not a full payroll export.', 'financials'),
+  C('hr', 'conduct', 'Warnings & fair process', 'A fair process one step at a time, so no step is missed.', 'yes', '/people?mode=conduct — the five steps of a fair process, each recorded with what was said. SPEC refuses any step but the next one.'),
+  C('hr', 'award', 'Award & pay rules', 'Every person checked against their award level, rates and allowances each pay run.', 'yes', '/people?mode=pay — the week’s hours checked before the run goes, never after, with what it found kept as written.'),
+  C('hr', 'payroll', 'Payroll export', 'Hours and leave sent to your accounting system’s payroll in one step.', 'yes', '/people?mode=pay — the run built from the timesheets SPEC already holds, and it cannot be sent until somebody has checked it.', 'financials'),
   C('hr', 'exits', 'Exits & exit reasons', 'Right-reason and wrong-reason exits, feeding negative turnover.', 'yes', '/people — exits with right and wrong reasons, feeding negative turnover.'),
 
   // Safety — 11

@@ -11,6 +11,10 @@ import { PILLARS } from '@/lib/scoring';
 import { STAGES } from '@/lib/people';
 import { refuseTo } from '@/lib/refuse';
 import { getCurrentUser } from '@/lib/auth';
+import { getTenantById } from '@/lib/queries';
+import { draftContract, mayTake, lastPayWeek, FAIR_PROCESS } from '@/lib/hr';
+import { isRecordKind, parseSteps, checkHours, mayExport } from '@/lib/hr-records';
+import type { Pillar } from '@/lib/scoring';
 import { directoryPerson, mayEditContact, staffOfUser } from '@/lib/directory-data';
 import { contactField, isoDay } from '@/lib/directory';
 
@@ -263,4 +267,196 @@ export async function saveStaffContact(formData: FormData) {
   }
   revalidatePath('/people');
   back();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * The file held on a person: contract, conduct, and the pay run
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+const txt = (f: FormData, k: string, max = 300) => String(f.get(k) ?? '').trim().slice(0, max);
+const stamp = () => new Date().toISOString();
+const refreshPeople = () => { for (const p of ['/people', '/compliance', '/my-page']) revalidatePath(p); };
+
+/**
+ * Draft a contract from the role, or open a conduct process.
+ *
+ * SPEC writes what it knows — the title, who it reports to, the start date, what the role is
+ * measured on — and leaves pay, the award and the level marked for the business. It never invents
+ * a number it does not hold.
+ */
+export async function openRecord(form: FormData) {
+  const user = await manager();
+  const kind = txt(form, 'kind', 20);
+  const personName = txt(form, 'personName', 120);
+  if (!isRecordKind(kind) || !personName) return;
+
+  const roleId = txt(form, 'roleId', 64);
+  let body = txt(form, 'body', 4000);
+
+  if (kind === 'contract' && roleId) {
+    const scope = await getScope(user);
+    const role = scope.roles.find(r => r.id === roleId);
+    if (role) {
+      const tenant = await getTenantById(user.tenantId);
+      const criteria = await db.select().from(schema.criteria)
+        .where(and(eq(schema.criteria.roleId, roleId), eq(schema.criteria.active, true)));
+      body = draftContract({
+        roleTitle: role.title,
+        businessName: tenant?.name ?? 'the business',
+        reportsTo: scope.roles.find(r => r.id === role.reportsToRoleId)?.title ?? null,
+        person: personName,
+        startDate: null,
+        kpis: criteria.filter(c => c.kpi).map(c => ({ pillar: c.pillar as Pillar, text: c.text })),
+      });
+    }
+  }
+
+  const now = stamp();
+  await db.insert(schema.peopleRecords).values({
+    id: randomUUID(), tenantId: user.tenantId, kind, personName,
+    roleId: roleId || null, body,
+    state: kind === 'contract' ? 'draft' : 'open',
+    createdAt: now, updatedAt: now,
+  });
+  refreshPeople();
+}
+
+/** Send it. Nothing is in force until the person accepts — the screen says so. */
+export async function sendContract(form: FormData) {
+  const user = await manager();
+  const id = txt(form, 'id', 64);
+  const [row] = await db.select().from(schema.peopleRecords)
+    .where(and(eq(schema.peopleRecords.id, id), eq(schema.peopleRecords.tenantId, user.tenantId)));
+  if (!row || row.kind !== 'contract') return;
+
+  await db.update(schema.peopleRecords)
+    .set({ state: 'sent', sentAt: stamp(), updatedAt: stamp() })
+    .where(eq(schema.peopleRecords.id, id));
+  refreshPeople();
+}
+
+/**
+ * Record that the person accepted it.
+ *
+ * Deliberately not dressed up as a digital signature. A recorded acceptance with a timestamp and
+ * the name of whoever recorded it is what SPEC can honestly provide, and claiming more evidentiary
+ * weight than that carries would be worse than claiming none.
+ */
+export async function signContract(form: FormData) {
+  const user = await manager();
+  const id = txt(form, 'id', 64);
+  const accepted = form.get('accepted') === 'on';
+  const [row] = await db.select().from(schema.peopleRecords)
+    .where(and(eq(schema.peopleRecords.id, id), eq(schema.peopleRecords.tenantId, user.tenantId)));
+  if (!row || row.kind !== 'contract') return;
+
+  await db.update(schema.peopleRecords).set({
+    state: accepted ? 'signed' : 'declined',
+    signedAt: accepted ? stamp() : null,
+    signedBy: accepted ? user.id : null,
+    updatedAt: stamp(),
+  }).where(eq(schema.peopleRecords.id, id));
+  refreshPeople();
+}
+
+/**
+ * Take the next step of a fair process — and only ever the next one.
+ *
+ * `mayTake` refuses anything else. A step skipped is a process a tribunal can unpick, and being the
+ * thing that will not let that happen by accident is the whole reason this is a system.
+ */
+export async function takeStep(form: FormData) {
+  const user = await manager();
+  const id = txt(form, 'id', 64);
+  const step = Number(form.get('step'));
+  const note = txt(form, 'note', 1000);
+
+  const [row] = await db.select().from(schema.peopleRecords)
+    .where(and(eq(schema.peopleRecords.id, id), eq(schema.peopleRecords.tenantId, user.tenantId)));
+  if (!row || row.kind !== 'conduct') return;
+
+  if (!mayTake(step, row.stepsDone)) {
+    refuseTo('/people', 'That step is not the next one. A fair process is only fair in order.');
+  }
+  if (!note) {
+    refuseTo('/people', 'Say what happened at this step. A step with nothing recorded is a step nobody can show was taken.');
+  }
+
+  const steps = parseSteps(row.steps);
+  steps.push({ step, note, at: stamp() });
+
+  await db.update(schema.peopleRecords).set({
+    stepsDone: row.stepsDone + 1,
+    steps: JSON.stringify(steps),
+    reviewAt: txt(form, 'reviewAt', 10) || row.reviewAt,
+    state: row.stepsDone + 1 >= FAIR_PROCESS.length ? 'closed' : 'open',
+    updatedAt: stamp(),
+  }).where(eq(schema.peopleRecords.id, id));
+  refreshPeople();
+}
+
+/**
+ * Open the pay run for the week just finished, from the hours SPEC already holds, and check it.
+ *
+ * Before it goes, never after. A check that runs afterwards finds underpayments that have already
+ * been made, which is a different and more expensive problem.
+ */
+export async function runPayCheck() {
+  const user = await manager();
+  const { from, to } = lastPayWeek(new Date());
+
+  const entries = await db.select().from(schema.timesheetEntries)
+    .where(eq(schema.timesheetEntries.tenantId, user.tenantId));
+  const week = entries.filter(e => e.day >= from && e.day <= to);
+
+  const byPerson = new Map<string, { minutes: number; jobs: Set<string> }>();
+  for (const e of week) {
+    const who = e.personName || 'Unnamed';
+    const seen = byPerson.get(who) ?? { minutes: 0, jobs: new Set<string>() };
+    seen.minutes += e.minutes;
+    if (e.jobId) seen.jobs.add(e.jobId);
+    byPerson.set(who, seen);
+  }
+  const rows = [...byPerson].map(([who, v]) => ({ who, minutes: v.minutes, jobs: v.jobs.size }));
+  const issues = checkHours(rows);
+
+  const now = stamp();
+  const [existing] = await db.select().from(schema.payRuns)
+    .where(and(eq(schema.payRuns.tenantId, user.tenantId), eq(schema.payRuns.fromDate, from)));
+
+  if (existing) {
+    await db.update(schema.payRuns).set({
+      rows: JSON.stringify(rows), issues: JSON.stringify(issues),
+      checkedAt: now, checkedBy: user.id,
+    }).where(eq(schema.payRuns.id, existing.id));
+  } else {
+    await db.insert(schema.payRuns).values({
+      id: randomUUID(), tenantId: user.tenantId, fromDate: from, toDate: to,
+      rows: JSON.stringify(rows), issues: JSON.stringify(issues),
+      checkedAt: now, checkedBy: user.id, createdAt: now,
+    });
+  }
+  refreshPeople();
+}
+
+/**
+ * Send the run to the accounting system.
+ *
+ * Refused until somebody has run the check. Not until there are no issues — a long week is often
+ * correct and correctly paid, and blocking on that would teach people to stop recording overtime.
+ * What must not happen is a run going out that nobody looked at.
+ */
+export async function exportPayRun(form: FormData) {
+  const user = await manager();
+  const id = txt(form, 'id', 64);
+  const [run] = await db.select().from(schema.payRuns)
+    .where(and(eq(schema.payRuns.id, id), eq(schema.payRuns.tenantId, user.tenantId)));
+  if (!run) return;
+
+  if (!mayExport(run)) {
+    refuseTo('/people', 'Check it against the award before it goes. A check that runs afterwards finds underpayments already made.');
+  }
+  await db.update(schema.payRuns).set({ exportedAt: stamp() })
+    .where(eq(schema.payRuns.id, id));
+  refreshPeople();
 }

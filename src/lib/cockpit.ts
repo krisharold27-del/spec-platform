@@ -87,7 +87,7 @@ export const SCALE_CHECKS: ScaleCheck[] = [
     done: true,
     // Multi-tenant data isolation, named both ways on purpose: the plain sentence is for Kris, and
     // the term is what a buyer's IT person will ask for by name.
-    evidence: 'Multi-tenant data isolation, enforced in application code, proven by tests/tenant-isolation.test.ts, and again by row-level security on 58 of 58 tables.',
+    evidence: 'Multi-tenant data isolation, enforced in application code, proven by tests/tenant-isolation.test.ts, and again by row-level security on 60 of 60 tables.',
   },
   {
     label: 'The database keeps up with the build',

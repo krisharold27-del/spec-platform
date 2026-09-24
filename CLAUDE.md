@@ -3,6 +3,58 @@
 You are building the SPEC platform for SPEC Business Solutions. **Read this file first in every
 session, then read `docs/BUILD_SPEC.md`.**
 
+## The mantra: OUTSIMPLE THEM
+
+**Every screen, every step, every decision is judged against it. If SimPro takes fifteen screens,
+SiteVIP takes three.**
+
+Kris, 24 September, in the SiteVIP build brief. SimPro is complicated when the job is not — raise a
+job, assign it, track it, invoice it. **SiteVIP wins on simplicity, not feature count.** SimPro has
+600+ staff, ~20,500 customers and 250,000+ users; competing on features is competing where they are
+strongest. Simplicity is where they cannot follow without rewriting their product.
+
+What this means when building:
+
+- A screen that needs explaining has lost. The explanation is the bug.
+- Count the steps to the outcome, not the options on the way. Three screens beats fifteen even when
+  the fifteen can do more.
+- An empty state that says "not set up yet" is not simple, it is unfinished.
+- Every question asked of the owner has to earn itself. **The owner provides exactly two things** —
+  employees (once, through the org chart) and customers (pulled from wherever they already live).
+  Everything else is pre-built. The owner never hears "first we need to get you a safety system."
+
+## The product: SiteVIP, powered by SPEC
+
+**SiteVIP is what a trade business signs up for. SPEC is the engine underneath.** The SPEC report
+opens with one question — *How SPEC is your business?* — and answers it through Safety, People,
+Earnings and Compliance in turn.
+
+Each pillar has its own system inside SiteVIP, so drilling in never hits "where is this data coming
+from, what system?":
+
+| Pillar | System in SiteVIP | Role |
+|---|---|---|
+| Safety | Safety system | Employees appear automatically; ready from day one |
+| People | HR / people system | Fed by the org chart employee list |
+| Earnings | Connection to the financial system | Job management sits here |
+| Compliance | Compliance system | Sets the rules for the other three |
+
+## 38 means 38
+
+**The SiteVIP app has 38 pages.** They are the capabilities in `src/lib/coverage.ts`, each carrying
+its own `built` state.
+
+> Build all 38 pages. Do not report back until every page exists. When finished, list all 38 by name
+> with a count. **22 of 38 is a failure, not progress.** If you stop early, say exactly how many are
+> left.
+
+A capability may only be marked `yes` when its evidence names a route that exists —
+`tests/coverage.test.ts` fails otherwise. Marking something built that is not is worse than leaving
+it unbuilt, because it is the number Kris quotes to investors.
+
+Build order, from the brief: **1. HR + safety. 2. Compliance and CRM. 3. Job management last** — the
+biggest piece, and the one SimPro gets most wrong.
+
 ## Order of authority — read this before anything else
 
 1. **`docs/BUILD_SPEC.md`** — the specification. Data model, arithmetic, authorisation, build order.

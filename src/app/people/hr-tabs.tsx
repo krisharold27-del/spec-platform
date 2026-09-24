@@ -3,7 +3,16 @@ import { pillTone, type Light } from '@/lib/today';
 import {
   FEEDS, reviewOf, trainingPill, FAIR_PROCESS, draftContract, AWARD_CHECKS,
   turnoverOf, type MonthScore, type TrainingState, type ContractSource,
+  stepLine,
 } from '@/lib/hr';
+import {
+  parseSteps, nextStep, processComplete, stalled, contractLine, inForce,
+  CONTRACT_LABEL, isContractState, parseRows, parseIssues, totalHours, mayExport, payRunLine,
+} from '@/lib/hr-records';
+import { SubmitButton } from '@/components/submit-button';
+import {
+  openRecord, sendContract, signContract, takeStep, runPayCheck, exportPayRun,
+} from './actions';
 
 /**
  * People's Reviews & conduct and Pay & exits tabs — `SPEC People.dc.html`, 23 September.
@@ -61,7 +70,19 @@ function Empty({ children }: { children: React.ReactNode }) {
 export interface ReviewPerson { roleId: string; name: string; roleTitle: string; months: MonthScore[] }
 export interface TrainingRow { key: string; name: string; roleTitle: string; sub: string; state: TrainingState }
 
-export function ConductTab({ reviews, training }: { reviews: ReviewPerson[]; training: TrainingRow[] }) {
+type RecordRow = {
+  id: string; kind: string; personName: string; state: string; stepsDone: number;
+  steps: string; body: string; sentAt: string | null; signedAt: string | null;
+  reviewAt: string | null; updatedAt: string;
+};
+
+export function ConductTab({ reviews, training, conduct, people, manage }: {
+  reviews: ReviewPerson[];
+  training: TrainingRow[];
+  conduct: RecordRow[];
+  people: string[];
+  manage: boolean;
+}) {
   return (
     <>
       <Group
@@ -123,10 +144,71 @@ export function ConductTab({ reviews, training }: { reviews: ReviewPerson[]; tra
             </li>
           ))}
         </ol>
-        <Empty>
-          No process is open. Recording one — each step dated, with a name against it — is the next
-          part of People to be built; nothing on this card is stored yet.
-        </Empty>
+        {/*
+          The processes actually open. Only the NEXT step can be taken — `mayTake` refuses anything
+          else, on the server. A step skipped is a process a tribunal can unpick.
+        */}
+        {conduct.length > 0 && (
+          <ul className="mt-4 grid gap-2">
+            {conduct.map(r => {
+              const done = parseSteps(r.steps);
+              const next = nextStep(r.stepsDone);
+              const late = stalled(r);
+              return (
+                <li key={r.id} className="rounded-2xl bg-cream px-4 py-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-semibold text-ink">{r.personName}</span>
+                    <span className="pill" style={pillTone(late ? 'red' : processComplete(r.stepsDone) ? 'green' : 'amber')}>
+                      {stepLine(r.stepsDone)}
+                    </span>
+                  </div>
+                  {r.body && <p className="mt-1 text-sm text-ink-light">{r.body}</p>}
+                  {done.length > 0 && (
+                    <ol className="mt-2 grid gap-1 text-sm text-ink-light">
+                      {done.map(d => (
+                        <li key={`${d.step}-${d.at}`}>
+                          <b className="text-ink">{FAIR_PROCESS[d.step]?.label}</b> · {d.at.slice(0, 10)} — {d.note}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                  {late && (
+                    <p className="mt-2 text-sm text-ink">
+                      Started and not finished. The person has been told there is a concern and heard
+                      nothing since — worse than never having raised it.
+                    </p>
+                  )}
+                  {manage && next && (
+                    <form action={takeStep} className="mt-3 grid gap-2 border-t border-cream-border pt-3 sm:grid-cols-4">
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="step" value={next.index} />
+                      <p className="text-sm text-ink sm:col-span-4">
+                        <b>Next: {next.label}.</b> {next.note}
+                      </p>
+                      <input name="note" required placeholder="What happened at this step" className="input sm:col-span-3" />
+                      {next.index === FAIR_PROCESS.length - 1 && (
+                        <input type="date" name="reviewAt" className="input" aria-label="Review date" />
+                      )}
+                      <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Record it</SubmitButton>
+                    </form>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {manage && (
+          <form action={openRecord} className="mt-4 grid gap-2 border-t border-cream-border pt-4 sm:grid-cols-4">
+            <input type="hidden" name="kind" value="conduct" />
+            <input name="personName" required list="people-list" placeholder="Who" className="input" />
+            <input name="body" required placeholder="What the concern is — specific, and in writing" className="input sm:col-span-2" />
+            <SubmitButton className="btn-secondary px-4 py-2">Raise it</SubmitButton>
+            <datalist id="people-list">{people.map(n => <option key={n} value={n} />)}</datalist>
+          </form>
+        )}
+
+        {conduct.length === 0 && <Empty>No process is open.</Empty>}
       </Group>
     </>
   );
@@ -137,12 +219,20 @@ export function ConductTab({ reviews, training }: { reviews: ReviewPerson[]; tra
 export interface ContractRow extends ContractSource { roleId: string }
 export interface ExitRow { key: string; name: string; roleTitle: string; left: string }
 
-export function PayTab({ contracts, payWeek, inRoles, accountingConnected, exits }: {
+export function PayTab({ contracts, payWeek, inRoles, accountingConnected, exits, signed, roles, people, run, manage }: {
   contracts: ContractRow[];
   payWeek: { from: string; to: string };
   inRoles: number;
   accountingConnected: boolean;
   exits: ExitRow[];
+  signed: RecordRow[];
+  roles: { id: string; title: string }[];
+  people: string[];
+  run: {
+    id: string; fromDate: string; toDate: string; rows: string; issues: string;
+    checkedAt: string | null; exportedAt: string | null;
+  } | null;
+  manage: boolean;
 }) {
   const turnover = turnoverOf(exits.map(() => null));
   return (
@@ -168,6 +258,55 @@ export function PayTab({ contracts, payWeek, inRoles, accountingConnected, exits
           </details>
         )) : (
           <Empty>Nobody holds a role in your part of the chart yet. Place somebody on the org chart and their contract drafts itself here.</Empty>
+        )}
+
+        {/*
+          The contracts actually issued. Nothing is in force until the person accepts — said in
+          those words, because "sent" reads like "done" and a contract sent and never returned is
+          the most common gap in a small business's file.
+        */}
+        {signed.length > 0 && (
+          <ul className="mt-4 grid gap-2">
+            {signed.map(r => (
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3">
+                <span className="min-w-0">
+                  <span className="font-semibold text-ink">{r.personName}</span>
+                  <span className="block text-sm text-ink-light">{contractLine(r)}</span>
+                </span>
+                <span className="flex items-center gap-2">
+                  <Pill light={inForce(r) ? 'green' : r.state === 'declined' ? 'red' : 'amber'}>
+                    {CONTRACT_LABEL[(isContractState(r.state) ? r.state : 'draft')]}
+                  </Pill>
+                  {manage && r.state === 'draft' && (
+                    <form action={sendContract}>
+                      <input type="hidden" name="id" value={r.id} />
+                      <SubmitButton className="btn-secondary px-3 py-1 text-xs">Send it</SubmitButton>
+                    </form>
+                  )}
+                  {manage && r.state === 'sent' && (
+                    <form action={signContract} className="flex items-center gap-2">
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="accepted" value="on" />
+                      <SubmitButton className="btn-secondary px-3 py-1 text-xs">They accepted</SubmitButton>
+                    </form>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {manage && (
+          <form action={openRecord} className="mt-4 grid gap-2 border-t border-cream-border pt-4 sm:grid-cols-4">
+            <input type="hidden" name="kind" value="contract" />
+            <input name="personName" required list="pay-people" placeholder="Who" className="input" />
+            <select name="roleId" defaultValue="" className="input sm:col-span-2">
+              <option value="">Which role — SPEC drafts it from the chart</option>
+              {roles.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
+            </select>
+            <SubmitButton className="btn-secondary px-4 py-2">Draft it</SubmitButton>
+            <datalist id="pay-people">{people.map(n => <option key={n} value={n} />)}</datalist>
+          </form>
         )}
       </Group>
 
@@ -197,13 +336,61 @@ export function PayTab({ contracts, payWeek, inRoles, accountingConnected, exits
         feeds={FEEDS.payroll}
         action={{ label: accountingConnected ? 'See connections' : 'Connect your accounting system', href: '/connections' }}
       >
-        <Row title={`Pay run · ${payWeek.from} to ${payWeek.to}`} sub={`${inRoles} ${inRoles === 1 ? 'person' : 'people'} in roles · no hours recorded in SPEC for this week`}>
-          <Pill light="pending">Waiting on hours</Pill>
-        </Row>
+        {run ? (() => {
+          const rows = parseRows(run.rows);
+          const issues = parseIssues(run.issues);
+          return (
+            <div className="mt-2 rounded-2xl bg-cream px-4 py-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-semibold text-ink">Pay run · {run.fromDate} to {run.toDate}</span>
+                <Pill light={run.exportedAt ? 'green' : run.checkedAt ? 'amber' : 'pending'}>
+                  {payRunLine(run, issues)}
+                </Pill>
+              </div>
+              <p className="mt-1 text-sm text-ink-light">
+                {rows.length} {rows.length === 1 ? 'person' : 'people'} · {totalHours(rows)} hours, from the timesheets SPEC already holds.
+              </p>
+              {issues.length > 0 && (
+                <ul className="mt-2 grid gap-1 text-sm">
+                  {issues.map(i => (
+                    <li key={`${i.check}-${i.who}`} className="text-ink">
+                      <b>{i.who}</b> · {i.check} — {i.says}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {manage && (
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-cream-border pt-3">
+                  <form action={runPayCheck}>
+                    <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Check it again</SubmitButton>
+                  </form>
+                  {mayExport(run) && (
+                    <form action={exportPayRun}>
+                      <input type="hidden" name="id" value={run.id} />
+                      <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Send to the accounting system</SubmitButton>
+                    </form>
+                  )}
+                </div>
+              )}
+            </div>
+        );
+        })() : (
+          <>
+            <Row title={`Pay run · ${payWeek.from} to ${payWeek.to}`} sub={`${inRoles} ${inRoles === 1 ? 'person' : 'people'} in roles · not checked yet`}>
+              <Pill light="pending">Not checked</Pill>
+            </Row>
+            {manage && (
+              <form action={runPayCheck} className="mt-3">
+                <SubmitButton className="btn-secondary px-5 py-2">Check this week against the award</SubmitButton>
+              </form>
+            )}
+          </>
+        )}
         <Empty>
-          {accountingConnected
-            ? 'Your accounting system is connected. The export sends once timesheet hours are recorded in SPEC.'
-            : 'No accounting system is connected yet. Connect one and the export has somewhere to go; until then nothing is sent.'}
+          Checked before it goes, never after — a check that runs afterwards finds underpayments
+          already made. {accountingConnected
+            ? 'Your accounting system is connected, so the export has somewhere to go.'
+            : 'No accounting system is connected yet, so the run is checked here and sent when one is.'}
         </Empty>
       </Group>
 

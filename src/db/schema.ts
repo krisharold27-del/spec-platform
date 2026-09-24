@@ -1781,3 +1781,87 @@ export const purchaseOrders = pgTable('purchase_orders', {
   index('purchase_orders_tenant').on(t.tenantId),
   uniqueIndex('purchase_orders_ref').on(t.tenantId, t.ref),
 ]).enableRLS();
+
+/**
+ * Records held against a person — an employment contract, and a conduct process.
+ *
+ * ── One table, because they are the same shape ───────────────────────────────────────────────────
+ *
+ * Both are a document about one person that moves through states and must not be edited after the
+ * fact. A contract is drafted, sent, and accepted. A conduct process is raised, and walks the five
+ * steps of procedural fairness. The columns that matter — who, what state, which step, what was
+ * said, when — are the same, and splitting them would make two screens out of one question about a
+ * person's file.
+ *
+ * `personName` is free text rather than a key, for the same reason the workers' compensation
+ * tracker uses one: the person may be an apprentice or a subcontractor with no SPEC login, and a
+ * file that can only hold seated people quietly drops the ones it is most needed for.
+ */
+export const peopleRecords = pgTable('people_records', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** contract | conduct — see RECORD_KINDS in lib/hr-records. */
+  kind: text('kind').notNull(),
+  personName: text('person_name').notNull(),
+  /** The role it was drafted from, when there is one. */
+  roleId: text('role_id'),
+  /** The contract's text, or what the concern is. SPEC drafts; the leader edits; nothing invents pay. */
+  body: text('body').notNull().default(''),
+  /** draft | sent | signed | declined for a contract; open | closed for a conduct process. */
+  state: text('state').notNull().default('draft'),
+  /**
+   * How many of the five fair-process steps are done. A step may only ever be the next one — see
+   * `mayTake` in lib/hr. A skipped step is a process a tribunal can unpick.
+   */
+  stepsDone: integer('steps_done').notNull().default(0),
+  /** What was said at each step, as JSON `[{ step, note, at }]`. Append-only in practice. */
+  steps: text('steps').notNull().default('[]'),
+  sentAt: text('sent_at'),
+  /**
+   * When the person accepted it, and from where.
+   *
+   * A recorded acceptance with a timestamp is what a small business actually needs and is what
+   * SPEC can honestly provide. It is deliberately NOT dressed up as a digital signature: claiming
+   * more evidentiary weight than a click carries would be worse than claiming none.
+   */
+  signedAt: text('signed_at'),
+  signedBy: text('signed_by'),
+  /** The date somebody checks it has been put right — the step businesses skip. */
+  reviewAt: text('review_at'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  index('people_records_tenant').on(t.tenantId),
+  index('people_records_kind').on(t.tenantId, t.kind),
+]).enableRLS();
+
+/**
+ * A pay run, and the award check that ran before it went out.
+ *
+ * The design: *"every pay run checked against the award before it goes."* Before, not after — a
+ * check that runs afterwards finds underpayments that have already been made, which is a different
+ * and more expensive problem.
+ *
+ * The hours are the ones SPEC already holds from the phone, so a pay run is not somebody typing
+ * numbers a second time. `issues` is what the check found, kept as written rather than recomputed,
+ * because "what did we know when we paid it" is the question that gets asked later.
+ */
+export const payRuns = pgTable('pay_runs', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** The week worked, Monday to Sunday. Always a week already finished. */
+  fromDate: text('from_date').notNull(),
+  toDate: text('to_date').notNull(),
+  /** Whose hours, and how many, as JSON `[{ who, minutes, jobs }]` — the export's own rows. */
+  rows: text('rows').notNull().default('[]'),
+  /** What the award check found, as JSON `[{ check, who, says }]`. Empty means nobody under award. */
+  issues: text('issues').notNull().default('[]'),
+  checkedAt: text('checked_at'),
+  checkedBy: text('checked_by'),
+  /** Set when the rows went to the accounting system. Never set while an issue is open. */
+  exportedAt: text('exported_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('pay_runs_tenant').on(t.tenantId),
+  uniqueIndex('pay_runs_week').on(t.tenantId, t.fromDate),
+]).enableRLS();
