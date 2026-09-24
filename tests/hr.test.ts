@@ -7,10 +7,24 @@ import {
 import { FRAMEWORK } from '../src/lib/power-meter';
 
 describe('the People tabs', () => {
-  it('are the design’s four, in its order', () => {
-    expect(HR_TABS.map(t => t.label)).toEqual(['Who you have', 'Staff list', 'Reviews & conduct', 'Pay & exits', 'Who you need']);
+  it('are the design’s, in its order', () => {
+    expect(HR_TABS.map(t => t.label)).toEqual([
+      'Who you have', 'Staff list', 'Reviews & conduct', 'Pay & exits', 'Subcontractors', 'Who you need',
+    ]);
     expect(tabOf('staff')).toBe('staff');
     expect(hrefOf('staff')).toBe('/people?mode=staff');
+  });
+
+  /*
+    Subcontractors, added by design 17 — and under PEOPLE, which is the decision rather than the
+    placement. Kris: "subcontractors are people working for the business and are held to the full
+    expectation on every job." Beside suppliers they would be a folder of certificates; here they
+    are held to what everybody else is held to.
+  */
+  it('PUT SUBCONTRACTORS UNDER PEOPLE, not beside suppliers', () => {
+    expect(tabOf('subbies')).toBe('subbies');
+    expect(hrefOf('subbies')).toBe('/people?mode=subbies');
+    expect(HR_TABS.find(t => t.tab === 'subbies')?.label).toBe('Subcontractors');
   });
 
   it('keep the old hiring link working, and never error on an unknown mode', () => {

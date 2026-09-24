@@ -2225,3 +2225,30 @@ export const subbieChecks = pgTable('subbie_checks', {
   index('subbie_checks_tenant').on(t.tenantId),
   index('subbie_checks_subbie').on(t.tenantId, t.subbieId),
 ]).enableRLS();
+
+/**
+ * A government incentive or rebate claim for one apprentice.
+ *
+ * The DATE is the whole point of the row. These are real money a business is entitled to and
+ * routinely does not claim — not by decision, but because the window opens on a date buried in a
+ * training contract and nobody is watching for it.
+ *
+ * `amountCents` is null until somebody has confirmed the figure with the Apprenticeship Support
+ * Network provider. SPEC never invents one: the amounts change with the scheme, the state, the year
+ * of the apprenticeship and the employer, and a made-up number shown as claimable is a business
+ * budgeting for money that is not coming. See lib/apprentice-funding.
+ */
+export const apprenticeClaims = pgTable('apprentice_claims', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** Who it is for, as the business names them. */
+  who: text('who').notNull(),
+  /** What the claim is, in the provider's own words rather than SPEC's. */
+  what: text('what').notNull(),
+  opensAt: text('opens_at'),
+  closesAt: text('closes_at'),
+  amountCents: integer('amount_cents'),
+  claimedAt: text('claimed_at'),
+  receivedAt: text('received_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('apprentice_claims_tenant').on(t.tenantId)]).enableRLS();

@@ -12,6 +12,7 @@ import { STAGES } from '@/lib/people';
 import { refuseTo } from '@/lib/refuse';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
+import { isCheckKind, mayBook } from '@/lib/subbies';
 import { draftContract, mayTake, lastPayWeek, FAIR_PROCESS } from '@/lib/hr';
 import { isRecordKind, parseSteps, checkHours, mayExport } from '@/lib/hr-records';
 import type { Pillar } from '@/lib/scoring';
@@ -459,4 +460,98 @@ export async function exportPayRun(form: FormData) {
   await db.update(schema.payRuns).set({ exportedAt: stamp() })
     .where(eq(schema.payRuns.id, id));
   refreshPeople();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * Subcontractors — design 17
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Invite a subcontractor to set themselves up.
+ *
+ * A business name and a mobile, which is all anybody has when they decide to use somebody. The six
+ * checks come from them, on their phone — asking the office to collect six certificates on a
+ * subbie's behalf is how a business ends up with none of them.
+ */
+export async function inviteSubbie(form: FormData) {
+  const user = await manager();
+  const business = txt(form, 'business', 160);
+  const mobile = txt(form, 'mobile', 40);
+  if (!business) refuseTo('/people?mode=subbies', 'A subcontractor needs a business name.');
+  if (!mobile) refuseTo('/people?mode=subbies', 'A mobile is how they get the link to set themselves up.');
+
+  await db.insert(schema.subcontractors).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    business,
+    contact: txt(form, 'contact', 120),
+    mobile,
+    status: 'invited',
+    invitedAt: stamp(),
+    createdAt: stamp(),
+  });
+  revalidatePath('/people');
+  redirect('/people?mode=subbies');
+}
+
+/**
+ * Record one of the six checks against a subcontractor.
+ *
+ * The check is stored with its own expiry, because each one lapses on its own date — which is why
+ * this is a row per check rather than six columns on the subbie. A check that expires is what stops
+ * them being booked, and `mayBook` reads the DATE rather than this state, so a certificate recorded
+ * as current in March stops counting in October without anybody touching it.
+ */
+export async function recordSubbieCheck(form: FormData) {
+  const user = await manager();
+  const subbieId = txt(form, 'subbieId', 64);
+  const kind = txt(form, 'kind', 32);
+  if (!isCheckKind(kind)) refuseTo('/people?mode=subbies', 'SPEC does not know that check.');
+
+  const [subbie] = await db.select({ id: schema.subcontractors.id })
+    .from(schema.subcontractors)
+    .where(and(eq(schema.subcontractors.id, subbieId), eq(schema.subcontractors.tenantId, user.tenantId)));
+  if (!subbie) refuseTo('/people?mode=subbies', 'That subcontractor is not in this business.');
+
+  const expiresAt = txt(form, 'expiresAt', 10) || null;
+  const [existing] = await db.select({ id: schema.subbieChecks.id })
+    .from(schema.subbieChecks)
+    .where(and(
+      eq(schema.subbieChecks.tenantId, user.tenantId),
+      eq(schema.subbieChecks.subbieId, subbieId),
+      eq(schema.subbieChecks.kind, kind),
+    ));
+
+  if (existing) {
+    await db.update(schema.subbieChecks)
+      .set({ expiresAt, state: 'current', updatedAt: stamp() })
+      .where(eq(schema.subbieChecks.id, existing.id));
+  } else {
+    await db.insert(schema.subbieChecks).values({
+      id: randomUUID(),
+      tenantId: user.tenantId,
+      subbieId,
+      kind,
+      expiresAt,
+      state: 'current',
+      updatedAt: stamp(),
+    });
+  }
+
+  /*
+    Once all six are in they are working, not onboarding. Worked out from the checks rather than
+    set by anybody, so the status can never disagree with what the checks say.
+  */
+  const checks = await db.select({
+    kind: schema.subbieChecks.kind, expiresAt: schema.subbieChecks.expiresAt, state: schema.subbieChecks.state,
+  }).from(schema.subbieChecks)
+    .where(and(eq(schema.subbieChecks.tenantId, user.tenantId), eq(schema.subbieChecks.subbieId, subbieId)));
+
+  if (mayBook(checks, new Date().toISOString().slice(0, 10)).ok) {
+    await db.update(schema.subcontractors).set({ status: 'active' })
+      .where(eq(schema.subcontractors.id, subbieId));
+  }
+
+  revalidatePath('/people');
+  redirect('/people?mode=subbies');
 }

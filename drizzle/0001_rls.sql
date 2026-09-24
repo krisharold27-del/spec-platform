@@ -182,6 +182,7 @@ begin
     'tenders',
     'subcontractors',
     'subbie_checks',
+    'apprentice_claims',
     -- Safety, added 23 September. Each carries its own tenant_id: an injury, a claim and an
     -- anonymous wellbeing report are the last rows in SPEC that should ever depend on a join to
     -- stay inside their own business.

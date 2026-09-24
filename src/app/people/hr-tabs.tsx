@@ -11,6 +11,10 @@ import {
 } from '@/lib/hr-records';
 import { SubmitButton } from '@/components/submit-button';
 import {
+  claimState, CLAIM_LABEL, daysUntil, byUrgency, fundingStats, fundingLine, amountLabel,
+  type Claim,
+} from '@/lib/apprentice-funding';
+import {
   openRecord, sendContract, signContract, takeStep, runPayCheck, exportPayRun,
 } from './actions';
 
@@ -219,7 +223,7 @@ export function ConductTab({ reviews, training, conduct, people, manage }: {
 export interface ContractRow extends ContractSource { roleId: string }
 export interface ExitRow { key: string; name: string; roleTitle: string; left: string }
 
-export function PayTab({ contracts, payWeek, inRoles, accountingConnected, exits, signed, roles, people, run, manage }: {
+export function PayTab({ contracts, payWeek, inRoles, accountingConnected, exits, signed, roles, people, run, manage, claims, today }: {
   contracts: ContractRow[];
   payWeek: { from: string; to: string };
   inRoles: number;
@@ -233,6 +237,9 @@ export function PayTab({ contracts, payWeek, inRoles, accountingConnected, exits
     checkedAt: string | null; exportedAt: string | null;
   } | null;
   manage: boolean;
+  /** Apprentice incentive and rebate claims — see lib/apprentice-funding. */
+  claims: Claim[];
+  today: string;
 }) {
   const turnover = turnoverOf(exits.map(() => null));
   return (
@@ -327,6 +334,51 @@ export function PayTab({ contracts, payWeek, inRoles, accountingConnected, exits
         <Empty>
           No award is named for this business yet, so nothing has been checked and nobody is flagged.
           Naming it is the first step; SPEC does not guess which one applies.
+        </Empty>
+      </Group>
+
+      {/*
+        Apprentice funding, design 17. Real money a business is entitled to and routinely does not
+        claim — not by decision, but because the window opens on a date buried in a training
+        contract and nobody is watching for it. So the DATE is what this leads on.
+
+        SPEC never invents an amount: the figures change with the scheme, the state, the year of the
+        apprenticeship and the employer, and a made-up number shown as claimable is a business
+        budgeting for money that is not coming. The design says the same — "Amounts are confirmed
+        with your Apprenticeship Support Network provider."
+      */}
+      <Group
+        title="Apprentice funding"
+        blurb="Government incentives and rebates for every apprentice, from their training contract. SPEC tells you the day each claim opens. Amounts are confirmed with your Apprenticeship Support Network provider — SPEC does not guess them."
+        feeds="Earnings · Cash flow"
+      >
+        <p className="mb-3 text-sm font-semibold text-ink">{fundingLine(fundingStats(claims, today))}</p>
+        {byUrgency(claims, today).map(c => {
+          const state = claimState(c, today);
+          const days = daysUntil(c.opensAt, today);
+          const light: Light = state === 'claimable' ? 'amber'
+            : state === 'received' ? 'green'
+              : state === 'missed' ? 'red' : 'pending';
+          return (
+            <Row
+              key={c.id}
+              title={`${c.who} · ${c.what}`}
+              sub={
+                state === 'received' ? `Received ${c.receivedAt}`
+                  : state === 'claimed' ? `Lodged ${c.claimedAt}, waiting on payment`
+                    : state === 'missed' ? `Window closed ${c.closesAt}`
+                      : days !== null && days > 0 ? `Opens ${c.opensAt}, in ${days} ${days === 1 ? 'day' : 'days'}`
+                        : `Open now · ${amountLabel(c.amountCents)}`
+              }
+            >
+              <Pill light={light}>{CLAIM_LABEL[state]}</Pill>
+            </Row>
+          );
+        })}
+        <Empty>
+          No apprentice claims recorded yet. Add each one from the training contract when an
+          apprentice starts — the date it opens is the part worth having, and it is the part
+          everybody forgets.
         </Empty>
       </Group>
 

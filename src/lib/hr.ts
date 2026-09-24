@@ -19,7 +19,7 @@ import { light, type Light, LIGHT_LABEL } from './today';
 
 /* ── The tabs ─────────────────────────────────────────────────────────────────────────────────── */
 
-export type HrTab = 'have' | 'staff' | 'conduct' | 'pay' | 'hiring';
+export type HrTab = 'have' | 'staff' | 'conduct' | 'pay' | 'subbies' | 'hiring';
 
 /**
  * The tabs, in the design's order — HR, Reviews & conduct, Pay & exits, Recruitment — with the
@@ -37,6 +37,14 @@ export const HR_TABS: { tab: HrTab; mode: string | null; label: string }[] = [
   { tab: 'staff', mode: 'staff', label: 'Staff list' },
   { tab: 'conduct', mode: 'conduct', label: 'Reviews & conduct' },
   { tab: 'pay', mode: 'pay', label: 'Pay & exits' },
+  /*
+    Subcontractors, 24 September. Under People rather than beside suppliers, because Kris's
+    correction settles what they are: *"subcontractors are people working for the business and are
+    held to the full expectation on every job"* — a paid team seat, the same SWMS and KPIs as
+    everybody else, scoring on their supervisor's board. The only thing that differs is what they
+    can see. See lib/subbies.
+  */
+  { tab: 'subbies', mode: 'subbies', label: 'Subcontractors' },
   { tab: 'hiring', mode: 'hiring', label: 'Who you need' },
 ];
 

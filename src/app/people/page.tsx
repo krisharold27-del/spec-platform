@@ -31,6 +31,7 @@ import { refusedReason } from '@/lib/refuse';
 import { HR_TABS, tabOf, hrefOf, lastThree, lastPayWeek, exitsFrom, trainingStateOf, trainingSummary } from '@/lib/hr';
 import { ConductTab, PayTab, type ReviewPerson, type TrainingRow, type ContractRow, type ExitRow } from './hr-tabs';
 import { StaffListTab } from './staff-list';
+import { SubbiesTab, type SubbieRow } from './subbies-tab';
 
 export const dynamic = 'force-dynamic';
 
@@ -123,6 +124,39 @@ export default async function People({ searchParams }: { searchParams: Promise<R
     ?? 'Somebody';
 
   const now = new Date();
+  const todayIso = now.toISOString().slice(0, 10);
+
+  /*
+    Subcontractors and their six checks, read only for the tab that shows them. A business with
+    forty subbies has 240 check rows, and every other tab on this screen would carry that read for
+    nothing.
+  */
+  /* Apprentice claims, read only for the tab that shows them. */
+  const claimRows = tab === 'pay'
+    ? (await db.select().from(schema.apprenticeClaims)
+        .where(eq(schema.apprenticeClaims.tenantId, user.tenantId))
+        .orderBy(schema.apprenticeClaims.opensAt))
+      .map(c => ({
+        id: c.id, who: c.who, what: c.what, opensAt: c.opensAt, closesAt: c.closesAt,
+        amountCents: c.amountCents, claimedAt: c.claimedAt, receivedAt: c.receivedAt,
+      }))
+    : [];
+
+  const subbieRows: SubbieRow[] = await (async () => {
+    if (tab !== 'subbies') return [];
+    const [subs, checks] = await Promise.all([
+      db.select().from(schema.subcontractors)
+        .where(eq(schema.subcontractors.tenantId, user.tenantId))
+        .orderBy(schema.subcontractors.business),
+      db.select().from(schema.subbieChecks)
+        .where(eq(schema.subbieChecks.tenantId, user.tenantId)),
+    ]);
+    return subs.map(s => ({
+      id: s.id, business: s.business, contact: s.contact, mobile: s.mobile, status: s.status,
+      checks: checks.filter(c => c.subbieId === s.id)
+        .map(c => ({ kind: c.kind, expiresAt: c.expiresAt, state: c.state })),
+    }));
+  })();
   const people: (PersonRow & { scored: boolean; hasPath: boolean; pathComplete: boolean; signedOff: boolean })[] = [];
   for (const r of visible) {
     const own = criteria.filter(c => c.roleId === r.id && c.active);
@@ -318,6 +352,8 @@ export default async function People({ searchParams }: { searchParams: Promise<R
 
       {tab === 'staff' ? (
         <StaffListTab user={user} q={typeof sp.q === 'string' ? sp.q.slice(0, 80) : ''} />
+      ) : tab === 'subbies' ? (
+        <SubbiesTab rows={subbieRows} manage={manage} today={todayIso} business={tenant.name} />
       ) : tab === 'conduct' ? (
         <ConductTab
           reviews={reviews}
@@ -338,6 +374,8 @@ export default async function People({ searchParams }: { searchParams: Promise<R
           inRoles={held.length}
           accountingConnected={accountingConnected}
           exits={exits}
+          claims={claimRows}
+          today={todayIso}
         />
       ) : !hiring ? (
         <>
