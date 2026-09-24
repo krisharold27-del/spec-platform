@@ -116,7 +116,7 @@ was checked in the code, the file is named. Nothing here is marked done because 
 | **Compliance** — the full new system | ✗ | `SPEC Compliance.dc.html` is in the bundle; **there is no `/compliance` page**. Licences, insurances, certificates, audits, contracts, breaches |
 | **Nav: key areas** — My page · Jobs · CRM · People · Safety · Compliance · Board, Setup/Connections/All pages on the right | ◐ | the bar reads Setup · My page · Jobs · CRM · Clients · Org chart · People · Safety · Pricing · Scoring · Board pack · Mirrors · Connections · All pages. **Compliance is absent, Setup is still first rather than on the right, and Org chart / Training / Scoring / Mirrors are not folded under People and Board** |
 | **siteVIP Landing** | ✗ | not built, and it needs a domain decision first — see below |
-| **Monthly rhythm** — lock on the last day, scores clear to zero on the 1st, KPIs carry over | ✗ | **not built.** Scoring still locks on sign-off; nothing clears on the 1st. This one changes what happens to a real business on 1 October |
+| **Monthly rhythm** — lock on the last day, scores clear to zero on the 1st, KPIs carry over | ✅ | **Fixed in this pass, and it was worse than missing.** `currentPeriod` returned the LAST period whenever none was open and never asked what month it is, so a business that signed September off would have opened SPEC on 1 October and been shown September — signed, unmarkable — as its current month, with no way to start the new one. `scripts/month-roll.mts` proves the roll against a real database and reads FAIL on the old code |
 | **Seat price A$134 / A$17, AI included** | ✅ | `lib/pricing`, matches the live Stripe account |
 | **No non-AI tier anywhere** | ✅ | no "Basic" on any customer-facing page |
 | **"SPEC proposes", never "Claude proposes"** | ✅ | no occurrence in the product |
@@ -133,13 +133,36 @@ was checked in the code, the file is named. Nothing here is marked done because 
 
 ---
 
+## Fixed in this pass
+
+- **The monthly rhythm**, above. The only item with a date on it, and a live fault rather than a
+  gap.
+- **The safety anonymity promise**, now proved against the stored database row rather than against
+  the screen — `scripts/safety-journey.mjs`.
+
 ## What I would do next, in order
 
-1. **The monthly rhythm.** It is the only missing item with a date attached. On 1 October a real
-   business expects its scores to clear and its KPIs to carry over, and today neither happens.
-2. **Compliance.** A whole designed system with no page, and it is the pillar JBI is judged on.
-3. **The nav.** Cheap, and it is the map everybody navigates by. Compliance needs it anyway.
-4. **Jobs — the missing tabs and the three groups.** The biggest area by volume; Leads and
+1. **Compliance.** A whole designed system with no page, and it is one of the two pillars that can
+   hard-gate a business. It also blocks the nav, below.
+2. **The nav.** Cheap on its own, but it cannot be done properly first: the key-area bar the README
+   asks for has **Compliance** in it, and a tab pointing at a page that does not exist is the fault
+   that got the old dropdown deleted. Build the page, then move the bar in one go.
+3. **The P-stack's four beats.** The diagnosis is the thing a customer is paying for, and it is
+   currently running a pillar order rather than the method. A prompt change plus tests, not a build.
+4. **Jobs — the missing six tabs and the three groups.** Biggest area by volume. Leads and
    Pre-builds are the two a trade business feels first.
-5. **Subcontractors.** Kris corrected this himself on 24 September — a paid team seat, not free.
-6. **siteVIP Landing.** Blocked on the domain decision, not on the build.
+5. **"Is the business going well?"** — the verdict, the rolling average and the serious-event cap.
+6. **Subcontractors.** Kris corrected this himself on 24 September: a paid team seat, not free.
+7. **siteVIP Landing.** Blocked on the domain decision, not on the build.
+
+## Two things I would ask about
+
+- **sitevipapp.com.** One front door on the same app, or a separate project? The design reads like
+  the first — *"siteVIP is the trades edition of SPEC… More editions, built on the same engine, are
+  coming"* — and the first is also the one that does not double the ways SPEC can be down. Either
+  way the DNS has to be pointed at Vercel, which is a change to the account rather than to the code.
+- **"Days without harm."** The design's first Safety tile counts how long the business has gone
+  without an injury. It resets to zero the day somebody is hurt, so the way to keep it high is for
+  nobody to report — and the same file says two sections later that *more reports is a good sign*.
+  The built page counts what was reported and what was fixed instead. Say the word and the tile goes
+  back.
