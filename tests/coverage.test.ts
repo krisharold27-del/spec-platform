@@ -175,9 +175,9 @@ describe('the modules respect the choice', () => {
     });
   });
 
-  it('the CRM follows Customers & sites, which is part of Jobs', () => {
+  it('the CRM follows Customers & CRM, which is part of Jobs', () => {
     expect(ownLine('crm', 'deals', choose(defaultChoices(), 'customers', 'own'))).toEqual({
-      text: 'You run Customers & sites in your own CRM.', category: 'crm',
+      text: 'You run Customers & CRM in your own CRM.', category: 'crm',
     });
     expect(ownLine('crm', 'deals', choose(defaultChoices(), 'quotes', 'own'))).toBeNull();
   });

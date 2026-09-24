@@ -16,9 +16,10 @@
   a:hover { color: var(--color-accent-800); text-decoration: underline; }
   ::selection { background: var(--color-accent-200); }
 </style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); --shadow-lg: 0 0 0 1.5px #d2c3a9, 0 14px 36px rgba(32,30,29,0.13); } body { background: #ffffff; }</style>
 </helmet>
 
-<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+<div style="font-family: var(--font-body); color: var(--color-text); background: #ffffff; min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
     <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
@@ -50,16 +51,17 @@
             <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
           </g>
         </svg>SPEC</a>
-    <a href="SPEC Setup.dc.html">Setup</a>
     <a href="SPEC My Page.dc.html">My page</a>
     <a href="SPEC Jobs.dc.html">Jobs</a>
-    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Jobs.dc.html?tab=customers">CRM</a>
     <a href="SPEC People.dc.html">People</a>
     <a href="SPEC Safety.dc.html">Safety</a>
-    <a href="#" style="color: var(--color-text); font-weight: 700;">Scoring</a>
-    <a href="SPEC Board Pack.dc.html">Board pack</a>
-    <a href="SPEC Connections.dc.html">Connections</a>
-    <a href="SPEC Home.dc.html">All pages</a>
+    <a href="SPEC Compliance.dc.html">Compliance</a>
+    <a href="SPEC Board Pack.dc.html" style="color: var(--color-text); font-weight: 700;">Board</a>
+    <span style="flex: 1 1 0; min-width: 8px;"></span>
+    <a href="SPEC Setup.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Setup</a>
+    <a href="SPEC Connections.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Connections</a>
+    <a href="SPEC Home.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">All pages</a>
   </nav>
 
   <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
@@ -386,7 +388,7 @@ class Component extends DCLogic {
         ? 'Read-only from here. October opens on the 1st and any correction is made there as a noted adjustment.'
         : this.state.submitted
           ? 'Kristopher Harold, GM submitted on 30 Sep. Justin Bussell, Director signs, then the period locks.'
-          : 'Scoring closes on 30 September. Fed numbers are already in; manual numbers need confirming by the person accountable for them.',
+          : 'September scores set on 30 September. Fed numbers are already in; manual numbers need confirming by the person accountable for them. On 1 October every KPI stays and the scores start again at zero.',
       submitLabel: this.state.submitted ? 'Submitted ✓' : 'Submit for sign-off',
       submit: () => this.setState(s => ({ submitted: !s.submitted })),
       lockLabel: this.state.locked ? 'Locked ✓' : 'Lock & Archive',

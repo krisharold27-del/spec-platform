@@ -16,9 +16,10 @@
   a:hover { color: var(--color-accent-800); text-decoration: underline; }
   ::selection { background: var(--color-accent-200); }
 </style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); --shadow-lg: 0 0 0 1.5px #d2c3a9, 0 14px 36px rgba(32,30,29,0.13); } body { background: #ffffff; }</style>
 </helmet>
 
-<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+<div style="font-family: var(--font-body); color: var(--color-text); background: #ffffff; min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
     <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
@@ -50,16 +51,17 @@
             <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
           </g>
         </svg>SPEC</a>
-    <a href="SPEC Setup.dc.html">Setup</a>
     <a href="SPEC My Page.dc.html">My page</a>
     <a href="SPEC Jobs.dc.html">Jobs</a>
-    <a href="SPEC Org Chart.dc.html">Org chart</a>
-    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Jobs.dc.html?tab=customers">CRM</a>
+    <a href="SPEC People.dc.html" style="color: var(--color-text); font-weight: 700;">People</a>
     <a href="SPEC Safety.dc.html">Safety</a>
-    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
-    <a href="SPEC Board Pack.dc.html">Board pack</a>
-    <a href="SPEC Connections.dc.html">Connections</a>
-    <a href="SPEC Home.dc.html">All pages</a>
+    <a href="SPEC Compliance.dc.html">Compliance</a>
+    <a href="SPEC Board Pack.dc.html">Board</a>
+    <span style="flex: 1 1 0; min-width: 8px;"></span>
+    <a href="SPEC Setup.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Setup</a>
+    <a href="SPEC Connections.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Connections</a>
+    <a href="SPEC Home.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">All pages</a>
   </nav>
 
   <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
@@ -182,6 +184,28 @@
 
     <sc-if value="{{ isManager }}" hint-placeholder-val="{{ false }}">
       <div>
+        <section aria-label="Aces across the business" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(24px,3vw,36px); margin-bottom: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 0;">Aces across the business</h2>
+            <span style="font-size: 13.5px; font-weight: 600;">{{ aceSummary }}</span>
+          </div>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 10px 0 0; max-width: 70ch; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Every role has an Ace. Finish the role's training path, then hold 90% or better on the KPI board three closed months in a row. Aces double their incentive where incentives are switched on, then the next three months start again.</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; margin-top: 18px;">
+            <sc-for list="{{ aceRoles }}" as="ae" hint-placeholder-count="6">
+              <div style="background: var(--color-bg); border-radius: 20px; padding: 16px 18px; display: grid; gap: 8px; align-content: start;">
+                <div style="display: flex; justify-content: space-between; gap: 10px;"><strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px;">{{ ae.ace }}</strong><span style="{{ ae.chip }}">{{ ae.count }}</span></div>
+                <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ae.roles }} · trained in {{ ae.path }}</span>
+                <sc-for list="{{ ae.people }}" as="ap" hint-placeholder-count="2">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; font-size: 13.5px; padding: 8px 12px; border-radius: 12px; background: #fff;">
+                    <span style="font-weight: 700;">{{ ap.name }}</span>
+                    <span style="display: flex; align-items: center; gap: 4px;"><sc-for list="{{ ap.dots }}" as="dt" hint-placeholder-count="3"><span style="{{ dt.style }}"></span></sc-for><span style="margin-left: 6px; color: {{ ap.tone }}; font-weight: 600;">{{ ap.state }}</span></span>
+                  </div>
+                </sc-for>
+                <a href="{{ ae.href }}" style="font-size: 13px;">{{ ae.link }}</a>
+              </div>
+            </sc-for>
+          </div>
+        </section>
         <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
           <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
             <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Curriculum by role</h2>
@@ -470,6 +494,32 @@ class Component extends DCLogic {
 
   pctFor(m) { return this.state.progress[m.id] !== undefined ? this.state.progress[m.id] : m.pct; }
 
+  aceVals() {
+    const G = '#4f7a3f', A = '#c67139', X = 'color-mix(in srgb, var(--color-text) 25%, transparent)';
+    const dot = t => 'width:12px;height:12px;border-radius:50%;background:' + t + ';';
+    const P = (name, months, state) => {
+      const n = months.filter(Boolean).length;
+      return { name, dots: [0, 1, 2].map(i => ({ style: dot(months[i] ? G : X) })), state: state || (n === 3 ? 'Ace' : n + ' of 3'), tone: n === 3 ? G : n ? A : 'color-mix(in srgb, var(--color-text) 60%, transparent)' };
+    };
+    const ROLES = [
+      { ace: 'Sales Ace', roles: 'Commercial Manager, Estimators', path: 'Win the work', href: 'SPEC Jobs.dc.html?tab=ace', people: [P('Lena Ford', [1, 1, 0], '2 of 3 · Sep on track'), P('Nadia Cole', [1, 0, 0], '1 of 3')] },
+      { ace: 'Jobs Ace', roles: 'Operations Manager, Site Supervisors', path: 'Run the job', href: 'SPEC Jobs.dc.html?tab=jobace', people: [P('Tom Reyes', [1, 1, 0], '2 of 3 · Sep on track'), P('Jordan Cole', [1, 0, 0], '1 of 3'), P('Anthony Reeve', [1, 1, 1])] },
+      { ace: 'Safety Ace', roles: 'Safety & Compliance Lead', path: 'Zero harm', href: 'SPEC Safety.dc.html', people: [P('Sam Price', [1, 1, 1])] },
+      { ace: 'Office Ace', roles: 'Office Manager, Scheduler, Admin', path: 'Run the office', href: 'SPEC Jobs.dc.html?tab=billing', people: [P('Amrit Kaur', [1, 1, 0], '2 of 3')] },
+      { ace: 'Crew Ace', roles: 'Technicians', path: 'Right first time', href: 'SPEC Tech Day.dc.html', people: [P('Hemi Walker', [1, 1, 1]), P('Marcus Bly', [0, 0, 0], 'Training not finished')] },
+      { ace: 'Apprentice Ace', roles: 'Apprentices', path: 'Learn the trade safely', href: 'SPEC Tech Day.dc.html', people: [P('Casey Nguyen', [1, 0, 0], '1 of 3')] },
+    ];
+    const aces = ROLES.reduce((a, r) => a + r.people.filter(p => p.state === 'Ace').length, 0);
+    const running = ROLES.reduce((a, r) => a + r.people.filter(p => /of 3/.test(p.state)).length, 0);
+    return {
+      aceSummary: aces + ' Aces now · ' + running + ' on a run',
+      aceRoles: ROLES.map(r => {
+        const n = r.people.filter(p => p.state === 'Ace').length;
+        return { ...r, count: n ? n + (n === 1 ? ' Ace' : ' Aces') : 'No Ace yet', chip: 'display:inline-flex;align-items:center;border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;white-space:nowrap;background:color-mix(in srgb, ' + (n ? G : A) + ' 14%, transparent);color:' + (n ? G : A) + ';', link: 'Open the ' + r.ace + ' board →' };
+      }),
+    };
+  }
+
   renderVals() {
     const learner = this.state.mode === 'learner';
     const mods = MODULES.map(m => ({ ...m, done: this.pctFor(m) }));
@@ -487,6 +537,7 @@ class Component extends DCLogic {
     const assigned = this.state.assigned[role] || [];
 
     return {
+      ...this.aceVals(),
       headline: learner ? 'This software is different — it trains and guides you in the real world' : this.state.mode === 'impact' ? 'What finishing training is worth' : 'Assign the path to the role',
       subhead: learner
         ? 'SPEC\u2019s own training, done on the job. Every module is tied to a KPI on your scorecard, and the path has to be finished and signed off before the role can run at Ace.'
@@ -558,7 +609,7 @@ class Component extends DCLogic {
           state,
           chip: chip(tone) + 'outline:1.5px dashed color-mix(in srgb, var(--color-text) 45%, transparent);outline-offset:2px;',
           meta: done === 100 ? m.meta : m.length + ' · ' + m.meta,
-          style: 'background:var(--color-bg);border-radius:20px;padding:20px 22px;border-left:4px solid ' + tone + ';',
+          style: 'background:#fff;border-radius:20px;padding:18px 20px;border:5px double color-mix(in srgb, var(--color-text) 55%, transparent);',
           barStyle: 'height:100%;border-radius:999px;width:' + Math.max(done, 2) + '%;background:' + tone + ';transition:width 200ms;',
           buttonLabel: done === 100 ? 'Review' : done > 0 ? 'Continue' : 'Start',
           buttonStyle: 'cursor:pointer;border:0;border-radius:999px;padding:9px 18px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
@@ -593,7 +644,7 @@ class Component extends DCLogic {
           name: c.name,
           length: c.length,
           what: c.core ? c.what + ' Core — cannot be removed.' : c.what,
-          style: 'background:var(--color-bg);border-radius:20px;padding:18px 20px;border-left:4px solid ' + (on ? GREEN : GREY) + ';',
+          style: 'background:#fff;border-radius:20px;padding:16px 18px;border:5px double color-mix(in srgb, var(--color-text) 55%, transparent);' + (on ? '' : 'opacity:0.8;'),
           buttonLabel: c.core ? 'Core' : on ? 'Assigned ✓' : 'Assign',
           buttonStyle: 'cursor:' + (c.core ? 'default' : 'pointer') + ';border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13px;white-space:nowrap;flex:none;'
             + (c.core

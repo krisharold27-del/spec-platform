@@ -181,3 +181,148 @@ SPEC now runs Jobs, People (HR) and Safety itself. A business can use SPEC for e
 - `siteVIP Landing.dc.html` — siteVIP, the trades edition of SPEC, at sitevipapp.com (secured). Future editions (e.g. logistics) sit on the same engine.
 - `SPEC My Page.dc.html` — Virtual GM Power Meter breakdown now names the source of every KPI; all five heavy hitters come from SPEC's own records (Safety, Jobs, People).
 - Nav: Setup · My page · Jobs · Org chart · People · Safety · … on every page.
+
+
+## Update 24 Sep 2026 — simple setup, CRM, pre-builds, listening
+
+- `SPEC Setup.dc.html` — REBUILT as five file-driven steps: (1) drop staff file or pull from Xero Payroll/Simpro/MYOB → SPEC reports people, leaders, roles, and asks only for missing managers (with a guess); (2) org chart auto-built, leadership vs team seats counted, live monthly price with/without AI; (3) one line per role + KPIs drafted (8 per leader, team KPIs for teams); (4) goals per pillar + what each team does; (5) customers, open jobs, price book (drop or pull; duplicates merged, unused catalogue left behind). Finish → My Page. Old version kept as `SPEC Setup v1.dc.html` for reference only. File parsing is mocked — Code must parse CSV/XLSX/DOCX for real.
+- `SPEC Jobs.dc.html` — new tabs: **Customers** (CRM built into jobs: sites, contacts, quotes/jobs, timeline, next action, "New enquiry for …") and **Pre-builds** (Good/Better/Best tiers; each carries items, hours, SWMS, checklist, photos, certificate, van pick list; self-correcting: compares quoted vs actual hours from timesheets and flags price-file rises, one tap to fix; make a pre-build from a finished job). Job detail can move back a stage with no re-entry. Invoices edited in place (credit note + new invoice to Xero).
+- `SPEC Tech Day.dc.html` — offline-first: "Saved on this phone · works with no signal".
+- `siteVIP Landing.dc.html` — "Everything trades put up with in job software. Fixed." (9 crossed-out complaints with answers; no competitor named) + "Month to month. Every feature included. No exit fees."
+- `SPEC Cockpit.dc.html` — "siteVIP listening": nightly read of public forums/review sites, themes, drafted fixes to approve/park/use in marketing. Sample data; nothing ships without Kris's approval.
+- OPEN for Kris: same-day human support model; siteVIP pricing.
+
+
+## Update 24 Sep 2026 — no non-AI tier
+Kris: SPEC and siteVIP are sold WITH AI only. The Basic / no-AI option is removed everywhere (Pricing, SPEC Landing, siteVIP Landing, Setup, Home). Seat prices: leadership A$227, team A$29 a month. Remove the Basic tier and AI_TIER toggle from the product; do not ship a without-AI plan.
+
+
+## Update 24 Sep 2026 — "Is the business going well?" (My Page, leaders)
+One verdict + four pillar tiles (Safety, People, Earnings, Compliance) fed from Safety, People/Org chart/Training, Jobs/Customers/Xero. RELIABILITY RULE: never judge on the raw month-to-date total (KPIs reset monthly, so early months look behind). Reading = rolling average of the last 3 closed months, blended with this month's ON-PACE projection, weight = (day/daysInMonth) × 25%. Days 1–7: read from closed months only. Any serious event this month (harm, workers' comp claim, contract breach, wrong-reason exit) is never averaged away: it caps that pillar at amber at best and is named. Bands: green 80%+, amber above 50%, red 50% or under.
+
+
+## Update 24 Sep 2026 — monthly rhythm (supersedes "reset before the first Wednesday")
+- Scores SET (lock) at the end of the last day of the month.
+- On the 1st of the next month the SCORES clear to zero. The KPIs themselves, targets, owners and team KPIs all carry over unchanged. Nothing is deleted.
+- Supervisors and managers start the new month with the same KPIs and their teams.
+- The locked month is still reviewed and signed off (GM submits, Director signs) as before, but scoring for the new month starts on the 1st regardless.
+- Ace streaks, incentives and the "Is the business going well?" verdict read from the locked months, so the reset never makes the business look worse than it is.
+
+
+## Update 24 Sep 2026 — seat price correction (supersedes A$227 / A$29)
+The price is A$134 per leadership seat and A$17 per team seat a month, AI included. A$227 was the price WITH TRAINING added and is not the seat price. Regional tables keep their own base figures (NZ$180/23, £88/11, €134/17, US$134/17, CA$180/23), all with AI included. JBI example: 9 × 134 + 29 × 17 = A$1,699 a month.
+
+
+## Update 24 Sep 2026 — email reading (Jobs → "From your inboxes")
+SPEC reads staff work mailboxes (Microsoft 365 / Google Workspace, connected in Connections; a sensitive connector, so GM/Board approval required) and turns emails into actions: new enquiries (with matched pre-builds and customer record), quote acceptances, supplier bills matched to POs, variation requests priced from pre-builds, complaints (warranty callbacks), and safety reports (logged as hazards). One tap to act; nothing is actioned without a person tapping. Mail a person marks private is never read.
+
+Each inbox item now carries SPEC's drafted reply (in the business's voice, signed by the right person). One button, "Approve", does the action and sends the reply. Nothing is sent without approval.
+
+
+## Update 24 Sep 2026 — white ground everywhere
+Every page now sits on a clean white background (#ffffff). Cards and panels are white with the soft shadow; inner rows, chips and input wells use a very light warm tint (#f7f2ea) so they still read on white. Implemented as a token override per page: --color-surface: #ffffff, --color-bg: #f7f2ea, page/body background #ffffff. In the product, set these at the theme level rather than per page.
+
+
+## Update 24 Sep 2026 — price ladder (Kris's rule: every list price's digits sum to 8)
+- Solo, 1 person: A$44 a month, everything included.
+- Crew, 2 to 5 people: A$143 a month, flat.
+- Business, 6+: A$134 per leadership seat, A$17 per team seat.
+- Regions: NZD 53 / 161 / 170 / 26 · GBP 26 / 80 / 71 / 8 · EUR and USD 44 / 143 / 134 / 17 · CAD 53 / 161 / 170 / 26.
+- Training A$1,502 a month also fits the rule. Totals (e.g. JBI A$1,699) are sums and are exempt.
+
+Contrast pass: every card and panel now has a clear warm edge (1.5px ring in the sand tones #e0d3be / #d9cbb3 / #d2c3a9, built into --shadow-sm/md/lg) plus a soft shadow, and inner rows use a slightly deeper tint (#f4ede1). Set these at theme level in the product.
+
+Correction: the sum-to-8 rule applies to the launch AUSTRALIAN prices only (A$44 Solo, A$143 Crew, A$134 / A$17 seats, A$1,502 training). Other regions use converted prices: NZD 59 / 192 / 180 / 23 · GBP 29 / 94 / 88 / 11 · EUR and USD 44 / 143 / 134 / 17 · CAD 59 / 192 / 180 / 23.
+
+
+## Update 24 Sep 2026 — Staff mailboxes (Connections)
+New "Staff mailboxes" section: Microsoft 365 domain, Board-approved (sensitive connector), list of every shared and staff mailbox with what it feeds, Reading/Off per mailbox (only GM, Board or Commercial Manager can change; changes go to the Board). Rules: work mail only; anyone can mark a folder/sender/single email private and SPEC never reads it (not even the GM sees it); every person can see what SPEC read from their inbox; every read and reply is logged. My Page shows each person "SPEC reads your work inbox · N things found · Private: …" with links to see reads and manage private mail.
+
+
+## Update 24 Sep 2026 — training edge decided: treatment, not colour
+Kris chose the double border. Every training element carries `border: 5px double` in ink at 55% (rgba(32,30,29,0.55)), 20px radius, on a white fill. It is wayfinding ("this is training"), not a signal, so it never uses a pillar or traffic-light colour and cannot collide with Compliance mulberry. The module's pillar still shows on its pillar tag; status still shows on its chip and progress bar. Apply it in all six places training appears: Training module cards, the assign-a-module list, training on My Page, training KPI rows on scorecards, training items in the Weekly Meeting, and the training line in the Board pack, including on the 390px phone view. Contrast floor 4.5:1 for all text inside is unchanged.
+
+
+## Update 24 Sep 2026 — month close for every business
+Solo to hundreds, every SPEC business runs the same close: (1) last day, scores lock at midnight; (2) the Board report builds from locked numbers (a sole trader gets a one-page report to themselves); (3) each person's locked scorecard is filed on their HR record (People → Reviews & conduct → "Monthly scorecards on file"); (4) on the 1st scores go to zero, KPIs/targets/teams carry over. Shown on the Board pack as "How every month closes".
+
+
+## Update 24 Sep 2026 — the busy tradie (Tech Day)
+- "Hold to talk to SPEC" on the phone's Today screen: speech in, SPEC's reading out (variation priced from pre-builds, hazard, materials used), one Approve. Nothing actions without Approve.
+- End of day screen: hours, timesheet done for you, photos, jobs signed off, KPI board, tomorrow's first job and van list. One button, "Done for the day". Nothing to fill in at night.
+
+
+## Update 24 Sep 2026 — Leads & estimating (Jobs → Leads tab)
+- Where the work comes from: website form, Google, missed calls (auto text-back within 2 min), repeat customers, builders/plans, referrals — counts, quoted, won.
+- Waiting for a quote: every open lead with its age (green <2 days, amber 2, red 3+) and speed-to-quote vs 2-day target; "Quote it" goes to Pre-builds.
+- Work SPEC found: opportunities mined from the business's own customers and job history (service due, old switchboards, ageing solar), each with a drafted message and one button.
+- Estimate from plans: drop PDF/photos of drawings; SPEC does the takeoff (counts per item and where), prices each line from pre-builds at today's prices, shows total and hours; "Approve and send" creates the quote on the Jobs board. Uncertain counts are marked on the plans for the estimator to confirm.
+
+
+## Update 24 Sep 2026 — finish, invoice, paid, next job (Tech Day)
+Client sign-off creates and sends the invoice automatically (from the job's hours, materials and variations). On the same screen the tech can take payment: "Tap to pay on this phone" (card on the phone, e.g. Stripe/Tyro Tap to Pay) or "Send a pay link". Paid invoices post to Xero and the job moves to Paid on the Jobs board by itself. The screen then shows the next job with travel time and one button, "Off to the next job".
+
+
+## Update 24 Sep 2026 — materials and labour time
+- Jobs → **Materials** (was Catalogue): live supplier prices from the business's own trade accounts (e.g. Middy's, Rexel, MMEM, CNW) side by side with stock at the nearest branch, best price highlighted; a site list per job built from its pre-builds at best price, "Order it all" splits into one PO per supplier; **supplier holdups** show why an order is late (backorder, truck delay) and a way around it (switch supplier, swap schedule days) in one tap. Supplier portal access needs each supplier's API or account integration.
+- Jobs → **How long?**: the labour guide. For each task, the business's own median hours and normal range from its finished jobs' timesheets, plus site factors (e.g. pre-1980 home +1.2 h, asbestos board +1.5 h) tapped on/off; answer = usual + site extras, rounded up to the half hour to quote. "Use these hours in a quote" feeds Pre-builds. Factor values learn from timesheets tagged with those site conditions.
+
+
+## Update 24 Sep 2026 — Understand the work (Jobs → Leads)
+Before quoting, the estimator drops site photos, plans/designs (optional) and what the customer said (typed, pasted email or voice). SPEC reads all three and shows: what it sees in each (e.g. ceramic fuses and no RCDs, suspected asbestos backing board, distance board→garage, single-phase meter), the job as it reads it (pre-builds + site factors from How long?), questions to confirm with the customer (drafted, Approve and send), and a price with hours. "Build the quote" moves the lead to Quoted. Anything uncertain is flagged for the estimator, never assumed. Needs image understanding on photos/plans; every reading must be confirmable by a person.
+
+
+## Update 24 Sep 2026 — late quotes shout on My Page
+Any quote past the 2-day target appears at the very top of My Page in a solid red band: "N quotes are late. Don't lose this work.", with value waiting, who's quoting, and the escalation. Escalation ladder: day 2 estimator's My Page, day 3 Commercial Manager's, day 4 Managing Director's. SPEC has the draft ready; one button "Approve SPEC's draft and send". It stays until sent. Speed-to-quote also feeds the Earnings pillar.
+
+
+## Update 24 Sep 2026 — Jobs tabs grouped
+Jobs' 12 tabs sit under three groups, in the order work flows: **Win the work** (Leads, Customers, Quotes, Pre-builds, How long?) · **Do the work** (Jobs board, Schedule, Timesheets, Materials, Stock & buying, Service & assets) · **Get paid** (Invoices & claims). Group row on top, that group's tabs below. Default: Do the work → Jobs board.
+
+
+## Update 24 Sep 2026 — Subcontractors (People → Subcontractors)
+Free on SPEC (no seat), so every subbie gets set up. Invite by business name + mobile; they self-onboard on their phone in ~10 minutes: ABN/GST check, subcontract (rates, payment terms), public liability, workers' comp or personal accident, trade licence + White Card, site induction + SWMS. Six checks; all six = Clear to Work, otherwise they can't be booked on the schedule. Expiries warned 30 days ahead; SPEC drafts the chase text (Approve and send). Light scoring (on time, right first time, safety) visible to the supervisor who uses them. Subbie invoices are matched to hours and materials on the job before payment; mismatches (e.g. 5 days' scaffold hire claimed vs 4 on the schedule) hold payment with a drafted query. Subbies see only their own jobs, never the business's prices.
+
+
+## Update 24 Sep 2026 — callbacks & rework, tools, Google reviews (Jobs)
+Groups now: Win the work · Do the work (adds **Tools & equipment**) · **Get paid and keep them** (Invoices & claims, **Callbacks & rework**, **Reviews**).
+- Callbacks & rework: rework % of hours (KPI, target under 2%, feeds Compliance), callbacks count, cost, recovered. Each callback links to the original job and person, with cause: workmanship (free fix), material fault (claim from supplier), subbie (sent to them at their cost), not our work (invoice the call-out). SPEC spots patterns and proposes a checklist fix.
+- Tools & equipment: register of every tool (who has it, which ute), test & tag and calibration due, missing items, value/insurance.
+- Reviews: when a job is paid, EVERY customer gets the same thank-you text with the Google review link (no review gating — Google's policy prohibits selectively asking happy customers). Complaints go to the supervisor as a callback. SPEC drafts a reply to every review; Approve and post.
+
+Correction (Kris): subcontractors are people working for the business and are held to the full expectation on every job. Each subbie is a PAID TEAM SEAT (A$17/month), not free. Same SWMS, checklists and KPIs as employees; their scores count on their supervisor's team board and feed the team KPIs. They still see only their own jobs, never pricing.
+
+
+## Update 24 Sep 2026 — key areas and the new Compliance system
+Top menu on every app page is now the key areas: **My page · Jobs · CRM · People · Safety · Compliance · Board**, with Setup, Connections and All pages on the right. CRM opens Jobs on the Customers tab (`?tab=customers`). Org chart and Training sit under People; Scoring and Mirrors under Board.
+New `SPEC Compliance.dc.html` — the full compliance system: licences & tickets (staff and subbies, 60-day warnings, not current = can't be booked), insurance & registrations (own policies, subbie cover, vehicle rego), certificates of compliance (filled from the job at sign-off, lodged on time), audits & inspections (findings → corrective actions), contracts & award (contracts signed, award check each pay run, subcontracts), breaches & corrective actions (zero standard, overdue escalates to the weekly meeting). Headline counts: current, expiring in 30 days, stopping work, breaches this year.
+
+
+## Update 24 Sep 2026 — "Your job today" (My Page, every role)
+My Page lays out the job for the person's role as ordered steps, each opening exactly where it's done (deep links into Jobs tabs via ?tab=, Safety, Tech Day, Weekly Meeting). The next step is highlighted; steps tick off. Role step lists: Operations Manager, Site Supervisor, Crew, Business development/estimating — in the product these are generated from the role's KPIs and what's open for that person (late quotes, timesheets waiting, holdups, callbacks…). Principle: the only system outside SPEC is the financial system (Xero/MYOB), which SPEC keeps up to date.
+
+
+## Update 24 Sep 2026 — subcontractors on the org chart
+Subbies sit in a **Subcontractors** team node under the supervisor or manager they report to (same team-node pattern as Technicians/Apprentices, flagged isSubbie). The node shows count, hours a week and cost a month, so planning sees true capacity and true labour cost. The org chart header shows total capacity this week (staff + subcontractors, hours). Subbies are paid team seats and their scores count on that leader's team board.
+
+
+## Update 24 Sep 2026 — Sales Ace in the CRM (Jobs → Win the work → Sales Ace)
+For each sales role (e.g. Commercial Manager, Estimator): the three-month Ace run as three rings (closed months + this month live), the rule (90%+ on the sales board, three closed months in a row → quarter incentive doubles, then the run restarts), and the doubled amount at stake. The sales board is fed live from the CRM, never typed: quotes out within 2 days, win rate, leads followed up within 24 h, pipeline coverage, quoted margin (estimators: quotes from pre-builds, quoted vs actual hours). "Do these today" lists the CRM actions that move the board most (stale quotes, unanswered enquiries, unlogged opportunities from email), each with a drafted message; nothing sends without approval. Incentive only shows where incentives are switched on for that person.
+
+
+## Update 24 Sep 2026 — Jobs Ace, and Aces across the business
+- Jobs → Do the work → **Jobs Ace**: same pattern as Sales Ace for Operations Manager and Site Supervisors. Board fed live from the schedule, timesheets and sign-offs: billable hours (86%+), jobs on the hours quoted, rework under 2%, same-day sign-off, safety actions closed on time (Ops Manager: whole-business billable, crews fully booked next week, zero harm). "Do these today" = the actions that protect the board (over-hours jobs, open sign-offs, unallocated hours, unbooked crew days, supplier holdups).
+- Training (manager view) → **Aces across the business**: every role has an Ace — Sales, Jobs, Safety, Office, Crew, Apprentice — each with its training path, who holds Ace now, and everyone's three-month run as three dots. Same rule everywhere: path complete + 90%+ for three closed months → Ace; incentive doubles where switched on; then the run restarts. Links open each Ace board.
+
+
+## Update 24 Sep 2026 — takeoff, leads, tenders, repeat work, WIP, cash flow, markup, customer page, apprentice funding
+Jobs groups: Win the work (Leads, **Tenders**, **Takeoff**, Customers, Sales Ace, Quotes, Pre-builds, How long?) · Do the work (Jobs, Jobs Ace, Schedule, Timesheets, Materials, Stock & buying, Tools) · Get paid and keep them (Invoices & claims, **Work in progress**, **Cash flow**, **Repeat work**, Callbacks & rework, Reviews).
+- **Takeoff**: drop the builder's plans; SPEC finds each symbol, counts by room and type (downlights, power points, data, switchboard), measures cable, prices from pre-builds; tap a type to highlight it on the plan; Build the quote. Needs symbol recognition on PDF drawings, every count confirmable by the estimator.
+- **Lead sources**: website, Google Business Profile, Google ads, hipages/ServiceSeeking, EstimateOne/Cordell, missed calls, repeat, referrals, and opportunities found in staff email. Each source shows count, won, dollars, margin/cost and reply speed.
+- **Tenders**: open packages with due date, addenda, takeoff status and a go/no-go (win rate with that builder, crew capacity, margin); won/lost history with how far off the winner.
+- **Repeat work** (was Service): recurring revenue total, renewals due, repeat customers with no contract yet, plus the existing contracts, test & tag, vehicles.
+- **Work in progress**: per open job — quoted, % done, cost so far, billed, forecast margin; flags under-billed (raise the claim), billed ahead, margin at risk (draft the variation). Totals: WIP to deliver, under-billed, billed ahead, jobs at risk.
+- **Cash flow**: 13 weeks of money in/out and balance from Xero, open invoices, the schedule and supplier bills; highlights weeks under the cash buffer (default $80k, set per business) and the actions that fix it. Xero stays the financial system; SPEC reads it.
+- **Tech Day → Mark up the plan**: on the phone, add cable runs, moved/added points and notes on the drawing; Save as the as-built → job, office copy and certificate. 44px touch targets.
+- **New page SPEC Customer Page.dc.html**: the customer's link (every text/email): job stages, pick a booking slot, "on my way" with ETA and vehicle, approve a variation or ask for a call, invoice with certificate and pay. Linked from Customers.
+- **People → Pay → Apprentice funding**: incentive and rebate claims per apprentice from their training contract, when each opens, received/not yet claimed. Amounts confirmed with the Apprenticeship Support Network provider (not hard-coded).

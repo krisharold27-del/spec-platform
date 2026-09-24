@@ -15,6 +15,7 @@
   a { color: var(--color-accent-700); text-decoration: none; }
   a:hover { color: var(--color-accent-800); text-decoration: underline; }
 </style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); --shadow-lg: 0 0 0 1.5px #d2c3a9, 0 14px 36px rgba(32,30,29,0.13); } body { background: #ffffff; }</style>
 </helmet>
 <div style="font-family: var(--font-body); color: var(--color-text); background: #fff; min-height: 100vh;">
 
@@ -29,7 +30,7 @@
   <main style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 80px; box-sizing: border-box;">
 
     <section style="padding: clamp(40px,7vw,96px) 0 clamp(40px,5vw,64px); max-width: 820px;">
-      <span style="display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 7px 14px; font-size: 13px; background: color-mix(in srgb, #4f7a3f 12%, transparent); color: #3d5c31;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #4f7a3f;"></span>The trades edition of SPEC</span>
+      <span style="display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 7px 14px; font-size: 13px; background: color-mix(in srgb, #4f7a3f 12%, transparent); color: #3d5c31;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #4f7a3f;"></span>For every trade, from one person to hundreds</span>
       <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(40px,6.4vw,80px); line-height: 1.02; margin: 22px 0 0;">Run the whole trade business from one screen.</h1>
       <p style="font-size: clamp(17px,1.6vw,20px); line-height: 1.55; margin: 22px 0 0; max-width: 56ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Quote it, win it, book the crew, do the job, invoice it, get paid. Your people, safety and KPIs are on the same screen. Use siteVIP for everything, or connect the systems you already run. As many or as few as you like.</p>
       <div style="display: flex; gap: 10px; align-items: center; background: var(--color-bg); border-radius: 999px; padding: 6px 6px 6px 22px; margin-top: 32px; max-width: 560px;">
@@ -40,13 +41,26 @@
     </section>
 
     <section aria-label="The job, start to finish" style="padding: 0 0 clamp(48px,6vw,80px);">
-      <p style="font-size: 12.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 18px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">One job, start to finish, in one place</p>
+      <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,48px); line-height: 1.08; margin: 0;">Enquiry to paid in 12 taps.</h2>
+      <p style="font-size: 16px; line-height: 25px; margin: 10px 0 22px; max-width: 56ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Count them. No screens to click through and no fields that hold you up.</p>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px;">
         <sc-for list="{{ flow }}" as="f" hint-placeholder-count="7">
           <div style="background: var(--color-bg); border-radius: 20px; padding: 18px 18px 20px; display: grid; gap: 10px; align-content: start;">
-            <span style="width: 32px; height: 32px; border-radius: 50%; display: grid; place-content: center; background: #fff; font-size: 13px; font-weight: 700; color: #3d5c31;">{{ f.n }}</span>
+            <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px;"><span style="width: 32px; height: 32px; border-radius: 50%; display: grid; place-content: center; background: #fff; font-size: 13px; font-weight: 700; color: #3d5c31;">{{ f.n }}</span><span style="border-radius: 999px; padding: 4px 10px; font-size: 12.5px; font-weight: 700; white-space: nowrap; background: #4f7a3f; color: #fff;">{{ f.taps }}</span></span>
             <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px; line-height: 1.2;">{{ f.label }}</span>
             <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 72%, transparent);">{{ f.line }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-label="What trades put up with" style="padding: 0 0 clamp(48px,6vw,80px);">
+      <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(26px,3.2vw,38px); line-height: 1.15; margin: 0 0 22px; max-width: 24ch;">Everything trades put up with in job software. Fixed.</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px;">
+        <sc-for list="{{ fixes }}" as="fx" hint-placeholder-count="9">
+          <div style="background: var(--color-bg); border-radius: 20px; padding: 18px 20px; display: grid; gap: 8px; align-content: start;">
+            <span style="font-size: 15px; line-height: 22px; color: var(--color-text); text-decoration: line-through; text-decoration-color: #a63b26; text-decoration-thickness: 2px;">{{ fx.pain }}</span>
+            <span style="font-size: 15.5px; line-height: 23px; font-weight: 700;">{{ fx.fix }}</span>
           </div>
         </sc-for>
       </div>
@@ -89,8 +103,39 @@
       </div>
     </section>
 
+    <section aria-label="Pricing" style="padding: 0 0 clamp(48px,6vw,80px);">
+      <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(26px,3.2vw,38px); line-height: 1.15; margin: 0; max-width: 24ch;">Pay for people, not add-ons.</h2>
+      <p style="font-size: 16px; line-height: 25px; margin: 12px 0 24px; max-width: 60ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Every feature is included. If you lead people, you're a leadership seat. If you're led, you're a team seat. Month to month, with no exit fees.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: clamp(20px,3vw,28px); align-items: stretch;">
+        <div style="background: var(--color-bg); border-radius: var(--radius-lg); padding: clamp(22px,3vw,32px); display: grid; gap: 22px; align-content: start;">
+          <sc-for list="{{ sliders }}" as="sl" hint-placeholder-count="3">
+            <label style="display: grid; gap: 8px;">
+              <span style="display: flex; justify-content: space-between; gap: 12px; font-size: 15px;"><span>{{ sl.label }}</span><strong style="white-space: nowrap;">{{ sl.shown }}</strong></span>
+              <input type="range" min="{{ sl.min }}" max="{{ sl.max }}" step="{{ sl.step }}" value="{{ sl.value }}" onInput="{{ sl.set }}" onChange="{{ sl.set }}" aria-label="{{ sl.label }}" style="width: 100%; accent-color: var(--color-accent);" />
+            </label>
+          </sc-for>
+          <p style="font-size: 14px; font-weight: 600; margin: 0; color: #3d5c31;">SPEC AI is built into every seat.</p>
+        </div>
+        <div style="background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px); display: grid; gap: 12px; align-content: start;">
+          <span style="font-size: 12.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">siteVIP, everything included</span>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(38px,5vw,54px); line-height: 1; margin: 0;">{{ vipMonthly }}<span style="font-family: var(--font-body); font-size: 16px; font-weight: 400;"> a month</span></p>
+          <div style="display: grid; gap: 6px; font-size: 14.5px;">
+            <sc-for list="{{ priceRows }}" as="pr" hint-placeholder-count="2">
+              <div style="display: flex; justify-content: space-between; gap: 12px;"><span>{{ pr.label }}</span><span>{{ pr.value }}</span></div>
+            </sc-for>
+          </div>
+          <div style="{{ saveStyle }}">
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">{{ saveTitle }}</p>
+            <p style="font-size: 14px; line-height: 21px; margin: 6px 0 0;">{{ saveBody }}</p>
+          </div>
+          <p style="font-size: 13px; line-height: 20px; margin: 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Keep Xero or MYOB for your accountant. Its cost isn't counted here.</p>
+        </div>
+      </div>
+      <p style="display: flex; align-items: center; gap: 10px; font-size: 15px; margin: 22px 0 0;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #4f7a3f; flex: none;"></span>Help from a real person the same day, 7am to 7pm, 7 days.</p>
+    </section>
+
     <section style="text-align: left; background: var(--color-bg); border-radius: var(--radius-lg); padding: clamp(28px,4vw,48px); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px;">
-      <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,3vw,34px); line-height: 1.15; margin: 0; max-width: 22ch;">One screen. The whole trade business.</p>
+      <div><p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,3vw,34px); line-height: 1.15; margin: 0; max-width: 22ch;">One screen. The whole trade business.</p><p style="font-size: 15px; line-height: 23px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Month to month. Every feature included. No exit fees.</p></div>
       <button type="button" onClick="{{ start }}" style="cursor: pointer; border: 0; border-radius: 999px; padding: 16px 28px; background: var(--color-accent); color: #fff; font-family: var(--font-body); font-size: 16px; font-weight: 600;">Start →</button>
     </section>
 
@@ -101,13 +146,13 @@
 <script type="text/x-dc" data-dc-script>
 const GREEN = '#4f7a3f';
 const FLOW = [
-  ['Enquiry', 'Call, email or web form lands on one list'],
-  ['Quote', 'Build it from your price book, send it in minutes'],
-  ['Win', 'Client accepts online, the job is created'],
-  ['Schedule', 'Drag the crew on. Not clear to work? Can\u2019t be booked'],
-  ['On site', 'Job card, photos, SWMS and sign-off on the phone'],
-  ['Cost', 'Hours and materials land on the job as they happen'],
-  ['Get paid', 'Invoice goes out, Xero is updated, debtors chased'],
+  ['Enquiry', 'Type it and press Enter. The customer\u2019s history comes with it.', 1],
+  ['Quote', 'Pick a pre-build, pick Good, Better or Best, send.', 3],
+  ['Win', 'The client accepts online and the job builds itself.', 0],
+  ['Schedule', 'Tap the day. Anyone not clear to work can\u2019t be booked.', 1],
+  ['On site', 'SWMS, start, photos, materials, sign-off, finish.', 6],
+  ['Cost', 'Hours and materials land on the job by themselves.', 0],
+  ['Get paid', 'One tap to invoice. Xero and reminders are done for you.', 1],
 ];
 const SYSTEMS = [
   { job: 'Jobs, quotes & scheduling', own: 'Simpro' },
@@ -116,8 +161,48 @@ const SYSTEMS = [
   { job: 'HR & safety', own: 'My own' },
   { job: 'Timesheets', own: 'My own' },
 ];
+const LAND_FIXES = [
+  ['Months to set up, and one expert who knows how it works.', 'Running in a day. We bring your customers, catalogue and open jobs across, and anyone can use it.'],
+  ['Too many clicks. Miss one field and everything stalls.', 'One record from enquiry to paid. A missing detail is flagged, never a roadblock.'],
+  ['Fixing an invoice means deleting it and starting again.', 'Change it in place. The credit note and new invoice go to Xero for you.'],
+  ['Customers in one system, jobs in another.', 'The customer record is the job record: every call, quote, job and invoice in one place.'],
+  ['The app freezes on site and your notes disappear.', 'Works with no signal and saves every tap. The phone does everything the office can.'],
+  ['Slow, dated screens.', 'Fast, simple screens, built for the phone first.'],
+  ['Support goes quiet once you\u2019ve signed.', 'Ask SPEC any time, and a real person replies the same day, 7am to 7pm, 7 days.'],
+  ['Locked contracts, paid add-ons and big price rises.', 'Month to month. Every feature included. No exit fees.'],
+  ['The AI can\u2019t answer a real question.', 'Ask about your own jobs, margins and people, and get a straight answer.'],
+];
+
 class Component extends DCLogic {
   state = { biz: '', own: { Accounting: true } };
+  priceVals() {
+    const s = this.state;
+    const leads = s.leads ?? 9, team = s.team ?? 29, spend = s.spend ?? 10000;
+    const p = [134, 17];
+    const people = leads + team;
+    const plan = people <= 1 ? 'Solo' : people <= 5 ? 'Crew' : 'Business';
+    const vip = plan === 'Solo' ? 44 : plan === 'Crew' ? 143 : leads * p[0] + team * p[1];
+    const save = spend - vip;
+    const m = n => '$' + Math.round(n).toLocaleString('en-AU');
+    const pill = on => 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13.5px;font-weight:600;white-space:nowrap;' + (on ? 'background:var(--color-text);color:#fff;' : 'background:transparent;color:var(--color-text);');
+    const num = k => e => { const v = Number(e.target.value); this.setState({ [k]: v }); };
+    return {
+      sliders: [
+        { label: 'People who lead others', value: leads, shown: String(leads), min: 1, max: 60, step: 1, set: num('leads') },
+        { label: 'People they lead', value: team, shown: String(team), min: 0, max: 300, step: 1, set: num('team') },
+        { label: 'What you spend on systems now', value: spend, shown: m(spend) + '/mo', min: 0, max: 30000, step: 250, set: num('spend') },
+      ],
+      vipMonthly: m(vip),
+      priceRows: plan === 'Business' ? [
+        { label: leads + ' leadership seats × ' + m(p[0]), value: m(leads * p[0]) },
+        { label: team + ' team seats × ' + m(p[1]), value: m(team * p[1]) },
+      ] : [{ label: plan === 'Solo' ? 'Solo plan · just you' : 'Crew plan · ' + people + ' people, flat', value: m(vip) }],
+      saveStyle: 'border-radius:18px;padding:16px 18px;background:color-mix(in srgb, ' + (save >= 0 ? '#4f7a3f' : '#c67139') + ' 12%, transparent);',
+      saveTitle: save >= 0 ? 'You save ' + m(save) + ' a month' : 'siteVIP costs ' + m(-save) + ' more a month',
+      saveBody: save >= 0 ? 'That\u2019s ' + m(save * 12) + ' a year, and jobs, customers, HR, safety and KPIs are all on one screen.' : 'You get jobs, customers, HR, safety and KPIs on one screen in return.',
+    };
+  }
+
   renderVals() {
     const start = () => { window.location.href = 'SPEC Setup.dc.html'; };
     const pill = on => 'cursor:pointer;border:0;border-radius:999px;padding:7px 14px;font-family:var(--font-body);font-size:13px;font-weight:600;'
@@ -128,7 +213,9 @@ class Component extends DCLogic {
       setBiz: e => this.setState({ biz: e.target.value }),
       bizKey: e => { if (e.key === 'Enter' && this.state.biz.trim()) start(); },
       start,
-      flow: FLOW.map(([label, line], i) => ({ n: String(i + 1), label, line })),
+      fixes: LAND_FIXES.map(([pain, fix]) => ({ pain, fix })),
+      ...this.priceVals(),
+      flow: FLOW.map(([label, line, t], i) => ({ n: String(i + 1), label, line, taps: t === 0 ? 'no taps' : t + (t === 1 ? ' tap' : ' taps') })),
       systems: SYSTEMS.map(s => {
         const own = !!this.state.own[s.job];
         return {

@@ -16,9 +16,10 @@
   a:hover { color: var(--color-accent-800); text-decoration: underline; }
   ::selection { background: var(--color-accent-200); }
 </style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); --shadow-lg: 0 0 0 1.5px #d2c3a9, 0 14px 36px rgba(32,30,29,0.13); } body { background: #ffffff; }</style>
 </helmet>
 
-<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+<div style="font-family: var(--font-body); color: var(--color-text); background: #ffffff; min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
     <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
@@ -113,29 +114,22 @@
       </div>
     </section>
 
-    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px;">
-      <div style="{{ basicStyle }}">
-        <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
-          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">SPEC Basic</p>
-          <span style="{{ basicChip }}">No AI support</span>
+    <section aria-label="Plans" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; margin-bottom: 20px;">
+      <sc-for list="{{ plans }}" as="pl" hint-placeholder-count="3">
+        <div style="{{ pl.style }}">
+          <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ pl.name }} · {{ pl.who }}</span>
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 34px; line-height: 1.1; margin: 0;">{{ pl.price }}</p>
+          <p style="font-size: 13.5px; margin: 0; color: color-mix(in srgb, var(--color-text) 68%, transparent);">{{ pl.per }}</p>
+          <p style="font-size: 14.5px; line-height: 22px; margin: 6px 0 0;">{{ pl.line }}</p>
         </div>
-        <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 36px; line-height: 1.15; margin: 14px 0 0;">{{ basicPrice }}</p>
-        <p style="font-size: 14px; line-height: 24px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">leadership seat / team seat, per month &middot; {{ basicTotal }} a year at {{ leadersPlain }} leaders + {{ teamPlain }} team</p>
-        <div style="display: grid; gap: 10px; margin-top: 22px;">
-          <sc-for list="{{ basicFeatures }}" as="bf" hint-placeholder-count="5">
-            <div style="display: flex; align-items: flex-start; gap: 10px;">
-              <span style="{{ bf.dot }}"></span>
-              <span style="font-size: 14.5px; line-height: 22px;">{{ bf.label }}</span>
-            </div>
-          </sc-for>
-        </div>
-        <button type="button" class="btn btn-secondary" style="flex: none; white-space: nowrap; margin-top: 24px;">Start free</button>
-      </div>
+      </sc-for>
+    </section>
 
+    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px;">
       <div style="{{ advancedStyle }}">
         <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px;">
-          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: var(--color-accent-2-900);">SPEC Advanced</p>
-          <span style="{{ advancedChip }}">AI through SPEC</span>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0; color: var(--color-accent-2-900);">SPEC, AI included</p>
+          <span style="{{ advancedChip }}">Every feature included</span>
         </div>
         <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 36px; line-height: 1.15; margin: 14px 0 0;">{{ advancedPrice }}</p>
         <p style="font-size: 14px; line-height: 24px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">leadership seat / team seat, per month &middot; {{ advancedTotal }} a year at {{ leadersPlain }} leaders + {{ teamPlain }} team</p>
@@ -171,19 +165,7 @@
       <p style="font-size: 14px; line-height: 24px; margin: 20px 0 0; max-width: 62ch; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Paid against decreased waste, improved productivity and improved staff turnover — money you are already spending on the problem. There is nothing to negotiate here: if the number gives you pause, the box upstairs will tell you why the problem is still open.</p>
     </section>
 
-    <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px); margin-top: clamp(20px,3vw,28px);">
-      <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">The one question that decides which</h2>
-      <p style="font-size: 15px; line-height: 25px; margin: 12px 0 0; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Do you want the power of AI? Yes, and it takes the work over — systems talk to each other, KPIs arrive fed, and the AI is paid for through SPEC. No, and you still get the platform, but every number is typed and nothing is traced to a system.</p>
-      <div style="display: grid; gap: 10px; margin-top: 22px; max-width: 720px;">
-        <sc-for list="{{ compare }}" as="cp" hint-placeholder-count="6">
-          <div style="display: grid; grid-template-columns: minmax(140px, 1.4fr) repeat(2, minmax(90px, 1fr)); gap: 12px; align-items: center; border-bottom: 1px solid var(--color-accent-100); padding-bottom: 12px;">
-            <span style="font-size: 14.5px; line-height: 21px;">{{ cp.label }}</span>
-            <span style="{{ cp.basicStyle }}">{{ cp.basic }}</span>
-            <span style="{{ cp.advancedStyle }}">{{ cp.advanced }}</span>
-          </div>
-        </sc-for>
-      </div>
-    </section>
+
 
     <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px); margin-top: clamp(20px,3vw,28px);">
       <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">What is free</h2>
@@ -207,12 +189,12 @@ const chip = tone => 'display:inline-flex;align-items:center;border-radius:999px
 const dotOf = tone => 'width:10px;height:10px;border-radius:50%;display:block;flex:none;margin-top:6px;background:' + tone + ';';
 
 const PRICES = {
-  AUD: { leader: 134, team: 17, leaderAdv: 227, teamAdv: 29, symbol: 'A$' },
-  NZD: { leader: 180, team: 23, leaderAdv: 305, teamAdv: 39, symbol: 'NZ$' },
-  GBP: { leader: 88, team: 11, leaderAdv: 149, teamAdv: 19, symbol: '£' },
-  EUR: { leader: 134, team: 17, leaderAdv: 227, teamAdv: 29, symbol: '€' },
-  USD: { leader: 134, team: 17, leaderAdv: 227, teamAdv: 29, symbol: 'US$' },
-  CAD: { leader: 180, team: 23, leaderAdv: 305, teamAdv: 39, symbol: 'CA$' },
+  AUD: { leader: 134, team: 17, leaderAdv: 134, teamAdv: 17, solo: 44, crew: 143, symbol: 'A$' },
+  NZD: { leader: 180, team: 23, leaderAdv: 180, teamAdv: 23, solo: 59, crew: 192, symbol: 'NZ$' },
+  GBP: { leader: 88, team: 11, leaderAdv: 88, teamAdv: 11, solo: 29, crew: 94, symbol: '£' },
+  EUR: { leader: 134, team: 17, leaderAdv: 134, teamAdv: 17, solo: 44, crew: 143, symbol: '€' },
+  USD: { leader: 134, team: 17, leaderAdv: 134, teamAdv: 17, solo: 44, crew: 143, symbol: 'US$' },
+  CAD: { leader: 180, team: 23, leaderAdv: 180, teamAdv: 23, solo: 59, crew: 192, symbol: 'CA$' },
 };
 
 const BASIC = [
@@ -224,10 +206,10 @@ const BASIC = [
 ];
 
 const ADVANCED = [
-  'Everything in Basic',
+  'The org chart, roles, monthly scoring, hard gates and the board pack',
   'Connectors — Simpro, Xero, HubSpot, Groundplan, Pylon and the rest',
   'KPIs fed from the systems, traced to their source',
-  'Claude on every page: ask, draft, screen, summarise',
+  'SPEC’s AI on every page: ask, draft, screen, summarise',
   'The people agent: ads, shortlists, onboarding, nudges',
   'AI usage paid for through SPEC, nothing else to buy',
 ];
@@ -269,7 +251,10 @@ class Component extends DCLogic {
     const leaders = this.state.leaders, team = this.state.team;
     const seats = leaders + team;
     const basicYear = (leaders * p.leader + team * p.team) * 12;
-    const advancedYear = (leaders * p.leaderAdv + team * p.teamAdv) * 12;
+    const people = leaders + team;
+    const planName = people <= 1 ? 'Solo' : people <= 5 ? 'Crew' : 'Business';
+    const planMonth = people <= 1 ? p.solo : people <= 5 ? p.crew : leaders * p.leaderAdv + team * p.teamAdv;
+    const advancedYear = planMonth * 12;
     const gain = this.state.labour * (this.state.improve / 100);
     const multiple = Math.max(1, Math.round(gain / Math.max(advancedYear, 1)));
 
@@ -298,10 +283,10 @@ class Component extends DCLogic {
       })),
 
       returnMultiple: multiple + '×',
-      returnLine: 'What SPEC Advanced returns against what it costs, at ' + this.state.improve + '% on a ' + fmt(this.state.labour, p.symbol) + ' labour bill.',
+      returnLine: 'What SPEC returns against what it costs, at ' + this.state.improve + '% on a ' + fmt(this.state.labour, p.symbol) + ' labour bill.',
       ledger: [
         { label: 'Recovered from labour', value: fmt(gain, p.symbol), tone: GREEN },
-        { label: 'SPEC Advanced, ' + leaders + ' leaders + ' + team + ' team', value: fmt(advancedYear, p.symbol) + ' a year', tone: null },
+        { label: 'SPEC, ' + leaders + ' leaders + ' + team + ' team', value: fmt(advancedYear, p.symbol) + ' a year', tone: null },
         { label: 'Net', value: fmt(gain - advancedYear, p.symbol), tone: GREEN },
       ].map(l => ({
         label: l.label,
@@ -318,7 +303,12 @@ class Component extends DCLogic {
       advancedStyle: 'background:var(--color-accent-2-100);border-radius:var(--radius-lg);padding:clamp(24px,3vw,36px);border-top:4px solid ' + GREEN + ';',
       advancedChip: chip(GREEN),
       advancedPrice: p.symbol + p.leaderAdv + ' / ' + p.symbol + p.teamAdv,
-      advancedTotal: fmt(advancedYear, p.symbol),
+      advancedTotal: fmt(advancedYear, p.symbol) + ' a year on the ' + planName + ' plan',
+      plans: [
+        { name: 'Solo', price: p.symbol + p.solo, per: 'a month', who: 'Just you', line: 'Jobs, customers, safety, KPIs and SPEC\u2019s AI. Everything included.', on: planName === 'Solo' },
+        { name: 'Crew', price: p.symbol + p.crew, per: 'a month, flat', who: '2 to 5 people', line: 'Everything in Solo for the whole crew, with the org chart and team KPIs.', on: planName === 'Crew' },
+        { name: 'Business', price: p.symbol + p.leaderAdv + ' / ' + p.symbol + p.teamAdv, per: 'per leadership / team seat, a month', who: '6 people and up', line: 'Leaders get their own seat and scorecard. Everyone they lead sits in a team.', on: planName === 'Business' },
+      ].map(x => ({ ...x, style: 'background:#fff;border-radius:var(--radius-lg);padding:clamp(22px,3vw,30px);display:grid;gap:8px;align-content:start;' + (x.on ? 'box-shadow:0 0 0 3px ' + GREEN + ',var(--shadow-md);' : 'box-shadow:var(--shadow-sm);') })),
       advancedFeatures: ADVANCED.map(a => ({ label: a, dot: dotOf(GREEN) })),
 
       compare: COMPARE.map(c => ({

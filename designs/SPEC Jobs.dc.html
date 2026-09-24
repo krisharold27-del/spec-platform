@@ -15,8 +15,9 @@
   a { color: var(--color-accent-700); text-decoration: none; }
   a:hover { color: var(--color-accent-800); text-decoration: underline; }
 </style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); --shadow-lg: 0 0 0 1.5px #d2c3a9, 0 14px 36px rgba(32,30,29,0.13); } body { background: #ffffff; }</style>
 </helmet>
-<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+<div style="font-family: var(--font-body); color: var(--color-text); background: #ffffff; min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
     <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
@@ -48,16 +49,17 @@
             <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
           </g>
         </svg>SPEC</a>
-    <a href="SPEC Setup.dc.html">Setup</a>
     <a href="SPEC My Page.dc.html">My page</a>
-    <a href="#" style="color: var(--color-text); font-weight: 700;">Jobs</a>
-    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Jobs.dc.html" style="color: var(--color-text); font-weight: 700;">Jobs</a>
+    <a href="SPEC Jobs.dc.html?tab=customers">CRM</a>
     <a href="SPEC People.dc.html">People</a>
     <a href="SPEC Safety.dc.html">Safety</a>
-    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
-    <a href="SPEC Board Pack.dc.html">Board pack</a>
-    <a href="SPEC Connections.dc.html">Connections</a>
-    <a href="SPEC Home.dc.html">All pages</a>
+    <a href="SPEC Compliance.dc.html">Compliance</a>
+    <a href="SPEC Board Pack.dc.html">Board</a>
+    <span style="flex: 1 1 0; min-width: 8px;"></span>
+    <a href="SPEC Setup.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Setup</a>
+    <a href="SPEC Connections.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Connections</a>
+    <a href="SPEC Home.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">All pages</a>
   </nav>
 
   <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
@@ -74,10 +76,17 @@
     </header>
 
     <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 22px;">
-      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="8">
-          <button type="button" onClick="{{ t.select }}" style="{{ t.style }}">{{ t.label }}</button>
-        </sc-for>
+      <div style="display: grid; gap: 10px;">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <sc-for list="{{ tabGroups }}" as="tg" hint-placeholder-count="3">
+            <button type="button" onClick="{{ tg.select }}" style="{{ tg.style }}">{{ tg.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+            <button type="button" onClick="{{ t.select }}" style="{{ t.style }}">{{ t.label }}</button>
+          </sc-for>
+        </div>
       </div>
       <a href="SPEC Coverage.dc.html" style="font-size: 13.5px;">Everything SPEC does, and what it replaces →</a>
     </div>
@@ -135,29 +144,854 @@
       </div>
     </sc-if>
 
+    <sc-if value="{{ onLeads }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Where the work is coming from</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">This month · every lead lands in one list · repeat customers and tenders make the most money, Google ads the least</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; margin-top: 16px;">
+            <sc-for list="{{ leadSources }}" as="ls" hint-placeholder-count="6">
+              <div style="background: var(--color-bg); border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px;">
+                <span style="font-size: 13px; font-weight: 700;">{{ ls.name }}</span>
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px; line-height: 1;">{{ ls.count }}</span>
+                <span style="font-size: 12.5px; line-height: 18px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ ls.note }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <div style="display: flex; flex-wrap: wrap; gap: clamp(20px,3vw,28px); align-items: stretch;">
+          <section style="flex: 1 1 320px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+            <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px;">
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.2; margin: 0;">Waiting for a quote</h2>
+              <span style="{{ speedChip }}">{{ speedLine }}</span>
+            </div>
+            <div style="display: grid; gap: 8px; margin-top: 14px;">
+              <sc-for list="{{ waiting }}" as="wq" hint-placeholder-count="4">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 14px; border-radius: 14px; background: var(--color-bg);">
+                  <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 180px;"><strong style="font-size: 14.5px;">{{ wq.who }}</strong><span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ wq.what }}</span></span>
+                  <span style="{{ wq.ageChip }}">{{ wq.age }}</span>
+                  <button type="button" onClick="{{ wq.go }}" class="btn btn-secondary">Quote it</button>
+                </div>
+              </sc-for>
+            </div>
+            <p style="font-size: 13px; line-height: 20px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 68%, transparent);">Missed calls get a text back within two minutes: “Sorry we missed you, we’re on the tools. What do you need done?” Their answer lands here.</p>
+          </section>
+
+          <section style="flex: 1 1 320px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px; line-height: 1.2; margin: 0;">Work SPEC found for you</h2>
+            <p style="font-size: 13.5px; line-height: 20px; margin: 6px 0 14px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">From your own customers and job history. Each has the message ready.</p>
+            <div style="display: grid; gap: 8px;">
+              <sc-for list="{{ found }}" as="fw" hint-placeholder-count="4">
+                <div style="padding: 12px 14px; border-radius: 14px; background: var(--color-bg); display: grid; gap: 6px;">
+                  <span style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px;"><strong style="font-size: 14.5px;">{{ fw.title }}</strong><span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ fw.worth }}</span></span>
+                  <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 72%, transparent);">{{ fw.why }}</span>
+                  <sc-if value="{{ fw.open }}" hint-placeholder-val="{{ true }}">
+                    <button type="button" onClick="{{ fw.send }}" class="btn btn-primary" style="justify-self: start;">{{ fw.action }}</button>
+                  </sc-if>
+                  <sc-if value="{{ fw.done }}" hint-placeholder-val="{{ false }}">
+                    <span style="{{ fw.doneChip }}">{{ fw.doneLabel }}</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+
+        <section aria-label="Understand the work" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Understand the work</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Photos, plans and what the customer said. SPEC works out the job before you quote it.</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; margin-top: 16px;">
+            <label onDragOver="{{ uwOver }}" onDrop="{{ uwDropPhotos }}" style="cursor: pointer; display: grid; gap: 4px; align-content: start; padding: 16px 18px; border-radius: 18px; border: 2px dashed color-mix(in srgb, var(--color-text) 28%, transparent); background: var(--color-bg);">
+              <input type="file" accept="image/*" multiple="{{ true }}" onChange="{{ uwPickPhotos }}" style="display: none;" />
+              <strong style="font-size: 15px;">Photos</strong>
+              <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ uwPhotosLine }}</span>
+            </label>
+            <label onDragOver="{{ uwOver }}" onDrop="{{ uwDropPlans }}" style="cursor: pointer; display: grid; gap: 4px; align-content: start; padding: 16px 18px; border-radius: 18px; border: 2px dashed color-mix(in srgb, var(--color-text) 28%, transparent); background: var(--color-bg);">
+              <input type="file" accept=".pdf,image/*" onChange="{{ uwPickPlans }}" style="display: none;" />
+              <strong style="font-size: 15px;">Plans or designs</strong>
+              <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ uwPlansLine }}</span>
+            </label>
+            <div style="display: grid; gap: 6px; padding: 14px 16px; border-radius: 18px; background: var(--color-bg);">
+              <strong style="font-size: 15px;">What they told you</strong>
+              <textarea value="{{ uwText }}" onInput="{{ setUwText }}" onChange="{{ setUwText }}" placeholder="Type it, paste their email, or hold to talk on the phone" aria-label="What the customer told you" rows="3" style="width: 100%; box-sizing: border-box; border: 0; border-radius: 12px; padding: 10px 12px; font-family: var(--font-body); font-size: 14px; background: #fff; resize: vertical;"></textarea>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px;">
+            <button type="button" onClick="{{ uwRead }}" class="btn btn-primary">Read it</button>
+            <button type="button" onClick="{{ uwSample }}" class="btn btn-secondary">Use Priya's photos and message</button>
+          </div>
+
+          <sc-if value="{{ uwReady }}" hint-placeholder-val="{{ false }}">
+            <div style="display: grid; gap: 16px; margin-top: 20px;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px;">
+                <div style="display: grid; gap: 8px; align-content: start;">
+                  <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">What SPEC sees</span>
+                  <sc-for list="{{ uwSees }}" as="us" hint-placeholder-count="5">
+                    <div style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 14px; background: var(--color-bg); font-size: 14px; line-height: 20px;"><span style="{{ us.dot }}"></span><span><strong>{{ us.from }}:</strong> {{ us.text }}</span></div>
+                  </sc-for>
+                </div>
+                <div style="display: grid; gap: 8px; align-content: start;">
+                  <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">The job, as SPEC reads it</span>
+                  <sc-for list="{{ uwScope }}" as="uc" hint-placeholder-count="5">
+                    <div style="display: flex; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--color-bg); font-size: 14px;"><span style="min-width: 0;">{{ uc.label }}</span><strong style="flex: none;">{{ uc.value }}</strong></div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="padding: 14px 16px; border-radius: 16px; background: color-mix(in srgb, #c67139 10%, transparent); display: grid; gap: 8px;">
+                <strong style="font-size: 14.5px;">Two things to check with Priya first</strong>
+                <span style="font-size: 14px; line-height: 21px;">“Hi Priya, thanks for the photos. Two quick questions so the price is right: is the charger going on the garage wall nearest the house, about 12 m from the board? And are you happy for us to test the board's backing panel for asbestos before we start? It's a standard check on 1970s homes. JBI Electrical”</span>
+                <sc-if value="{{ uwQOpen }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ uwSendQ }}" class="btn btn-secondary" style="justify-self: start;">Approve and send</button>
+                </sc-if>
+                <sc-if value="{{ uwQDone }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ uwDoneChip }}">Sent · her answers will update the quote</span>
+                </sc-if>
+              </div>
+
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-radius: 18px; background: color-mix(in srgb, #4f7a3f 9%, transparent);">
+                <span style="display: grid; gap: 2px;"><span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px;">{{ uwTotal }}</span><span style="font-size: 13px;">{{ uwLine }}</span></span>
+                <sc-if value="{{ uwOpen }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ uwBuild }}" class="btn btn-primary">Build the quote</button>
+                </sc-if>
+                <sc-if value="{{ uwBuilt }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ uwDoneChip }}">Quote built · E-118 moved to Quoted</span>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Estimate from plans</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Drop the plans. SPEC counts everything and prices it from your pre-builds.</span>
+          </div>
+          <sc-if value="{{ noPlans }}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px;">
+              <label onDragOver="{{ plansOver }}" onDrop="{{ plansDrop }}" style="cursor: pointer; flex: 1 1 280px; display: grid; gap: 4px; padding: 22px; border-radius: 20px; border: 2px dashed color-mix(in srgb, var(--color-text) 28%, transparent); background: var(--color-bg);">
+                <input type="file" accept=".pdf,.png,.jpg,.dwg" onChange="{{ plansPick }}" style="display: none;" />
+                <span style="font-size: 16px; font-weight: 700;">Drop the plans here</span>
+                <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">PDF or photos of the drawings</span>
+              </label>
+              <button type="button" onClick="{{ useSamplePlans }}" class="btn btn-secondary">Use the Epping plans from Paul's email</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ hasPlans }}" hint-placeholder-val="{{ false }}">
+            <div style="display: grid; gap: 14px; margin-top: 16px;">
+              <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 68%, transparent);">{{ plansFrom }}</span>
+              <div style="display: grid; gap: 6px;">
+                <sc-for list="{{ takeoff }}" as="tk" hint-placeholder-count="5">
+                  <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(60px, 0.6fr) minmax(90px, 1fr); gap: 12px; align-items: center; padding: 10px 14px; border-radius: 12px; background: var(--color-bg); font-size: 14px;">
+                    <span style="min-width: 0;"><strong>{{ tk.name }}</strong> · <span style="color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ tk.where }}</span></span>
+                    <span>× {{ tk.qty }}</span>
+                    <span style="text-align: right; font-weight: 700;">{{ tk.total }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-radius: 18px; background: color-mix(in srgb, #4f7a3f 9%, transparent);">
+                <span style="display: grid; gap: 2px;"><span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px;">{{ estTotal }}</span><span style="font-size: 13px;">{{ estLine }}</span></span>
+                <sc-if value="{{ estOpen }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ makeQuote }}" class="btn btn-primary">Approve and send to Paul</button>
+                </sc-if>
+                <sc-if value="{{ estDone }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ estDoneChip }}">Quote Q-2296 sent · on the Jobs board</span>
+                </sc-if>
+              </div>
+              <p style="font-size: 12.5px; line-height: 19px; margin: 0; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Check the counts before you send. Anything SPEC wasn't sure of is marked on the plans for you to confirm.</p>
+            </div>
+          </sc-if>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onCustomers }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-wrap: wrap; gap: clamp(20px,3vw,28px); align-items: flex-start;">
+        <section style="flex: 1 1 300px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(18px,2.5vw,24px);">
+          <input type="text" value="{{ custQuery }}" onInput="{{ setCustQuery }}" onChange="{{ setCustQuery }}" placeholder="Search customers, contacts or sites" aria-label="Search customers" class="input" style="border-radius: 999px; width: 100%; box-sizing: border-box;" />
+          <div style="display: grid; gap: 8px; margin-top: 14px;">
+            <sc-for list="{{ custList }}" as="cu" hint-placeholder-count="8">
+              <button type="button" onClick="{{ cu.select }}" style="{{ cu.style }}">
+                <span style="display: flex; justify-content: space-between; gap: 10px;"><span style="font-size: 14.5px; font-weight: 700;">{{ cu.name }}</span><span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ cu.type }}</span></span>
+                <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px;"><span style="{{ cu.chip }}">{{ cu.next }}</span><span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ cu.value }}</span></span>
+              </button>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="flex: 2 1 480px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px;">
+            <div style="flex: 1 1 240px; min-width: 0;">
+              <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ cd.type }} · {{ cd.since }}</span>
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 26px; line-height: 1.15; margin: 6px 0 0;">{{ cd.name }}</h2>
+              <p style="font-size: 14px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 75%, transparent);">{{ cd.contact }}</p>
+              <p style="display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13.5px; margin: 4px 0 0; color: var(--color-accent-700);"><span>{{ cd.phone }}</span><span>{{ cd.email }}</span></p>
+            </div>
+            <div style="flex: 0 1 auto; min-width: 0; margin-left: auto; text-align: right;">
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1; margin: 0;">{{ cd.lifetime }}</p>
+              <p style="font-size: 12.5px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 62%, transparent);">worked for them, all time</p>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 10px; margin-top: 18px;">
+            <sc-for list="{{ cd.stats }}" as="cs" hint-placeholder-count="3">
+              <div style="background: var(--color-bg); border-radius: 16px; padding: 12px 14px;">
+                <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ cs.label }}</span>
+                <p style="font-size: 17px; font-weight: 700; margin: 6px 0 0; color: {{ cs.tone }};">{{ cs.value }}</p>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-radius: 16px; padding: 14px 18px; background: {{ cd.nextBg }};">
+            <span style="display: grid; gap: 2px;"><span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: {{ cd.nextTone }};">Next</span><strong style="font-size: 15px;">{{ cd.nextTitle }}</strong></span>
+            <sc-if value="{{ cd.nextOpen }}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{ cd.doneNext }}" class="btn btn-secondary">Done</button>
+            </sc-if>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 20px; margin-top: 22px;">
+            <div>
+              <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 8px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Sites</p>
+              <div style="display: grid; gap: 6px;">
+                <sc-for list="{{ cd.sites }}" as="si" hint-placeholder-count="2">
+                  <div style="font-size: 13.5px; padding: 9px 12px; border-radius: 12px; background: var(--color-bg);">{{ si.name }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 8px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Quotes and jobs</p>
+              <div style="display: grid; gap: 6px;">
+                <sc-for list="{{ cd.work }}" as="wk" hint-placeholder-count="2">
+                  <button type="button" onClick="{{ wk.open }}" style="all: unset; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; box-sizing: border-box; width: 100%; font-size: 13.5px; padding: 9px 12px; border-radius: 12px; background: var(--color-bg);">
+                    <span style="min-width: 0;"><strong>{{ wk.id }}</strong> {{ wk.title }} · {{ wk.value }}</span><span style="{{ wk.chip }}">{{ wk.stage }}</span>
+                  </button>
+                </sc-for>
+                <sc-if value="{{ cd.noWork }}" hint-placeholder-val="{{ false }}">
+                  <p style="font-size: 13.5px; margin: 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Nothing open.</p>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 24px 0 8px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Everything with {{ cd.name }}</p>
+          <div style="display: flex; gap: 10px; align-items: center; background: var(--color-bg); border-radius: 999px; padding: 5px 5px 5px 18px;">
+            <input type="text" value="{{ noteDraft }}" onInput="{{ setNoteDraft }}" onChange="{{ setNoteDraft }}" onKeyDown="{{ noteKey }}" placeholder="Log a call, email or note" aria-label="Log a call, email or note" style="flex: 1; min-width: 0; border: 0; background: transparent; font-family: var(--font-body); font-size: 14px; color: var(--color-text); outline: none; padding: 9px 0;" />
+            <button type="button" onClick="{{ addNote }}" aria-label="Save note" style="cursor: pointer; border: 0; width: 38px; height: 38px; flex: none; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 17px;">→</button>
+          </div>
+          <div style="display: grid; gap: 6px; margin-top: 10px;">
+            <sc-for list="{{ cd.timeline }}" as="tl" hint-placeholder-count="3">
+              <div style="display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13.5px; line-height: 20px; padding: 9px 14px; border-radius: 12px; background: var(--color-bg);">
+                <span style="flex: none; min-width: 70px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ tl.when }}</span>
+                <span style="flex: none; min-width: 64px; font-weight: 700;">{{ tl.kind }}</span>
+                <span style="flex: 1 1 200px; min-width: 0;">{{ tl.what }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px;">
+            <button type="button" onClick="{{ cd.newEnquiry }}" class="btn btn-primary">{{ cd.newLabel }}</button>
+          </div>
+          <p style="font-size: 12.5px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 62%, transparent);">The customer, their sites and their history come with it. Nothing is typed twice.</p>
+          <p style="font-size: 13.5px; margin: 8px 0 0;"><a href="SPEC Customer Page.dc.html">See what the customer sees →</a> Book a time, track the tech, approve a variation, pay.</p>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onPrebuilds }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+            <div style="max-width: 64ch;">
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Pre-builds: a whole job in one line.</h2>
+              <p style="font-size: 14px; line-height: 22px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 75%, transparent);">Materials, hours, SWMS, checklist, photos and certificate, priced and ready to send. SPEC checks every one against real jobs and today's supplier prices.</p>
+            </div>
+            <button type="button" onClick="{{ toggleFixes }}" class="btn btn-ghost">{{ fixesLabel }}</button>
+          </div>
+          <sc-if value="{{ fixesOpen }}" hint-placeholder-val="{{ true }}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 10px; margin-top: 16px;">
+              <sc-for list="{{ fixes }}" as="fx" hint-placeholder-count="6">
+                <div style="background: var(--color-bg); border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px;">
+                  <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">“{{ fx.pain }}”</span>
+                  <span style="font-size: 14.5px; line-height: 21px; font-weight: 700;">{{ fx.fix }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </section>
+
+        <div style="display: flex; flex-wrap: wrap; gap: clamp(20px,3vw,28px); align-items: flex-start;">
+          <section style="flex: 1 1 300px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(18px,2.5vw,24px);">
+            <input type="text" value="{{ pbQuery }}" onInput="{{ setPbQuery }}" onChange="{{ setPbQuery }}" placeholder="Search pre-builds" aria-label="Search pre-builds" class="input" style="border-radius: 999px; width: 100%; box-sizing: border-box;" />
+            <div style="display: grid; gap: 8px; margin-top: 14px;">
+              <sc-for list="{{ pbList }}" as="pb" hint-placeholder-count="6">
+                <button type="button" onClick="{{ pb.select }}" style="{{ pb.style }}">
+                  <span style="display: block; font-size: 14.5px; font-weight: 700; line-height: 1.3;">{{ pb.name }}</span>
+                  <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px;">
+                    <span style="{{ pb.flagChip }}">{{ pb.flag }}</span>
+                    <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ pb.meta }}</span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+            <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 22px 0 8px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Make one from a finished job</p>
+            <div style="display: grid; gap: 8px;">
+              <sc-for list="{{ fromJobs }}" as="fj" hint-placeholder-count="2">
+                <button type="button" onClick="{{ fj.make }}" style="{{ fj.style }}">{{ fj.label }}</button>
+              </sc-for>
+            </div>
+            <p style="font-size: 12.5px; line-height: 19px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Finished jobs make the best pre-builds: real hours and real materials, not a guess.</p>
+          </section>
+
+          <section style="flex: 2 1 480px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px);">
+            <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px;">
+              <div style="flex: 1 1 240px; min-width: 0;">
+                <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ pbd.cat }} · {{ pbd.used }}</span>
+                <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 26px; line-height: 1.15; margin: 6px 0 0;">{{ pbd.name }}</h2>
+              </div>
+              <div style="flex: 0 1 auto; min-width: 0; margin-left: auto; text-align: right;">
+                <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1; margin: 0;">{{ pbd.price }}</p>
+                <p style="font-size: 12.5px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 62%, transparent);">inc GST · {{ pbd.tierName }}</p>
+              </div>
+            </div>
+
+            <sc-if value="{{ pbd.hasTiers }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;">
+                <sc-for list="{{ pbd.tiers }}" as="tr" hint-placeholder-count="3">
+                  <button type="button" onClick="{{ tr.select }}" style="{{ tr.style }}">{{ tr.label }}</button>
+                </sc-for>
+              </div>
+              <p style="font-size: 13px; line-height: 20px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 68%, transparent);">Send all three. The client picks online and the job builds itself from their choice.</p>
+            </sc-if>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; margin-top: 20px;">
+              <div style="{{ pbd.learnStyle }}">
+                <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 6px; color: {{ pbd.learnTone }};">Hours · checked against real jobs</p>
+                <p style="font-size: 15px; font-weight: 700; line-height: 1.35; margin: 0;">{{ pbd.learnTitle }}</p>
+                <p style="font-size: 13.5px; line-height: 21px; margin: 6px 0 0;">{{ pbd.learnBody }}</p>
+                <sc-if value="{{ pbd.canFixHours }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{ pbd.fixHours }}" class="btn btn-primary" style="margin-top: 12px;">{{ pbd.fixHoursLabel }}</button>
+                </sc-if>
+              </div>
+              <div style="{{ pbd.priceStyle }}">
+                <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 6px; color: {{ pbd.priceTone }};">Prices · checked against suppliers</p>
+                <p style="font-size: 15px; font-weight: 700; line-height: 1.35; margin: 0;">{{ pbd.priceTitle }}</p>
+                <p style="font-size: 13.5px; line-height: 21px; margin: 6px 0 0;">{{ pbd.priceBody }}</p>
+                <sc-if value="{{ pbd.canReprice }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{ pbd.reprice }}" class="btn btn-primary" style="margin-top: 12px;">Re-price to today</button>
+                </sc-if>
+              </div>
+            </div>
+
+            <div style="margin-top: 14px; padding: 16px 18px; border-radius: 16px; background: var(--color-bg);">
+              <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px;"><strong>Real margin</strong><strong style="color: {{ pbd.marginTone }};">{{ pbd.marginPct }}</strong></div>
+              <div style="height: 10px; border-radius: 999px; background: #fff; margin-top: 10px; overflow: hidden;"><div style="{{ pbd.marginBar }}"></div></div>
+              <p style="font-size: 12.5px; line-height: 19px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 68%, transparent);">{{ pbd.marginNote }}</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 20px; margin-top: 22px;">
+              <div>
+                <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 8px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">What's in it</p>
+                <div style="display: grid; gap: 6px;">
+                  <sc-for list="{{ pbd.items }}" as="it" hint-placeholder-count="4">
+                    <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; line-height: 19px; padding: 8px 12px; border-radius: 12px; background: var(--color-bg);">
+                      <span style="min-width: 0;">{{ it.qty }} × {{ it.name }}</span><span style="flex: none; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ it.cost }}</span>
+                    </div>
+                  </sc-for>
+                  <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; padding: 8px 12px; border-radius: 12px; background: var(--color-bg);">
+                    <span><strong>{{ pbd.hrsLabel }}</strong> labour</span><span style="color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ pbd.labourSell }}</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 0 0 8px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Comes with it, every time</p>
+                <div style="display: grid; gap: 10px;">
+                  <sc-for list="{{ pbd.comes }}" as="cw" hint-placeholder-count="5">
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                      <span style="width: 22px; height: 22px; flex: none; border-radius: 50%; display: grid; place-content: center; background: #4f7a3f; color: #fff; font-size: 12px; font-weight: 700;">✓</span>
+                      <span style="display: grid; gap: 1px;"><strong style="font-size: 14px;">{{ cw.what }}</strong><span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 68%, transparent);">{{ cw.detail }}</span></span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px;">
+              <button type="button" onClick="{{ pbd.addToQuote }}" class="btn btn-primary">Add to quote Q-2291</button>
+              <button type="button" onClick="{{ pbd.onSite }}" class="btn btn-secondary">Quote it on site</button>
+            </div>
+            <sc-if value="{{ pbd.hasNote }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size: 13.5px; line-height: 21px; margin: 12px 0 0; padding: 12px 16px; border-radius: 14px; background: color-mix(in srgb, #4f7a3f 10%, transparent); color: #3d5c31;">{{ pbd.note }}</p>
+            </sc-if>
+          </section>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onHowLong }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-wrap: wrap; gap: clamp(20px,3vw,28px); align-items: flex-start;">
+        <section style="flex: 1 1 280px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">How long should it take?</h2>
+          <p style="font-size: 13.5px; line-height: 20px; margin: 6px 0 14px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Straight from your own timesheets, updated after every job. Pick the work.</p>
+          <div style="display: grid; gap: 8px;">
+            <sc-for list="{{ tasks }}" as="ta" hint-placeholder-count="5">
+              <button type="button" onClick="{{ ta.select }}" style="{{ ta.style }}">
+                <span style="display: block; font-size: 14.5px; font-weight: 700;">{{ ta.name }}</span>
+                <span style="display: block; font-size: 12.5px; margin-top: 3px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ta.meta }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="flex: 2 1 420px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px);">
+          <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ tk.basis }}</span>
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 26px; line-height: 1.15; margin: 6px 0 0;">{{ tk.name }}</h2>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 22px 0 8px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">What's different about this site?</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <sc-for list="{{ tk.factors }}" as="fa" hint-placeholder-count="4">
+              <button type="button" onClick="{{ fa.toggle }}" style="{{ fa.style }}">{{ fa.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display: grid; gap: 6px; margin-top: 18px; font-size: 14.5px;">
+            <sc-for list="{{ tk.lines }}" as="tl" hint-placeholder-count="3">
+              <div style="display: flex; justify-content: space-between; gap: 12px; padding: 9px 14px; border-radius: 12px; background: var(--color-bg);"><span>{{ tl.label }}</span><strong>{{ tl.value }}</strong></div>
+            </sc-for>
+          </div>
+          <div style="margin-top: 16px; padding: 18px 20px; border-radius: 18px; background: color-mix(in srgb, #4f7a3f 10%, transparent); display: grid; gap: 4px;">
+            <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1.1;">{{ tk.answer }}</span>
+            <span style="font-size: 14px; line-height: 21px; color: #3d5c31;">{{ tk.advice }}</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px;">
+            <button type="button" onClick="{{ tk.useIt }}" class="btn btn-primary">Use these hours in a quote</button>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onTakeoff }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Takeoff · Harbourview Build, Level 5 offices</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ toFileLine }}</span>
+          </div>
+          <p style="font-size: 14px; line-height: 22px; margin: 8px 0 16px; max-width: 70ch; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Drop the builder's plans. SPEC finds every symbol on the drawing, counts it room by room and prices it from your pre-builds. Tap a type to check its count on the plan.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+            <div style="flex: 2 1 420px; min-width: 0;">
+              <div style="position: relative; aspect-ratio: 16 / 10; border-radius: 18px; background: var(--color-bg); overflow: hidden;">
+                <sc-for list="{{ toRooms }}" as="rm" hint-placeholder-count="6">
+                  <div style="{{ rm.style }}"><span style="position: absolute; left: 8px; top: 6px; font-size: 11.5px; font-weight: 700; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ rm.name }}</span></div>
+                </sc-for>
+                <sc-for list="{{ toMarks }}" as="mk" hint-placeholder-count="20">
+                  <span style="{{ mk.style }}"></span>
+                </sc-for>
+              </div>
+              <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13.5px; color: var(--color-accent-700);">
+                <input type="file" accept=".pdf,image/*" onChange="{{ toPick }}" style="display: none;" />Use different plans
+              </label>
+            </div>
+            <div style="flex: 1 1 280px; min-width: 0; display: grid; gap: 8px;">
+              <sc-for list="{{ toTypes }}" as="ty" hint-placeholder-count="4">
+                <button type="button" onClick="{{ ty.select }}" style="{{ ty.style }}">
+                  <span style="display: flex; align-items: center; gap: 10px; min-width: 0;"><span style="{{ ty.dot }}"></span><span style="text-align: left;">{{ ty.label }}</span></span>
+                  <span style="text-align: right; flex: none;"><strong style="display: block; font-size: 16px;">{{ ty.count }}</strong><span style="font-size: 12px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ty.price }}</span></span>
+                </button>
+              </sc-for>
+              <div style="display: flex; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--color-bg); font-size: 14px;"><span>Cable, measured on the plan</span><strong>{{ toCable }}</strong></div>
+              <div style="padding: 16px 18px; border-radius: 18px; background: color-mix(in srgb, #4f7a3f 10%, transparent); display: grid; gap: 4px;">
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px;">{{ toTotal }}</span>
+                <span style="font-size: 13px; color: #3d5c31;">{{ toTotalLine }}</span>
+              </div>
+              <sc-if value="{{ toOpen }}" hint-placeholder-val="{{ true }}">
+                <button type="button" onClick="{{ toBuild }}" class="btn btn-primary">Build the quote</button>
+              </sc-if>
+              <sc-if value="{{ toBuilt }}" hint-placeholder-val="{{ false }}">
+                <span style="{{ toDoneChip }}">Q-2297 built · ready for Leah</span>
+              </sc-if>
+            </div>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onWip }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px;">
+          <sc-for list="{{ wipStats }}" as="st" hint-placeholder-count="4">
+            <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px 18px;">
+              <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ st.label }}</span>
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px; line-height: 1; margin: 8px 0 0; color: {{ st.tone }};">{{ st.value }}</p>
+              <p style="font-size: 12.5px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ st.note }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Work in progress</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Every open job: what's been done, what's been billed, and whether it's still making money.</span>
+          </div>
+          <div style="display: grid; gap: 10px; margin-top: 16px;">
+            <sc-for list="{{ wipRows }}" as="w" hint-placeholder-count="5">
+              <div style="padding: 14px 16px; border-radius: 18px; background: var(--color-bg); display: grid; gap: 10px;">
+                <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px;">
+                  <strong style="font-size: 15px;">{{ w.id }} · {{ w.name }}</strong>
+                  <span style="{{ w.chip }}">{{ w.state }}</span>
+                </div>
+                <div style="height: 10px; border-radius: 999px; background: #fff; overflow: hidden;"><div style="{{ w.bar }}"></div></div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); gap: 8px; font-size: 13px;">
+                  <sc-for list="{{ w.cells }}" as="wc" hint-placeholder-count="5">
+                    <span style="display: grid; gap: 1px;"><span style="color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ wc.label }}</span><strong style="font-size: 14px; color: {{ wc.tone }};">{{ wc.value }}</strong></span>
+                  </sc-for>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;">
+                  <span style="font-size: 13.5px; line-height: 20px; flex: 1 1 260px;">{{ w.advice }}</span>
+                  <sc-if value="{{ w.open }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" onClick="{{ w.act }}" class="btn btn-primary">{{ w.action }}</button>
+                  </sc-if>
+                  <sc-if value="{{ w.done }}" hint-placeholder-val="{{ false }}">
+                    <span style="{{ w.doneChip }}">{{ w.doneLabel }}</span>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onCash }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px;">
+          <sc-for list="{{ cashStats }}" as="st" hint-placeholder-count="4">
+            <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px 18px;">
+              <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ st.label }}</span>
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px; line-height: 1; margin: 8px 0 0; color: {{ st.tone }};">{{ st.value }}</p>
+              <p style="font-size: 12.5px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ st.note }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Cash, the next 13 weeks</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Read from Xero, open invoices, the schedule and supplier bills. Xero stays the financial system.</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 12.5px;">
+            <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 12px; height: 12px; border-radius: 4px; background: #4f7a3f;"></span>Money in</span>
+            <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 12px; height: 12px; border-radius: 4px; background: #c67139;"></span>Money out</span>
+            <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 12px; height: 3px; border-radius: 2px; background: #a63b26;"></span>Balance under the $80,000 buffer</span>
+          </div>
+          <div style="overflow-x: auto; margin-top: 14px;">
+            <div style="display: grid; grid-template-columns: repeat(13, minmax(46px, 1fr)); gap: 6px; min-width: 620px; align-items: end;">
+              <sc-for list="{{ cashWeeks }}" as="cw" hint-placeholder-count="13">
+                <div style="display: grid; gap: 6px; justify-items: center;">
+                  <div style="height: 130px; display: flex; align-items: flex-end; gap: 3px;"><span style="{{ cw.inBar }}"></span><span style="{{ cw.outBar }}"></span></div>
+                  <span style="font-size: 11.5px; font-weight: 700;">{{ cw.label }}</span>
+                  <span style="{{ cw.balStyle }}">{{ cw.bal }}</span>
+                  <span style="font-size: 10.5px; line-height: 13px; text-align: center; min-height: 26px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ cw.note }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="margin-top: 14px; padding: 16px 18px; border-radius: 18px; background: {{ cashAdviceBg }}; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
+            <span style="font-size: 14.5px; line-height: 22px; flex: 1 1 320px;">{{ cashAdvice }}</span>
+            <sc-if value="{{ cashOpen }}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{ cashFix }}" class="btn btn-primary">Do both</button>
+            </sc-if>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onAce }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <sc-for list="{{ aceReps }}" as="ar" hint-placeholder-count="2">
+            <button type="button" onClick="{{ ar.select }}" style="{{ ar.style }}">{{ ar.label }}</button>
+          </sc-for>
+        </div>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px;">
+            <div style="flex: 1 1 280px; min-width: 0;">
+              <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ace.kind }} · {{ ace.role }}</span>
+              <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,3vw,32px); line-height: 1.15; margin: 8px 0 0;">{{ ace.headline }}</h2>
+              <p style="font-size: 14.5px; line-height: 22px; margin: 8px 0 0; max-width: 60ch; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ace.kind }} is 90% or better on your {{ ace.boardWord }}, three closed months in a row. Hit it and your incentive doubles for that quarter, then the next three months start again.</p>
+            </div>
+            <div style="display: flex; gap: 10px; flex: none;">
+              <sc-for list="{{ ace.months }}" as="am" hint-placeholder-count="3">
+                <div style="display: grid; justify-items: center; gap: 6px;">
+                  <span style="{{ am.ring }}">{{ am.score }}</span>
+                  <span style="font-size: 12.5px; font-weight: 600;">{{ am.month }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="margin-top: 18px; padding: 14px 18px; border-radius: 16px; background: {{ ace.payBg }}; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; font-size: 14.5px;">
+            <span>{{ ace.payLine }}</span><strong>{{ ace.payValue }}</strong>
+          </div>
+        </section>
+
+        <div style="display: flex; flex-wrap: wrap; gap: clamp(20px,3vw,28px); align-items: flex-start;">
+          <section style="flex: 1 1 360px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">{{ ace.boardTitle }}</h2>
+            <p style="font-size: 13.5px; line-height: 20px; margin: 6px 0 14px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ace.boardSub }}</p>
+            <div style="display: grid; gap: 8px;">
+              <sc-for list="{{ ace.kpis }}" as="ak" hint-placeholder-count="5">
+                <div style="display: grid; gap: 8px; padding: 12px 16px; border-radius: 16px; background: var(--color-bg);">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px;">
+                    <strong style="font-size: 14.5px;">{{ ak.name }}</strong>
+                    <span style="font-size: 13.5px;"><strong style="color: {{ ak.tone }};">{{ ak.actual }}</strong> <span style="color: color-mix(in srgb, var(--color-text) 65%, transparent);">· target {{ ak.target }}</span></span>
+                  </div>
+                  <div style="height: 8px; border-radius: 999px; background: #fff; overflow: hidden;"><div style="{{ ak.bar }}"></div></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px 16px; border-radius: 16px; background: {{ ace.scoreBg }}; font-size: 15px;"><strong>September so far</strong><strong>{{ ace.scoreNow }}</strong></div>
+          </section>
+
+          <section style="flex: 1 1 360px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Do these today to stay on track</h2>
+            <p style="font-size: 13.5px; line-height: 20px; margin: 6px 0 14px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">SPEC picks the work that moves your board most. Every message is drafted. Nothing sends until you approve it.</p>
+            <div style="display: grid; gap: 8px;">
+              <sc-for list="{{ ace.today }}" as="at" hint-placeholder-count="4">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 16px; border-radius: 16px; background: var(--color-bg);">
+                  <span style="display: grid; gap: 3px; min-width: 0; flex: 1 1 220px;">
+                    <strong style="font-size: 14.5px;">{{ at.title }}</strong>
+                    <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ at.why }}</span>
+                  </span>
+                  <sc-if value="{{ at.open }}" hint-placeholder-val="{{ true }}">
+                    <button type="button" onClick="{{ at.act }}" class="btn btn-primary">{{ at.action }}</button>
+                  </sc-if>
+                  <sc-if value="{{ at.done }}" hint-placeholder-val="{{ false }}">
+                    <span style="{{ at.doneChip }}">{{ at.doneLabel }}</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onRework }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px;">
+          <sc-for list="{{ reworkStats }}" as="st" hint-placeholder-count="4">
+            <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px 18px;">
+              <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ st.label }}</span>
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px; line-height: 1; margin: 8px 0 0; color: {{ st.tone }};">{{ st.value }}</p>
+              <p style="font-size: 12.5px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ st.note }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Callbacks and rework</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Every callback is tied to the job and the person who did it, so the cause gets fixed, not just the fault.</span>
+          </div>
+          <div style="margin-top: 16px;"><div style="display: grid; gap: 8px;">
+            <sc-for list="{{ callbacks }}" as="cb" hint-placeholder-count="4">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 12px 16px; border-radius: 16px; background: var(--color-bg);">
+                <span style="display: grid; gap: 3px; min-width: 0; flex: 1 1 300px;">
+                  <strong style="font-size: 14.5px;">{{ cb.title }}</strong>
+                  <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ cb.sub }}</span>
+                  <span style="font-size: 13.5px; line-height: 20px;">{{ cb.detail }}</span>
+                </span>
+                <span style="{{ cb.chip }}">{{ cb.state }}</span>
+                <sc-if value="{{ cb.open }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ cb.act }}" class="btn btn-primary">{{ cb.action }}</button>
+                </sc-if>
+                <sc-if value="{{ cb.done }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ cb.doneChip }}">{{ cb.doneLabel }}</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div></div>
+          <div style="margin-top: 14px; padding: 14px 16px; border-radius: 16px; background: color-mix(in srgb, #4f7a3f 9%, transparent); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
+            <span style="font-size: 14px; line-height: 21px; flex: 1 1 320px;"><strong>What SPEC noticed:</strong> both workmanship callbacks this month were loose terminations. A torque check on the switchboard and rewire checklists would stop them.</span>
+            <sc-if value="{{ learnOpen }}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{ learnIt }}" class="btn btn-primary">Add it to the checklists</button>
+            </sc-if>
+            <sc-if value="{{ learnDone }}" hint-placeholder-val="{{ false }}">
+              <span style="{{ learnChip }}">Added · in Tom's toolbox talk Monday</span>
+            </sc-if>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onTools }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px;">
+          <sc-for list="{{ toolStats }}" as="st" hint-placeholder-count="4">
+            <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px 18px;">
+              <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ st.label }}</span>
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px; line-height: 1; margin: 8px 0 0; color: {{ st.tone }};">{{ st.value }}</p>
+              <p style="font-size: 12.5px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ st.note }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Tools and equipment</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Who has what, what's due for test and tag or calibration, and what's missing.</span>
+          </div>
+          <div style="margin-top: 16px;"><div style="display: grid; gap: 8px;">
+            <sc-for list="{{ tools }}" as="tl" hint-placeholder-count="4">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 12px 16px; border-radius: 16px; background: var(--color-bg);">
+                <span style="display: grid; gap: 3px; min-width: 0; flex: 1 1 300px;">
+                  <strong style="font-size: 14.5px;">{{ tl.title }}</strong>
+                  <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ tl.sub }}</span>
+                  <span style="font-size: 13.5px; line-height: 20px;">{{ tl.detail }}</span>
+                </span>
+                <span style="{{ tl.chip }}">{{ tl.state }}</span>
+                <sc-if value="{{ tl.open }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ tl.act }}" class="btn btn-primary">{{ tl.action }}</button>
+                </sc-if>
+                <sc-if value="{{ tl.done }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ tl.doneChip }}">{{ tl.doneLabel }}</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div></div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onReviews }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px;">
+          <sc-for list="{{ reviewStats }}" as="st" hint-placeholder-count="4">
+            <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px 18px;">
+              <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ st.label }}</span>
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px; line-height: 1; margin: 8px 0 0; color: {{ st.tone }};">{{ st.value }}</p>
+              <p style="font-size: 12.5px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ st.note }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Google reviews</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ reviewQueue }}</span>
+          </div>
+          <p style="font-size: 14px; line-height: 22px; margin: 8px 0 16px; max-width: 72ch; color: color-mix(in srgb, var(--color-text) 65%, transparent);">When a job is paid, the customer gets a thank-you text with your Google review link. Every customer gets the same link. If anyone says something's wrong, it goes to the supervisor as a callback straight away.</p>
+          <div style="display: grid; gap: 8px;">
+            <sc-for list="{{ reviews }}" as="rv" hint-placeholder-count="3">
+              <div style="padding: 14px 16px; border-radius: 16px; background: var(--color-bg); display: grid; gap: 6px;">
+                <span style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px;"><strong style="font-size: 14.5px;">{{ rv.who }}</strong><span style="font-size: 15px; letter-spacing: 1px; color: {{ rv.starTone }};">{{ rv.stars }}</span></span>
+                <span style="font-size: 14px; line-height: 21px;">“{{ rv.text }}”</span>
+                <span style="font-size: 13px; line-height: 19px; padding: 10px 12px; border-radius: 12px; background: #fff;"><strong>SPEC's reply:</strong> {{ rv.reply }}</span>
+                <sc-if value="{{ rv.open }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ rv.act }}" class="btn btn-primary" style="justify-self: start;">Approve and post</button>
+                </sc-if>
+                <sc-if value="{{ rv.done }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ rv.doneChip }}">Reply posted on Google</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
     <sc-if value="{{ onSchedule }}" hint-placeholder-val="{{ false }}">
-      <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,30px); overflow-x: auto;">
+      <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,30px);">
         <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px;">
           <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; margin: 0;">Week of 21 September</h2>
           <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Tap an empty day to book the waiting job there</span>
         </div>
-        <div style="display: grid; grid-template-columns: 170px repeat(5, minmax(110px, 1fr)); gap: 8px; min-width: 760px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 10px; margin-bottom: 16px;">
+          <div style="background: var(--color-bg); border-radius: 16px; padding: 12px 16px;">
+            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Billable this week</span>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1; margin: 8px 0 0; color: {{ schedTone }};">{{ schedPct }}</p>
+            <p style="font-size: 12.5px; line-height: 18px; margin: 6px 0 0;">{{ schedSummary }}</p>
+          </div>
+          <div style="background: var(--color-bg); border-radius: 16px; padding: 12px 16px;">
+            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Empty crew days</span>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1; margin: 8px 0 0;">{{ gapCount }}</p>
+            <p style="font-size: 12.5px; line-height: 18px; margin: 6px 0 0;">Fill them before the week starts.</p>
+          </div>
+          <div style="background: var(--color-bg); border-radius: 16px; padding: 12px 16px;">
+            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Can't be booked</span>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1; margin: 8px 0 0; color: #a63b26;">{{ blockedCount }}</p>
+            <p style="font-size: 12.5px; line-height: 18px; margin: 6px 0 0;">{{ blockedLine }}</p>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: minmax(120px, 150px) repeat(5, minmax(0, 1fr)) 64px; gap: 8px;">
           <span></span>
           <sc-for list="{{ days }}" as="d" hint-placeholder-count="5">
             <span style="font-size: 12.5px; font-weight: 700; padding: 4px 8px;">{{ d }}</span>
           </sc-for>
+          <span style="font-size: 12.5px; font-weight: 700; padding: 4px 8px;">Booked</span>
           <sc-for list="{{ crewRows }}" as="cr" hint-placeholder-count="5">
-            <span style="display: grid; gap: 2px; padding: 8px 4px;">
+            <button type="button" onClick="{{ cr.select }}" style="{{ cr.nameStyle }}">
               <span style="font-size: 14px; font-weight: 700;">{{ cr.name }}</span>
               <span style="font-size: 12px; color: {{ cr.tone }};">{{ cr.note }}</span>
-            </span>
+            </button>
             <sc-for list="{{ cr.cells }}" as="cell" hint-placeholder-count="5">
               <button type="button" onClick="{{ cell.tap }}" style="{{ cell.style }}">{{ cell.label }}</button>
             </sc-for>
+            <span style="{{ cr.bookedChip }}">{{ cr.booked }}</span>
           </sc-for>
         </div>
         <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; padding: 12px 16px; border-radius: 14px; background: var(--color-bg); font-size: 14px;">
           <strong>Waiting to be booked:</strong><span>{{ waitingLine }}</span>
+        </div>
+      </section>
+
+      <section aria-label="What the crew sees" style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: clamp(20px,3vw,32px); align-items: flex-start; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,30px);">
+        <div style="flex: 1 1 280px; min-width: 0; display: grid; gap: 12px; align-content: start;">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">What {{ phoneName }} sees on the phone</h2>
+          <p style="font-size: 14px; line-height: 22px; margin: 0; color: color-mix(in srgb, var(--color-text) 75%, transparent);">Exactly the screen in the field. Tap a name in the schedule to see theirs, and a day to see that day.</p>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Not on a job yet</p>
+          <div style="display: grid; gap: 6px;">
+            <sc-for list="{{ gapList }}" as="gp" hint-placeholder-count="3">
+              <div style="font-size: 13.5px; padding: 9px 12px; border-radius: 12px; background: var(--color-bg);">{{ gp.line }}</div>
+            </sc-for>
+          </div>
+          <a href="SPEC Tech Day.dc.html" style="font-size: 14px;">Open the full phone day →</a>
+        </div>
+
+        <div style="width: 300px; max-width: 100%; height: 600px; flex: none; border-radius: 40px; background: #201e1d; padding: 10px; box-sizing: border-box; box-shadow: var(--shadow-lg);">
+          <div style="width: 100%; height: 100%; border-radius: 31px; background: var(--color-bg); overflow: hidden; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; padding: 12px 22px 4px; font-size: 12px; font-weight: 600;"><span>7:12</span><span>5G</span></div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 16px 10px;">
+              <span style="font-family: var(--font-heading); font-size: 19px;">Morning, {{ phoneName }}</span>
+              <span style="font-family: var(--font-heading); font-size: 14px;">site<span style="color: #4f7a3f;">VIP</span></span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 5px; padding: 0 12px 10px;">
+              <sc-for list="{{ phoneDays }}" as="pd" hint-placeholder-count="5">
+                <button type="button" onClick="{{ pd.go }}" style="{{ pd.style }}">{{ pd.label }}</button>
+              </sc-for>
+            </div>
+            <div style="flex: 1; overflow-y: auto; scrollbar-width: none; padding: 0 12px 16px; display: grid; gap: 10px; align-content: start;">
+              <sc-if value="{{ phoneBlocked }}" hint-placeholder-val="{{ false }}">
+                <div style="background: color-mix(in srgb, #a63b26 12%, transparent); border-radius: 16px; padding: 12px 14px; font-size: 13.5px; line-height: 20px; color: #7d2c1c;"><strong>Not clear to work.</strong> EWP licence expired on 2 Sep. You can't be booked on a job until it's renewed. Talk to Sam Price.</div>
+              </sc-if>
+              <sc-if value="{{ phoneClear }}" hint-placeholder-val="{{ true }}">
+                <div style="background: color-mix(in srgb, #4f7a3f 12%, transparent); border-radius: 16px; padding: 10px 14px; font-size: 13px; color: #3d5c31;"><strong>Clear to work.</strong> Tickets and induction current.</div>
+              </sc-if>
+              <sc-if value="{{ phoneHasJob }}" hint-placeholder-val="{{ true }}">
+                <div style="background: #fff; border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-sm); display: grid; gap: 4px;">
+                  <span style="display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: color-mix(in srgb, var(--color-text) 62%, transparent);"><span>{{ phoneJob.time }}</span><span>{{ phoneJob.id }}</span></span>
+                  <span style="font-size: 16px; font-weight: 700; line-height: 1.3;">{{ phoneJob.title }}</span>
+                  <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 72%, transparent);">{{ phoneJob.site }}</span>
+                  <span style="font-size: 12.5px; font-weight: 600; color: #3d5c31; margin-top: 4px;">{{ phoneJob.hours }}</span>
+                  <span style="display: block; text-align: center; margin-top: 8px; border-radius: 999px; padding: 12px; font-size: 14px; font-weight: 700; background: var(--color-accent); color: #fff;">Sign the SWMS and start</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ phoneNoJob }}" hint-placeholder-val="{{ false }}">
+                <div style="background: #fff; border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-sm); font-size: 14px; line-height: 21px;"><strong>Nothing booked for {{ phoneDayLabel }}.</strong> Your supervisor can see the gap on the schedule.</div>
+              </sc-if>
+            </div>
+            <div style="display: flex; justify-content: space-around; padding: 8px 10px 16px; background: #fff; font-size: 11px; color: color-mix(in srgb, var(--color-text) 65%, transparent);"><span style="font-weight: 700; color: var(--color-text);">Today</span><span>Report</span><span>My page</span><span>Ask SPEC</span></div>
+          </div>
         </div>
       </section>
     </sc-if>
@@ -188,6 +1022,69 @@
 
     <sc-if value="{{ onCatalogue }}" hint-placeholder-val="{{ false }}">
       <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Live supplier prices</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">From your trade accounts: Middy's, Rexel, MMEM and CNW. Updated every morning.</span>
+          </div>
+          <div style="display: grid; gap: 6px; margin-top: 16px;">
+            <div style="display: grid; grid-template-columns: minmax(0, 2fr) repeat(4, minmax(70px, 1fr)); gap: 8px; padding: 0 12px; font-size: 12px; font-weight: 700; color: color-mix(in srgb, var(--color-text) 65%, transparent);">
+              <span>Item</span><span>Middy's</span><span>Rexel</span><span>MMEM</span><span>CNW</span>
+            </div>
+            <sc-for list="{{ supplierRows }}" as="sr" hint-placeholder-count="4">
+              <div style="display: grid; grid-template-columns: minmax(0, 2fr) repeat(4, minmax(70px, 1fr)); gap: 8px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--color-bg);">
+                <span style="font-size: 14px; font-weight: 700; min-width: 0;">{{ sr.item }}</span>
+                <sc-for list="{{ sr.cells }}" as="sc" hint-placeholder-count="4">
+                  <span style="{{ sc.style }}"><strong>{{ sc.price }}</strong><span style="display: block; font-size: 11.5px; font-weight: 400;">{{ sc.stock }}</span></span>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <div style="display: flex; flex-wrap: wrap; gap: clamp(20px,3vw,28px); align-items: stretch;">
+          <section style="flex: 1 1 340px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Materials for J-4431</h2>
+            <p style="font-size: 13.5px; line-height: 20px; margin: 6px 0 14px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Metro Freight warehouse, Botany. Built from the job's pre-builds, each line at the best price with stock near the site.</p>
+            <div style="display: grid; gap: 6px;">
+              <sc-for list="{{ siteList }}" as="sl" hint-placeholder-count="4">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 10px 14px; border-radius: 14px; background: var(--color-bg); font-size: 14px;">
+                  <span style="min-width: 0; flex: 1 1 200px;"><strong>{{ sl.qty }} × {{ sl.item }}</strong><span style="display: block; font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ sl.from }}</span></span>
+                  <span style="{{ sl.chip }}">{{ sl.ready }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px;">
+              <strong style="font-size: 15px;">{{ siteTotal }}</strong>
+              <sc-if value="{{ siteOpen }}" hint-placeholder-val="{{ true }}">
+                <button type="button" onClick="{{ orderAll }}" class="btn btn-primary">Order it all</button>
+              </sc-if>
+              <sc-if value="{{ siteDone }}" hint-placeholder-val="{{ false }}">
+                <span style="{{ siteDoneChip }}">3 orders sent · on site Thu 7am</span>
+              </sc-if>
+            </div>
+          </section>
+
+          <section style="flex: 1 1 340px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Supplier holdups</h2>
+            <p style="font-size: 13.5px; line-height: 20px; margin: 6px 0 14px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">SPEC watches every order. When something's late you see why, and a way around it.</p>
+            <div style="display: grid; gap: 8px;">
+              <sc-for list="{{ holdups }}" as="hu" hint-placeholder-count="2">
+                <div style="padding: 12px 14px; border-radius: 14px; background: var(--color-bg); display: grid; gap: 6px;">
+                  <strong style="font-size: 14.5px;">{{ hu.what }}</strong>
+                  <span style="font-size: 13px; line-height: 19px; color: #7d2c1c;">{{ hu.why }}</span>
+                  <span style="font-size: 13.5px; line-height: 20px;">{{ hu.option }}</span>
+                  <sc-if value="{{ hu.open }}" hint-placeholder-val="{{ true }}">
+                    <button type="button" onClick="{{ hu.fix }}" class="btn btn-primary" style="justify-self: start;">{{ hu.action }}</button>
+                  </sc-if>
+                  <sc-if value="{{ hu.done }}" hint-placeholder-val="{{ false }}">
+                    <span style="{{ hu.doneChip }}">{{ hu.doneLabel }}</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
         <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px;">
           <sc-for list="{{ suppliers }}" as="sp" hint-placeholder-count="3">
             <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px 22px;">
@@ -216,7 +1113,7 @@
               </div>
             </sc-for>
           </div>
-          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 22px 0 8px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Kits · pre-built bundles you quote in one line</p>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin: 22px 0 8px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Kits · small bundles you quote in one line. Whole jobs live in Pre-builds.</p>
           <div style="display: grid; gap: 6px;">
             <sc-for list="{{ kitRows }}" as="kt" hint-placeholder-count="3">
               <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--color-bg); font-size: 14px;">
@@ -252,6 +1149,36 @@
 
     <sc-if value="{{ onPipeline }}" hint-placeholder-val="{{ true }}">
     <div>
+    <section aria-label="From your inboxes" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px); margin-bottom: 20px;">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 14px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">From your inboxes</h2>
+        <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ inboxSummary }}</span>
+      </div>
+      <div style="display: grid; gap: 8px; margin-top: 14px;">
+        <sc-for list="{{ inbox }}" as="ib" hint-placeholder-count="6">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; padding: 12px 16px; border-radius: 16px; background: var(--color-bg);">
+            <span style="display: grid; gap: 3px; flex: 1 1 300px; min-width: 0;">
+              <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;"><span style="{{ ib.kindChip }}">{{ ib.kind }}</span><span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ ib.from }}</span></span>
+              <span style="font-size: 14.5px; font-weight: 700; line-height: 21px;">{{ ib.subject }}</span>
+              <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ ib.read }}</span>
+              <sc-if value="{{ ib.hasReply }}" hint-placeholder-val="{{ true }}">
+                <span style="display: grid; gap: 4px; margin-top: 6px; padding: 10px 14px; border-radius: 14px; background: #fff; box-shadow: var(--shadow-sm);">
+                  <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ ib.replyLabel }}</span>
+                  <span style="font-size: 14px; line-height: 21px;">{{ ib.reply }}</span>
+                </span>
+              </sc-if>
+            </span>
+            <sc-if value="{{ ib.open }}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{ ib.act }}" class="btn btn-primary">Approve</button>
+            </sc-if>
+            <sc-if value="{{ ib.done }}" hint-placeholder-val="{{ false }}">
+              <span style="{{ ib.doneChip }}">{{ ib.doneLabel }}</span>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <p style="font-size: 12.5px; line-height: 19px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 62%, transparent);">SPEC reads the work mailboxes the GM and Board approved in Connections. Anything a person marks private is never read.</p>
+    </section>
     <section aria-label="This month" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px; padding-bottom: 24px;">
       <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
         <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px 22px;">
@@ -262,14 +1189,15 @@
       </sc-for>
     </section>
 
-    <section aria-label="Pipeline" style="display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 12px;">
+    <section aria-label="Pipeline" style="display: grid; gap: 10px;">
       <sc-for list="{{ columns }}" as="c" hint-placeholder-count="7">
-        <div style="background: color-mix(in srgb, var(--color-text) 4%, transparent); border-radius: 20px; padding: 14px; display: grid; gap: 10px; align-content: start; min-height: 220px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 4px 4px;">
-            <span style="font-size: 13px; font-weight: 700;">{{ c.label }}</span>
-            <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ c.total }}</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-start; background: var(--color-bg); border-radius: 20px; padding: 12px 14px;">
+          <div style="flex: 0 0 120px; display: grid; gap: 2px; padding: 6px 2px;">
+            <span style="font-size: 14.5px; font-weight: 700;">{{ c.label }}</span>
+            <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ c.count }}{{ c.total }}</span>
           </div>
-          <sc-for list="{{ c.jobs }}" as="j" hint-placeholder-count="2">
+          <div style="flex: 1 1 320px; min-width: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 10px;">
+            <sc-for list="{{ c.jobs }}" as="j" hint-placeholder-count="2">
             <button type="button" onClick="{{ j.open }}" style="{{ j.cardStyle }}">
               <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                 <span style="font-size: 12px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ j.id }}</span>
@@ -283,6 +1211,10 @@
               </span>
             </button>
           </sc-for>
+            <sc-if value="{{ c.empty }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size: 13px; padding: 8px 4px; color: color-mix(in srgb, var(--color-text) 55%, transparent);">Nothing here right now</span>
+            </sc-if>
+          </div>
         </div>
       </sc-for>
     </section>
@@ -297,6 +1229,9 @@
           </div>
           <div style="display: flex; flex-wrap: wrap; gap: 8px;">
             <button type="button" onClick="{{ open.next }}" class="btn btn-primary">{{ open.nextLabel }}</button>
+            <sc-if value="{{ open.hasBack }}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ open.back }}" class="btn btn-secondary">{{ open.backLabel }}</button>
+            </sc-if>
             <button type="button" onClick="{{ close }}" class="btn btn-ghost">Close</button>
           </div>
         </div>
@@ -365,10 +1300,96 @@ const SEED = [
 ];
 const CLEAR = { 'Marcus Bly': false };
 const money2 = n => '$' + n.toFixed(2);
+const CUSTOMERS = [
+  { name: 'Harbourview Build', type: 'Builder', since: 2021, contact: 'Leah Morton, Project Manager', phone: '0412 558 301', email: 'leah@harbourviewbuild.com.au', sites: ['Harbourview Apartments, Pyrmont', 'Wharf Rd townhouses, Rozelle'], lifetime: 612000, won: '7 of 9 won', next: ['Claim 4 due 25 Sep', AMBER], timeline: [['Mon', 'Call', 'Leah confirmed Level 4 starts 6 Oct'], ['12 Sep', 'Email', 'Variation V-13 sent for the DB-3 relocation'], ['28 Aug', 'Paid', 'Claim 3 paid, $23,250']] },
+  { name: 'Northside Health', type: 'Health', since: 2023, contact: 'Dr Ravi Menon, Practice Owner', phone: '0400 921 774', email: 'ravi@northsidehealth.com.au', sites: ['Northside fit-out, St Leonards'], lifetime: 148000, won: '3 of 4 won', next: ['Test and tag overdue', RED], timeline: [['Tue', 'Site', 'V-12 signed on site, 6 extra data points'], ['2 Sep', 'Call', 'Asked about after-hours work in the X-ray room']] },
+  { name: 'Metro Freight', type: 'Logistics', since: 2024, contact: 'Gary Holt, Facilities', phone: '0433 180 562', email: 'gholt@metrofreight.com.au', sites: ['Botany warehouse', 'Port Botany depot'], lifetime: 96000, won: '2 of 2 won', next: ['Book the crew for J-4431', AMBER], timeline: [['Fri', 'Won', 'Accepted the warehouse lighting quote online, $42,000'], ['15 Sep', 'Site', 'Walk-through with Gary, 64 high bays']] },
+  { name: 'St Clare School', type: 'Education', since: 2022, contact: 'Anne Lucas, Business Manager', phone: '02 9398 4410', email: 'alucas@stclare.nsw.edu.au', sites: ['Randwick campus'], lifetime: 183000, won: '5 of 6 won', next: ['Plant room works Wed', GREEN], timeline: [['Thu', 'Email', 'Shutdown notice sent for Wednesday'], ['Mar', 'Service', 'Test and tag, 214 items, 6 replaced']] },
+  { name: 'Harris Strata', type: 'Strata', since: 2025, contact: 'Mia Harris, Strata Manager', phone: '0415 662 019', email: 'mia@harrisstrata.com.au', sites: ['48 Victoria Ave, Chatswood', '12 Hotham Pde, Artarmon'], lifetime: 18400, won: '1 of 3 won', next: ['Follow up Q-2291 today', RED], timeline: [['18 Sep', 'Quote', 'Q-2291 switchboard upgrade sent'], ['9 Sep', 'Call', 'Mia wants three options for the committee']] },
+  { name: 'Coastline Dental', type: 'Health', since: 2023, contact: 'Sophie Tran, Practice Manager', phone: '02 9977 3120', email: 'sophie@coastlinedental.com.au', sites: ['Manly clinic'], lifetime: 41000, won: '2 of 2 won', next: ['Reply to the LED refit enquiry', RED], timeline: [['Today', 'Enquiry', 'Office LED refit, 40 fittings'], ['Jul', 'Service', 'Quarterly emergency lighting test passed']] },
+  { name: 'Bean There', type: 'Hospitality', since: 2025, contact: 'Marco Ricci, Owner', phone: '0421 339 870', email: 'marco@beanthere.com.au', sites: ['Newtown cafe'], lifetime: 15620, won: '1 of 1 won', next: ['Invoice at 38 days, call Marco', RED], timeline: [['Mon', 'Reminder', '30-day reminder sent automatically'], ['17 Aug', 'Invoice', 'INV-8821 sent, $15,620']] },
+  { name: 'Ridge Homes', type: 'Builder', since: 2020, contact: 'Paul Ridge, Director', phone: '0418 700 245', email: 'paul@ridgehomes.com.au', sites: ['Ryde townhouses', 'Epping duplex'], lifetime: 388000, won: '11 of 13 won', next: ['Ask about the Epping job', GREEN], timeline: [['9 Sep', 'Paid', 'INV-8834 paid, $25,080'], ['1 Sep', 'Call', 'Paul mentioned an Epping duplex starting November']] },
+  { name: 'Priya Shah', type: 'Residential', since: 2026, contact: 'Priya Shah, Homeowner', phone: '0402 118 553', email: 'priya.shah@example.com', sites: ['Marrickville house'], lifetime: 0, won: 'New customer', next: ['Quote the EV charger', AMBER], timeline: [['Yesterday', 'Enquiry', 'EV charger install, from the web form']] },
+];
+const PB_MARKUP = 0.4, PB_CHARGE = 135, PB_COST = 64;
+const VAN = ['Van pick list', 'Sent to the crew\u2019s phone the day before, so nobody turns up short'];
+const PB = [
+  { id: 'sb', name: 'Switchboard upgrade', cat: 'Switchboards', jobs: 12, ratio: 7.4 / 6, rise: 0.04, riseLine: 'Rexel and MMEM prices rose 4% on 1 Sep',
+    tiers: [
+      { key: 'good', label: 'Good', name: '12 pole, 4 RCBOs', hrs: 4, items: [['Switchboard enclosure, 12 pole', 'MMEM', 96, 1], ['RCBO 20A 30mA', 'Rexel', 42.6, 4], ['Main switch 63A', 'Rexel', 38.5, 1], ['Sundries', '', 25, 1]] },
+      { key: 'better', label: 'Better', name: '24 pole, 8 RCBOs', hrs: 6, items: [['Switchboard enclosure, 24 pole', 'MMEM', 164, 1], ['RCBO 20A 30mA', 'Rexel', 42.6, 8], ['Main switch 63A', 'Rexel', 38.5, 1], ['Sundries', '', 35, 1]] },
+      { key: 'best', label: 'Best', name: '36 pole, 12 RCBOs, surge protection', hrs: 8, items: [['Switchboard enclosure, 36 pole', 'MMEM', 218, 1], ['RCBO 20A 30mA', 'Rexel', 42.6, 12], ['Surge protection device', 'Rexel', 148, 1], ['Main switch 80A', 'Rexel', 52, 1], ['Sundries', '', 45, 1]] },
+    ],
+    comes: [['SWMS', 'Energised work and isolation'], ['Checklist', '9 steps, isolation to final test'], ['Photos', 'Board before, during and after'], ['Certificate', 'CCEW and test results, filled in from the job'], VAN] },
+  { id: 'ev', name: 'EV charger install', cat: 'EV & solar', jobs: 9, ratio: 5.1 / 4, rise: 0.06, riseLine: 'Charger prices rose 6% on 15 Sep',
+    tiers: [
+      { key: 'good', label: 'Good', name: 'Standard 7 kW', hrs: 4, items: [['EV charger 7 kW', 'CNW', 890, 1], ['Cable 6mm², per metre', 'Rexel', 6.8, 15], ['RCBO 40A Type A', 'Rexel', 96, 1], ['Sundries', '', 30, 1]] },
+      { key: 'better', label: 'Better', name: 'Smart 7 kW, app and solar ready', hrs: 4, items: [['Smart EV charger 7 kW', 'CNW', 1290, 1], ['Cable 6mm², per metre', 'Rexel', 6.8, 15], ['RCBO 40A Type A', 'Rexel', 96, 1], ['Sundries', '', 30, 1]] },
+      { key: 'best', label: 'Best', name: '22 kW three-phase', hrs: 6, items: [['EV charger 22 kW three-phase', 'CNW', 1980, 1], ['Cable 10mm², per metre', 'Rexel', 11.4, 15], ['RCBO 3-phase 40A', 'Rexel', 210, 1], ['Sundries', '', 45, 1]] },
+    ],
+    comes: [['SWMS', 'Working in a switchboard'], ['Checklist', '7 steps, including load check'], ['Photos', 'Board, charger and cable run'], ['Certificate', 'CCEW and test results'], VAN] },
+  { id: 'dl', name: 'Downlight, per point', cat: 'Lighting', jobs: 64, ratio: 0.48 / 0.5, rise: 0,
+    tiers: [
+      { key: 'good', label: 'Good', name: 'LED 10 W, tri-colour', hrs: 0.5, items: [['LED downlight 10 W, tri-colour', 'CNW', 14.2, 1], ['Cable and connector', '', 3.5, 1]] },
+      { key: 'better', label: 'Better', name: 'Dimmable, low-glare', hrs: 0.5, items: [['LED downlight, dimmable low-glare', 'CNW', 24.5, 1], ['Cable and connector', '', 3.5, 1]] },
+      { key: 'best', label: 'Best', name: 'Premium, 5-year warranty', hrs: 0.5, items: [['LED downlight, premium', 'CNW', 38, 1], ['Cable and connector', '', 3.5, 1]] },
+    ],
+    comes: [['SWMS', 'Working at heights, ladder'], ['Checklist', '4 steps'], ['Photos', 'Finished ceiling'], ['Certificate', 'Added to the job\u2019s CCEW'], VAN] },
+  { id: 'fan', name: 'Ceiling fan, supply and install', cat: 'Fans', jobs: 7, ratio: 1.9 / 1.5, rise: 0,
+    tiers: [
+      { key: 'good', label: 'Good', name: 'Standard 3-blade', hrs: 1.5, items: [['Ceiling fan, 3-blade', 'CNW', 129, 1], ['Wall control', 'CNW', 32, 1], ['Sundries', '', 15, 1]] },
+      { key: 'better', label: 'Better', name: 'DC motor with remote', hrs: 1.5, items: [['Ceiling fan, DC motor', 'CNW', 289, 1], ['Wall control', 'CNW', 32, 1], ['Sundries', '', 15, 1]] },
+      { key: 'best', label: 'Best', name: 'DC with light, smart control', hrs: 1.5, items: [['Ceiling fan, DC with light, smart', 'CNW', 449, 1], ['Sundries', '', 15, 1]] },
+    ],
+    comes: [['SWMS', 'Working at heights, ladder'], ['Checklist', '5 steps, including brace check'], ['Photos', 'Brace and finished fan'], ['Certificate', 'CCEW'], VAN] },
+  { id: 'smoke', name: 'Smoke alarms, rental compliance', cat: 'Compliance', jobs: 21, ratio: 1.55 / 1.5, rise: 0,
+    tiers: [
+      { key: 'good', label: 'Good', name: '3 hardwired, interconnected', hrs: 1.5, items: [['Smoke alarm 240 V, interconnect', 'MMEM', 48, 3], ['Sundries', '', 12, 1]] },
+      { key: 'better', label: 'Better', name: '3 with lithium backup', hrs: 1.5, items: [['Smoke alarm 240 V, lithium backup', 'MMEM', 62, 3], ['Sundries', '', 12, 1]] },
+      { key: 'best', label: 'Best', name: '5 alarms, whole home', hrs: 2.5, items: [['Smoke alarm 240 V, lithium backup', 'MMEM', 62, 5], ['Sundries', '', 18, 1]] },
+    ],
+    comes: [['SWMS', 'Working at heights, ladder'], ['Checklist', '6 steps, including interconnect test'], ['Photos', 'Each alarm, fitted'], ['Certificate', 'Smoke alarm compliance statement for the landlord'], VAN] },
+  { id: 'gpo', name: 'Double power point, add new', cat: 'Power', jobs: 38, ratio: 0.7 / 0.75, rise: 0,
+    tiers: [
+      { key: 'good', label: 'Good', name: 'Standard white', hrs: 0.75, items: [['Double power point, white', 'MMEM', 9.85, 1], ['Cable, per metre', 'Rexel', 1.28, 6], ['Sundries', '', 4, 1]] },
+      { key: 'better', label: 'Better', name: 'With USB-C', hrs: 0.75, items: [['Double power point, USB-C', 'MMEM', 38, 1], ['Cable, per metre', 'Rexel', 1.28, 6], ['Sundries', '', 4, 1]] },
+      { key: 'best', label: 'Best', name: 'Outdoor, weatherproof', hrs: 1, items: [['Double power point, IP53', 'MMEM', 46, 1], ['Cable, per metre', 'Rexel', 1.28, 8], ['Sundries', '', 6, 1]] },
+    ],
+    comes: [['SWMS', 'General electrical work'], ['Checklist', '4 steps'], ['Photos', 'Finished outlet'], ['Certificate', 'Added to the job\u2019s CCEW'], VAN] },
+];
+const FROM_JOBS = [
+  { id: 'J-4379', name: 'Townhouse fit-off', cat: 'Fit-off', hrs: 139, mat: 5200, lines: 38 },
+  { id: 'J-4388', name: 'Cafe rewire', cat: 'Rewires', hrs: 87.5, mat: 3100, lines: 26 },
+];
+const derivedPb = f => ({ id: 'd-' + f.id, name: f.name, cat: f.cat, jobs: 1, ratio: 1, rise: 0, derived: f.id,
+  tiers: [{ key: 'std', label: 'As built', name: 'Actual hours and materials from ' + f.id, hrs: f.hrs, items: [['Materials used on ' + f.id + ' (' + f.lines + ' lines)', '', f.mat, 1]] }],
+  comes: [['SWMS', 'Copied from ' + f.id], ['Checklist', 'Copied from ' + f.id], ['Photos', 'The same shots as ' + f.id], ['Certificate', 'CCEW and test results'], VAN] });
+const pbTier = (p, key) => p.tiers.find(t => t.key === key) || p.tiers[0];
+const pbCalc = (p, t, s) => {
+  const fixed = !!s.fixed[p.id], repriced = !!s.repriced[p.id];
+  const actual = Math.round(t.hrs * p.ratio * 10) / 10;
+  const newHrs = Math.ceil(actual * 2) / 2;
+  const hrs = fixed ? newHrs : t.hrs;
+  const matBase = t.items.reduce((a, i) => a + i[2] * i[3], 0);
+  const matNow = matBase * (1 + (p.rise || 0));
+  const matSell = (repriced ? matNow : matBase) * (1 + PB_MARKUP);
+  const labSell = hrs * PB_CHARGE;
+  const ex = matSell + labSell;
+  const realCost = matNow + actual * PB_COST;
+  return { fixed, repriced, actual, newHrs, hrs, matBase, matNow, matSell, labSell, ex, inc: ex * 1.1, margin: (ex - realCost) / ex, slow: p.ratio > 1.05, stale: (p.rise || 0) > 0 };
+};
+const FIXES = [
+  ['Quoting takes all night.', 'Pick a pre-build and the whole job is priced in one line.'],
+  ['Our pre-builds are always wrong.', 'SPEC checks every one against real hours and today\u2019s supplier prices.'],
+  ['We turn up without the right gear.', 'The pre-build becomes the van pick list the day before.'],
+  ['Extras never get charged.', 'Variations are priced from pre-builds and signed on site.'],
+  ['The office re-types everything.', 'Quote, job card, timesheet, certificate and invoice share one set of numbers.'],
+  ['We don\u2019t know if a job made money.', 'Real margin on every pre-build and every job, live.'],
+];
 const TABS = [
-  { key: 'pipeline', label: 'Jobs' }, { key: 'quotes', label: 'Quotes' }, { key: 'schedule', label: 'Schedule' },
-  { key: 'time', label: 'Timesheets' }, { key: 'catalogue', label: 'Catalogue' }, { key: 'stock', label: 'Stock & buying' },
-  { key: 'billing', label: 'Invoices & claims' }, { key: 'service', label: 'Service & assets' },
+  { key: 'pipeline', label: 'Jobs' }, { key: 'leads', label: 'Leads' }, { key: 'tenders', label: 'Tenders' }, { key: 'takeoff', label: 'Takeoff' }, { key: 'customers', label: 'Customers' }, { key: 'ace', label: 'Sales Ace' }, { key: 'jobace', label: 'Jobs Ace' }, { key: 'quotes', label: 'Quotes' }, { key: 'prebuilds', label: 'Pre-builds' }, { key: 'howlong', label: 'How long?' }, { key: 'schedule', label: 'Schedule' },
+  { key: 'time', label: 'Timesheets' }, { key: 'catalogue', label: 'Materials' }, { key: 'stock', label: 'Stock & buying' },
+  { key: 'billing', label: 'Invoices & claims' }, { key: 'wip', label: 'Work in progress' }, { key: 'cash', label: 'Cash flow' }, { key: 'rework', label: 'Callbacks & rework' }, { key: 'tools', label: 'Tools & equipment' }, { key: 'reviews', label: 'Reviews' }, { key: 'service', label: 'Repeat work' },
 ];
 const CAT = [
   { id: 'c1', short: 'TPS 2.5mm cable', name: 'TPS cable 2.5mm\u00b2 twin & earth, 100m', supplier: 'Rexel', cost: 128.40, unit: 'roll', cat: 'Cable', updated: 'Price 1 Sep' },
@@ -383,7 +1404,7 @@ const KITS = [
   { id: 'k2', short: 'Downlight point', name: 'Downlight, supply and install per point', cost: 14.2 + 3.5, hrs: 0.5 },
 ];
 const RATES = [
-  { id: 'r1', name: 'Electrician', cost: 68, charge: 120 },
+  { id: 'r1', name: 'Electrician', cost: 64, charge: 135 },
   { id: 'r2', name: 'Apprentice', cost: 32, charge: 75 },
 ];
 const Q_START = [
@@ -445,12 +1466,30 @@ const REG = {
       rr('V-12 · J-4402 · extra 6 data points', '$1,860 · signed by client on site', 'Approved', GREEN),
       rr('V-13 · J-4417 · relocate DB-3', '$3,400', 'Waiting on client', AMBER),
     ] },
-    { title: 'Invoices & getting paid', blurb: 'Invoice the moment the job is signed off. It goes to Xero on its own. SPEC sends polite reminders at 7, 14 and 30 days and tells you when to call.', rows: [
+    { title: 'Invoices & getting paid', blurb: 'Invoice the moment the job is signed off. It goes to Xero on its own. Need to change one? Edit it in place and SPEC sends Xero the credit note and the new invoice. Reminders go at 7, 14 and 30 days, and SPEC tells you when to call.', rows: [
       rr('INV-8821 · Bean There · J-4388', '$15,620 · 38 days', 'Call them today', RED),
       rr('INV-8834 · Ridge Homes · J-4379', '$25,080', 'Paid · in Xero', GREEN),
     ] },
   ],
+  tenders: [
+    { title: 'Tenders open', blurb: 'Builder packages from EstimateOne, Cordell and email land here with the due date, drawings and every addendum. SPEC checks each one against what you win and what makes money, and says go or no-go.', rows: [
+      rr('Harbourview Build · Level 5 offices', 'Due 30 Sep · 3 addenda · takeoff done', 'Go · priced', GREEN),
+      rr('Ridge Homes · Epping duplex', 'Due 7 Oct · drawings in · you win 85% with Ridge', 'Go · takeoff next', AMBER),
+      rr('Apex Construct · 120-unit tower, Parramatta', 'Due 3 Oct · 14 weeks of work for 4 crews', 'No-go · too big for your crews', RED),
+      rr('Northside Health · stage 2 fit-out', 'Invited · due 10 Oct', 'Go · repeat client', GREEN),
+    ] },
+    { title: 'Won and lost', blurb: 'Every tender result is kept, with the winning price where you can get it, so the next price is sharper.', rows: [
+      rr('St Clare School · library refit', 'Won 12 Sep · $64,000', 'Won', GREEN),
+      rr('Metro Freight · warehouse lighting', 'Won 5 Sep · $42,000', 'Won', GREEN),
+      rr('City Towers · common areas', 'Lost 28 Aug · 9% over the winner', 'Lost on price', AMBER),
+    ] },
+  ],
   service: [
+    { title: 'Repeat work this year', blurb: 'Contracts that book, remind and invoice themselves. The steadiest money a trade business has.', rows: [
+      rr('Recurring revenue', '14 contracts · $186,000 a year', '11% of revenue', GREEN),
+      rr('Renewals due in 60 days', 'Coastline Dental, St Clare School', 'Renewal quotes drafted', AMBER),
+      rr('Customers with no contract yet', '23 repeat customers who could have one', 'Offer list ready', AMBER),
+    ] },
     { title: 'Service contracts & recurring work', blurb: 'Maintenance agreements that book themselves: the job is created, the tech is scheduled and the client is told, on the cycle in the contract.', rows: [
       rr('Coastline Dental · quarterly emergency lighting test', 'Next visit 2 Oct', 'Auto-booked', GREEN),
       rr('Metro Freight · 6-monthly thermal scan', 'Next visit 14 Oct', 'Needs a tech', AMBER),
@@ -467,19 +1506,37 @@ const REG = {
 };
 
 class Component extends DCLogic {
-  state = { jobs: SEED, openId: 'J-4402', draft: '', tab: 'pipeline', lines: Q_START, markup: 0.35, sent: false, sched: SCHED_START, booked: false, approved: false, catQuery: '' };
+  state = { jobs: SEED, openId: 'J-4402', draft: '', tab: 'pipeline', lines: Q_START, markup: 0.4, sent: false, sched: SCHED_START, booked: false, approved: false, catQuery: '', pbId: 'sb', tier: 'better', fixed: {}, repriced: {}, made: {}, pbQuery: '', fixesOpen: true, pbNote: '', custId: 'Harris Strata', custQuery: '', notes: {}, noteDraft: '', nextDone: {} };
+
+  componentDidMount() {
+    try { const t = new URLSearchParams(window.location.search).get('tab'); if (t) this.setState({ tab: t }); } catch (e) {}
+  }
 
   renderVals() {
     const s = this.state;
     const base = this.baseVals();
-    const tabs = TABS.map(t => ({
+    const GROUPS = [
+      { key: 'win', label: 'Win the work', tabs: ['leads', 'tenders', 'takeoff', 'customers', 'ace', 'quotes', 'prebuilds', 'howlong'] },
+      { key: 'do', label: 'Do the work', tabs: ['pipeline', 'jobace', 'schedule', 'time', 'catalogue', 'stock', 'tools'] },
+      { key: 'paid', label: 'Get paid and keep them', tabs: ['billing', 'wip', 'cash', 'service', 'rework', 'reviews'] },
+    ];
+    const grp = GROUPS.find(g => g.tabs.includes(s.tab)) || GROUPS[1];
+    const tabGroups = GROUPS.map(g => ({
+      label: g.label,
+      select: () => this.setState({ tab: g.tabs[0] === 'leads' ? 'leads' : g.tabs[0] }),
+      style: 'cursor:pointer;border:0;border-radius:999px;padding:12px 22px;font-family:var(--font-body);font-size:15px;font-weight:700;white-space:nowrap;'
+        + (g.key === grp.key ? 'background:var(--color-text);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);box-shadow:var(--shadow-sm);'),
+    }));
+    const tabs = TABS.filter(t => grp.tabs.includes(t.key)).sort((a, b) => grp.tabs.indexOf(a.key) - grp.tabs.indexOf(b.key)).map(t => ({
       label: t.label,
       select: () => this.setState({ tab: t.key }),
-      style: 'cursor:pointer;border:0;border-radius:999px;padding:10px 18px;font-family:var(--font-body);font-size:14px;white-space:nowrap;'
-        + (t.key === s.tab ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);box-shadow:var(--shadow-sm);'),
+      style: 'cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13.5px;white-space:nowrap;'
+        + (t.key === s.tab ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
     }));
 
-    const itemOf = l => l.kind === 'Item' ? CAT.find(c => c.id === l.ref) : l.kind === 'Kit' ? KITS.find(k => k.id === l.ref) : RATES.find(r => r.id === l.ref);
+    const allPb = [...PB, ...FROM_JOBS.filter(f => s.made[f.id]).map(derivedPb)];
+    const pbKit = ref => { const [, id, tk] = ref.split(':'); const p = allPb.find(x => x.id === id); if (!p) return { name: 'Pre-build', cost: 0, hrs: 0, unit: 'pre-build' }; const t = pbTier(p, tk); const c = pbCalc(p, t, s); return { name: p.name + ' · ' + t.label, cost: c.matNow, hrs: c.hrs, unit: 'pre-build' }; };
+    const itemOf = l => l.kind === 'Item' ? CAT.find(c => c.id === l.ref) : l.kind === 'Kit' ? (KITS.find(k => k.id === l.ref) || pbKit(l.ref)) : RATES.find(r => r.id === l.ref);
     let matCost = 0, matSell = 0, labCost = 0, labSell = 0, hrs = 0;
     const qLines = s.lines.map((l, i) => {
       const it = itemOf(l);
@@ -491,7 +1548,7 @@ class Component extends DCLogic {
       }
       const step = l.kind === 'Labour' ? 1 : 1;
       return {
-        name: it.name, kind: l.kind === 'Labour' ? 'Labour' : l.kind === 'Kit' ? 'Kit · includes ' + it.hrs + ' h labour' : it.supplier,
+        name: it.name, kind: l.kind === 'Labour' ? 'Labour' : l.kind === 'Kit' ? (it.unit === 'pre-build' ? 'Pre-build' : 'Kit') + ' · includes ' + it.hrs + ' h labour' : it.supplier,
         unitLine: l.kind === 'Labour' ? money2(it.charge) + ' per hour' : money2(it.cost) + ' cost per ' + (it.unit || 'kit'),
         qty: l.kind === 'Labour' ? l.qty + ' h' : String(l.qty),
         sell: money(sell),
@@ -528,12 +1585,66 @@ class Component extends DCLogic {
       }),
     }));
 
+    const whoName = s.schedWho || 'Tom Reyes';
+    const dayIdx = s.schedDay ?? 0;
+    const bookedOf = c => c.clear ? sched[c.name].filter(Boolean).length : 0;
+    const totalDays = CREW.length * DAYS.length;
+    const totalBooked = CREW.reduce((a, c) => a + bookedOf(c), 0);
+    const pctAll = Math.round(totalBooked / totalDays * 100);
+    const bTone = p => p >= 86 ? GREEN : p >= 70 ? AMBER : RED;
+    const crewRowsX = crewRows.map((r, i) => {
+      const c = CREW[i];
+      const p = Math.round(bookedOf(c) / DAYS.length * 100);
+      return { ...r, booked: p + '%', bookedChip: chip(c.clear ? bTone(p) : RED) + 'align-self:center;justify-self:start;',
+        select: () => this.setState({ schedWho: c.name }),
+        nameStyle: 'all:unset;cursor:pointer;display:grid;gap:2px;padding:8px 10px;border-radius:12px;box-sizing:border-box;' + (c.name === whoName ? 'background:var(--color-bg);box-shadow:0 0 0 2px var(--color-accent);' : '') };
+    });
+    const gaps = CREW.filter(c => c.clear).map(c => ({ c, days: DAYS.filter((d, di) => !sched[c.name][di]) })).filter(g => g.days.length);
+    const who = CREW.find(c => c.name === whoName) || CREW[0];
+    const jid = who.clear ? sched[who.name][dayIdx] : '';
+    const jb = jid ? s.jobs.find(j => j.id === jid) : null;
+    const blocked = CREW.filter(c => !c.clear);
+    const schedX = {
+      schedPct: pctAll + '%', schedTone: bTone(pctAll),
+      schedSummary: totalBooked + ' of ' + totalDays + ' crew days are on a job. Target 86%.',
+      gapCount: String(gaps.reduce((a, g) => a + g.days.length, 0)),
+      gapList: gaps.map(g => ({ line: g.c.name + ': ' + g.days.map(d => d.split(' ')[0]).join(', ') })),
+      blockedCount: String(blocked.length),
+      blockedLine: blocked.length ? blocked.map(c => c.name).join(', ') + ', until the EWP licence is renewed.' : 'Everyone is clear to work.',
+      phoneName: who.name.split(' ')[0],
+      phoneClear: who.clear, phoneBlocked: !who.clear,
+      phoneDays: DAYS.map((d, di) => ({
+        label: d.split(' ')[0] + (who.clear && sched[who.name][di] ? '' : ' ·'),
+        go: () => this.setState({ schedDay: di }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:6px 10px;font-family:var(--font-body);font-size:12px;font-weight:600;white-space:nowrap;' + (di === dayIdx ? 'background:var(--color-text);color:#fff;' : 'background:#fff;color:var(--color-text);'),
+      })),
+      phoneHasJob: who.clear && !!jb, phoneNoJob: who.clear && !jb,
+      phoneJob: jb ? { id: jb.id, title: jb.title, site: jb.site + ' · ' + jb.client, time: '7:00 – 3:30', hours: '7.6 h billable' } : { id: '', title: '', site: '', time: '', hours: '' },
+      phoneDayLabel: DAYS[dayIdx],
+    };
     const q = s.catQuery.trim().toLowerCase();
     return {
       ...base,
-      tabs,
+      tabs, tabGroups,
       onPipeline: s.tab === 'pipeline', onQuotes: s.tab === 'quotes', onSchedule: s.tab === 'schedule', onTime: s.tab === 'time', onCatalogue: s.tab === 'catalogue',
       onRegister: !!REG[s.tab],
+      onPrebuilds: s.tab === 'prebuilds',
+      onCustomers: s.tab === 'customers',
+      onLeads: s.tab === 'leads',
+      onHowLong: s.tab === 'howlong',
+      onTakeoff: s.tab === 'takeoff', onWip: s.tab === 'wip', onCash: s.tab === 'cash',
+      ...this.takeoffVals(s), ...this.moneyVals(s),
+      onAce: s.tab === 'ace' || s.tab === 'jobace',
+      ...this.aceVals(s),
+      onRework: s.tab === 'rework', onTools: s.tab === 'tools', onReviews: s.tab === 'reviews',
+      ...this.careVals(s),
+      ...this.matVals(s),
+      ...this.uwVals(s),
+      ...this.timeVals(s),
+      ...this.leadVals(s),
+      ...this.inboxVals(s),
+      ...this.crmVals(s),
+      ...this.pbVals(s, addLine),
       qLines,
       qAdd: [
         ...CAT.slice(0, 4).map(c => ({ label: c.short, add: () => addLine('Item', c.id) })),
@@ -547,7 +1658,7 @@ class Component extends DCLogic {
         { label: 'GST', value: money(exGst * 0.1) },
         { label: 'Your cost', value: money(cost) },
       ],
-      markups: [0.25, 0.35, 0.45].map(m => ({
+      markups: [0.3, 0.4, 0.5].map(m => ({
         label: Math.round(m * 100) + '%',
         select: () => this.setState({ markup: m, sent: false }),
         style: 'cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13.5px;font-weight:600;'
@@ -562,7 +1673,8 @@ class Component extends DCLogic {
         : qm < 0.4 ? 'Under the 40% benchmark. Try a higher markup or check the labour hours before you send.' : 'Healthy margin. Send it and SPEC follows up in 3 days if there\u2019s no answer.',
 
       days: DAYS,
-      crewRows,
+      crewRows: crewRowsX,
+      ...schedX,
       waitingLine: s.booked ? 'Nothing. J-4431 is booked and the crew can see it on their phones.' : 'J-4431 Warehouse lighting, Metro Freight · 3 days, 2 people',
 
       sheets: SHEETS.map(t => ({ ...t, billable: t.bill + '%', billTone: t.bill >= 86 ? GREEN : t.bill >= 75 ? AMBER : RED, state: s.approved || t.done ? 'Approved' : 'Waiting', chip: chip(s.approved || t.done ? GREEN : AMBER) })),
@@ -576,6 +1688,572 @@ class Component extends DCLogic {
       kitRows: KITS.map(k => ({ name: k.name, line: money(k.cost) + ' materials + ' + k.hrs + ' h labour' })),
 
       groups: (REG[s.tab] || []).map(g => ({ ...g, rows: g.rows.map(r => ({ ...r, chip: chip(r.tone) })) })),
+    };
+  }
+
+  uwVals(s) {
+    const SAMPLE_TEXT = 'Wants a 7 kW charger in the garage for a new Tesla. House is from the 1970s and the board is in the hallway.';
+    const photos = s.uwPhotos || 0, plans = s.uwPlans || '';
+    const dot = t => 'width:9px;height:9px;border-radius:50%;flex:none;margin-top:6px;background:' + t + ';';
+    const ev = PB.find(x => x.id === 'ev'), sb = PB.find(x => x.id === 'sb');
+    const cEv = pbCalc(ev, pbTier(ev, 'better'), s), cSb = pbCalc(sb, pbTier(sb, 'good'), s);
+    const extraH = 1.2 + 1.5;
+    const inc = cEv.inc + cSb.inc + extraH * PB_CHARGE * 1.1;
+    const hrs = cEv.hrs + cSb.hrs + extraH;
+    const setPhotos = n => this.setState({ uwPhotos: n, uwReady: false });
+    return {
+      uwPhotosLine: photos ? photos + ' photos added' : 'Drop photos of the site, or tap to add',
+      uwPlansLine: plans ? plans : 'Optional. PDF or a photo of a sketch',
+      uwText: s.uwText || '',
+      setUwText: e => this.setState({ uwText: e.target.value, uwReady: false }),
+      uwOver: e => e.preventDefault(),
+      uwDropPhotos: e => { e.preventDefault(); const n = (e.dataTransfer && e.dataTransfer.files || []).length; if (n) setPhotos(n); },
+      uwPickPhotos: e => { const n = (e.target.files || []).length; if (n) setPhotos(n); },
+      uwDropPlans: e => { e.preventDefault(); const x = e.dataTransfer && e.dataTransfer.files[0]; if (x) this.setState({ uwPlans: x.name, uwReady: false }); },
+      uwPickPlans: e => { const x = e.target.files && e.target.files[0]; if (x) this.setState({ uwPlans: x.name, uwReady: false }); },
+      uwSample: () => this.setState({ uwPhotos: 3, uwText: SAMPLE_TEXT, uwReady: true }),
+      uwRead: () => this.setState(st => ({ uwReady: true, uwPhotos: st.uwPhotos || 3, uwText: st.uwText || SAMPLE_TEXT })),
+      uwReady: !!s.uwReady,
+      uwSees: [
+        ['Photo 1', 'Switchboard with ceramic fuses and no safety switches. It needs upgrading before a charger can go on.', RED],
+        ['Photo 1', 'The backing board looks like asbestos, common before 1980. Test it before work starts.', RED],
+        ['Photo 2', 'Garage wall is brick, about 12 m from the board.', GREEN],
+        ['Photo 3', 'Single-phase meter, so a 7 kW charger suits.', GREEN],
+        ['Message', '7 kW charger in the garage for a Tesla. House from the 1970s.', GREEN],
+      ].map(([from, text, t]) => ({ from, text, dot: dot(t) })),
+      uwScope: [
+        { label: 'EV charger install · Better, smart 7 kW', value: money(cEv.inc) },
+        { label: 'Switchboard upgrade · Good, 12 pole', value: money(cSb.inc) },
+        { label: 'Home built before 1980', value: '+1.2 h' },
+        { label: 'Asbestos backing board', value: '+1.5 h' },
+      ],
+      uwTotal: money(inc),
+      uwLine: 'inc GST · ' + (Math.round(hrs * 10) / 10) + ' hours · hours from How long?, parts at today\u2019s supplier prices',
+      uwQOpen: !s.uwQSent, uwQDone: !!s.uwQSent,
+      uwSendQ: () => this.setState({ uwQSent: true }),
+      uwOpen: !s.uwBuilt, uwBuilt: !!s.uwBuilt, uwDoneChip: chip(GREEN),
+      uwBuild: () => this.setState(st => ({ uwBuilt: true, jobs: st.jobs.map(j => j.id === 'E-118' ? { ...j, stage: 'quoted', title: 'EV charger and switchboard upgrade', quote: Math.round(inc / 1.1), flag: 'Sent today' } : j) })),
+    };
+  }
+
+  takeoffVals(s) {
+    const ROOMS = [['Reception', 0, 0, 34, 40], ['Office 1', 34, 0, 33, 40], ['Office 2', 67, 0, 33, 40], ['Open plan', 0, 40, 67, 60], ['Kitchen', 67, 40, 33, 30], ['Comms', 67, 70, 33, 30]];
+    const dl = PB.find(x => x.id === 'dl'), gpo = PB.find(x => x.id === 'gpo'), sb = PB.find(x => x.id === 'sb');
+    const TYPES = [
+      { k: 'dl', label: 'Downlights', tone: '#c67139', per: [6, 5, 5, 24, 5, 3], unit: pbCalc(dl, pbTier(dl, 'better'), s).inc, from: 'Downlight pre-build · Better' },
+      { k: 'gpo', label: 'Double power points', tone: '#4f7a3f', per: [4, 4, 4, 12, 6, 2], unit: pbCalc(gpo, pbTier(gpo, 'good'), s).inc, from: 'Power point pre-build · Good' },
+      { k: 'data', label: 'Data points', tone: '#201e1d', per: [2, 3, 3, 8, 0, 2], unit: 104.5, from: 'Data point rate' },
+      { k: 'sb', label: 'Switchboard', tone: '#a63b26', per: [0, 0, 0, 0, 0, 1], unit: pbCalc(sb, pbTier(sb, 'best'), s).inc, from: 'Switchboard pre-build · Best' },
+    ];
+    const sel = s.toType || '';
+    const marks = [];
+    TYPES.forEach((t, ti) => ROOMS.forEach(([, rx, ry, rw, rhh], ri) => {
+      const n = t.per[ri]; if (!n) return;
+      const cols = Math.max(1, Math.ceil(Math.sqrt(n * rw / rhh)));
+      const rows = Math.ceil(n / cols);
+      for (let i = 0; i < n; i++) {
+        const x = rx + ((i % cols) + 0.5) * rw / cols + (ti - 1.5) * 1.4;
+        const y = ry + 8 + (Math.floor(i / cols) + 0.5) * (rhh - 10) / rows + (ti - 1.5) * 1.4;
+        const size = t.k === 'sb' ? 16 : 10;
+        const dim = sel && sel !== t.k;
+        marks.push({ style: 'position:absolute;left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;width:' + size + 'px;height:' + size + 'px;margin:-' + size / 2 + 'px 0 0 -' + size / 2 + 'px;border-radius:' + (t.k === 'sb' ? '4px' : '50%') + ';background:' + t.tone + ';opacity:' + (dim ? 0.15 : 1) + ';' + (sel === t.k ? 'box-shadow:0 0 0 3px #fff, 0 0 0 5px ' + t.tone + ';' : '') });
+      }
+    }));
+    const total = TYPES.reduce((a, t) => a + t.per.reduce((x, y) => x + y, 0) * t.unit, 0);
+    return {
+      toFileLine: s.toFile ? 'From ' + s.toFile : 'From HB-L5-E01 Electrical layout.pdf · rev C',
+      toPick: e => { const x = e.target.files && e.target.files[0]; if (x) this.setState({ toFile: x.name }); },
+      toRooms: ROOMS.map(([name, x, y, w, hh]) => ({ name, style: 'position:absolute;left:' + x + '%;top:' + y + '%;width:' + w + '%;height:' + hh + '%;box-sizing:border-box;border:2px solid color-mix(in srgb, var(--color-text) 30%, transparent);' })),
+      toMarks: marks,
+      toTypes: TYPES.map(t => {
+        const n = t.per.reduce((a, b) => a + b, 0);
+        return {
+          label: t.label, count: String(n), price: money(n * t.unit) + ' · ' + t.from, dot: 'width:12px;height:12px;flex:none;border-radius:' + (t.k === 'sb' ? '3px' : '50%') + ';background:' + t.tone + ';',
+          select: () => this.setState({ toType: sel === t.k ? '' : t.k }),
+          style: 'cursor:pointer;border:0;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;box-sizing:border-box;padding:12px 14px;border-radius:14px;font-family:var(--font-body);font-size:14px;color:var(--color-text);background:var(--color-bg);' + (sel === t.k ? 'box-shadow:0 0 0 2px ' + t.tone + ';' : ''),
+        };
+      }),
+      toCable: '1,240 m · in each point price',
+      toTotal: money(total),
+      toTotalLine: 'inc GST · 99 items counted in 4 seconds · hours from How long?',
+      toOpen: !s.toBuilt, toBuilt: !!s.toBuilt, toDoneChip: chip(GREEN),
+      toBuild: () => this.setState({ toBuilt: true }),
+    };
+  }
+
+  moneyVals(s) {
+    const d = s.moneyDone || {};
+    const mark = id => this.setState(st => ({ moneyDone: { ...(st.moneyDone || {}), [id]: true } }));
+    const T = (label, value, note, tone) => ({ label, value, note, tone: tone || 'var(--color-text)' });
+    const W = [
+      { id: 'w1', job: 'J-4417', name: 'Harbourview Apartments, L3–4', quote: 186000, cost: 71200, pct: 0.62, claimed: 93000, margin: 0.38 },
+      { id: 'w2', job: 'J-4402', name: 'Northside fit-out', quote: 64000, cost: 41800, pct: 0.8, claimed: 51200, margin: 0.18 },
+      { id: 'w3', job: 'J-4379', name: 'Townhouse fit-off, Ryde', quote: 58000, cost: 34100, pct: 0.95, claimed: 46400, margin: 0.39 },
+      { id: 'w4', job: 'J-4425', name: 'St Clare plant room', quote: 18500, cost: 6200, pct: 0.4, claimed: 0, margin: 0.42 },
+      { id: 'w5', job: 'J-4431', name: 'Metro Freight warehouse', quote: 42000, cost: 3900, pct: 0.05, claimed: 12600, margin: 0.4 },
+    ];
+    const rows = W.map(w => {
+      const earned = w.quote * w.pct;
+      const diff = (d[w.id] ? earned : w.claimed) - earned;
+      const low = w.margin < 0.3;
+      let state, tone, advice, action = '', doneLabel = '';
+      if (low) { state = 'Margin at risk'; tone = RED; advice = 'Forecast margin ' + Math.round(w.margin * 100) + '% against a quoted 38%. Hours are running over. Price the extra work as a variation.'; action = 'Draft the variation'; doneLabel = 'V-15 drafted for Ravi'; }
+      else if (diff < -1000) { state = 'Under-billed'; tone = AMBER; advice = money(-diff) + ' of work done and not billed. Claim it now.'; action = 'Raise the claim, ' + money(-diff); doneLabel = 'Claim sent · in Xero'; }
+      else if (diff > 1000) { state = 'Billed ahead'; tone = GREEN; advice = money(diff) + ' billed ahead of the work. Good for cash. It is owed back in work.'; }
+      else { state = 'On track'; tone = GREEN; advice = 'Billing matches the work done.'; }
+      return {
+        id: w.job, name: w.name, state, chip: chip(tone), advice,
+        bar: 'height:100%;border-radius:999px;background:' + tone + ';width:' + Math.round(w.pct * 100) + '%;',
+        cells: [
+          { label: 'Quoted', value: money(w.quote), tone: 'var(--color-text)' },
+          { label: 'Done', value: Math.round(w.pct * 100) + '%', tone: 'var(--color-text)' },
+          { label: 'Cost so far', value: money(w.cost), tone: 'var(--color-text)' },
+          { label: 'Billed', value: money(d[w.id] && !low ? earned : w.claimed), tone: 'var(--color-text)' },
+          { label: 'Forecast margin', value: Math.round(w.margin * 100) + '%', tone: low ? RED : w.margin < 0.38 ? AMBER : GREEN },
+        ],
+        open: !!action && !d[w.id], done: !!d[w.id] && !!action, doneChip: chip(GREEN), doneLabel, action, act: () => mark(w.id),
+      };
+    });
+    const under = W.filter(w => !d[w.id] && w.margin >= 0.3).reduce((a, w) => a + Math.max(0, w.quote * w.pct - w.claimed), 0);
+    const ahead = W.reduce((a, w) => a + Math.max(0, w.claimed - w.quote * w.pct), 0);
+    const IN = [38, 52, 41, 29, 61, 34, 47, 33, 58, 40, 44, 36, 55], OUT = [44, 39, 48, 62, 41, 45, 39, 71, 42, 46, 40, 63, 43];
+    const NOTES = { 3: 'BAS', 7: 'Super and supplier accounts', 11: 'Insurance renewal' };
+    const boost = s.cashFixed ? 38 : 0;
+    let bal = 142; const bals = IN.map((x, i) => (bal += x - OUT[i] + (i === 1 ? boost : 0)));
+    const min = Math.min(...bals), minIdx = bals.indexOf(min);
+    const k = n => '$' + n + 'k';
+    return {
+      wipStats: [
+        T('Work in progress', money(W.reduce((a, w) => a + w.quote * (1 - w.pct), 0)), 'still to deliver on open jobs'),
+        T('Under-billed', money(under), under ? 'done, not yet billed' : 'all billed', under ? AMBER : GREEN),
+        T('Billed ahead', money(ahead), 'owed back in work'),
+        T('Margin at risk', '1 job', 'J-4402 · forecast 18%', RED),
+      ],
+      wipRows: rows,
+      cashStats: [
+        T('Cash today', '$142,000', 'across your Xero accounts'),
+        T('Lowest point', k(min), 'week ' + (minIdx + 1) + ' of 13', min < 80 ? RED : GREEN),
+        T('Owed to you', '$96,400', '6 invoices · 1 over 30 days', AMBER),
+        T('You owe', '$58,200', 'suppliers and subbies · next 30 days'),
+      ],
+      cashWeeks: IN.map((x, i) => ({
+        label: 'W' + (i + 1),
+        inBar: 'width:14px;border-radius:5px 5px 0 0;background:#4f7a3f;height:' + Math.round(x / 72 * 130) + 'px;',
+        outBar: 'width:14px;border-radius:5px 5px 0 0;background:#c67139;height:' + Math.round(OUT[i] / 72 * 130) + 'px;',
+        bal: k(bals[i]),
+        balStyle: 'font-size:12px;font-weight:700;padding:2px 6px;border-radius:999px;' + (bals[i] < 80 ? 'background:color-mix(in srgb, ' + RED + ' 14%, transparent);color:' + RED + ';' : ''),
+        note: NOTES[i] || '',
+      })),
+      cashAdvice: s.cashFixed ? 'Done. With the Harbourview claim and Bean There\u2019s invoice in, the lowest week is ' + k(min) + ', above your $80,000 buffer.' : 'Week ' + (minIdx + 1) + ' drops to ' + k(min) + ', under your $80,000 buffer. Claim the $22,300 Harbourview has earned and collect Bean There\u2019s $15,620, and it stays above.',
+      cashAdviceBg: 'color-mix(in srgb, ' + (s.cashFixed ? GREEN : AMBER) + ' 10%, transparent)',
+      cashOpen: !s.cashFixed,
+      cashFix: () => this.setState({ cashFixed: true }),
+    };
+  }
+
+  aceVals(s) {
+    const REPS = [
+      { id: 'lena', name: 'Lena Ford', role: 'Commercial Manager', months: [['Jul', 93], ['Aug', 91], ['Sep', null]], now: 88, ceiling: 4000,
+        kpis: [['Quotes out within 2 days', '96%', '95%', 100], ['Win rate', '41%', '40%', 100], ['Leads followed up within 24 h', '84%', '95%', 88], ['Pipeline covered', '2.6×', '3×', 87], ['Quoted margin', '39%', '40%', 97]],
+        today: [
+          { id: 'a1', title: 'Harris Strata · Q-2291 follow-up', why: 'Sent 6 days ago, $18,400. Win rate halves after day 7.', action: 'Approve the text to Mia', doneLabel: 'Sent · Mia replying' },
+          { id: 'a2', title: 'Coastal Dental · LED refit enquiry', why: 'In 21 hours ago. Reply today and the 24-hour KPI stays green.', action: 'Approve the reply', doneLabel: 'Replied · site visit Fri' },
+          { id: 'a3', title: 'Ridge Homes · Epping duplex', why: 'Paul mentioned it 3 weeks ago. $38,000 of pipeline not yet logged.', action: 'Add it as a lead', doneLabel: 'Lead added · pipeline 2.8×' },
+          { id: 'a4', title: 'Metro Freight · warehouse stage 2', why: 'Stage 1 won. Gary has 2 more buildings.', action: 'Draft the proposal', doneLabel: 'Draft in Quotes' },
+        ] },
+      { id: 'nadia', name: 'Nadia Cole', role: 'Estimator', months: [['Jul', 86], ['Aug', 92], ['Sep', null]], now: 94, ceiling: 1500,
+        kpis: [['Quotes out within 2 days', '98%', '95%', 100], ['Quotes from pre-builds', '82%', '80%', 100], ['Quoted hours vs actual', '±6%', '±10%', 100], ['Win rate', '37%', '40%', 93], ['Quoted margin', '41%', '40%', 100]],
+        today: [
+          { id: 'n1', title: 'Priya Shah · EV charger', why: 'Photos and message in. Quote is built and waiting on you.', action: 'Check and send', doneLabel: 'Sent to Priya' },
+          { id: 'n2', title: 'St Clare School · plant room variation', why: 'Anne asked yesterday. Price it from the pre-build.', action: 'Price the variation', doneLabel: 'V-14 sent to Anne' },
+        ] },
+    ];
+    const JOBS = [
+      { id: 'tom', name: 'Tom Reyes', role: 'Site Supervisor', months: [['Jul', 92], ['Aug', 94], ['Sep', null]], now: 91, ceiling: 2000,
+        kpis: [['Billable hours', '88%', '86%', 100], ['Jobs on the hours quoted', '91%', '90%', 100], ['Rework', '1.4%', 'under 2%', 100], ['Jobs signed off same day', '84%', '95%', 88], ['Safety actions closed on time', '100%', '100%', 100]],
+        today: [
+          { id: 'j1', title: 'J-4402 · Northside fit-out · 3 h over', why: 'Day 4 of 5. Finish Friday or it eats next week\u2019s billable hours.', action: 'Add Hemi for Friday', doneLabel: 'Hemi booked Fri' },
+          { id: 'j2', title: 'J-4379 · sign-off still open', why: 'Work finished Tuesday. Sign off and the invoice goes today.', action: 'Sign it off', doneLabel: 'Signed · invoice sent' },
+          { id: 'j3', title: 'Casey Nguyen · 6 h not on a job', why: 'Yesterday\u2019s timesheet. Unallocated hours pull billable down.', action: 'Put the hours on J-4417', doneLabel: 'Allocated · billable 89%' },
+        ] },
+      { id: 'jordan', name: 'Jordan Cole', role: 'Operations Manager', months: [['Jul', 89], ['Aug', 93], ['Sep', null]], now: 87, ceiling: 4000,
+        kpis: [['Billable hours, whole business', '85%', '86%', 99], ['Crews fully booked next week', '8 of 9', '9 of 9', 89], ['Jobs finished on the hours quoted', '86%', '90%', 96], ['Rework', '2.1%', 'under 2%', 90], ['Zero harm', '0 incidents', '0', 100]],
+        today: [
+          { id: 'o1', title: 'Jai Fenton\u2019s crew · Thursday open', why: '32 hours unbooked next week. That is 2 points off billable.', action: 'Book J-4431 day 1', doneLabel: 'Booked · crews 9 of 9' },
+          { id: 'o2', title: 'Metro Freight · cable tray backordered', why: 'Start is Monday. Switch supplier or the crew stands around.', action: 'Switch to Rexel', doneLabel: 'Switched · arrives Thu' },
+        ] },
+    ];
+    const isJobs = s.tab === 'jobace';
+    const list = isJobs ? JOBS : REPS;
+    const pickKey = isJobs ? 'jobAceRep' : 'aceRep';
+    const rep = list.find(r => r.id === s[pickKey]) || list[0];
+    const d = s.aceDone || {};
+    const tone = n => n == null ? 'color-mix(in srgb, var(--color-text) 40%, transparent)' : n >= 90 ? GREEN : n > 50 ? AMBER : RED;
+    const ring = n => 'width:62px;height:62px;border-radius:50%;display:grid;place-content:center;font-size:16px;font-weight:700;background:#fff;box-shadow:inset 0 0 0 5px ' + tone(n) + ';' + (n == null ? 'border:2px dashed ' + tone(n) + ';box-shadow:none;' : '');
+    const closed = rep.months.filter(m => m[1] != null);
+    const run = closed.slice().reverse().findIndex(m => m[1] < 90);
+    const streak = run === -1 ? closed.length : run;
+    const onTrack = rep.now >= 90;
+    const headline = streak >= 2
+      ? (onTrack ? 'Two months at Ace pace. September makes it three.' : 'Two months done. September needs ' + (90 - rep.now) + ' more points.')
+      : streak === 1 ? 'One month in. Two to go.' : 'Start the three-month run this month.';
+    return {
+      aceReps: list.map(r => ({
+        label: r.name + ' · ' + r.role,
+        select: () => this.setState({ [pickKey]: r.id }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:10px 18px;font-family:var(--font-body);font-size:14px;white-space:nowrap;' + (r.id === rep.id ? 'background:var(--color-text);color:#fff;' : 'background:var(--color-surface, #fff);color:var(--color-text);box-shadow:var(--shadow-sm);'),
+      })),
+      ace: {
+        role: rep.name + ', ' + rep.role,
+        kind: isJobs ? 'Jobs Ace' : 'Sales Ace',
+        boardWord: isJobs ? 'jobs board' : 'sales board',
+        boardTitle: isJobs ? 'The jobs board, live from the jobs' : 'The sales board, live from the CRM',
+        boardSub: isJobs ? 'Nothing typed in. Every number comes from the schedule, timesheets and job sign-offs.' : 'Nothing typed in. Every number comes from the leads, quotes and customers in here.',
+        headline,
+        months: rep.months.map(([month, n]) => ({ month, score: n == null ? (rep.now + '%') : n + '%', ring: ring(n == null ? rep.now : n) + (n == null ? 'opacity:0.85;' : '') })),
+        payLine: onTrack && streak >= 2 ? 'If September closes at 90% or better, your quarter incentive doubles' : 'Your incentive this quarter',
+        payValue: onTrack && streak >= 2 ? '$' + rep.ceiling.toLocaleString('en-AU') + ' → $' + (rep.ceiling * 2).toLocaleString('en-AU') : 'up to $' + rep.ceiling.toLocaleString('en-AU'),
+        payBg: 'color-mix(in srgb, ' + (onTrack ? GREEN : AMBER) + ' 10%, transparent)',
+        kpis: rep.kpis.map(([name, actual, target, pct]) => ({ name, actual, target, tone: tone(pct), bar: 'height:100%;border-radius:999px;background:' + tone(pct) + ';width:' + pct + '%;' })),
+        scoreNow: rep.now + '%', scoreBg: 'color-mix(in srgb, ' + tone(rep.now) + ' 12%, transparent)',
+        today: rep.today.map(t => ({ ...t, open: !d[t.id], done: !!d[t.id], doneChip: chip(GREEN), act: () => this.setState(st => ({ aceDone: { ...(st.aceDone || {}), [t.id]: true } })) })),
+      },
+    };
+  }
+
+  careVals(s) {
+    const d = s.careDone || {};
+    const mark = id => this.setState(st => ({ careDone: { ...(st.careDone || {}), [id]: true } }));
+    const T = (label, value, note, tone) => ({ label, value, note, tone: tone || 'var(--color-text)' });
+    const row = x => ({ ...x, chip: chip(x.tone), open: !d[x.id] && !!x.action, done: !!d[x.id], doneChip: chip(GREEN), act: () => mark(x.id) });
+    return {
+      reworkStats: [
+        T('Rework', '2.1%', 'of hours this month · target under 2%', AMBER), T('Callbacks', '4', 'this month · 6 in August'),
+        T('Cost of rework', '$1,017', 'labour and parts', AMBER), T('Recovered', '$379', 'from suppliers and subbies', GREEN),
+      ],
+      callbacks: [
+        { id: 'c1', title: 'Bean There · lights flickering', sub: 'From J-4388, cafe rewire · Jai Fenton · finished 17 Aug', detail: 'Cause: loose neutral on the kitchen circuit. Workmanship. 2.5 hours, $338.', state: 'Workmanship', tone: RED, action: 'Book it, no charge', doneLabel: 'Booked Thu 7am · Marco told' },
+        { id: 'c2', title: 'Ridge Homes, Ryde · 3 downlights dead', sub: 'From J-4379 · finished 9 Sep', detail: 'Cause: failed drivers from the same CNW batch as two other jobs. Material fault. $214.', state: 'Material fault', tone: AMBER, action: 'Claim from CNW', doneLabel: 'Claim sent to CNW · $214' },
+        { id: 'c3', title: 'Northside Health · data point not working', sub: 'From J-4402 · Coastal Data & Comms (subbie)', detail: 'Cause: subcontractor workmanship. Theirs to fix at their cost.', state: 'Subbie', tone: AMBER, action: 'Send to Coastal Data', doneLabel: 'Sent · Ravi fixing Friday' },
+        { id: 'c4', title: 'Harris Strata · safety switch tripping', sub: 'From J-4211 · finished July', detail: 'Cause: the tenant\u2019s faulty heater, not our work.', state: 'Not our work', tone: GREEN, action: 'Invoice the call-out, $165', doneLabel: 'Invoiced $165' },
+      ].map(row),
+      learnOpen: !d.learn, learnDone: !!d.learn, learnChip: chip(GREEN), learnIt: () => mark('learn'),
+      toolStats: [T('Tools', '142', 'across 9 utes and the yard'), T('Value', '$86,400', 'all insured'), T('Test and tag due', '3', 'this month', AMBER), T('Missing', '1', 'laser level', RED)],
+      tools: [
+        { id: 't1', title: 'Hilti hammer drill TE 30', sub: 'With Tom Reyes\u2019s crew · Ute 09', detail: 'Test and tag was due 20 Sep.', state: 'Overdue', tone: RED, action: 'Book test and tag', doneLabel: 'Booked Monday at the yard' },
+        { id: 't2', title: 'Fluke insulation tester 1587', sub: 'With Jai Fenton · Ute 04', detail: 'Calibration due 12 Oct. Needed for every test result on a CCEW.', state: 'Due soon', tone: AMBER, action: 'Book calibration', doneLabel: 'Booked · loan tester arranged' },
+        { id: 't3', title: 'Laser level', sub: 'Last with Marcus Bly · 16 Sep', detail: 'Not scanned back into the yard since.', state: 'Missing', tone: RED, action: 'Ask Marcus', doneLabel: 'Text sent to Marcus' },
+        { id: 't4', title: 'Step and platform ladders (14)', sub: 'Across the utes', detail: 'One cracked ladder pulled from Ute 09 after Hemi\u2019s report.', state: '13 in use', tone: GREEN, action: '', doneLabel: '' },
+      ].map(row),
+      reviewStats: [T('Google rating', '4.9', 'from 212 reviews', GREEN), T('New this month', '14', 'up from 9 in August'), T('Paid jobs reviewed', '38%', 'of customers asked'), T('Replies', 'All', 'every review answered')],
+      reviewQueue: '6 thank-you texts go out today, for jobs paid yesterday',
+      reviews: [
+        { id: 'r1', who: 'Leah Morton, Harbourview Build', stars: '★★★★★', starTone: GREEN, text: 'Tom\u2019s crew turned up on time every day and left the site clean. Easy to deal with.', reply: 'Thanks Leah, we\u2019ll pass that on to Tom and the crew. Looking forward to Level 4.' },
+        { id: 'r2', who: 'Sam Lee', stars: '★★★★☆', starTone: GREEN, text: 'Good work on the switchboard, just a bit late to arrive.', reply: 'Thanks Sam, and sorry we were late. We now text you when the tech leaves the job before yours.' },
+        { id: 'r3', who: 'Marco Ricci, Bean There', stars: '★★☆☆☆', starTone: RED, text: 'Lights started flickering a few weeks after the rewire.', reply: 'Sorry Marco, that\u2019s not the standard we set. Jai is coming Thursday at 7am to fix it at no charge.' },
+      ].map(r => ({ ...r, open: !d[r.id], done: !!d[r.id], doneChip: chip(GREEN), act: () => mark(r.id) })),
+    };
+  }
+
+  matVals(s) {
+    const SUP = ["Middy's", 'Rexel', 'MMEM', 'CNW'];
+    const ROWS = [
+      ['TPS 2.5mm\u00b2, 100m', [[124.9, 'Alexandria · 40'], [128.4, 'Botany · 12'], [131.2, '3 days'], [126.5, 'St Peters · 8']]],
+      ['RCBO 20A 30mA', [[44.1, 'Alexandria · 60'], [42.6, 'Botany · 35'], [43.95, 'Mascot · 20'], [45.0, '2 days']]],
+      ['LED downlight 10W', [[13.8, 'Alexandria · 300'], [15.1, 'Botany · 80'], [14.9, '2 days'], [14.2, 'St Peters · 150']]],
+      ['Switchboard, 24 pole', [[169, 'Alexandria · 4'], [171, '4 days'], [164, 'Mascot · 9'], [null, 'Not stocked']]],
+    ];
+    const done = s.matDone || {};
+    const hDone = id => this.setState(st => ({ matDone: { ...(st.matDone || {}), [id]: true } }));
+    const SITE = [
+      [64, 'High bay LED 150W', 'CNW · $118.00 each · St Peters has 70', 'Ready Thu', GREEN],
+      [40, 'Cable tray 300mm, 3m', done.h1 ? 'Rexel · $44.10 each · Botany has 52' : "Middy's · $42.50 each", done.h1 ? 'Ready Thu' : 'Backordered', done.h1 ? GREEN : RED],
+      [6, 'TPS 2.5mm\u00b2, 100m', "Middy's · $124.90 each · Alexandria has 40", 'Ready Thu', GREEN],
+      [8, 'RCBO 20A 30mA', 'Rexel · $42.60 each · Botany has 35', 'Ready Thu', GREEN],
+    ];
+    const cost = 64 * 118 + 40 * (done.h1 ? 44.1 : 42.5) + 6 * 124.9 + 8 * 42.6;
+    return {
+      supplierRows: ROWS.map(([item, cells]) => {
+        const prices = cells.map(c => c[0]).filter(x => x != null);
+        const best = Math.min(...prices);
+        return { item, cells: cells.map(([p, stock]) => ({
+          price: p == null ? '—' : money2(p), stock,
+          style: 'font-size:13.5px;border-radius:10px;padding:6px 8px;' + (p === best ? 'background:color-mix(in srgb, ' + GREEN + ' 14%, transparent);color:#2f4a26;' : ''),
+        })) };
+      }),
+      siteList: SITE.map(([qty, item, from, ready, tone]) => ({ qty: String(qty), item, from, ready, chip: chip(tone) })),
+      siteTotal: money(cost) + ' cost · at best prices',
+      siteOpen: !s.ordered, siteDone: !!s.ordered, siteDoneChip: chip(GREEN),
+      orderAll: () => this.setState({ ordered: true }),
+      holdups: [
+        { id: 'h1', what: "Cable tray 300mm × 40 · Middy's · J-4431", why: 'Backordered at the warehouse. Earliest 8 Oct, and the job starts Mon 28 Sep.', option: 'Rexel has 52 at Botany for $44.10 each. That\u2019s $64 more, and it arrives Thursday.', action: 'Switch to Rexel', doneLabel: 'Switched · arrives Thu' },
+        { id: 'h2', what: 'Switchboard 24 pole · MMEM · J-4402', why: 'The truck is a day late. It arrives Thursday, not Wednesday.', option: 'Move Jai to J-4417 on Wednesday and fit the board Thursday. No hours lost.', action: 'Swap the days', doneLabel: 'Schedule updated · Jai told' },
+      ].map(x => ({ ...x, open: !done[x.id], done: !!done[x.id], doneChip: chip(GREEN), fix: () => hDone(x.id) })),
+    };
+  }
+
+  timeVals(s) {
+    const T = [
+      { id: 'sb', name: 'Switchboard upgrade, 24 pole', base: 7.4, jobs: 12, spread: '6.1 to 9.0 h', factors: [['Home built before 1980', 1.2], ['People home, power off in stages', 0.5], ['Board upstairs', 0.4], ['Asbestos backing board', 1.5]] },
+      { id: 'dl', name: 'Downlight, per point', base: 0.48, jobs: 64, spread: '0.35 to 0.7 h', factors: [['Ceiling over 3 m', 0.15], ['Concrete ceiling', 0.3], ['No roof space access', 0.2]] },
+      { id: 'ev', name: 'EV charger install', base: 5.1, jobs: 9, spread: '3.8 to 6.5 h', factors: [['Board over 15 m away', 0.8], ['Board needs upgrading first', 2.0], ['Three-phase supply', 0.6]] },
+      { id: 'fan', name: 'Ceiling fan, supply and install', base: 1.9, jobs: 7, spread: '1.4 to 2.6 h', factors: [['No brace in the ceiling', 0.4], ['Ceiling over 3 m', 0.3], ['Old fan to remove', 0.2]] },
+      { id: 'gpo', name: 'Double power point, add new', base: 0.7, jobs: 38, spread: '0.5 to 1.1 h', factors: [['Solid brick wall', 0.4], ['Cable run between floors', 0.3]] },
+    ];
+    const sel = T.find(t => t.id === (s.taskId || 'sb')) || T[0];
+    const on = (s.taskFactors || {})[sel.id] || {};
+    const extra = sel.factors.reduce((a, [l, v]) => a + (on[l] ? v : 0), 0);
+    const total = sel.base + extra;
+    const quote = Math.ceil(total * 2) / 2;
+    const r1 = n => (Math.round(n * 10) / 10).toString();
+    return {
+      tasks: T.map(t => ({
+        name: t.name, meta: 'Usually ' + r1(t.base) + ' h · from ' + t.jobs + ' jobs',
+        select: () => this.setState({ taskId: t.id }),
+        style: 'all:unset;cursor:pointer;display:block;box-sizing:border-box;width:100%;padding:12px 14px;border-radius:14px;background:var(--color-bg);' + (t.id === sel.id ? 'box-shadow:0 0 0 2px var(--color-accent);' : ''),
+      })),
+      tk: {
+        name: sel.name,
+        basis: 'From ' + sel.jobs + ' of your finished jobs · normal range ' + sel.spread,
+        factors: sel.factors.map(([label, v]) => ({
+          label: label + ' +' + r1(v) + ' h',
+          toggle: () => this.setState(st => { const all = st.taskFactors || {}; const cur = all[sel.id] || {}; return { taskFactors: { ...all, [sel.id]: { ...cur, [label]: !cur[label] } } }; }),
+          style: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13.5px;font-weight:600;' + (on[label] ? 'background:var(--color-text);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+        })),
+        lines: [
+          { label: 'Your usual time', value: r1(sel.base) + ' h' },
+          { label: 'This site adds', value: extra ? '+' + r1(extra) + ' h' : 'nothing' },
+          { label: 'Total', value: r1(total) + ' h' },
+        ],
+        answer: 'Quote ' + quote + ' hours',
+        advice: extra ? 'Your crews usually take ' + r1(sel.base) + ' h. This site adds ' + r1(extra) + ' h, so quote ' + quote + ' h and you won\u2019t run over.' : 'Your crews usually take ' + r1(sel.base) + ' h. Quote ' + quote + ' h and you won\u2019t run over.',
+        useIt: () => this.setState({ tab: 'prebuilds' }),
+      },
+    };
+  }
+
+  leadVals(s) {
+    const done = s.leadDone || {};
+    const mark = id => this.setState(st => ({ leadDone: { ...(st.leadDone || {}), [id]: true } }));
+    const ageTone = d => d >= 3 ? RED : d >= 2 ? AMBER : GREEN;
+    const TAKE = [
+      ['dl', 'good', 'Downlights', 'Both dwellings, all levels', 64],
+      ['gpo', 'good', 'Power points', 'Kitchens, bedrooms, garages', 48],
+      ['sb', 'better', 'Switchboards', 'One per dwelling', 2],
+      ['smoke', 'good', 'Smoke alarms, interconnected', 'Sets of 3, one per dwelling', 2],
+      ['ev', 'good', 'EV charger', 'Garage, dwelling 1', 1],
+    ];
+    let est = 0, hrs = 0;
+    const takeoff = TAKE.map(([id, tier, name, where, qty]) => {
+      const p = PB.find(x => x.id === id); const t = pbTier(p, tier); const c = pbCalc(p, t, s);
+      est += c.inc * qty; hrs += c.hrs * qty;
+      return { name, where, qty: String(qty), total: money(c.inc * qty) };
+    });
+    const plans = s.plansFile;
+    return {
+      leadSources: [
+        ['Website form', 14, '5 won · $21,400 · replied in 4 min'], ['Google Business Profile', 11, '3 won · $9,800 · 38% margin'], ['Google ads', 7, '1 won · $2,100 · ads cost $1,400'],
+        ['hipages & ServiceSeeking', 6, '2 won · $1,900 · small jobs'], ['EstimateOne & Cordell', 4, '1 won · $64,000 · 41% margin'], ['Missed calls', 8, 'All texted back in 1 min · 6 booked'],
+        ['Repeat customers', 9, '7 won · $38,600 · best margin'], ['Referrals', 6, '4 won · $17,200'], ['Emails to staff', 5, 'Found by SPEC · 3 quoted'],
+      ].map(([name, count, note]) => ({ name, count: String(count), note })),
+      speedLine: '1.4 days to quote · target 2', speedChip: chip(GREEN),
+      waiting: [
+        ['Ben Walsh', 'Downlights and a ceiling fan, Leichhardt', 0, 'Today'],
+        ['Coastline Dental', 'Office LED refit, 40 fittings', 1, '1 day'],
+        ['Priya Shah', 'EV charger, Marrickville', 2, '2 days'],
+        ['Harbourview Build', 'Level 4 fit-out', 3, '3 days'],
+      ].map(([who, what, d, age]) => ({ who, what, age, ageChip: chip(ageTone(d)), go: () => this.setState({ tab: 'prebuilds' }) })),
+      found: [
+        { id: 'f1', title: 'Coastline Dental', worth: '$1,280', why: 'Emergency lighting test due 2 Oct. Book it and send the reminder?', action: 'Book and send', doneLabel: 'Booked · reminder sent' },
+        { id: 'f2', title: '23 homes with old switchboards', worth: 'up to $41,000', why: 'From your job history: boards over 25 years old. Send a safety check offer with Good, Better and Best prices?', action: 'Send the offer', doneLabel: 'Sent to 23 customers' },
+        { id: 'f3', title: '31 solar owners from 2018 and 2019', worth: 'up to $260,000', why: 'Their inverters are near the end of warranty. Offer a battery and inverter check?', action: 'Send the offer', doneLabel: 'Sent to 31 customers' },
+        { id: 'f4', title: 'Ridge Homes · Epping duplex', worth: 'see estimate', why: 'Paul sent the plans this morning. The estimate is ready below.', action: 'Go to the estimate', doneLabel: 'Estimate open below' },
+      ].map(f => ({ ...f, open: !done[f.id], done: !!done[f.id], doneChip: chip(GREEN), send: () => { mark(f.id); if (f.id === 'f4') this.setState({ plansFile: 'Epping duplex plans, from Paul Ridge\u2019s email' }); } })),
+      noPlans: !plans, hasPlans: !!plans,
+      plansFrom: plans ? 'From ' + plans + ' · 14 pages read' : '',
+      plansPick: e => { const x = e.target.files && e.target.files[0]; if (x) this.setState({ plansFile: x.name }); },
+      plansDrop: e => { e.preventDefault(); const x = e.dataTransfer && e.dataTransfer.files[0]; if (x) this.setState({ plansFile: x.name }); },
+      plansOver: e => e.preventDefault(),
+      useSamplePlans: () => this.setState({ plansFile: 'Epping duplex plans, from Paul Ridge\u2019s email' }),
+      takeoff,
+      estTotal: money(est),
+      estLine: 'inc GST · ' + Math.round(hrs) + ' hours · priced from your pre-builds at today\u2019s supplier prices',
+      estOpen: !s.estDone, estDone: !!s.estDone, estDoneChip: chip(GREEN),
+      makeQuote: () => this.setState(st => ({ estDone: true, jobs: [J('Q-2296', 'quoted', 'Epping duplex fit-off', 'Ridge Homes', 'Epping', Math.round(est / 1.1), 0, 0, [], 'Sent today'), ...st.jobs] })),
+    };
+  }
+
+  inboxVals(s) {
+    const done = s.inboxDone || {};
+    const mark = (id, patch) => this.setState(st => ({ inboxDone: { ...(st.inboxDone || {}), [id]: true }, ...(patch ? patch(st) : {}) }));
+    const newId = st => 'E-' + (119 + st.jobs.filter(j => j.id.startsWith('E-1')).length);
+    const ITEMS = [
+      { id: 'm1', kind: 'New enquiry', tone: GREEN, from: 'office@ inbox · Ben Walsh', subject: 'Quote for 12 downlights and a ceiling fan, Leichhardt', read: 'SPEC matched it to the Downlight and Ceiling fan pre-builds and a new customer record.', action: 'Add to Jobs', doneLabel: 'Enquiry added · reply sent', to: 'Ben', reply: 'Hi Ben, thanks for getting in touch. We can do 12 downlights and a ceiling fan in Leichhardt. You\u2019ll have three options with prices by tomorrow afternoon. Kind regards, JBI Electrical',
+        patch: st => { const id = newId(st); return { jobs: [J(id, 'enquiry', 'Downlights and ceiling fan', 'Ben Walsh', 'Leichhardt', 0, 0, 0, [], 'From email'), ...st.jobs], openId: id }; } },
+      { id: 'm2', kind: 'Quote accepted', tone: GREEN, from: 'Lena\u2019s inbox · Mia Harris, Harris Strata', subject: '\u201cThe committee approved option 2\u201d', read: 'That\u2019s Q-2291, the Better switchboard upgrade.', action: 'Mark Q-2291 won', doneLabel: 'Won · reply sent', to: 'Mia', reply: 'Hi Mia, great news, thank you. We\u2019ll call you this week to lock in a start date that suits the building. Kind regards, Lena Ford, JBI Electrical',
+        patch: st => ({ jobs: st.jobs.map(j => j.id === 'Q-2291' ? { ...j, stage: 'won', flag: 'Needs a crew' } : j) }) },
+      { id: 'm3', kind: 'Supplier bill', tone: AMBER, from: 'accounts@ inbox · Rexel', subject: 'Invoice 88410, $11,840', read: 'Matched to PO-3312 on J-4431. Prices match the order.', action: 'Approve the bill', doneLabel: 'Approved · sent to Xero', to: '', reply: '' },
+      { id: 'm4', kind: 'Variation', tone: AMBER, from: 'Tom\u2019s inbox · Leah Morton, Harbourview Build', subject: '\u201cCan you add 4 power points on Level 3?\u201d', read: 'SPEC priced it from the power point pre-build: $620 on J-4417.', action: 'Send the variation', doneLabel: 'Variation sent for signing', to: 'Leah', reply: 'Hi Leah, no problem. Four extra power points on Level 3 come to $620 plus GST. The variation is attached to sign on your phone, and Tom\u2019s crew can fit them this week. Kind regards, Tom Reyes, JBI Electrical' },
+      { id: 'm5', kind: 'Complaint', tone: RED, from: 'office@ inbox · Marco Ricci, Bean There', subject: '\u201cLights have been flickering since the rewire\u201d', read: 'J-4388, finished 17 Aug. Likely a warranty callback.', action: 'Book a callback', doneLabel: 'Callback booked · reply sent', to: 'Marco', reply: 'Hi Marco, sorry about the flickering. That\u2019s covered by our workmanship warranty, so there\u2019s no charge. Jai can come by Thursday at 7am before you open. Does that suit? Kind regards, JBI Electrical' },
+      { id: 'm6', kind: 'Safety', tone: RED, from: 'Tom\u2019s inbox · Hemi Walker', subject: '\u201cThe ladder on Ute 09 is cracked\u201d', read: 'SPEC will log it as a hazard on Ute 09 and pull the ladder from use.', action: 'Log the hazard', doneLabel: 'Hazard logged · reply sent', to: 'Hemi', reply: 'Thanks Hemi, good catch. It\u2019s logged and the ladder is off Ute 09. A replacement will be at the yard tomorrow. Tom' },
+    ];
+    const open = ITEMS.filter(i => !done[i.id]).length;
+    return {
+      inboxSummary: 'SPEC read 186 emails this morning across 14 mailboxes. ' + (open ? open + ' thing' + (open === 1 ? '' : 's') + ' to act on.' : 'All done.'),
+      inbox: ITEMS.map(i => ({
+        kind: i.kind, kindChip: chip(i.tone), from: i.from, subject: i.subject, read: i.read + (i.action ? ' Approving will: ' + i.action.charAt(0).toLowerCase() + i.action.slice(1) + (i.reply ? ', and send the reply.' : '.') : ''), action: i.action,
+        hasReply: !!i.reply && !done[i.id], reply: i.reply, replyLabel: 'SPEC\u2019s reply to ' + i.to,
+        open: !done[i.id], done: !!done[i.id], doneLabel: i.doneLabel, doneChip: chip(GREEN),
+        act: () => mark(i.id, i.patch),
+      })),
+    };
+  }
+
+  crmVals(s) {
+    const q = s.custQuery.trim().toLowerCase();
+    const c = CUSTOMERS.find(x => x.name === s.custId) || CUSTOMERS[0];
+    const jobsOf = name => s.jobs.filter(j => j.client === name);
+    const nextOf = x => s.nextDone[x.name] ? ['Nothing due', GREEN] : x.next;
+    const cj = jobsOf(c.name);
+    const owed = cj.filter(j => j.stage === 'invoiced').reduce((a, j) => a + j.quote, 0);
+    const openVal = cj.filter(j => !['invoiced', 'paid'].includes(j.stage)).reduce((a, j) => a + j.quote, 0);
+    const [nextTitle, nextTone] = nextOf(c);
+    const addNote = () => {
+      const t = s.noteDraft.trim(); if (!t) return;
+      this.setState(st => ({ noteDraft: '', notes: { ...st.notes, [c.name]: [['Just now', 'Note', t], ...(st.notes[c.name] || [])] } }));
+    };
+    const newEnquiry = () => {
+      const id = 'E-' + (119 + s.jobs.filter(j => j.id.startsWith('E-1')).length);
+      const job = J(id, 'enquiry', 'New enquiry', c.name, c.sites[0], 0, 0, 0, [], 'New');
+      this.setState(st => ({ jobs: [job, ...st.jobs], tab: 'pipeline', openId: id }));
+    };
+    const muted = 'color-mix(in srgb, var(--color-text) 80%, transparent)';
+    return {
+      custQuery: s.custQuery,
+      setCustQuery: e => this.setState({ custQuery: e.target.value }),
+      custList: CUSTOMERS.filter(x => !q || (x.name + ' ' + x.type + ' ' + x.contact + ' ' + x.sites.join(' ')).toLowerCase().includes(q)).map(x => {
+        const [n, tone] = nextOf(x);
+        const ov = jobsOf(x.name).filter(j => j.stage !== 'paid').reduce((a, j) => a + j.quote, 0);
+        return {
+          name: x.name, type: x.type, next: n, chip: chip(tone),
+          value: ov ? money(ov) + ' open' : 'No open work',
+          select: () => this.setState({ custId: x.name, noteDraft: '' }),
+          style: 'all:unset;cursor:pointer;display:block;box-sizing:border-box;width:100%;padding:14px 16px;border-radius:16px;background:var(--color-bg);' + (x.name === c.name ? 'box-shadow:0 0 0 2px var(--color-accent);' : ''),
+        };
+      }),
+      cd: {
+        name: c.name, type: c.type, since: 'Customer since ' + c.since, contact: c.contact, phone: c.phone, email: c.email,
+        lifetime: money(c.lifetime),
+        stats: [
+          { label: 'Open work', value: money(openVal), tone: muted },
+          { label: 'Owed', value: money(owed), tone: owed ? RED : GREEN },
+          { label: 'Quotes', value: c.won, tone: muted },
+        ],
+        nextTitle, nextTone, nextBg: 'color-mix(in srgb, ' + nextTone + ' 10%, transparent)',
+        nextOpen: !s.nextDone[c.name],
+        doneNext: () => this.setState(st => ({ nextDone: { ...st.nextDone, [c.name]: true } })),
+        sites: c.sites.map(name => ({ name })),
+        work: cj.map(j => ({
+          id: j.id, title: j.title, value: j.quote ? money(j.quote) : 'to quote',
+          stage: STAGES.find(x => x.key === j.stage).label,
+          chip: chip(j.stage === 'paid' ? GREEN : j.stage === 'invoiced' ? RED : AMBER),
+          open: () => this.setState({ tab: 'pipeline', openId: j.id }),
+        })),
+        noWork: cj.length === 0,
+        timeline: [...(s.notes[c.name] || []), ...c.timeline].map(([when, kind, what]) => ({ when, kind, what })),
+        newEnquiry, newLabel: 'New enquiry for ' + c.name,
+      },
+      noteDraft: s.noteDraft,
+      setNoteDraft: e => this.setState({ noteDraft: e.target.value }),
+      noteKey: e => { if (e.key === 'Enter') addNote(); },
+      addNote,
+    };
+  }
+
+  pbVals(s, addLine) {
+    const all = [...PB, ...FROM_JOBS.filter(f => s.made[f.id]).map(derivedPb)];
+    const p = all.find(x => x.id === s.pbId) || all[0];
+    const t = pbTier(p, s.tier);
+    const c = pbCalc(p, t, s);
+    const q = s.pbQuery.trim().toLowerCase();
+    const selectPb = x => this.setState({ pbId: x.id, tier: x.tiers.length > 1 ? 'better' : x.tiers[0].key, pbNote: '' });
+    const flagOf = x => {
+      const xc = pbCalc(x, pbTier(x, 'better'), s);
+      if (x.derived) return ['Built from a real job', GREEN];
+      if (xc.slow && !xc.fixed) return ['Taking longer than quoted', RED];
+      if (xc.stale && !xc.repriced) return ['Prices changed', AMBER];
+      return ['On track', GREEN];
+    };
+    const card = tone => 'border-radius:18px;padding:16px 18px;background:color-mix(in srgb, ' + tone + ' 10%, transparent);';
+    let learn;
+    if (p.derived) learn = [GREEN, 'Built from ' + p.derived + '.', 'Real hours and real materials, not a guess. SPEC checks it again after the next job.', false];
+    else if (c.slow && !c.fixed) {
+      const gap = (c.actual - t.hrs) * PB_CHARGE;
+      learn = [RED, 'Quoted ' + t.hrs + ' h. The last ' + p.jobs + ' jobs took ' + c.actual + ' h.', 'That\u2019s ' + money(gap) + ' of labour not charged on every job, ' + money(gap * p.jobs) + ' across the last ' + p.jobs + '.', true];
+    } else if (c.slow) learn = [GREEN, 'Updated to ' + c.newHrs + ' h.', 'Quoted hours now match what the job really takes. SPEC keeps checking after every job.', false];
+    else learn = [GREEN, 'On track. The last ' + p.jobs + ' jobs took ' + c.actual + ' h, as quoted.', 'SPEC checks again after every job, so you\u2019ll know the moment it drifts.', false];
+    let price;
+    if (c.stale && !c.repriced) price = [AMBER, p.riseLine + '.', 'This pre-build still charges the old price, so you wear ' + money(c.matNow - c.matBase) + ' on every job.', true];
+    else if (c.stale) price = [GREEN, 'Re-priced to today\u2019s supplier prices.', 'SPEC re-checks every time a supplier sends a new price file.', false];
+    else price = [GREEN, 'Prices are current.', p.derived ? 'Taken from what the job actually cost.' : 'From the latest supplier price files. SPEC re-checks every time a new file arrives.', false];
+    const mt = c.margin >= 0.4 ? GREEN : c.margin >= 0.3 ? AMBER : RED;
+    const reasons = [c.slow && !c.fixed ? 'jobs take longer than quoted' : '', c.stale && !c.repriced ? 'supplier prices went up' : ''].filter(Boolean);
+    const marginNote = c.margin >= 0.4 ? 'At or above the 40% electrical benchmark.'
+      : reasons.length ? 'Below the 40% benchmark because ' + reasons.join(' and ') + '.'
+      : c.matSell > c.labSell ? 'Below the 40% benchmark. Most of this price is materials, so the margin runs thinner.' : 'Below the 40% benchmark.';
+    return {
+      fixes: FIXES.map(([pain, fix]) => ({ pain, fix })),
+      fixesOpen: s.fixesOpen,
+      fixesLabel: s.fixesOpen ? 'Hide' : 'What this fixes',
+      toggleFixes: () => this.setState(st => ({ fixesOpen: !st.fixesOpen })),
+      pbQuery: s.pbQuery,
+      setPbQuery: e => this.setState({ pbQuery: e.target.value }),
+      pbList: all.filter(x => !q || (x.name + ' ' + x.cat).toLowerCase().includes(q)).map(x => {
+        const [flag, tone] = flagOf(x);
+        const on = x.id === p.id;
+        return {
+          name: x.name, flag, flagChip: chip(tone),
+          meta: 'From ' + money(pbCalc(x, x.tiers[0], s).inc) + ' · ' + x.jobs + ' job' + (x.jobs === 1 ? '' : 's'),
+          select: () => selectPb(x),
+          style: 'all:unset;cursor:pointer;display:block;box-sizing:border-box;width:100%;padding:14px 16px;border-radius:16px;background:var(--color-bg);' + (on ? 'box-shadow:0 0 0 2px var(--color-accent);' : ''),
+        };
+      }),
+      fromJobs: FROM_JOBS.map(f => {
+        const made = !!s.made[f.id];
+        return {
+          label: made ? f.id + ' ' + f.name + ' · made ✓' : 'Make from ' + f.id + ' · ' + f.name,
+          make: () => { if (!made) this.setState(st => ({ made: { ...st.made, [f.id]: true }, pbId: 'd-' + f.id, tier: 'std', pbNote: '' })); else this.setState({ pbId: 'd-' + f.id, tier: 'std', pbNote: '' }); },
+          style: 'cursor:pointer;border:0;text-align:left;border-radius:14px;padding:12px 14px;font-family:var(--font-body);font-size:13.5px;'
+            + (made ? 'background:color-mix(in srgb, ' + GREEN + ' 12%, transparent);color:#3d5c31;' : 'background:var(--color-bg);color:var(--color-text);'),
+        };
+      }),
+      pbd: {
+        name: p.name, cat: p.cat,
+        used: p.derived ? 'made from ' + p.derived : 'used on ' + p.jobs + ' jobs',
+        price: money(c.inc),
+        tierName: t.label + ' · ' + t.name,
+        hasTiers: p.tiers.length > 1,
+        tiers: p.tiers.map(x => ({
+          label: x.label + ' · ' + money(pbCalc(p, x, s).inc),
+          select: () => this.setState({ tier: x.key, pbNote: '' }),
+          style: 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13.5px;font-weight:600;white-space:nowrap;'
+            + (x.key === t.key ? 'background:var(--color-text);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+        })),
+        learnTone: learn[0], learnStyle: card(learn[0]), learnTitle: learn[1], learnBody: learn[2], canFixHours: learn[3],
+        fixHoursLabel: 'Update to ' + c.newHrs + ' h',
+        fixHours: () => this.setState(st => ({ fixed: { ...st.fixed, [p.id]: true } })),
+        priceTone: price[0], priceStyle: card(price[0]), priceTitle: price[1], priceBody: price[2], canReprice: price[3],
+        reprice: () => this.setState(st => ({ repriced: { ...st.repriced, [p.id]: true } })),
+        marginPct: Math.round(c.margin * 100) + '%', marginTone: mt,
+        marginBar: 'height:100%;border-radius:999px;background:' + mt + ';width:' + Math.max(4, Math.min(100, c.margin * 200)) + '%;',
+        marginNote,
+        items: t.items.map(i => ({ qty: String(i[3]), name: i[1] ? i[0] + ' · ' + i[1] : i[0], cost: money2(i[2] * i[3] * (1 + (p.rise || 0))) + ' cost' })),
+        hrsLabel: c.hrs + ' h', labourSell: money(c.labSell),
+        comes: p.comes.map(([what, detail]) => ({ what, detail })),
+        addToQuote: () => { addLine('Kit', 'pb:' + p.id + ':' + t.key); this.setState({ tab: 'quotes' }); },
+        onSite: () => this.setState({ pbNote: 'On the phone: pick the pre-build, show the client Good, Better and Best side by side, and they sign on the glass. It becomes a job with materials, hours, SWMS and the van pick list already on it.' }),
+        hasNote: !!s.pbNote, note: s.pbNote,
+      },
     };
   }
 
@@ -615,7 +2293,9 @@ class Component extends DCLogic {
         const list = jobs.filter(j => j.stage === st.key);
         return {
           label: st.label,
-          total: list.length ? money(list.reduce((a, j) => a + j.quote, 0)) : '',
+          total: list.length ? ' · ' + money(list.reduce((a, j) => a + j.quote, 0)) : '',
+          count: list.length + (list.length === 1 ? ' job' : ' jobs'),
+          empty: list.length === 0,
           jobs: list.map(j => {
             const m = margin(j);
             const on = j.id === openId;
@@ -639,6 +2319,9 @@ class Component extends DCLogic {
         stageLabel: STAGES.find(s => s.key === o.stage).label,
         nextLabel: STAGES.find(s => s.key === o.stage).next,
         next: () => advance(o.id),
+        hasBack: STAGES.findIndex(x => x.key === o.stage) > 0,
+        backLabel: STAGES.findIndex(x => x.key === o.stage) > 0 ? 'Back to ' + STAGES[STAGES.findIndex(x => x.key === o.stage) - 1].label : '',
+        back: () => this.setState(st => ({ jobs: st.jobs.map(j => j.id === o.id ? { ...j, stage: STAGES[Math.max(0, STAGES.findIndex(x => x.key === j.stage) - 1)].key } : j) })),
         costs: [
           { label: 'Quoted', value: o.quote ? money(o.quote) : 'Not quoted yet' },
           { label: 'Labour so far', value: money(o.labour) },

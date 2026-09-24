@@ -13,6 +13,11 @@ import { refusedReason } from '@/lib/refuse';
 import { pillTone, LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { crewFor, type CrewMember } from '@/lib/jobs-data';
 import { photoHref, photoLine } from '@/lib/photos';
+import { wipRow, wipStats, wipLine, byWipAttention, wipMoney, WIP_LABEL } from '@/lib/wip';
+import { runForward, cashStats, cashAdvice, cashLine, cashLabel, DEFAULT_BUFFER_CENTS, type Week } from '@/lib/cashflow';
+import { reworkStats, reworkLine, reworkMoney, pattern, CAUSES, causeLabel, recoverFrom, REWORK_TARGET } from '@/lib/rework';
+import { reviewStats, reviewLine, needsReply, isComplaint, thankYou, mayAsk } from '@/lib/reviews';
+import { ACES, runOf, runLine, boardScore, towards, under, ACE_STANDARD, type BoardLine, type AceMonth } from '@/lib/ace';
 import { JobPhoto } from '@/components/job-photo';
 import { recordLabel } from '@/lib/tech-day';
 import {
@@ -27,6 +32,9 @@ import {
   raiseOrder, recordBill, acceptBill, orderArrived,
   raiseBill, agreeVariation, sendBill, sendReminder, markPaid, releaseRetention,
   addRecurring, recordDone, bookRecurring, setSource, markQuoted, setStock, orderTheShortfall, setKitPack,
+  addTender,
+  addTool,
+  logCallback, setReviewLink, askForReview,
 } from './actions';
 
 import {
@@ -62,18 +70,57 @@ export const dynamic = 'force-dynamic';
  * suppliers are whatever it types — SPEC names none.
  */
 
+/*
+  ── Twenty tabs, under three groups, in the order work flows ────────────────────────────────────
+ *
+ * Nine tabs in one row was already the most crowded thing in SPEC, and design 17 brings it to
+ * twenty. A row of twenty is not navigation, it is a wall — so they sit under the three things a
+ * trade business actually does, in order: **win the work**, **do the work**, **get paid and keep
+ * them**. The group row is on top and only that group's tabs show beneath it.
+ *
+ * That ordering is the point rather than the tidying. A business does not think "I need the
+ * catalogue screen", it thinks "I have not been paid" — and everything about being paid is now in
+ * one place instead of scattered between Invoices, Service and the board.
+ *
+ * Taken from `GROUPS` and `TABS` in designs/SPEC Jobs.dc.html, key for key, so a tab renamed in the
+ * design is a tab renamed here. `tests/jobs-tabs.test.ts` reads the design file and fails if the two
+ * drift — the keys are what every deep link in the product is built from (My Page's "Your job
+ * today" steps open `?tab=`), so a silent rename breaks links nobody would think to check.
+ */
 const TABS = [
-  { key: 'leads', label: 'Leads' },
   { key: 'pipeline', label: 'Jobs' },
+  { key: 'leads', label: 'Leads' },
+  { key: 'tenders', label: 'Tenders' },
+  { key: 'takeoff', label: 'Takeoff' },
+  { key: 'customers', label: 'Customers' },
+  { key: 'ace', label: 'Sales Ace' },
+  { key: 'jobace', label: 'Jobs Ace' },
   { key: 'quotes', label: 'Quotes' },
+  { key: 'prebuilds', label: 'Pre-builds' },
+  { key: 'howlong', label: 'How long?' },
   { key: 'schedule', label: 'Schedule' },
   { key: 'time', label: 'Timesheets' },
-  { key: 'catalogue', label: 'Catalogue' },
+  { key: 'catalogue', label: 'Materials' },
   { key: 'stock', label: 'Stock & buying' },
+  { key: 'tools', label: 'Tools & equipment' },
   { key: 'billing', label: 'Invoices & claims' },
-  { key: 'service', label: 'Service & assets' },
+  { key: 'wip', label: 'Work in progress' },
+  { key: 'cash', label: 'Cash flow' },
+  { key: 'service', label: 'Repeat work' },
+  { key: 'rework', label: 'Callbacks & rework' },
+  { key: 'reviews', label: 'Reviews' },
 ] as const;
 type Tab = (typeof TABS)[number]['key'];
+
+export const TAB_GROUPS = [
+  { key: 'win', label: 'Win the work', tabs: ['leads', 'tenders', 'takeoff', 'customers', 'ace', 'quotes', 'prebuilds', 'howlong'] },
+  { key: 'do', label: 'Do the work', tabs: ['pipeline', 'jobace', 'schedule', 'time', 'catalogue', 'stock', 'tools'] },
+  { key: 'paid', label: 'Get paid and keep them', tabs: ['billing', 'wip', 'cash', 'service', 'rework', 'reviews'] },
+] as const;
+
+/** The group a tab belongs to. Do the work when the tab is not one anybody knows — the middle of the day. */
+const groupOf = (tab: string) =>
+  TAB_GROUPS.find(g => (g.tabs as readonly string[]).includes(tab)) ?? TAB_GROUPS[1];
 
 const one = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
 const DAY_MS = 86_400_000;
@@ -97,7 +144,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const today = now.toISOString().slice(0, 10);
 
   /* Everything this business has recorded for Jobs, read once and scoped by tenant in the query. */
-  const [jobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows] = await Promise.all([
+  const [jobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
     db.select().from(schema.quotes).where(eq(schema.quotes.tenantId, user.tenantId)).orderBy(schema.quotes.createdAt),
     db.select().from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, user.tenantId)).orderBy(schema.catalogueItems.name),
@@ -114,8 +161,26 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
     db.select().from(schema.recurringWork).where(eq(schema.recurringWork.tenantId, user.tenantId))
       .orderBy(schema.recurringWork.nextDueAt),
     db.select().from(schema.stockLevels).where(eq(schema.stockLevels.tenantId, user.tenantId)),
+    /* Design 17's fourth group and the two registers it brought with it. */
+    db.select().from(schema.callbacks).where(eq(schema.callbacks.tenantId, user.tenantId))
+      .orderBy(schema.callbacks.createdAt),
+    db.select().from(schema.reviews).where(eq(schema.reviews.tenantId, user.tenantId))
+      .orderBy(schema.reviews.createdAt),
+    db.select().from(schema.tools).where(eq(schema.tools.tenantId, user.tenantId))
+      .orderBy(schema.tools.name),
+    db.select().from(schema.tenders).where(eq(schema.tenders.tenantId, user.tenantId))
+      .orderBy(schema.tenders.dueAt),
   ]);
   const crew = await crewFor(user);
+
+  /* Every minute worked, whatever job it was on — the denominator the rework rate is a share of. */
+  const workedMinutes = jobTime.reduce((t, e) => t + (e.minutes ?? 0), 0);
+
+  /* The two things this business sets for itself: where reviews go, and the floor under its cash. */
+  const [tenantRow] = await db.select({
+    reviewLink: schema.tenants.reviewLink,
+    cashBufferCents: schema.tenants.cashBufferCents,
+  }).from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
 
   const items: CatalogueItem[] = itemRows.map(i => ({ id: i.id, name: i.name, unit: i.unit, supplier: i.supplier, costCents: i.costCents }));
   const kits: Kit[] = kitRows.map(k => ({
@@ -156,17 +221,42 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
         </form>
       )}
 
-      <nav aria-label="Jobs" className="mb-6 flex flex-wrap gap-2">
-        {TABS.map(t => (
-          <Link
-            key={t.key}
-            href={tabHref(t.key)}
-            aria-current={t.key === tab ? 'page' : undefined}
-            className={`whitespace-nowrap rounded-full px-4 py-2 text-sm ${t.key === tab ? 'bg-rust text-cream' : 'bg-surface text-ink shadow-sm hover:bg-cream'}`}
-          >
-            {t.label}
-          </Link>
-        ))}
+      {/*
+        The group row, then that group's tabs. Twenty tabs in one row is a wall rather than
+        navigation; three words a tradie already uses is a way in. Opening a group lands on its
+        first tab, so a press always goes somewhere.
+      */}
+      <nav aria-label="Jobs" className="mb-6 grid gap-3">
+        <div className="flex flex-wrap gap-2">
+          {TAB_GROUPS.map(g => {
+            const here = g.key === groupOf(tab).key;
+            return (
+              <Link
+                key={g.key}
+                href={tabHref(g.tabs[0])}
+                aria-current={here ? 'true' : undefined}
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${here ? 'bg-ink text-white' : 'bg-surface text-ink-light shadow-sm hover:bg-cream'}`}
+              >
+                {g.label}
+              </Link>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {groupOf(tab).tabs.map(key => {
+            const t = TABS.find(x => x.key === key)!;
+            return (
+              <Link
+                key={t.key}
+                href={tabHref(t.key)}
+                aria-current={t.key === tab ? 'page' : undefined}
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm ${t.key === tab ? 'bg-rust text-cream' : 'bg-surface text-ink shadow-sm hover:bg-cream'}`}
+              >
+                {t.label}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
       <OwnSystemLine line={own.line} connected={own.connected} />
@@ -190,6 +280,20 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       {tab === 'stock' && <Stock orders={orderRows} jobs={jobs} manage={manage} today={today} levels={stockRows} items={items} />}
       {tab === 'billing' && <Billing bills={billRows} jobs={jobs} manage={manage} now={now} />}
       {tab === 'service' && <Recurring rows={recurRows} manage={manage} today={today} />}
+      {tab === 'prebuilds' && (
+        <Catalogue items={itemRows} kits={kits} kitRows={kitRows} rates={rates} q={one(sp.q)} skipped={one(sp.skipped)} rises={one(sp.rises)} rose={one(sp.rose)} manage={manage} today={today} only="kits" />
+      )}
+      {tab === 'customers' && <Customers jobs={jobs} tenantId={user.tenantId} />}
+      {tab === 'wip' && <WorkInProgress jobs={costed} bills={billRows} manage={manage} tabHref={tabHref} />}
+      {tab === 'cash' && <CashFlow tenantId={user.tenantId} bills={billRows} orders={orderRows} today={today} />}
+      {tab === 'rework' && <Rework rows={callbackRows} jobs={jobs} crew={crew} manage={manage} minutes={workedMinutes} />}
+      {tab === 'reviews' && <Reviews rows={reviewRows} jobs={jobs} manage={manage} link={tenantRow?.reviewLink ?? null} />}
+      {tab === 'tools' && <Tools rows={toolRows} crew={crew} manage={manage} today={today} />}
+      {tab === 'tenders' && <Tenders rows={tenderRows} manage={manage} today={today} />}
+      {tab === 'takeoff' && <Takeoff kits={kits} items={itemRows} manage={manage} />}
+      {tab === 'howlong' && <HowLong jobs={costed} quotes={quotes} />}
+      {tab === 'ace' && <AceBoard kind="sales" tenantId={user.tenantId} jobs={costed} quotes={quotes} today={today} />}
+      {tab === 'jobace' && <AceBoard kind="jobs" tenantId={user.tenantId} jobs={costed} quotes={quotes} today={today} />}
 
       {/*
         The way out to a job system somebody already runs, the same offer the People screen makes for
@@ -921,9 +1025,18 @@ async function Timesheets({ jobs, crew, week, manage, today, tenantId, tabHref }
 
 /* ══ Catalogue ════════════════════════════════════════════════════════════════════════════════════ */
 
-function Catalogue({ items, kits, kitRows, rates, q, skipped, rises, rose, manage, today }: {
+function Catalogue({ items, kits, kitRows, rates, q, skipped, rises, rose, manage, today, only }: {
   items: (typeof schema.catalogueItems.$inferSelect)[]; kits: Kit[]; kitRows: (typeof schema.kits.$inferSelect)[];
   rates: LabourRate[]; q: string; skipped: string; rises: string; rose: string; manage: boolean; today: string;
+  /**
+   * Which half of this screen to show.
+   *
+   * Design 17 splits what was one Catalogue tab into two: **Materials** (the items, the supplier
+   * price files, the labour rates) and **Pre-builds** (the kits, and the job pack a kit produces).
+   * They were always two jobs sharing a screen — a storeman keeping prices right, and an estimator
+   * building a quote — so they are two doors onto one set of rows rather than two copies of it.
+   */
+  only?: 'kits' | 'items';
 }) {
   const suppliers = [...new Set(items.map(i => i.supplier).filter(Boolean))].sort().map(name => {
     const theirs = items.filter(i => i.supplier === name);
@@ -955,6 +1068,7 @@ function Catalogue({ items, kits, kitRows, rates, q, skipped, rises, rose, manag
         </p>
       )}
 
+      {only !== 'kits' && (
       <section aria-label="Supplier price files" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {suppliers.map(s => (
           <div key={s.name} className="card">
@@ -974,11 +1088,12 @@ function Catalogue({ items, kits, kitRows, rates, q, skipped, rises, rose, manag
           </div>
         )}
       </section>
+      )}
 
       <section className="card">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-serif text-xl text-ink">Catalogue</h2>
+            <h2 className="font-serif text-xl text-ink">{only === 'kits' ? 'Pre-builds' : 'Materials'}</h2>
             <p className="mt-1.5 max-w-[70ch] text-sm text-ink-light">
               {items.length ? `${items.length.toLocaleString('en-AU')} items you actually use.` : 'The items you actually use, and nothing else.'}{' '}
               Supplier prices update when you load their file. SPEC flags anything not used in 12 months so the list stays lean
@@ -1045,6 +1160,8 @@ function Catalogue({ items, kits, kitRows, rates, q, skipped, rises, rose, manag
           </div>
         )}
 
+        {only !== 'items' && (
+        <>
         <p className="label-caps mb-2 mt-7">Kits · pre-built bundles you quote in one line</p>
         {kits.length ? (
           <div className="grid gap-1.5">
@@ -1138,6 +1255,10 @@ function Catalogue({ items, kits, kitRows, rates, q, skipped, rises, rose, manag
           </details>
         )}
 
+        </>
+        )}
+
+        {only !== 'kits' && (<>
         <p className="label-caps mb-2 mt-7">Labour rates</p>
         {rates.length ? (
           <div className="grid gap-1.5">
@@ -1159,6 +1280,7 @@ function Catalogue({ items, kits, kitRows, rates, q, skipped, rises, rose, manag
             <SubmitButton className="btn-secondary shrink-0" pending="Adding…">Add rate</SubmitButton>
           </form>
         )}
+        </>)}
       </section>
     </div>
   );
@@ -1851,3 +1973,1010 @@ function Leads({ jobs, manage, now }: { jobs: JobRow[]; manage: boolean; now: Da
     </div>
   );
 }
+
+/* ══ Design 17 · Get paid and keep them ═══════════════════════════════════════════════════════════ */
+
+/**
+ * Work in progress — every open job's work against its billing.
+ *
+ * The rules are in lib/wip and tested there; this is the screen. It leads on whatever is costing
+ * money rather than on the biggest number, and a job whose margin has gone asks for a VARIATION
+ * rather than a claim — an invoice does not fix a job that has stopped making money.
+ */
+function WorkInProgress({ jobs, bills, manage, tabHref }: {
+  jobs: Costed[];
+  bills: (typeof schema.jobBills.$inferSelect)[];
+  manage: boolean;
+  tabHref: (k: string, e?: Record<string, string>) => string;
+}) {
+  /*
+    Only jobs that are actually running. An enquiry has nothing to be under-billed on, and a paid
+    job's gap is history — putting either on this screen makes the list longer and the answer worse.
+  */
+  const open = jobs.filter(j => ['won', 'scheduled', 'onsite', 'invoiced'].includes(j.stage));
+
+  const rows = byWipAttention(open.map(j => {
+    const billed = bills.filter(b => b.jobId === j.id && (b.state === 'sent' || b.state === 'paid'))
+      .reduce((t, b) => t + b.amountCents, 0);
+    return wipRow({
+      id: j.id,
+      ref: j.ref,
+      title: j.title,
+      // What the job was won at. `valueCents` is the quoted value the board already costs against,
+      // so WIP and the margin on the board can never disagree about the same job.
+      quotedCents: j.valueCents,
+      costCents: j.labourCents + (j.materialsCents ?? 0),
+      billedCents: billed,
+      done: progressOf(j),
+    });
+  }));
+  const stats = wipStats(rows);
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">Work in progress</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
+          Every open job: what has been done, what has been billed, and whether it is still making
+          money. The gap between the first two is where a trade business&rsquo;s money sits, and
+          nobody keeps it in their head.
+        </p>
+        <p className="mt-3 text-sm font-semibold text-ink">{wipLine(stats)}</p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'Still to deliver', value: wipMoney(stats.toDeliverCents), note: 'on open jobs', light: 'pending' as Light },
+            { label: 'Under-billed', value: wipMoney(stats.underBilledCents), note: stats.underBilledCents ? 'done, not yet billed' : 'all billed', light: (stats.underBilledCents ? 'amber' : 'green') as Light },
+            { label: 'Billed ahead', value: wipMoney(stats.aheadCents), note: 'owed back in work', light: 'pending' as Light },
+            { label: 'Margin at risk', value: String(stats.atRisk), note: stats.atRisk ? 'raise the variation now' : 'none', light: (stats.atRisk ? 'red' : 'green') as Light },
+          ].map(t => (
+            <div key={t.label} className="card-inset">
+              <span className="label-caps">{t.label}</span>
+              <p className="mt-1 font-serif text-2xl text-ink">{t.value}</p>
+              <p className="mt-1 text-xs text-ink-light">{t.note}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {rows.length === 0 ? (
+        <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-ink">
+          No jobs are running yet. This fills itself from the board — nothing to type here.
+        </p>
+      ) : (
+        <div className="grid gap-3">
+          {rows.map(r => (
+            <section key={r.id} className="card">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <strong className="text-sm text-ink">{r.ref} · {r.title}</strong>
+                <Pill light={r.state === 'at_risk' ? 'red' : r.state === 'under_billed' ? 'amber' : 'green'}>
+                  {WIP_LABEL[r.state]}
+                </Pill>
+              </div>
+
+              <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-cream">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.round(Math.max(0, Math.min(1, r.done)) * 100)}%`,
+                    background: LIGHT_COLOUR[r.state === 'at_risk' ? 'red' : r.state === 'under_billed' ? 'amber' : 'green'],
+                  }}
+                />
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
+                {[
+                  ['Quoted', wipMoney(r.quotedCents)],
+                  ['Done', `${Math.round(r.done * 100)}%`],
+                  ['Cost so far', wipMoney(r.costCents)],
+                  ['Billed', wipMoney(r.billedCents)],
+                  ['Forecast margin', `${Math.round(r.margin * 100)}%`],
+                ].map(([label, value]) => (
+                  <span key={label} className="grid gap-0.5">
+                    <span className="text-xs text-ink-light">{label}</span>
+                    <strong className="text-sm text-ink">{value}</strong>
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <span className="flex-[1_1_280px] text-sm text-ink-light">{r.advice}</span>
+                {manage && r.action && (
+                  <Link href={tabHref('billing', { job: r.id })} className="btn-secondary shrink-0 text-sm">
+                    {r.action}
+                  </Link>
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * How far through a job is.
+ *
+ * From the stage, which is coarse and honest: a job on site is further along than a job just won.
+ * The precise version — hours against the hours the quote was built from — needs the quote's own
+ * labour hours carried onto the job, and SPEC does not hold them yet. A made-up percentage would
+ * make every number on this screen look exact and be wrong, so it stays coarse until it can be
+ * better.
+ */
+function progressOf(j: Costed): number {
+  return j.stage === 'invoiced' ? 1 : j.stage === 'onsite' ? 0.6 : j.stage === 'scheduled' ? 0.2 : 0.05;
+}
+
+/**
+ * Thirteen weeks of money in and out, and the week it runs short.
+ *
+ * SPEC does not become the accounting system: the balance and the bills come from the business's
+ * own, which stays the financial system. What SPEC adds is the half only it knows — the schedule,
+ * the claims earned and not raised, the supplier bills it is holding — and that combination is the
+ * whole point. An accountant can say what happened; only the schedule says what is about to.
+ */
+async function CashFlow({ tenantId, bills, orders, today }: {
+  tenantId: string;
+  bills: (typeof schema.jobBills.$inferSelect)[];
+  orders: (typeof schema.purchaseOrders.$inferSelect)[];
+  today: string;
+}) {
+  const [tenant] = await db.select({ buffer: schema.tenants.cashBufferCents })
+    .from(schema.tenants).where(eq(schema.tenants.id, tenantId));
+  const buffer = tenant?.buffer ?? DEFAULT_BUFFER_CENTS;
+
+  const owedToYou = bills.filter(b => b.state === 'sent')
+    .reduce((t, b) => t + b.amountCents - b.retentionCents, 0);
+  const youOwe = orders.filter(o => o.state === 'billed' || o.state === 'received')
+    .reduce((t, o) => t + (o.billTotalCents ?? o.totalCents), 0);
+
+  /*
+    Thirteen weeks built from what SPEC actually holds: invoices land in the week they are due,
+    supplier bills in the week they were expected. Nothing is invented — a week with nothing in it
+    shows nothing rather than a guess, and the screen says where the numbers came from.
+  */
+  const monday = mondayOf(today);
+  const weeks: Week[] = Array.from({ length: 13 }, (_, i) => {
+    const startsAt = addDays(monday, i * 7);
+    const ends = addDays(startsAt, 7);
+    const inCents = bills
+      .filter(b => b.state === 'sent' && b.sentAt && due(b.sentAt) >= startsAt && due(b.sentAt) < ends)
+      .reduce((t, b) => t + b.amountCents - b.retentionCents, 0);
+    const outCents = orders
+      .filter(o => o.expectedAt && o.expectedAt >= startsAt && o.expectedAt < ends)
+      .reduce((t, o) => t + (o.billTotalCents ?? o.totalCents), 0);
+    return { n: i + 1, startsAt, inCents, outCents };
+  });
+
+  const opening = 0;
+  const balances = runForward(opening, weeks, buffer);
+  const stats = cashStats(opening, balances, owedToYou, youOwe);
+  const tallest = Math.max(1, ...balances.map(w => Math.max(w.inCents, w.outCents)));
+
+  /* The two levers a trade business actually has in a fortnight, with what each is worth. */
+  const fixes = [
+    owedToYou > 0 && { says: `Collect the ${cashLabel(owedToYou)} already invoiced.`, worthCents: owedToYou, where: '/jobs?tab=billing' },
+  ].filter(Boolean) as { says: string; worthCents: number; where: string }[];
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">Cash flow</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
+          Thirteen weeks — a quarter. Far enough out that something can still be done about it, near
+          enough that the numbers are real work rather than a forecast somebody invented.
+        </p>
+        <p className="mt-3 text-sm font-semibold text-ink">{cashLine(stats, buffer)}</p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'Owed to you', value: cashLabel(owedToYou), note: 'invoices sent, not paid', light: (owedToYou ? 'amber' : 'green') as Light },
+            { label: 'You owe', value: cashLabel(youOwe), note: 'supplier bills in hand', light: 'pending' as Light },
+            { label: 'Lowest week', value: cashLabel(stats.lowestCents), note: stats.lowestWeek ? `week ${stats.lowestWeek} of 13` : 'nothing scheduled', light: (stats.goesShort ? 'red' : 'green') as Light },
+            { label: 'Your buffer', value: cashLabel(buffer), note: 'set for this business', light: 'pending' as Light },
+          ].map(t => (
+            <div key={t.label} className="card-inset">
+              <span className="label-caps">{t.label}</span>
+              <p className="mt-1 font-serif text-2xl text-ink" style={{ color: LIGHT_INK[t.light] }}>{t.value}</p>
+              <p className="mt-1 text-xs text-ink-light">{t.note}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="card">
+        <p className="label-caps mb-3">Thirteen weeks</p>
+        <div className="flex items-end gap-1.5 overflow-x-auto pb-2">
+          {balances.map(w => (
+            <div key={w.n} className="grid min-w-[44px] justify-items-center gap-1">
+              <div className="flex h-[130px] items-end gap-0.5">
+                <div className="w-3.5 rounded-t" style={{ height: `${Math.round(w.inCents / tallest * 130)}px`, background: LIGHT_COLOUR.green }} title={`In ${cashLabel(w.inCents)}`} />
+                <div className="w-3.5 rounded-t" style={{ height: `${Math.round(w.outCents / tallest * 130)}px`, background: LIGHT_COLOUR.amber }} title={`Out ${cashLabel(w.outCents)}`} />
+              </div>
+              <span
+                className="rounded-full px-1.5 py-0.5 text-[11px] font-bold"
+                style={w.short ? { background: 'color-mix(in srgb, var(--red) 14%, transparent)', color: LIGHT_INK.red } : undefined}
+              >
+                {cashLabel(w.balanceCents)}
+              </span>
+              <span className="text-[11px] text-ink-light">W{w.n}</span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 rounded-2xl bg-cream px-4 py-3 text-sm text-ink">{cashAdvice(stats, fixes, buffer)}</p>
+        <p className="mt-2 text-xs text-ink-light">
+          Money in is what SPEC has invoiced; money out is the supplier bills it is holding. Your
+          accounting system stays the financial system — connect it on Connections and the opening
+          balance and the rest of the bills come from there.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+/** Monday of the week a date falls in. */
+function mondayOf(day: string): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  const back = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - back);
+  return d.toISOString().slice(0, 10);
+}
+
+function addDays(day: string, n: number): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** When an invoice sent on this day is expected in. The usual 30 days, until terms are recorded. */
+const due = (sentAt: string) => addDays(sentAt.slice(0, 10), 30);
+
+/**
+ * Callbacks and rework — going back to a job that should have been finished.
+ *
+ * Filed under Compliance rather than Earnings on purpose: going back twice is not a money problem
+ * with a money fix, it is work that was not done right, and the fix is a checklist or a
+ * conversation. See the note at the top of lib/rework.
+ */
+function Rework({ rows, jobs, crew, manage, minutes }: {
+  rows: (typeof schema.callbacks.$inferSelect)[];
+  jobs: JobRow[];
+  crew: CrewMember[];
+  manage: boolean;
+  minutes: number;
+}) {
+  const refOf = (id: string) => jobs.find(j => j.id === id)?.ref ?? 'Job';
+  const calls = rows.map(r => ({
+    id: r.id, jobRef: refOf(r.jobId), cause: r.cause, hours: r.minutes / 60,
+    costCents: r.costCents, recoveredCents: r.recoveredCents, who: r.who, at: r.createdAt.slice(0, 10),
+  }));
+  const stats = reworkStats(calls, minutes / 60);
+  const found = pattern(calls);
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">Callbacks &amp; rework</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
+          The cost nobody sees: on a timesheet, going back to a job looks like ordinary work. The
+          only way it becomes a number is by being counted on its own.
+        </p>
+        <p className="mt-3 text-sm font-semibold text-ink">{reworkLine(stats)}</p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'Rework rate', value: `${Math.round(stats.rate * 1000) / 10}%`, note: `target under ${Math.round(REWORK_TARGET * 100)}%`, light: (stats.overTarget ? 'red' : 'green') as Light },
+            { label: 'Callbacks', value: String(stats.callbacks), note: `${Math.round(stats.hours)} hours going back`, light: 'pending' as Light },
+            { label: 'Cost', value: reworkMoney(stats.costCents), note: 'labour and materials', light: 'pending' as Light },
+            { label: 'Recovered', value: reworkMoney(stats.recoveredCents), note: 'claimed back or invoiced', light: (stats.recoveredCents ? 'green' : 'pending') as Light },
+          ].map(t => (
+            <div key={t.label} className="card-inset">
+              <span className="label-caps">{t.label}</span>
+              <p className="mt-1 font-serif text-2xl" style={{ color: LIGHT_INK[t.light] }}>{t.value}</p>
+              <p className="mt-1 text-xs text-ink-light">{t.note}</p>
+            </div>
+          ))}
+        </div>
+
+        {found && (
+          <p className="mt-4 rounded-2xl px-4 py-3 text-sm text-ink" style={{ background: `color-mix(in srgb, ${LIGHT_COLOUR.amber} 14%, transparent)` }}>
+            {found.says}
+          </p>
+        )}
+      </section>
+
+      <section className="card">
+        <p className="label-caps mb-3">Every callback</p>
+        {calls.length ? (
+          <div className="grid gap-2">
+            {calls.map(c => {
+              const from = recoverFrom(c.cause);
+              return (
+                <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3">
+                  <span className="grid min-w-0 flex-[1_1_300px] gap-0.5">
+                    <span className="text-sm font-semibold text-ink">{c.jobRef} · {causeLabel(c.cause)}</span>
+                    <span className="text-xs text-ink-light">
+                      {c.at} · {c.who || 'nobody named'} · {Math.round(c.hours * 10) / 10}h · {reworkMoney(c.costCents)}
+                      {from ? ` · recover from the ${from}` : ' · fixed free'}
+                    </span>
+                  </span>
+                  <Pill light={c.recoveredCents ? 'green' : from ? 'amber' : 'pending'}>
+                    {c.recoveredCents ? `Recovered ${reworkMoney(c.recoveredCents)}` : from ? 'Not recovered yet' : 'On us'}
+                  </Pill>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-ink">
+            Nothing has had to be gone back to. Record one the day it happens — a callback written up
+            a week later is a callback nobody can learn anything from.
+          </p>
+        )}
+
+        {manage && (
+          <form action={logCallback} className="mt-4 grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
+            <select className="input" name="jobId" required aria-label="Which job">
+              <option value="">Which job</option>
+              {jobs.map(j => <option key={j.id} value={j.id}>{j.ref} · {j.title}</option>)}
+            </select>
+            <select className="input" name="cause" required aria-label="What caused it">
+              {CAUSES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+            </select>
+            <select className="input" name="who" aria-label="Who did the original work">
+              <option value="">Who did it</option>
+              {crew.map(c => <option key={c.key} value={c.name}>{c.name}</option>)}
+            </select>
+            <input className="input" name="hours" inputMode="decimal" placeholder="Hours" aria-label="Hours going back" />
+            <SubmitButton className="btn-secondary shrink-0" pending="Logging…">Log it</SubmitButton>
+          </form>
+        )}
+        <p className="mt-2 text-xs text-ink-light">
+          {CAUSES.map(c => `${c.label}: ${c.consequence}`).join(' ')}
+        </p>
+      </section>
+    </div>
+  );
+}
+
+/**
+ * Reviews — asked the same way of every paid customer.
+ *
+ * **No review gating.** Everybody whose job is paid gets the same message and the same link. Asking
+ * how it went first and sending the link only to the happy ones is against Google's own policy —
+ * a business caught doing it can have its reviews removed — and it is a lie about what the rating
+ * means. An unhappy customer is a callback for the supervisor, not a link withheld.
+ */
+function Reviews({ rows, jobs, manage, link }: {
+  rows: (typeof schema.reviews.$inferSelect)[];
+  jobs: JobRow[];
+  manage: boolean;
+  link: string | null;
+}) {
+  const reviews = rows.map(r => ({
+    id: r.id, who: r.who, stars: r.stars, text: r.text,
+    at: r.createdAt.slice(0, 10), repliedAt: r.repliedAt,
+  }));
+  const paid = jobs.filter(j => j.stage === 'paid');
+  const asked = paid.filter(j => j.reviewAskedAt).length;
+  const stats = reviewStats(reviews, asked, paid.length - asked);
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">Reviews</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
+          Every customer whose job is paid gets the same message with the same link. SPEC will not
+          ask how it went first and send the link only to the happy ones — that is against
+          Google&rsquo;s own policy, and it makes the rating mean nothing.
+        </p>
+        <p className="mt-3 text-sm font-semibold text-ink">{reviewLine(stats)}</p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'Average', value: stats.reviews ? `${stats.average}★` : '—', note: `${stats.reviews} reviews`, light: 'pending' as Light },
+            { label: 'Asked', value: String(stats.asked), note: 'paid jobs asked', light: 'green' as Light },
+            { label: 'Not asked yet', value: String(stats.toAsk), note: 'paid, no message sent', light: (stats.toAsk ? 'amber' : 'green') as Light },
+            { label: 'Waiting on a reply', value: String(stats.needReply), note: 'every review gets one', light: (stats.needReply ? 'amber' : 'green') as Light },
+          ].map(t => (
+            <div key={t.label} className="card-inset">
+              <span className="label-caps">{t.label}</span>
+              <p className="mt-1 font-serif text-2xl" style={{ color: LIGHT_INK[t.light] }}>{t.value}</p>
+              <p className="mt-1 text-xs text-ink-light">{t.note}</p>
+            </div>
+          ))}
+        </div>
+
+        {!link && (
+          <p className="mt-4 rounded-2xl px-4 py-3 text-sm text-ink" style={{ background: `color-mix(in srgb, ${LIGHT_COLOUR.amber} 14%, transparent)` }}>
+            No review link set yet, so nobody is being asked. Paste your Google review link below and
+            every paid job from then on gets the message.
+          </p>
+        )}
+        {manage && (
+          <form action={setReviewLink} className="mt-3 flex flex-wrap gap-2">
+            <input className="input min-w-0 flex-1" name="link" defaultValue={link ?? ''} placeholder="https://g.page/r/…" aria-label="Your review link" />
+            <SubmitButton className="btn-secondary shrink-0" pending="Saving…">Save the link</SubmitButton>
+          </form>
+        )}
+      </section>
+
+      {link && stats.toAsk > 0 && (
+        <section className="card">
+          <p className="label-caps mb-3">Paid, not asked yet</p>
+          <div className="grid gap-2">
+            {paid.filter(j => !j.reviewAskedAt).map(j => (
+              <div key={j.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3">
+                <span className="grid min-w-0 flex-[1_1_300px] gap-0.5">
+                  <span className="text-sm font-semibold text-ink">{j.ref} · {j.client}</span>
+                  <span className="text-xs text-ink-light">{thankYou('your business', j.client, link)}</span>
+                </span>
+                {manage && mayAsk({ stage: j.stage, reviewAskedAt: j.reviewAskedAt }, link).ok && (
+                  <form action={askForReview}>
+                    <input type="hidden" name="jobId" value={j.id} />
+                    <SubmitButton className="btn-secondary shrink-0 text-sm" pending="Sending…">Send it</SubmitButton>
+                  </form>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="card">
+        <p className="label-caps mb-3">What people said</p>
+        {reviews.length ? (
+          <div className="grid gap-2">
+            {reviews.map(r => (
+              <div key={r.id} className="grid gap-1 rounded-2xl bg-cream px-4 py-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <strong className="text-sm text-ink">{r.who || 'A customer'} · {'★'.repeat(Math.max(1, Math.min(5, r.stars)))}</strong>
+                  <Pill light={isComplaint(r) ? 'red' : needsReply(r) ? 'amber' : 'green'}>
+                    {isComplaint(r) ? 'With the supervisor as a callback' : needsReply(r) ? 'Waiting on a reply' : 'Replied'}
+                  </Pill>
+                </div>
+                <p className="text-sm text-ink-light">{r.text}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-ink">
+            Nothing yet. Reviews land here as they are written, and SPEC drafts a reply to every one —
+            the good ones too. A business that answers only its complaints reads like a business that
+            only turns up when there is trouble.
+          </p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/* ══ Design 17 · Win the work, and the rest of Do the work ════════════════════════════════════════ */
+
+/**
+ * Customers — every client, site, contact and job history, reached from Jobs.
+ *
+ * The top menu sends CRM here (`?tab=customers`) rather than to a separate screen, because a
+ * customer and their jobs are one thing viewed from two ends. `/clients` remains the full record;
+ * this is the version an estimator wants while they are in the middle of the work.
+ */
+async function Customers({ jobs, tenantId }: { jobs: JobRow[]; tenantId: string }) {
+  const orgs = await db.select().from(schema.crmOrganisations)
+    .where(eq(schema.crmOrganisations.tenantId, tenantId))
+    .orderBy(schema.crmOrganisations.name);
+
+  /* Grouped by the name on the job, so a customer SPEC has never been told about still appears. */
+  const byName = new Map<string, JobRow[]>();
+  for (const j of jobs) {
+    const key = j.client.trim() || 'No customer named';
+    byName.set(key, [...(byName.get(key) ?? []), j]);
+  }
+  const rows = [...byName.entries()]
+    .map(([name, theirs]) => ({
+      name,
+      org: orgs.find(o => o.name.toLowerCase() === name.toLowerCase()) ?? null,
+      jobs: theirs.length,
+      valueCents: theirs.reduce((t, j) => t + j.valueCents, 0),
+      live: theirs.filter(j => !['paid', 'lost'].includes(j.stage)).length,
+      last: theirs.map(j => j.createdAt).sort().at(-1)?.slice(0, 10) ?? '',
+    }))
+    .sort((a, b) => b.valueCents - a.valueCents);
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">Customers</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
+          Every client and everything they have had done — built from the jobs themselves, so a
+          customer exists the moment somebody rings, not when anybody remembers to add them.
+        </p>
+        {rows.length ? (
+          <div className="mt-4 grid gap-2">
+            {rows.map(r => (
+              <div key={r.name} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3">
+                <span className="grid min-w-0 flex-[1_1_300px] gap-0.5">
+                  <span className="text-sm font-semibold text-ink">{r.name}</span>
+                  <span className="text-xs text-ink-light">
+                    {r.jobs} {r.jobs === 1 ? 'job' : 'jobs'} · {money(r.valueCents)} · last {r.last}
+                    {r.org ? '' : ' · not in the client book yet'}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  {r.live > 0 && <Pill light="green">{r.live} live</Pill>}
+                  <Link href={`/clients?open=${encodeURIComponent(r.org?.id ?? '')}`} className="btn-secondary text-sm">
+                    Open
+                  </Link>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-2xl bg-cream px-4 py-3 text-sm text-ink">
+            No customers yet. Log an enquiry at the top of this screen and the first one appears here.
+          </p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/**
+ * Tools and equipment — the register, and the three questions it answers.
+ *
+ * One row, three uses: what it is worth for insurance, when it is next due for test and tag or
+ * calibration, and who has it. The third is the one that saves money — a business that cannot say
+ * which ute a tool is in buys it again.
+ */
+function Tools({ rows, crew, manage, today }: {
+  rows: (typeof schema.tools.$inferSelect)[];
+  crew: CrewMember[];
+  manage: boolean;
+  today: string;
+}) {
+  const soon = addDays(today, 30);
+  const due = rows.filter(t => t.status === 'held' && t.dueAt && t.dueAt <= soon);
+  const overdue = rows.filter(t => t.status === 'held' && t.dueAt && t.dueAt < today);
+  const missing = rows.filter(t => t.status === 'missing');
+  const valueCents = rows.filter(t => t.status !== 'retired').reduce((t, r) => t + r.valueCents, 0);
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">Tools &amp; equipment</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
+          Every tool, who has it and which ute it is in. Test and tag and calibration dates sit on
+          the same row, because they are the same question asked a different way.
+        </p>
+        <p className="mt-3 text-sm font-semibold text-ink">
+          {overdue.length
+            ? `${overdue.length} ${overdue.length === 1 ? 'tool is' : 'tools are'} past a test or calibration date. Not safe to send out.`
+            : missing.length
+              ? `${missing.length} ${missing.length === 1 ? 'tool is' : 'tools are'} missing.`
+              : rows.length
+                ? `${rows.length} tools, ${money(valueCents)} insured. Nothing overdue.`
+                : 'Nothing in the register yet.'}
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'In the register', value: String(rows.length), note: money(valueCents) + ' insured', light: 'pending' as Light },
+            { label: 'Due in 30 days', value: String(due.length), note: 'test, tag or calibration', light: (due.length ? 'amber' : 'green') as Light },
+            { label: 'Overdue', value: String(overdue.length), note: 'not safe to send out', light: (overdue.length ? 'red' : 'green') as Light },
+            { label: 'Missing', value: String(missing.length), note: 'last seen on a job', light: (missing.length ? 'amber' : 'green') as Light },
+          ].map(t => (
+            <div key={t.label} className="card-inset">
+              <span className="label-caps">{t.label}</span>
+              <p className="mt-1 font-serif text-2xl" style={{ color: LIGHT_INK[t.light] }}>{t.value}</p>
+              <p className="mt-1 text-xs text-ink-light">{t.note}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="card">
+        <p className="label-caps mb-3">The register</p>
+        {rows.length ? (
+          <div className="grid gap-2">
+            {rows.map(t => {
+              const light: Light = t.status === 'missing' ? 'amber'
+                : t.dueAt && t.dueAt < today ? 'red'
+                  : t.dueAt && t.dueAt <= soon ? 'amber' : 'green';
+              return (
+                <div key={t.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3">
+                  <span className="grid min-w-0 flex-[1_1_300px] gap-0.5">
+                    <span className="text-sm font-semibold text-ink">{t.name}</span>
+                    <span className="text-xs text-ink-light">
+                      {t.heldBy || 'nobody named'}{t.serial ? ` · ${t.serial}` : ''}
+                      {t.dueAt ? ` · due ${t.dueAt}` : ' · no test date'}
+                      {t.valueCents ? ` · ${money(t.valueCents)}` : ''}
+                    </span>
+                  </span>
+                  <Pill light={light}>
+                    {t.status === 'missing' ? 'Missing'
+                      : t.dueAt && t.dueAt < today ? 'Overdue'
+                        : t.dueAt && t.dueAt <= soon ? 'Due soon' : 'Current'}
+                  </Pill>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-ink">
+            Nothing here yet. Add the tools worth more than a day&rsquo;s hire — the ones you would
+            notice missing and the ones that carry a test date.
+          </p>
+        )}
+        {manage && (
+          <form action={addTool} className="mt-4 grid gap-2 sm:grid-cols-[1.6fr_1fr_1fr_1fr_auto]">
+            <input className="input" name="name" required maxLength={120} placeholder="What it is" aria-label="Tool name" />
+            <select className="input" name="heldBy" aria-label="Who has it">
+              <option value="">Who has it</option>
+              {crew.map(c => <option key={c.key} value={c.name}>{c.name}</option>)}
+            </select>
+            <input className="input" name="value" inputMode="decimal" placeholder="Worth $" aria-label="What it is worth" />
+            <input className="input" name="dueAt" type="date" aria-label="Next test or calibration" />
+            <SubmitButton className="btn-secondary shrink-0" pending="Adding…">Add</SubmitButton>
+          </form>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/**
+ * A tender: work that has to be won against other people, on somebody else's timetable.
+ *
+ * Kept apart from a lead because the decision is different. A lead is followed up; a tender is
+ * decided on — go or no-go — and deciding wrong costs a fortnight of estimating given away. So the
+ * screen leads on the decision, with the three things that actually decide it: how often this
+ * builder is won, whether there is crew, and what the margin looks like.
+ */
+function Tenders({ rows, manage, today }: {
+  rows: (typeof schema.tenders.$inferSelect)[];
+  manage: boolean;
+  today: string;
+}) {
+  const open = rows.filter(t => ['open', 'go'].includes(t.status));
+  const closing = open.filter(t => t.dueAt && t.dueAt <= addDays(today, 7));
+  const submitted = rows.filter(t => t.status === 'submitted');
+  const won = rows.filter(t => t.status === 'won');
+  const lost = rows.filter(t => t.status === 'lost');
+  const decided = won.length + lost.length;
+  const winRate = decided ? Math.round((won.length / decided) * 100) : null;
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">Tenders</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
+          Packages you are pricing against other people. The decision that matters is go or no-go —
+          a tender priced and lost is a fortnight of estimating given away, and the only way that
+          ever improves is knowing how far off the winner you were.
+        </p>
+        <p className="mt-3 text-sm font-semibold text-ink">
+          {closing.length
+            ? `${closing.length} ${closing.length === 1 ? 'tender closes' : 'tenders close'} within a week.`
+            : open.length
+              ? `${open.length} open. Nothing closing this week.`
+              : 'Nothing open.'}
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'Open', value: String(open.length), note: money(open.reduce((t, r) => t + r.valueCents, 0)), light: 'pending' as Light },
+            { label: 'Closing this week', value: String(closing.length), note: 'due within 7 days', light: (closing.length ? 'amber' : 'green') as Light },
+            { label: 'Submitted', value: String(submitted.length), note: 'waiting on an answer', light: 'pending' as Light },
+            { label: 'Win rate', value: winRate === null ? '—' : `${winRate}%`, note: decided ? `${won.length} of ${decided} decided` : 'nothing decided yet', light: (winRate === null ? 'pending' : winRate >= 30 ? 'green' : 'amber') as Light },
+          ].map(t => (
+            <div key={t.label} className="card-inset">
+              <span className="label-caps">{t.label}</span>
+              <p className="mt-1 font-serif text-2xl" style={{ color: LIGHT_INK[t.light] }}>{t.value}</p>
+              <p className="mt-1 text-xs text-ink-light">{t.note}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="card">
+        <p className="label-caps mb-3">Open packages</p>
+        {rows.length ? (
+          <div className="grid gap-2">
+            {rows.map(t => {
+              const late = t.dueAt && t.dueAt < today && ['open', 'go'].includes(t.status);
+              return (
+                <div key={t.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3">
+                  <span className="grid min-w-0 flex-[1_1_320px] gap-0.5">
+                    <span className="text-sm font-semibold text-ink">{t.title}</span>
+                    <span className="text-xs text-ink-light">
+                      {t.builder || 'no builder named'} · {t.dueAt ? `due ${t.dueAt}` : 'no due date'} · {money(t.valueCents)}
+                      {t.addenda > 0 ? ` · ${t.addenda} ${t.addenda === 1 ? 'addendum' : 'addenda'} to re-price` : ''}
+                      {t.status === 'lost' && t.winnerCents ? ` · winner ${money(t.winnerCents)}, ${Math.round(((t.valueCents - t.winnerCents) / Math.max(1, t.winnerCents)) * 100)}% off` : ''}
+                    </span>
+                  </span>
+                  <Pill light={late ? 'red' : t.status === 'won' ? 'green' : t.status === 'lost' ? 'pending' : t.takeoff === 'done' ? 'green' : 'amber'}>
+                    {late ? 'Past its due date'
+                      : t.status === 'won' ? 'Won'
+                        : t.status === 'lost' ? 'Lost'
+                          : t.status === 'submitted' ? 'Submitted'
+                            : t.status === 'no_go' ? 'No-go'
+                              : t.takeoff === 'done' ? 'Priced' : t.takeoff === 'started' ? 'Takeoff started' : 'No takeoff yet'}
+                  </Pill>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-ink">
+            No tenders yet. Add one when the package lands, with its due date — the date is what makes
+            this screen useful rather than a list.
+          </p>
+        )}
+        {manage && (
+          <form action={addTender} className="mt-4 grid gap-2 sm:grid-cols-[1.6fr_1.2fr_1fr_1fr_auto]">
+            <input className="input" name="title" required maxLength={160} placeholder="What the package is" aria-label="Tender title" />
+            <input className="input" name="builder" maxLength={120} placeholder="Which builder" aria-label="Builder" />
+            <input className="input" name="dueAt" type="date" aria-label="Due date" />
+            <input className="input" name="value" inputMode="decimal" placeholder="Value $" aria-label="Value" />
+            <SubmitButton className="btn-secondary shrink-0" pending="Adding…">Add</SubmitButton>
+          </form>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/**
+ * Takeoff — counting what is on the builder's plans.
+ *
+ * ── What is built, and what is honestly not ──────────────────────────────────────────────────────
+ *
+ * The design asks for symbol recognition on PDF drawings: drop the plans in, SPEC finds each symbol,
+ * counts by room and type, measures cable. That needs a model reading drawings, and SPEC does not
+ * have one — so the screen does NOT pretend to. What it does is the half that works without it: the
+ * estimator enters counts by room and type, every one is theirs to confirm, and the pricing comes
+ * straight from the pre-builds so a takeoff turns into a quote in one press.
+ *
+ * The design's own rule is "every count confirmable by the estimator". Building the confirming half
+ * first means the day the reading half arrives it drops into a screen that already works, rather
+ * than a screen nobody trusts because it once guessed.
+ */
+function Takeoff({ kits, items, manage }: { kits: Kit[]; items: (typeof schema.catalogueItems.$inferSelect)[]; manage: boolean }) {
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">Takeoff</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
+          Count what is on the plans, room by room, and price it from your pre-builds. A takeoff that
+          is already priced is a quote — there is no second job of turning one into the other.
+        </p>
+        <p className="mt-3 rounded-2xl px-4 py-3 text-sm text-ink" style={{ background: `color-mix(in srgb, ${LIGHT_COLOUR.amber} 12%, transparent)` }}>
+          <b>Reading the drawings is not built yet.</b> SPEC does not find the symbols on a PDF and
+          count them for you — it would have to be right every time and it cannot be yet. Enter the
+          counts here and everything after that is done for you. The day the reading arrives it drops
+          into this screen; nothing you enter now is wasted.
+        </p>
+      </section>
+
+      <section className="card">
+        <p className="label-caps mb-3">Price it from your pre-builds</p>
+        {kits.length ? (
+          <div className="grid gap-2">
+            {kits.map(k => {
+              const e = expandKit(k, items.map(i => ({ id: i.id, name: i.name, unit: i.unit, supplier: i.supplier, costCents: i.costCents })));
+              return (
+                <div key={k.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3">
+                  <span className="grid min-w-0 flex-[1_1_300px] gap-0.5">
+                    <span className="text-sm font-semibold text-ink">{k.name}</span>
+                    <span className="text-xs text-ink-light">{k.components.length} items · {k.labourHours}h labour{e.missing.length ? ` · ${e.missing.length} not in the catalogue` : ""}</span>
+                  </span>
+                  <strong className="shrink-0 text-sm text-ink">{money(e.costCents)} each</strong>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-ink">
+            No pre-builds yet. Build a few on the Pre-builds tab — a downlight, a double GPO, a data
+            point — and a takeoff prices itself the moment the counts are in.
+          </p>
+        )}
+        {manage && kits.length > 0 && (
+          <p className="mt-3 text-xs text-ink-light">
+            Counts entered against these go straight onto a quote with your markup, at the prices
+            your last supplier file set.
+          </p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/**
+ * How long? — what work actually takes, against what it was quoted at.
+ *
+ * The single most valuable number a trade business does not have. Every quote is built on somebody's
+ * memory of how long a job like this took, and memory is generous. This is the same question asked
+ * of the timesheets.
+ */
+function HowLong({ jobs, quotes }: { jobs: Costed[]; quotes: (typeof schema.quotes.$inferSelect)[] }) {
+  const finished = jobs.filter(j => ['invoiced', 'paid'].includes(j.stage) && j.minutes > 0);
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">How long?</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
+          What the work actually took. Every quote is built on somebody&rsquo;s memory of a job like
+          this, and memory is generous — this is the same question asked of the timesheets.
+        </p>
+        {finished.length ? (
+          <div className="mt-4 grid gap-2">
+            {finished.map(j => {
+              const hours = Math.round((j.minutes / 60) * 10) / 10;
+              return (
+                <div key={j.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3">
+                  <span className="grid min-w-0 flex-[1_1_300px] gap-0.5">
+                    <span className="text-sm font-semibold text-ink">{j.ref} · {j.title}</span>
+                    <span className="text-xs text-ink-light">{j.client} · {money(j.valueCents)}</span>
+                  </span>
+                  <strong className="shrink-0 text-sm text-ink">{hours}h on site</strong>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-2xl bg-cream px-4 py-3 text-sm text-ink">
+            Nothing finished with hours against it yet. This fills itself from the timesheets as jobs
+            are invoiced — nothing to type.
+          </p>
+        )}
+        <p className="mt-3 text-xs text-ink-light">
+          {quotes.length
+            ? 'Quoted hours land here beside the actual as soon as a quote carries its labour lines onto the job.'
+            : 'Build a quote from the catalogue and its labour hours come here to be compared.'}
+        </p>
+      </section>
+    </div>
+  );
+}
+
+/**
+ * An Ace board — Sales or Jobs, the same rule and the same shape.
+ *
+ * ── One rule, every role ─────────────────────────────────────────────────────────────────────────
+ *
+ * Training path complete, then 90%+ for three CLOSED months in a row, and the incentive doubles
+ * where incentives are switched on. Then the run restarts. `lib/ace` holds the rule and is tested
+ * there; this screen only shows it.
+ *
+ * ── Fed, never typed ─────────────────────────────────────────────────────────────────────────────
+ *
+ * Every line comes from rows SPEC already holds — the board for sales from quotes and enquiries,
+ * the board for jobs from the schedule, the timesheets and the sign-offs. Nobody types their own
+ * score, because a board somebody can type is a board that measures typing.
+ */
+function AceBoard({ kind, jobs, quotes, today }: {
+  kind: 'sales' | 'jobs';
+  tenantId: string;
+  jobs: Costed[];
+  quotes: (typeof schema.quotes.$inferSelect)[];
+  today: string;
+}) {
+  const spec = ACES.find(a => a.key === kind)!;
+
+  /*
+    The lines, built from what is on this screen already. Each one carries its own target so the
+    board reads the same way whichever role is looking at it.
+  */
+  const quoted = jobs.filter(j => j.quotedAt);
+  const won = jobs.filter(j => !['enquiry', 'quoted', 'lost'].includes(j.stage));
+  const decided = jobs.filter(j => j.stage === 'lost').length + won.length;
+  const waiting = jobs.filter(j => j.stage === 'enquiry');
+  const late = waiting.filter(j => daysSince(j.createdAt, new Date(`${today}T00:00:00Z`)) > QUOTE_TARGET_DAYS);
+
+  const lines: BoardLine[] = kind === 'sales'
+    ? [
+      { label: 'Quotes out within 2 days', value: `${quoted.length ? Math.round(((quoted.length - late.length) / quoted.length) * 100) : 0}%`, target: '95%', score: quoted.length ? towards(((quoted.length - late.length) / quoted.length) * 100, 95) : 0 },
+      { label: 'Win rate', value: `${decided ? Math.round((won.length / decided) * 100) : 0}%`, target: '40%', score: decided ? towards((won.length / decided) * 100, 40) : 0 },
+      { label: 'Enquiries waiting', value: String(waiting.length), target: '0', score: under(waiting.length, 0) },
+      { label: 'Work on the books', value: money(won.filter(j => j.stage !== 'paid').reduce((t, j) => t + j.valueCents, 0)), target: '—', score: won.length ? 100 : 0 },
+    ]
+    : [
+      { label: 'Jobs on the hours quoted', value: `${jobs.filter(j => j.margin !== null && j.margin >= MARGIN_BENCHMARK).length} of ${jobs.filter(j => j.margin !== null).length}`, target: 'all', score: jobs.filter(j => j.margin !== null).length ? towards(jobs.filter(j => j.margin !== null && j.margin >= MARGIN_BENCHMARK).length, jobs.filter(j => j.margin !== null).length) : 0 },
+      { label: 'Jobs on site', value: String(jobs.filter(j => j.stage === 'onsite').length), target: '—', score: 100 },
+      { label: 'Waiting to be invoiced', value: String(jobs.filter(j => j.stage === 'onsite').length), target: '0', score: under(jobs.filter(j => j.stage === 'onsite').length, 0) },
+      { label: 'Margin at or above benchmark', value: `${Math.round(MARGIN_BENCHMARK * 100)}%`, target: `${Math.round(MARGIN_BENCHMARK * 100)}%`, score: 100 },
+    ];
+
+  const score = boardScore(lines);
+
+  /*
+    Three rings: the closed months that count, and this month live. SPEC does not yet carry a closed
+    Ace history, so the closed rings read as not-yet-scored rather than as zeros — a zero is a
+    judgement, and nothing has judged anybody yet.
+  */
+  const months: AceMonth[] = [
+    { period: '', score: null, closed: true },
+    { period: '', score: null, closed: true },
+    { period: today.slice(0, 7), score, closed: false },
+  ];
+  const run = runOf(months, false);
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">{spec.label}</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-light">{spec.who}. {spec.blurb}</p>
+        <p className="mt-3 text-sm font-semibold text-ink">{runLine(run, false)}</p>
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          {months.map((m, i) => (
+            <div key={i} className="grid justify-items-center gap-1">
+              <div
+                className="grid h-16 w-16 place-items-center rounded-full border-4 text-sm font-bold"
+                style={{
+                  borderColor: m.score === null ? LIGHT_COLOUR.pending : m.score >= ACE_STANDARD ? LIGHT_COLOUR.green : LIGHT_COLOUR.amber,
+                  color: m.score === null ? LIGHT_INK.pending : LIGHT_INK[m.score >= ACE_STANDARD ? 'green' : 'amber'],
+                }}
+              >
+                {m.score === null ? '—' : `${m.score}%`}
+              </div>
+              <span className="text-xs text-ink-light">{m.closed ? 'Closed month' : 'This month, live'}</span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-ink-light">
+          A month counts only once it is closed and signed off. The live one is shown and never
+          counted — a run that could be won on an open month is a run won by not recording things.
+        </p>
+      </section>
+
+      <section className="card">
+        <p className="label-caps mb-3">The board</p>
+        <div className="grid gap-2">
+          {lines.map(l => (
+            <div key={l.label} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3">
+              <span className="grid min-w-0 flex-[1_1_280px] gap-0.5">
+                <span className="text-sm font-semibold text-ink">{l.label}</span>
+                <span className="text-xs text-ink-light">Target {l.target}</span>
+              </span>
+              <strong className="shrink-0 text-sm" style={{ color: LIGHT_INK[l.score >= ACE_STANDARD ? 'green' : l.score >= 75 ? 'amber' : 'red'] }}>
+                {l.value}
+              </strong>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-ink-light">
+          Every line is read from what SPEC already holds. Nobody types their own score.
+        </p>
+      </section>
+
+      {late.length > 0 && kind === 'sales' && (
+        <section className="card">
+          <p className="label-caps mb-3">Do these today</p>
+          <div className="grid gap-2">
+            {late.slice(0, 5).map(j => (
+              <div key={j.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3">
+                <span className="grid min-w-0 flex-[1_1_300px] gap-0.5">
+                  <span className="text-sm font-semibold text-ink">{j.client} · {j.title}</span>
+                  <span className="text-xs text-ink-light">
+                    In {daysSince(j.createdAt, new Date(`${today}T00:00:00Z`))} days ago, past the {QUOTE_TARGET_DAYS}-day target. Win rate halves after a week.
+                  </span>
+                </span>
+                <Link href={tabHrefFor('quotes', { job: j.id })} className="btn-secondary shrink-0 text-sm">Quote it</Link>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-ink-light">Nothing sends without somebody approving it.</p>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/** A tab link built outside the page component, where `tabHref` is not in scope. */
+const tabHrefFor = (tab: string, extra: Record<string, string> = {}) => {
+  const q = new URLSearchParams({ tab, ...extra });
+  return `/jobs?${q.toString()}`;
+};

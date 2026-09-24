@@ -156,7 +156,7 @@ export const CAPABILITIES: Capability[] = [
   C('jobs', 'invoicing', 'Invoicing & debtors', 'Invoice on sign-off, sent to your accounting system, with reminders at 7, 14 and 30 days.', 'yes', '/jobs?tab=billing — sent, then chased at 7, 14 and 30 days, with each reminder recorded so the same one never goes twice.', 'job_management'),
   C('jobs', 'service', 'Service contracts & recurring work', 'Maintenance agreements that book themselves.', 'yes', '/jobs?tab=service — every agreement with its interval, and one press raises the job when it comes due.', 'job_management'),
   C('jobs', 'assets', 'Test & tag, client assets', 'Every tested item with result, photo and next due date.', 'yes', '/jobs?tab=service — each item with its result and next-due worked out from the interval. A failed item outranks any date and becomes a job.', 'job_management'),
-  C('jobs', 'customers', 'Customers & sites', 'Every client, site, contact and job history in one place.', 'yes', '/clients and /crm — every client, site, contact and job history.', 'crm', '/clients'),
+  C('jobs', 'customers', 'Customers & CRM', 'Every client, site, contact and job history in one place.', 'yes', '/jobs?tab=customers, and /clients for the full record — every client, site, contact and job history, plus the customer’s own page at /customer.', 'crm', '/clients'),
 
   // People and HR — 10
   C('hr', 'recruit', 'Recruitment', 'Vacancies from empty seats on the org chart, scored against the KPIs the person will hold.', 'yes', '/people — vacancies come from empty seats on the chart, candidates scored against the four pillars.'),
@@ -378,7 +378,7 @@ export const MODULE_TABS: Record<ModuleKey, { area: AreaKey | null; tabs: Record
       hiring: ['recruit'],
     },
   },
-  // The CRM is one capability of the Jobs area — "Customers & sites" — not an area of its own.
+  // The CRM is one capability of the Jobs area — "Customers & CRM" — not an area of its own.
   crm: { area: null, tabs: { '*': ['customers'] } },
   // The client list and contacts are the same capability, seen whole — see lib/clients.
   clients: { area: null, tabs: { '*': ['customers'] } },

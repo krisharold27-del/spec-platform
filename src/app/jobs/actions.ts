@@ -13,6 +13,8 @@ import { isRecurKind, nextDue } from '@/lib/recurring';
 import { isSource } from '@/lib/leads';
 import { reorderList } from '@/lib/stock';
 import { reprice, bigRises, splitChecklist } from '@/lib/prebuild';
+import { isCause } from '@/lib/rework';
+import { mayAsk } from '@/lib/reviews';
 import {
   parseEnquiry, nextRef, nextStage, lineFrom, priceQuote, MARKUPS, DEFAULT_MARKUP,
   toCents, minutesBetween, bookingRefusal, workWeek, parseComponents, parsePriceFile,
@@ -914,4 +916,135 @@ export async function setKitPack(formData: FormData) {
   }).where(eq(schema.kits.id, id));
   revalidatePath('/jobs');
   back('catalogue');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * Design 17 · get paid and keep them
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Record a callback: a job that had to be gone back to.
+ *
+ * The cause is the whole record. Getting it wrong in either direction is expensive — a supplier's
+ * faulty fitting written off as our workmanship is money the business is owed and never claims, and
+ * a genuine workmanship callback invoiced as a call-out is a customer lost. So an unknown cause is
+ * refused rather than defaulted: "workmanship" is the one that costs the business money, and
+ * quietly assuming it would make the register lie in the expensive direction.
+ */
+export async function logCallback(formData: FormData) {
+  const user = await writer();
+  const jobId = str(formData, 'jobId', 64);
+  const [job] = await db.select({ id: schema.jobs.id }).from(schema.jobs)
+    .where(and(eq(schema.jobs.id, jobId), eq(schema.jobs.tenantId, user.tenantId)));
+  if (!job) back('rework', {}, 'That job is not in this business.');
+
+  const cause = str(formData, 'cause', 24);
+  if (!isCause(cause)) back('rework', {}, 'SPEC does not know that cause.');
+
+  const hours = Math.max(0, Math.min(200, Number(formData.get('hours')) || 0));
+
+  await db.insert(schema.callbacks).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    jobId,
+    cause,
+    what: str(formData, 'what', 400),
+    who: str(formData, 'who', 120),
+    minutes: Math.round(hours * 60),
+    costCents: 0,
+    recoveredCents: 0,
+    status: 'open',
+    createdAt: new Date().toISOString(),
+  });
+  revalidatePath('/jobs');
+  back('rework');
+}
+
+/**
+ * Where paid customers are sent to leave a review.
+ *
+ * One link for the whole business, used for everybody. There is deliberately nowhere to record a
+ * second one — two links is how review gating starts.
+ */
+export async function setReviewLink(formData: FormData) {
+  const user = await writer();
+  const link = str(formData, 'link', 400);
+  if (link && !/^https?:\/\//i.test(link)) {
+    back('reviews', {}, 'That does not look like a link. Paste the whole address, starting with https.');
+  }
+  await db.update(schema.tenants).set({ reviewLink: link || null })
+    .where(eq(schema.tenants.id, user.tenantId));
+  revalidatePath('/jobs');
+  back('reviews');
+}
+
+/**
+ * Ask one paid customer for a review.
+ *
+ * `mayAsk` is the gate and it takes no account of how the job went — see the rule at the top of
+ * lib/reviews. The only things it asks are: is the job paid, has this customer already been asked,
+ * and is there a link to send them to.
+ */
+export async function askForReview(formData: FormData) {
+  const user = await writer();
+  const jobId = str(formData, 'jobId', 64);
+  const [job] = await db.select({
+    id: schema.jobs.id, stage: schema.jobs.stage, reviewAskedAt: schema.jobs.reviewAskedAt,
+  }).from(schema.jobs)
+    .where(and(eq(schema.jobs.id, jobId), eq(schema.jobs.tenantId, user.tenantId)));
+  if (!job) back('reviews', {}, 'That job is not in this business.');
+
+  const [tenant] = await db.select({ link: schema.tenants.reviewLink })
+    .from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
+
+  const allowed = mayAsk({ stage: job.stage, reviewAskedAt: job.reviewAskedAt }, tenant?.link ?? null);
+  if (!allowed.ok) back('reviews', {}, allowed.why);
+
+  await db.update(schema.jobs).set({ reviewAskedAt: new Date().toISOString() })
+    .where(and(eq(schema.jobs.id, jobId), eq(schema.jobs.tenantId, user.tenantId)));
+  revalidatePath('/jobs');
+  back('reviews');
+}
+
+/** Put a tool in the register. The value and the test date are what make the row worth having. */
+export async function addTool(formData: FormData) {
+  const user = await writer();
+  const name = str(formData, 'name', 120);
+  if (!name) back('tools', {}, 'A tool needs a name.');
+  const value = Math.max(0, Math.min(1_000_000, Number(formData.get('value')) || 0));
+  await db.insert(schema.tools).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    name,
+    serial: str(formData, 'serial', 80) || null,
+    heldBy: str(formData, 'heldBy', 120),
+    valueCents: Math.round(value * 100),
+    dueAt: str(formData, 'dueAt', 10) || null,
+    status: 'held',
+    createdAt: new Date().toISOString(),
+  });
+  revalidatePath('/jobs');
+  back('tools');
+}
+
+/** Add a tender package. The due date is what turns this from a list into a screen worth opening. */
+export async function addTender(formData: FormData) {
+  const user = await writer();
+  const title = str(formData, 'title', 160);
+  if (!title) back('tenders', {}, 'A tender needs a name.');
+  const value = Math.max(0, Math.min(100_000_000, Number(formData.get('value')) || 0));
+  await db.insert(schema.tenders).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    title,
+    builder: str(formData, 'builder', 120),
+    dueAt: str(formData, 'dueAt', 10) || null,
+    valueCents: Math.round(value * 100),
+    addenda: 0,
+    takeoff: 'none',
+    status: 'open',
+    createdAt: new Date().toISOString(),
+  });
+  revalidatePath('/jobs');
+  back('tenders');
 }

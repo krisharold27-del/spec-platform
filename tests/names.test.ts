@@ -42,6 +42,14 @@ const NOT_PAGES: Record<string, string> = {
   */
   'SPEC Setup v1': 'the superseded Setup, kept for reference only — never to be built',
   'siteVIP Landing': 'the address itself, / — the trades edition of SPEC',
+  /*
+    The customer's own page, new in design 17. It is per JOB and reached by a long random token —
+    `/customer/[token]` — because a customer will not make an account to find out when the
+    electrician is arriving. There is deliberately no `/customer-page`: a bare address would be a
+    page with no job behind it, and the token is the only thing standing between one customer and
+    another's. See lib/customer-page.
+  */
+  'SPEC Customer Page': 'per job, at /customer/[token] — the link is the key, so there is no bare address',
 };
 
 /**

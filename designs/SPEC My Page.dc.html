@@ -16,77 +16,53 @@
   a:hover { color: var(--color-accent-800); text-decoration: underline; }
   ::selection { background: var(--color-accent-200); }
 </style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); --shadow-lg: 0 0 0 1.5px #d2c3a9, 0 14px 36px rgba(32,30,29,0.13); } body { background: #ffffff; }</style>
 </helmet>
 
-<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+<div style="font-family: var(--font-body); color: var(--color-text); background: #ffffff; min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
     <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
-          <circle cx="50" cy="50" r="44" fill="#3d5c31"></circle>
-          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"></circle>
+          <circle cx="50" cy="50" r="44" fill="#3d5c31"/>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#e3d7c0" stroke-width="7" opacity="0.35"/>
           <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" transform="rotate(-90 50 50)">
-            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"></animate>
-            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"></animate>
+            <animate attributeName="stroke-dashoffset" values="276;276;72;9;0;0" keyTimes="0;0.08;0.62;0.84;0.92;1" dur="4.5s" fill="freeze"/>
+            <animate attributeName="stroke" values="#a63b26;#a63b26;#c67139;#c67139;#4f7a3f;#4f7a3f" keyTimes="0;0.08;0.4;0.62;0.89;1" dur="4.5s" fill="freeze"/>
           </circle>
           <g stroke="#e3d7c0" stroke-linecap="round" stroke-width="2.6" opacity="0.55">
-            <line x1="50" y1="14" x2="50" y2="9"></line>
-            <line x1="86" y1="50" x2="91" y2="50"></line>
-            <line x1="50" y1="86" x2="50" y2="91"></line>
-            <line x1="14" y1="50" x2="9" y2="50"></line>
+            <line x1="50" y1="14" x2="50" y2="9"/>
+            <line x1="86" y1="50" x2="91" y2="50"/>
+            <line x1="50" y1="86" x2="50" y2="91"/>
+            <line x1="14" y1="50" x2="9" y2="50"/>
           </g>
           <g transform="translate(50 50)">
             <g fill="#f5ead8">
-              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"></animateTransform>
-              <rect x="-8" y="-9" width="16" height="20" rx="8"></rect>
-              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"></path>
-              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"></path>
+              <animateTransform attributeName="transform" type="rotate" values="-90;-90;186;258;278;268;270" keyTimes="0;0.08;0.62;0.84;0.89;0.93;1" dur="4.5s" fill="freeze"/>
+              <rect x="-8" y="-9" width="16" height="20" rx="8"/>
+              <path d="M8 -9 Q 26 -8, 38 -1.6 A 4 4 0 0 1 38 4.6 Q 24 5.6, 8 5.6 Z"/>
+              <path d="M8 11 Q 26 10, 38 4.2 A 4 4 0 0 0 38 -2.2 Q 24 -2.8, 8 -3.4 Z" opacity="0.72"/>
             </g>
           </g>
           <g opacity="0">
-            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"></animate>
-            <circle cx="50" cy="12" r="5" fill="#f5ead8"></circle>
-            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"></circle>
-            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"></circle>
-            <circle cx="50" cy="0" r="2" fill="#f5ead8"></circle>
+            <animate attributeName="opacity" values="0;0;1;0.95" keyTimes="0;0.86;0.9;1" dur="4.5s" fill="freeze"/>
+            <circle cx="50" cy="12" r="5" fill="#f5ead8"/>
+            <circle cx="39" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="61" cy="7" r="2.8" fill="#f5ead8"/>
+            <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
           </g>
         </svg>SPEC</a>
-    <a href="SPEC Setup.dc.html">Setup</a>
-    <a href="#" style="color: var(--color-text); font-weight: 700;">My page</a>
+    <a href="SPEC My Page.dc.html" style="color: var(--color-text); font-weight: 700;">My page</a>
     <a href="SPEC Jobs.dc.html">Jobs</a>
-    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Jobs.dc.html?tab=customers">CRM</a>
     <a href="SPEC People.dc.html">People</a>
     <a href="SPEC Safety.dc.html">Safety</a>
-    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
-    <a href="SPEC Board Pack.dc.html">Board pack</a>
-    <a href="SPEC Mirrors.dc.html">Mirrors</a>
-    <a href="SPEC Connections.dc.html">Connections</a>
-    <a href="SPEC Home.dc.html">All pages</a>
-    <button type="button" onClick="{{ toggleNotifs }}" style="{{ notifButtonStyle }}" title="Notifications">🔔<sc-if value="{{ hasNotifs }}" hint-placeholder-val="{{ false }}"><span style="{{ notifDotStyle }}"></span></sc-if></button>
-    <sc-if value="{{ notifsOpen }}" hint-placeholder-val="{{ false }}">
-      <div style="position: relative;">
-        <div style="position: absolute; top: 8px; right: 0; background: var(--color-surface, #fff); box-shadow: var(--shadow-md); border-radius: 16px; padding: 10px; width: min(320px, calc(100vw - 40px)); z-index: 20;">
-          <div style="padding: 6px 10px 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">Notifications</div>
-          <sc-for list="{{ notifItems }}" as="n" hint-placeholder-count="3">
-            <a href="{{ n.href }}" style="display: block; padding: 10px; border-radius: 10px; background: var(--color-bg); margin-bottom: 6px; color: var(--color-text);">
-              <p style="font-size: 13px; line-height: 19px; margin: 0;">{{ n.text }}</p>
-            </a>
-          </sc-for>
-          <sc-if value="{{ noNotifs }}" hint-placeholder-val="{{ false }}">
-            <p style="padding: 10px; font-size: 13px; color: color-mix(in srgb, var(--color-text) 60%, transparent); margin: 0;">Nothing waiting on you right now.</p>
-          </sc-if>
-        </div>
-      </div>
-    </sc-if>
-    <button type="button" onClick="{{ toggleBizMenu }}" style="{{ bizButtonStyle }}" title="Business — placeholder, one login per business today">{{ bizName }} ▾</button>
-    <sc-if value="{{ bizMenuOpen }}" hint-placeholder-val="{{ false }}">
-      <div style="position: relative; margin-left: -8px;">
-        <div style="position: absolute; top: 8px; right: 0; background: var(--color-surface, #fff); box-shadow: var(--shadow-md); border-radius: 16px; padding: 8px; width: min(220px, calc(100vw - 40px)); z-index: 20;">
-          <div style="padding: 8px 12px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 60%, transparent);">JBI Electrical</div>
-          <div style="padding: 10px 12px; border-radius: 10px; font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 55%, transparent);">Add another business — coming soon</div>
-          <a href="SPEC Sign In.dc.html" style="display: block; padding: 10px 12px; border-radius: 10px; font-size: 13.5px;">Sign out</a>
-        </div>
-      </div>
-    </sc-if>
+    <a href="SPEC Compliance.dc.html">Compliance</a>
+    <a href="SPEC Board Pack.dc.html">Board</a>
+    <span style="flex: 1 1 0; min-width: 8px;"></span>
+    <a href="SPEC Setup.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Setup</a>
+    <a href="SPEC Connections.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Connections</a>
+    <a href="SPEC Home.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">All pages</a>
+  
   </nav>
 
   <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
@@ -122,6 +98,84 @@
         </span>
       </button>
     </header>
+
+    <sc-if value="{{ lateShow }}" hint-placeholder-val="{{ true }}">
+      <section aria-label="Late quotes" style="background: #a63b26; color: #fff; border-radius: var(--radius-lg); padding: clamp(20px,3vw,28px); margin-bottom: 20px; box-shadow: var(--shadow-md);">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(24px,3vw,32px); line-height: 1.15; margin: 0;">{{ lateTitle }}</p>
+          <span style="font-size: 13.5px; font-weight: 600;">{{ lateWorth }}</span>
+        </div>
+        <div style="display: grid; gap: 10px; margin-top: 16px;">
+          <sc-for list="{{ lateQuotes }}" as="lq" hint-placeholder-count="2">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; background: #fff; color: var(--color-text); border-radius: 18px; padding: 14px 16px;">
+              <span style="display: grid; gap: 3px; min-width: 0; flex: 1 1 280px;">
+                <strong style="font-size: 16px;">{{ lq.who }} · {{ lq.what }}</strong>
+                <span style="font-size: 13.5px; color: #7d2c1c; font-weight: 600;">{{ lq.late }}</span>
+                <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ lq.chain }}</span>
+              </span>
+              <sc-if value="{{ lq.open }}" hint-placeholder-val="{{ true }}">
+                <span style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  <button type="button" onClick="{{ lq.send }}" style="cursor: pointer; border: 0; border-radius: 999px; padding: 12px 18px; min-height: 46px; background: #a63b26; color: #fff; font-family: var(--font-body); font-size: 14.5px; font-weight: 700;">Approve SPEC's draft and send</button>
+                  <a href="SPEC Jobs.dc.html" class="btn btn-secondary" style="text-decoration: none;">Open it</a>
+                </span>
+              </sc-if>
+              <sc-if value="{{ lq.done }}" hint-placeholder-val="{{ false }}">
+                <span style="border-radius: 999px; padding: 7px 14px; font-size: 13.5px; font-weight: 700; background: color-mix(in srgb, #4f7a3f 14%, transparent); color: #3d5c31;">Sent · {{ lq.who }} has it</span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <p style="font-size: 13px; line-height: 20px; margin: 12px 0 0; opacity: 0.92;">Target: every quote out within 2 days. Day 2 it's on the estimator's page, day 3 the Commercial Manager's, day 4 the Managing Director's. It stays here until it's sent.</p>
+      </section>
+    </sc-if>
+
+    <section aria-label="Your job today" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(20px,3vw,28px); margin-bottom: 20px;">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 0;">{{ roleSteps.title }}</h2>
+        <span style="font-size: 13.5px; font-weight: 600; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ roleSteps.progress }}</span>
+      </div>
+      <p style="font-size: 14px; line-height: 22px; margin: 6px 0 14px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">In order, for your role. Each step opens exactly where it's done. Xero is the only other system you'll touch, and SPEC keeps it up to date.</p>
+      <div style="display: grid; gap: 8px;">
+        <sc-for list="{{ roleSteps.steps }}" as="rs" hint-placeholder-count="6">
+          <div style="{{ rs.style }}">
+            <span style="{{ rs.markStyle }}">{{ rs.mark }}</span>
+            <span style="display: grid; gap: 2px; flex: 1 1 220px; min-width: 0;">
+              <strong style="font-size: 15px; line-height: 21px;">{{ rs.title }}</strong>
+              <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 68%, transparent);">{{ rs.detail }}</span>
+            </span>
+            <a href="{{ rs.href }}" class="btn btn-secondary" style="text-decoration: none;">Go</a>
+            <button type="button" onClick="{{ rs.toggle }}" class="btn btn-ghost">{{ rs.doneLabel }}</button>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <sc-if value="{{ bizShow }}" hint-placeholder-val="{{ true }}">
+      <section aria-label="The business today" style="padding-bottom: 28px;">
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px); border-left: 6px solid {{ biz.tone }};">
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px;">
+            <div style="flex: 1 1 320px; min-width: 0;">
+              <span style="display: block; font-size: 12.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Is the business going well?</span>
+              <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(26px,3.2vw,36px); line-height: 1.15; margin: 8px 0 0;">{{ biz.verdict }}</p>
+              <p style="font-size: 14.5px; line-height: 22px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 75%, transparent);">{{ biz.direction }}</p>
+              <p style="font-size: 13px; line-height: 20px; margin: 8px 0 0; max-width: 72ch; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ biz.basis }}</p>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 12px; margin-top: 20px; align-items: stretch;">
+            <sc-for list="{{ biz.pillars }}" as="bp" hint-placeholder-count="4">
+              <a href="{{ bp.href }}" style="text-decoration: none; color: inherit; display: grid; gap: 9px; align-content: start; background: var(--color-bg); border-radius: 20px; padding: 16px 18px; border-top: 4px solid {{ bp.tone }};">
+                <span style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;"><strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px;">{{ bp.name }}</strong><span style="font-size: 20px; font-weight: 700; color: {{ bp.tone }};">{{ bp.score }}</span></span>
+                <sc-for list="{{ bp.lines }}" as="bl" hint-placeholder-count="3">
+                  <span style="display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 19px;"><span style="{{ bl.dot }}"></span><span><strong>{{ bl.label }}</strong> · {{ bl.value }}</span></span>
+                </sc-for>
+                <span style="font-size: 12.5px; line-height: 18px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ bp.basis }}</span>
+                <span style="font-size: 12px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">From {{ bp.from }}</span>
+              </a>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </sc-if>
 
     <section aria-label="My four pillars" style="position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 188px), 1fr)); gap: 16px; padding-bottom: 32px;">
 
@@ -866,7 +920,7 @@ const CHANGES = [
 const MESSAGES = [
   { from: 'Managing Director', when: '7:12am', subject: 'Monday numbers before the 9am', unread: true },
   { from: 'Amrit Kaur', when: 'Yesterday', subject: 'Two jobs moved to Thursday', unread: true },
-  { from: 'SPEC', when: 'Yesterday', subject: 'September scoring closes on the 30th', unread: false },
+  { from: 'SPEC', when: 'Yesterday', subject: 'September scores set on the 30th. Your KPIs carry into October', unread: false },
 ];
 
 const DIAG_PILLAR_NAMES = { S: 'Safety', P: 'People', E: 'Earnings', C: 'Compliance' };
@@ -945,6 +999,83 @@ const priorityOf = e => {
 };
 const PRIORITY_LABEL = { 1: 'Harm — act now', 2: 'Losing money', 3: 'Losing people', 4: 'Everything else' };
 const PRIORITY_TONE = { 1: '#a63b26', 2: '#c08a2e', 3: '#35617a', 4: '#8c8681' };
+
+const J = 'SPEC Jobs.dc.html?tab=';
+const ROLE_STEPS = {
+  ops: [
+    ['Read the business verdict and anything red', 'Top of this page. Red always comes first.', 'SPEC My Page.dc.html'],
+    ['Fill the empty crew days', '7 crew days this week aren\u2019t on a job yet.', J + 'schedule'],
+    ['Clear the supplier holdups', '2 late orders, each with a way around it.', J + 'catalogue'],
+    ['Approve timesheets', '4 waiting. They feed job costs and payroll.', J + 'time'],
+    ['Close the callbacks', '4 open. Each one is tied to its cause.', J + 'rework'],
+    ['Ready for the weekly meeting', 'The agenda has built itself from the register.', 'SPEC Weekly Meeting.dc.html'],
+  ],
+  sup: [
+    ['Toolbox talk and crew sign-on', 'Before 7am. Missing names show up on their own.', 'SPEC Safety.dc.html'],
+    ['Every person on a job, SWMS signed', 'Check the schedule and the SWMS for today\u2019s high-risk work.', J + 'schedule'],
+    ['Jobs on the hours quoted', 'Northside fit-out is running over. Look at it first.', J + 'pipeline'],
+    ['Price variations on site', 'Priced from pre-builds. The client signs on your phone.', J + 'billing'],
+    ['Sign off finished jobs', 'The invoice goes out by itself, and the customer can pay on the spot.', 'SPEC Tech Day.dc.html'],
+    ['Approve your crew\u2019s timesheets', 'Before you knock off. Billable hours count on your board.', J + 'time'],
+  ],
+  crew: [
+    ['Check you\u2019re clear to work', 'Your tickets and induction, green before you start.', 'SPEC Tech Day.dc.html'],
+    ['Sign the SWMS and start the job', 'Starting the job starts your hours.', 'SPEC Tech Day.dc.html'],
+    ['Photos and materials as you go', 'Or hold to talk. SPEC puts it on the job.', 'SPEC Tech Day.dc.html'],
+    ['Client sign-off and payment', 'They sign on your phone and can tap to pay.', 'SPEC Tech Day.dc.html'],
+    ['Knock off', 'Nothing to fill in. Tomorrow\u2019s first job and van list are ready.', 'SPEC Tech Day.dc.html'],
+  ],
+  bd: [
+    ['Late quotes first', 'Anything past 2 days is on this page in red.', J + 'leads'],
+    ['Answer new enquiries within the hour', 'Emails, web forms and missed calls, all in one list.', J + 'leads'],
+    ['Quote from pre-builds', 'Hours from How long?, parts at today\u2019s prices.', J + 'prebuilds'],
+    ['Follow up quotes at 3 days', 'SPEC drafts the follow-up. You press Approve.', J + 'customers'],
+    ['Send the work SPEC found', 'Service due, old switchboards, ageing solar.', J + 'leads'],
+    ['Answer new reviews', 'Replies are drafted. Approve and post.', J + 'reviews'],
+  ],
+};
+
+const bizOf = () => {
+  const G = '#4f7a3f', A = '#c67139', R = '#a63b26';
+  const toneOf = n => n >= 80 ? G : n > 50 ? A : R;
+  const dot = t => 'width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px;background:' + t + ';';
+  const now = new Date();
+  const day = now.getDate(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const month = now.toLocaleString('en-AU', { month: 'long' });
+  const w = (day / dim) * 0.25;
+  // hist = last three closed months; pace = this month projected to month end, not the raw month-to-date total.
+  // event = something serious happened this month (harm, claim, breach, wrong-reason exit): never averaged away.
+  const P = [
+    { name: 'Safety', hist: [90, 94, 88], pace: 62, event: true, href: 'SPEC Safety.dc.html', from: 'Safety', lines: [['Zero harm', '1 injury this month, 3 Sep', A], ['Safety actions', '2 overdue', A], ['Near misses reported', '6 this month, up', G]] },
+    { name: 'People', hist: [89, 92, 90], pace: 93, href: 'SPEC People.dc.html', from: 'People, Org chart and Training', lines: [['Fully staffed', '37 of 38 seats filled', A], ['Wrong-reason exits', 'none this month', G], ['Training', '92% complete', G]] },
+    { name: 'Earnings', hist: [84, 86, 90], pace: 88, href: 'SPEC Jobs.dc.html', from: 'Jobs, Customers and Xero', lines: [['Billable hours', '88%, target 86%', G], ['Work on the books', '9 weeks', G], ['Cash', '3.2 months of costs', G], ['Margin', '38%, benchmark 40%', A]] },
+    { name: 'Compliance', hist: [82, 85, 86], pace: 80, href: 'SPEC Monthly Scoring.dc.html', from: 'Safety, Jobs and People', lines: [['Licences', '1 expired, Marcus Bly', A], ['SWMS', 'signed on every job', G], ['Invoices', '1 at 38 days', A]] },
+  ].map(p => {
+    const rolling = p.hist.reduce((a, b) => a + b, 0) / p.hist.length;
+    const score = Math.round((1 - w) * rolling + w * p.pace);
+    let tone = toneOf(score);
+    if (p.event && tone === G) tone = A;
+    return { ...p, score, tone, lo: Math.min(...p.hist), hi: Math.max(...p.hist) };
+  });
+  const weak = P.filter(p => p.tone !== G);
+  const red = P.some(p => p.tone === R);
+  const tone = red ? R : weak.length ? A : G;
+  return {
+    tone,
+    verdict: red ? 'Not yet. ' + weak.map(p => p.name).join(' and ') + ' need you today.'
+      : weak.length ? 'Mostly. ' + (weak.length === 1 ? 'One thing to watch: ' : 'Things to watch: ') + weak.map(p => p.name).join(' and ') + '.'
+      : 'Yes, the business is going well.',
+    direction: 'Better than August on three of four pillars. Net profit is 8.6% this year against the 10% goal.',
+    basis: day <= 7
+      ? 'Day ' + day + ' of ' + month + '. Too early to judge this month on its own, so this reads from the last three closed months. Anything serious this month still shows straight away.'
+      : 'Judged on the last three closed months, with ' + month + ' counted in on pace, not on a half-finished total. Anything serious this month shows straight away.',
+    pillars: P.map(p => ({
+      name: p.name, score: p.score + '%', tone: p.tone, href: p.href, from: p.from,
+      basis: 'Last 3 months ' + p.lo + '\u2013' + p.hi + '% · this month on pace ' + p.pace + '%',
+      lines: p.lines.map(([label, value, t]) => ({ label, value, dot: dot(t) })),
+    })),
+  };
+};
 
 class Component extends DCLogic {
   state = { persona: 'ops', done: {}, question: '', answer: null, acknowledged: {}, meetingLogged: false, toolboxDone: false, clockedIn: false, problem: '', diagLoading: false, diag: null, diagError: '', register: [], ownerDrafts: {}, deadlineDrafts: {}, assignToast: '', improvementOpen: false, bizMenuOpen: false, notifsOpen: false, gmOpen: false, gmOtherOpen: false };
@@ -1191,6 +1322,45 @@ class Component extends DCLogic {
       })) : [],
 
       attendsCogs: !p.checklist,
+      bizShow: !p.checklist,
+      roleSteps: (() => {
+        const list = ROLE_STEPS[key] || ROLE_STEPS.ops;
+        const done = (this.state.stepsDone || {})[key] || {};
+        const next = list.findIndex((_, i) => !done[i]);
+        const n = list.filter((_, i) => done[i]).length;
+        return {
+          title: 'Your job today, ' + p.label,
+          progress: n === list.length ? 'All done. Nice work.' : n + ' of ' + list.length + ' done',
+          steps: list.map(([title, detail, href], i) => {
+            const d = !!done[i], isNext = i === next;
+            return {
+              title, detail, href, mark: d ? '✓' : String(i + 1),
+              doneLabel: d ? 'Undo' : 'Done',
+              toggle: () => this.setState(st => { const all = st.stepsDone || {}; const cur = all[key] || {}; return { stepsDone: { ...all, [key]: { ...cur, [i]: !cur[i] } } }; }),
+              markStyle: 'width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-content:center;font-size:13px;font-weight:700;'
+                + (d ? 'background:#4f7a3f;color:#fff;' : isNext ? 'background:var(--color-accent);color:#fff;' : 'background:#fff;color:var(--color-text);box-shadow:var(--shadow-sm);'),
+              style: 'display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 16px;border-radius:16px;background:var(--color-bg);'
+                + (isNext ? 'box-shadow:0 0 0 2px var(--color-accent);' : '') + (d ? 'opacity:0.7;' : ''),
+            };
+          }),
+        };
+      })(),
+      ...(() => {
+        const done = this.state.lateDone || {};
+        const L = [
+          { id: 'q1', who: 'Harbourview Build', what: 'Level 4 fit-out', late: '3 days waiting · 1 day past the 2-day target · about $48,000', chain: 'Nadia Cole is quoting · escalated to Lena Ford today · SPEC has a draft ready from Leah\u2019s plans', worth: 48000 },
+          { id: 'q2', who: 'Priya Shah', what: 'EV charger and switchboard', late: '2 days waiting · due today · $4,300', chain: 'Nadia Cole is quoting · SPEC\u2019s draft is ready with two questions answered', worth: 4300 },
+        ];
+        const open = L.filter(q => !done[q.id]);
+        const m = n => '$' + Math.round(n).toLocaleString('en-AU');
+        return {
+          lateShow: !p.checklist && open.length > 0,
+          lateTitle: open.length === 1 ? '1 quote is late. Don\u2019t lose this work.' : open.length + ' quotes are late. Don\u2019t lose this work.',
+          lateWorth: m(open.reduce((a, q) => a + q.worth, 0)) + ' of work waiting on you',
+          lateQuotes: L.map(q => ({ ...q, open: !done[q.id], done: !!done[q.id], send: () => this.setState(st => ({ lateDone: { ...(st.lateDone || {}), [q.id]: true } })) })),
+        };
+      })(),
+      biz: bizOf(),
       gm: gmScoreOf(key, this.state.gmOpen, this.state.gmOtherOpen,
         () => this.setState(s => ({ gmOpen: !s.gmOpen })),
         () => this.setState(s => ({ gmOtherOpen: !s.gmOtherOpen })),

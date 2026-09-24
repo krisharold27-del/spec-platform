@@ -16,9 +16,10 @@
   a:hover { color: var(--color-accent-800); text-decoration: underline; }
   ::selection { background: var(--color-accent-200); }
 </style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); --shadow-lg: 0 0 0 1.5px #d2c3a9, 0 14px 36px rgba(32,30,29,0.13); } body { background: #ffffff; }</style>
 </helmet>
 
-<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+<div style="font-family: var(--font-body); color: var(--color-text); background: #ffffff; min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
     <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
@@ -50,16 +51,17 @@
             <circle cx="50" cy="0" r="2" fill="#f5ead8"/>
           </g>
         </svg>SPEC</a>
-    <a href="SPEC Setup.dc.html">Setup</a>
     <a href="SPEC My Page.dc.html">My page</a>
     <a href="SPEC Jobs.dc.html">Jobs</a>
-    <a href="SPEC Org Chart.dc.html">Org chart</a>
-    <a href="SPEC People.dc.html">People</a>
+    <a href="SPEC Jobs.dc.html?tab=customers">CRM</a>
+    <a href="SPEC People.dc.html" style="color: var(--color-text); font-weight: 700;">People</a>
     <a href="SPEC Safety.dc.html">Safety</a>
-    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
-    <a href="SPEC Board Pack.dc.html">Board pack</a>
-    <a href="SPEC Connections.dc.html">Connections</a>
-    <a href="SPEC Home.dc.html">All pages</a>
+    <a href="SPEC Compliance.dc.html">Compliance</a>
+    <a href="SPEC Board Pack.dc.html">Board</a>
+    <span style="flex: 1 1 0; min-width: 8px;"></span>
+    <a href="SPEC Setup.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Setup</a>
+    <a href="SPEC Connections.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Connections</a>
+    <a href="SPEC Home.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">All pages</a>
   </nav>
 
   <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
@@ -199,6 +201,83 @@
             </div>
           </section>
         </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSubbies }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: clamp(20px,3vw,28px);">
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Subcontractors</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Part of your team. A team seat each, A$17 a month.</span>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; background: var(--color-bg); border-radius: 999px; padding: 6px 6px 6px 20px; margin-top: 16px; max-width: 640px;">
+            <input type="text" value="{{ subDraft }}" onInput="{{ setSubDraft }}" onChange="{{ setSubDraft }}" onKeyDown="{{ subKey }}" placeholder="Invite a subbie: business name and mobile" aria-label="Invite a subcontractor" style="flex: 1; min-width: 0; border: 0; background: transparent; font-family: var(--font-body); font-size: 15px; color: var(--color-text); outline: none; padding: 10px 0;" />
+            <button type="button" onClick="{{ addSub }}" aria-label="Send invite" style="cursor: pointer; border: 0; width: 42px; height: 42px; flex: none; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 19px;">→</button>
+          </div>
+          <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">They get a text with a link. On their phone they add their ABN, insurance and licences, sign your subcontract, and do the induction and SWMS. About 10 minutes.</p>
+          <p style="font-size: 13.5px; line-height: 21px; margin: 8px 0 0; padding: 12px 16px; border-radius: 14px; background: color-mix(in srgb, #4f7a3f 9%, transparent);"><strong>Same standard as your own crew.</strong> On your jobs, subbies sign the same SWMS, follow the same checklists and are scored on the same KPIs. Their scores count on the supervisor's team board. They see their own jobs only, never your prices.</p>
+
+          <div style="display: grid; gap: 8px; margin-top: 18px;">
+            <sc-for list="{{ subs }}" as="sb" hint-placeholder-count="4">
+              <div style="border-radius: 18px; background: var(--color-bg); padding: 14px 16px; display: grid; gap: 10px;">
+                <button type="button" onClick="{{ sb.toggle }}" style="all: unset; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px;">
+                  <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 240px;">
+                    <strong style="font-size: 15px;">{{ sb.biz }}</strong>
+                    <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ sb.line }}</span>
+                  </span>
+                  <span style="font-size: 13px; font-weight: 600;">{{ sb.progress }}</span>
+                  <span style="{{ sb.clearChip }}">{{ sb.clear }}</span>
+                </button>
+                <sc-if value="{{ sb.open }}" hint-placeholder-val="{{ false }}">
+                  <div style="display: grid; gap: 12px; padding-top: 4px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 8px;">
+                      <sc-for list="{{ sb.items }}" as="it" hint-placeholder-count="6">
+                        <span style="display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 19px; padding: 9px 12px; border-radius: 12px; background: #fff;"><span style="{{ it.mark }}">{{ it.sym }}</span>{{ it.label }}</span>
+                      </sc-for>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">
+                      <span>{{ sb.expiry }}</span><span>{{ sb.kpi }}</span>
+                    </div>
+                    <sc-if value="{{ sb.canChase }}" hint-placeholder-val="{{ false }}">
+                      <div style="display: grid; gap: 8px; padding: 12px 14px; border-radius: 14px; background: #fff;">
+                        <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">SPEC's text to {{ sb.who }}</span>
+                        <span style="font-size: 14px; line-height: 21px;">{{ sb.chase }}</span>
+                        <sc-if value="{{ sb.chaseOpen }}" hint-placeholder-val="{{ true }}">
+                          <button type="button" onClick="{{ sb.sendChase }}" class="btn btn-primary" style="justify-self: start;">Approve and send</button>
+                        </sc-if>
+                        <sc-if value="{{ sb.chaseDone }}" hint-placeholder-val="{{ false }}">
+                          <span style="{{ sb.doneChip }}">Sent · SPEC will tell you when it's in</span>
+                        </sc-if>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Their invoices, checked before you pay</h2>
+          <p style="font-size: 13.5px; line-height: 20px; margin: 6px 0 14px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Every subbie invoice is matched to the hours and materials on the job. Only the differences need you.</p>
+          <div style="display: grid; gap: 8px;">
+            <sc-for list="{{ subInvoices }}" as="si" hint-placeholder-count="2">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 12px 16px; border-radius: 16px; background: var(--color-bg);">
+                <span style="display: grid; gap: 3px; min-width: 0; flex: 1 1 280px;">
+                  <strong style="font-size: 14.5px;">{{ si.what }}</strong>
+                  <span style="font-size: 13px; line-height: 19px; color: {{ si.tone }};">{{ si.check }}</span>
+                </span>
+                <sc-if value="{{ si.open }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ si.act }}" class="btn btn-primary">{{ si.action }}</button>
+                </sc-if>
+                <sc-if value="{{ si.done }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ si.doneChip }}">{{ si.doneLabel }}</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
       </div>
     </sc-if>
 
@@ -529,6 +608,11 @@ const REGIONS = {
 const hrRow = (title, who, when, state, tone) => ({ title, who, when, state, tone });
 const HR_GROUPS = {
   conduct: [
+    { title: 'Monthly scorecards on file', action: 'Open the Board pack', href: 'SPEC Board Pack.dc.html', feeds: 'People \u00b7 every HR record', blurb: 'When a month locks, every person\u2019s scorecard is filed on their HR record automatically. Reviews, Ace runs and incentives all read from this history, never from a half-finished month.', rows: [
+      hrRow('August 2026 \u00b7 locked 31 Aug', 'Filed for 38 people \u00b7 average 89%', 'Board signed 3 Sep', 'Filed', '#4f7a3f'),
+      hrRow('July 2026 \u00b7 locked 31 Jul', 'Filed for 37 people \u00b7 average 86%', 'Board signed 5 Aug', 'Filed', '#4f7a3f'),
+      hrRow('September 2026', 'Scoring now \u00b7 locks 30 Sep', 'Files automatically', 'In progress', '#c67139'),
+    ] },
     { title: 'Performance reviews', action: 'Open a scorecard', href: 'SPEC My Scorecard.dc.html', feeds: 'People · Managers with a development plan', blurb: 'No separate review form. The review is the last three months of the person\u2019s KPI board, plus one conversation about what comes next.', rows: [
       hrRow('Dane Whitmore · Operations Manager', '3 months: 91%, 88%, 93%', 'Due Oct', 'On track', '#4f7a3f'),
       hrRow('Tom Reyes · Site Supervisor', '3 months: 94%, 92%, 95%', 'Ace check Oct', 'Ace in reach', '#4f7a3f'),
@@ -551,6 +635,11 @@ const HR_GROUPS = {
       hrRow('All 38 people checked', 'Levels, rates and allowances', 'Pay run 18 Sep', 'No one under award', '#4f7a3f'),
       hrRow('Apprentice pay rise — Sione Tui', '2nd year rate from 1 Oct', 'In 8 days', 'Due', '#c67139'),
     ] },
+    { title: 'Apprentice funding', action: 'Check what\u2019s claimable', feeds: 'Earnings · Cash flow', blurb: 'Government incentives and rebates for every apprentice, tracked from their training contract. SPEC tells you the day each claim opens so the money isn\u2019t left on the table. Amounts are confirmed with your Apprenticeship Support Network provider.', rows: [
+      hrRow('Sione Tui · Apprentice', 'Commonwealth incentive · claim 2', 'Opens 4 Oct', 'Claimable soon', '#c67139'),
+      hrRow('Casey Nguyen · Apprentice', 'Commonwealth incentive · claim 1', 'Paid 12 Aug', 'Received', '#4f7a3f'),
+      hrRow('Marcus Bly · Apprentice', 'State payroll tax rebate for apprentices', 'With the next return', 'Not yet claimed', '#a63b26'),
+    ] },
     { title: 'Payroll export', action: 'Export pay run', feeds: 'Earnings · Labour cost', blurb: 'Hours come from Simpro timesheets, leave from SPEC. One click sends the pay run to Xero Payroll.', rows: [
       hrRow('Pay run · 14\u201320 Sep', '38 people · 1,412 hours', 'Ready 21 Sep', 'Ready to send', '#c67139'),
       hrRow('Pay run · 7\u201313 Sep', '38 people · 1,398 hours', 'Sent 14 Sep', 'In Xero', '#4f7a3f'),
@@ -562,8 +651,64 @@ const HR_GROUPS = {
   ],
 };
 
+const SUB_ITEMS = [
+  ['abn', 'ABN and GST checked'], ['contract', 'Subcontract signed, rates and payment terms'], ['pl', 'Public liability insurance'],
+  ['wc', 'Workers\u2019 comp or personal accident cover'], ['lic', 'Trade licence and White Card'], ['ind', 'Site induction and SWMS signed'],
+];
+const SUBS = [
+  { id: 's1', biz: 'Coastal Data & Comms', trade: 'Data cabling', who: 'Ravi', usedBy: 'Tom Reyes', have: { abn: 1, contract: 1, pl: 1, wc: 1, lic: 1, ind: 1 }, expiry: 'Public liability renews 14 Nov', kpi: 'Last 3 months: 96% on time · 98% right first time · no incidents' },
+  { id: 's2', biz: 'Summit Scaffolding', trade: 'Scaffolding', who: 'Mick', usedBy: 'Anthony Reeve', have: { abn: 1, contract: 1, pl: 1, wc: 0, lic: 1, ind: 1 }, expiry: 'Workers\u2019 comp expired 20 Sep', kpi: 'Last 3 months: 91% on time · 100% right first time · no incidents' },
+  { id: 's3', biz: 'Northern Trenching', trade: 'Civil and trenching', who: 'Josh', usedBy: 'Dane Whitmore', have: { abn: 1, contract: 0, pl: 1, wc: 1, lic: 1, ind: 0 }, expiry: 'Still onboarding', kpi: 'New, not scored yet' },
+  { id: 's4', biz: 'Bright Spark Electrical', trade: 'Electrician, labour hire', who: 'Aaron', usedBy: 'Jai Fenton', have: { abn: 1, contract: 1, pl: 1, wc: 1, lic: 1, ind: 1 }, expiry: 'Electrical licence renews 2 Oct, in 8 days', kpi: 'Last 3 months: 88% on time · 94% right first time · no incidents', soon: true },
+];
+
 class Component extends DCLogic {
   state = { mode: 'hr', query: '', role: 'o1', showAd: {}, stages: {}, ratings: {}, reviews: {}, leaveDecided: {}, region: 'NSW, Australia' };
+
+  subVals() {
+    const s = this.state;
+    const G = '#4f7a3f', A = '#c67139', R = '#a63b26';
+    const list = [...SUBS, ...(s.newSubs || [])];
+    const openId = s.subOpen === undefined ? 's2' : s.subOpen;
+    const chased = s.subChased || {};
+    const addSub = () => {
+      const t = (this.state.subDraft || '').trim(); if (!t) return;
+      const id = 'n' + ((this.state.newSubs || []).length + 1);
+      this.setState(st => ({ subDraft: '', subOpen: id, newSubs: [...(st.newSubs || []), { id, biz: t.split(',')[0].trim(), trade: 'Trade to confirm', who: 'them', usedBy: 'you', have: {}, expiry: 'Invite sent just now', kpi: 'Not scored yet', invited: true }] }));
+    };
+    const inv = s.subInv || {};
+    return {
+      subDraft: s.subDraft || '',
+      setSubDraft: e => this.setState({ subDraft: e.target.value }),
+      subKey: e => { if (e.key === 'Enter') addSub(); },
+      addSub,
+      subs: list.map(x => {
+        const have = SUB_ITEMS.filter(([k]) => x.have[k]).length;
+        const missing = SUB_ITEMS.filter(([k]) => !x.have[k]).map(([, l]) => l.toLowerCase());
+        const clear = have === SUB_ITEMS.length;
+        const tone = x.invited ? A : !clear ? R : x.soon ? A : G;
+        return {
+          biz: x.biz, who: x.who,
+          line: x.trade + ' · used by ' + x.usedBy,
+          progress: have + ' of ' + SUB_ITEMS.length + ' done',
+          clear: x.invited ? 'Invite sent' : clear ? (x.soon ? 'Clear · renews soon' : 'Clear to work') : 'Can\u2019t be booked',
+          clearChip: chip(tone),
+          open: openId === x.id,
+          toggle: () => this.setState({ subOpen: openId === x.id ? null : x.id }),
+          items: SUB_ITEMS.map(([k, label]) => ({ label, sym: x.have[k] ? '✓' : '!', mark: 'width:20px;height:20px;flex:none;border-radius:50%;display:grid;place-content:center;font-size:12px;font-weight:700;color:#fff;background:' + (x.have[k] ? G : R) + ';' })),
+          expiry: x.expiry, kpi: x.kpi,
+          canChase: missing.length > 0 || !!x.soon,
+          chase: missing.length ? 'Hi ' + x.who + ', to keep you on JBI jobs we still need: ' + missing.join(', ') + '. Tap the link to add it on your phone, it takes a couple of minutes. Thanks, JBI Electrical' : 'Hi ' + x.who + ', your electrical licence renews on 2 Oct. Tap the link to upload the new one so you stay on the schedule. Thanks, JBI Electrical',
+          chaseOpen: !chased[x.id], chaseDone: !!chased[x.id], doneChip: chip(G),
+          sendChase: () => this.setState(st => ({ subChased: { ...(st.subChased || {}), [x.id]: true } })),
+        };
+      }),
+      subInvoices: [
+        { id: 'i1', what: 'Coastal Data & Comms · $3,960 · J-4402', check: 'Matches the 36 hours booked and 2 boxes of Cat6 on the job.', tone: '#3d5c31', action: 'Approve for payment', doneLabel: 'Approved · paid Friday through Xero' },
+        { id: 'i2', what: 'Summit Scaffolding · $5,200 · J-4417', check: 'Claims 5 days of scaffold hire. The schedule shows it came down after 4. SPEC has drafted a query to Mick.', tone: R, action: 'Send the query', doneLabel: 'Query sent · payment held' },
+      ].map(i => ({ ...i, open: !inv[i.id], done: !!inv[i.id], doneChip: chip(G), act: () => this.setState(st => ({ subInv: { ...(st.subInv || {}), [i.id]: true } })) })),
+    };
+  }
 
   renderVals() {
     const hr = this.state.mode === 'hr';
@@ -583,6 +728,7 @@ class Component extends DCLogic {
         { key: 'hr', label: 'HR' },
         { key: 'conduct', label: 'Reviews & conduct' },
         { key: 'pay', label: 'Pay & exits' },
+        { key: 'subbies', label: 'Subcontractors' },
         { key: 'recruit', label: 'Recruitment' },
       ].map(m => ({
         label: m.label,
@@ -593,6 +739,8 @@ class Component extends DCLogic {
       isHr: hr,
       isRecruit: this.state.mode === 'recruit',
       isGroups: !!HR_GROUPS[this.state.mode],
+      isSubbies: this.state.mode === 'subbies',
+      ...this.subVals(),
       hrGroups: (HR_GROUPS[this.state.mode] || []).map(g => ({
         ...g,
         actionLabel: g.action,

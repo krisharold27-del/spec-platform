@@ -43,6 +43,18 @@ export const tenants = pgTable('tenants', {
    */
   ceilings: text('ceilings'),
   /**
+   * Where a paid customer is sent to leave a review, and the floor under this business's cash.
+   *
+   * `reviewLink` is the business's own review link. There is ONE, used for everybody — see the rule
+   * at the top of lib/reviews: no gating, ever.
+   *
+   * `cashBufferCents` is the level below which this business starts making bad decisions — paying
+   * late, discounting to get a deposit in. SPEC cannot know that number, so it belongs to the
+   * business, and the default in lib/cashflow is a starting point rather than an opinion.
+   */
+  reviewLink: text('review_link'),
+  cashBufferCents: integer('cash_buffer_cents'),
+  /**
    * basic | advanced — decided by one question to the leader: "Do you want the power of AI?"
    *
    *   basic    — no connectors, no assistant. Every number is typed in and confirmed by a name.
@@ -1376,6 +1388,29 @@ export const jobs = pgTable('jobs', {
    */
   materialsCents: integer('materials_cents'),
   /**
+   * When this customer was asked for a review. Null means nobody has been asked yet.
+   *
+   * On the JOB rather than the customer, because the ask is per job — the same customer coming back
+   * next year is asked again, and somebody who had a bad first job and a good second one gets both
+   * chances. It is also what stops anybody being asked twice for the same work.
+   */
+  reviewAskedAt: text('review_asked_at'),
+  /**
+   * The customer's own link for this job, and what it shows.
+   *
+   * `customerToken` is 32 random hex characters — the link IS the key, because a customer will not
+   * make an account to find out when the electrician is arriving. It is treated as a credential:
+   * never printed in a page SPEC renders to anybody else, and clearable when the job is finished.
+   *
+   * The rest is what the customer is told: the slot they picked, whether somebody is on the way and
+   * how far off, and which vehicle to look for. See lib/customer-page for what may never appear.
+   */
+  customerToken: text('customer_token'),
+  bookedSlot: text('booked_slot'),
+  onWayAt: text('on_way_at'),
+  etaMinutes: integer('eta_minutes'),
+  vehicle: text('vehicle'),
+  /**
    * Where the work came from — the website form, a Google search, a missed call, a repeat customer,
    * a builder, a referral.
    *
@@ -2039,4 +2074,154 @@ export const jobRecords = pgTable('job_records', {
 }, t => [
   index('job_records_tenant').on(t.tenantId),
   index('job_records_job').on(t.tenantId, t.jobId),
+]).enableRLS();
+
+/*
+  ══ Design 17 · get paid and keep them ═══════════════════════════════════════════════════════════
+
+  Callbacks, reviews, tools, tenders and subcontractors. No foreign keys, per the house convention
+  for everything added since the CRM block — `tests/crm.test.ts` enforces it.
+*/
+
+/**
+ * Going back to a job that should have been finished.
+ *
+ * Its own table rather than a flag on the job, because the hours and the materials of a callback
+ * are the cost nobody sees: on a timesheet they look like ordinary work. Counting them separately
+ * is the only way rework ever becomes a number. See lib/rework for what each cause means.
+ */
+export const callbacks = pgTable('callbacks', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** The job that had to be gone back to. */
+  jobId: text('job_id').notNull(),
+  /** workmanship | material | subbie | not_ours — see CAUSES in lib/rework. */
+  cause: text('cause').notNull().default('workmanship'),
+  what: text('what').notNull().default(''),
+  /** Who did the original work. Named to see a pattern, never to blame one person. */
+  who: text('who').notNull().default(''),
+  minutes: integer('minutes').notNull().default(0),
+  costCents: integer('cost_cents').notNull().default(0),
+  /** What was actually got back, once a claim or a call-out invoice landed. */
+  recoveredCents: integer('recovered_cents').notNull().default(0),
+  /** open | closed */
+  status: text('status').notNull().default('open'),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('callbacks_tenant').on(t.tenantId),
+  index('callbacks_job').on(t.tenantId, t.jobId),
+]).enableRLS();
+
+/**
+ * A review somebody left, and the reply.
+ *
+ * Every paid customer is asked, with the same message and the same link — see the rule at the top
+ * of lib/reviews. Nothing here records how a job went before the ask, because nothing is allowed to
+ * decide the ask on that basis.
+ */
+export const reviews = pgTable('reviews', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  jobId: text('job_id'),
+  who: text('who').notNull().default(''),
+  stars: integer('stars').notNull().default(5),
+  text: text('text').notNull().default(''),
+  /** The business's answer. Drafted by SPEC, posted only once somebody approves it. */
+  reply: text('reply'),
+  repliedAt: text('replied_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('reviews_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * Every tool the business owns, and who has it.
+ *
+ * The register exists for three different questions that are the same row: what is it worth for
+ * insurance, when is it next due for test and tag or calibration, and which ute is it in. A
+ * business that cannot answer the third buys the tool again.
+ */
+export const tools = pgTable('tools', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  name: text('name').notNull(),
+  serial: text('serial'),
+  /** Whoever has it — a person or a vehicle, in the business's own words. */
+  heldBy: text('held_by').notNull().default(''),
+  valueCents: integer('value_cents').notNull().default(0),
+  /** YYYY-MM-DD, next test and tag or calibration. Null when it needs neither. */
+  dueAt: text('due_at'),
+  /** held | missing | retired */
+  status: text('status').notNull().default('held'),
+  lastSeenAt: text('last_seen_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('tools_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * A tender package: a job that has to be won against other people, on somebody else's timetable.
+ *
+ * Kept apart from a lead because the decision is different. A lead is followed up; a tender is
+ * decided on — go or no-go — and the cost of deciding wrong is a fortnight of estimating given away.
+ */
+export const tenders = pgTable('tenders', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  title: text('title').notNull(),
+  builder: text('builder').notNull().default(''),
+  /** YYYY-MM-DD. */
+  dueAt: text('due_at'),
+  valueCents: integer('value_cents').notNull().default(0),
+  /** How many addenda have landed. Each one is a re-price somebody has to notice. */
+  addenda: integer('addenda').notNull().default(0),
+  /** none | started | done */
+  takeoff: text('takeoff').notNull().default('none'),
+  /** open | go | no_go | submitted | won | lost */
+  status: text('status').notNull().default('open'),
+  /** What the winner came in at, when it is known. The only way a win rate ever improves. */
+  winnerCents: integer('winner_cents'),
+  decidedBecause: text('decided_because'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('tenders_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * A subcontractor, and the six checks that decide whether they can be booked.
+ *
+ * Kris, 24 September, correcting an earlier draft: subcontractors are people working for the
+ * business and are held to the full expectation on every job — a PAID TEAM SEAT, the same SWMS,
+ * checklists and KPIs as employees, and their scores count on their supervisor's team board. They
+ * still see only their own jobs, never the business's prices.
+ */
+export const subcontractors = pgTable('subcontractors', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  business: text('business').notNull(),
+  contact: text('contact').notNull().default(''),
+  mobile: text('mobile').notNull().default(''),
+  /** Who they work under. The same reporting line an employee has. */
+  reportsToRoleId: text('reports_to_role_id'),
+  /** invited | onboarding | active | stood_down */
+  status: text('status').notNull().default('invited'),
+  invitedAt: text('invited_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('subcontractors_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * One of the six checks against a subcontractor, with its expiry.
+ *
+ * A row per check rather than six columns, because each one expires on its own date and each one
+ * has its own document. Six columns would make "which one lapsed" a question you answer by reading.
+ */
+export const subbieChecks = pgTable('subbie_checks', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  subbieId: text('subbie_id').notNull(),
+  /** abn | subcontract | liability | workers_comp | licence | induction — see CHECKS in lib/subbies. */
+  kind: text('kind').notNull(),
+  /** YYYY-MM-DD. Null when the check does not expire. */
+  expiresAt: text('expires_at'),
+  /** missing | current | expired */
+  state: text('state').notNull().default('missing'),
+  note: text('note'),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  index('subbie_checks_tenant').on(t.tenantId),
+  index('subbie_checks_subbie').on(t.tenantId, t.subbieId),
 ]).enableRLS();

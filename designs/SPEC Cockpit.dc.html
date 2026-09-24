@@ -16,15 +16,18 @@
   a:hover { color: var(--color-accent-800); text-decoration: underline; }
   ::selection { background: var(--color-accent-200); }
 </style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); --shadow-lg: 0 0 0 1.5px #d2c3a9, 0 14px 36px rgba(32,30,29,0.13); } body { background: #ffffff; }</style>
 </helmet>
 
-<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+<div style="font-family: var(--font-body); color: var(--color-text); background: #ffffff; min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1320px) / 2 + clamp(20px,5vw,72px)));">
     <span class="nav-brand">SPEC Cockpit</span>
     <a href="#" style="color: var(--color-text); font-weight: 700;">Targets</a>
     <a href="#health">System health</a>
     <a href="#marketing">Marketing plan</a>
+    <a href="#listening">siteVIP listening</a>
+    <a href="#support">Support</a>
     <a href="#talk">Talk to build</a>
     <span style="margin-left: auto; font-size: 13px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">manager@specbizhq.com</span>
   </nav>
@@ -198,6 +201,106 @@
       </div>
     </section>
 
+    <section id="listening" aria-label="siteVIP listening" style="padding-top: clamp(32px,4vw,44px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(22px,2.6vw,28px); line-height: 1.2; margin: 0;">siteVIP listening</h2>
+        <span class="tag tag-neutral">Sample data until the listener is live</span>
+      </div>
+      <p style="font-size: 15px; line-height: 24px; margin: 10px 0 0; max-width: 68ch; color: color-mix(in srgb, var(--color-text) 75%, transparent);">Every night SPEC reads public forums and review sites about job software and siteVIP, groups what trades are saying, and drafts a fix. Nothing ships until you approve it. Small and quick beats big and slow.</p>
+      <p style="font-size: 13px; line-height: 20px; margin: 8px 0 0; max-width: 80ch; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Sources: {{ listenSources }}</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: clamp(20px,3vw,28px); margin-top: 18px; align-items: start;">
+        <div class="card elev-sm" style="padding: clamp(22px,3vw,28px);">
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 18px; line-height: 1.3; margin: 0;">What trades complain about</p>
+          <p style="font-size: 13px; margin: 6px 0 14px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ listenSummary }}</p>
+          <div style="display: grid; gap: 8px;">
+            <sc-for list="{{ listenThemes }}" as="lt" hint-placeholder-count="7">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 14px; border-radius: 14px; background: var(--color-bg);">
+                <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 220px;">
+                  <span style="font-size: 14px; font-weight: 700;">{{ lt.theme }}</span>
+                  <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 68%, transparent);">{{ lt.count }} mentions · {{ lt.answer }}</span>
+                </span>
+                <span style="{{ lt.chip }}">{{ lt.status }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div class="card elev-sm" style="padding: clamp(22px,3vw,28px);">
+          <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 18px; line-height: 1.3; margin: 0 0 14px;">Feedback to act on</p>
+          <div style="display: grid; gap: 10px;">
+            <sc-for list="{{ listenItems }}" as="li" hint-placeholder-count="5">
+              <div style="padding: 14px 16px; border-radius: 16px; background: var(--color-bg); display: grid; gap: 6px;">
+                <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ li.src }}</span>
+                <span style="font-size: 14.5px; line-height: 21px; font-weight: 700;">{{ li.said }}</span>
+                <span style="font-size: 13.5px; line-height: 20px;">SPEC's fix: {{ li.fix }}</span>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px;">
+                  <sc-if value="{{ li.canApprove }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" onClick="{{ li.approve }}" class="btn btn-primary">Approve the fix</button>
+                    <button type="button" onClick="{{ li.park }}" class="btn btn-ghost">Park it</button>
+                  </sc-if>
+                  <sc-if value="{{ li.canMarket }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" onClick="{{ li.market }}" class="btn btn-secondary">Use in marketing</button>
+                  </sc-if>
+                  <sc-if value="{{ li.hasStatus }}" hint-placeholder-val="{{ false }}">
+                    <span style="{{ li.chip }}">{{ li.status }}</span>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="support" aria-label="Support" style="padding-top: clamp(32px,4vw,44px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(22px,2.6vw,28px); line-height: 1.2; margin: 0;">Support · same day, 7am to 7pm, 7 days</h2>
+        <span class="tag tag-neutral">Sample data</span>
+      </div>
+      <p style="font-size: 15px; line-height: 24px; margin: 10px 0 0; max-width: 68ch; color: color-mix(in srgb, var(--color-text) 75%, transparent);">You answer for now. SPEC reads each question, drafts the reply from the customer's own setup, and you check it and send. Anything that's a bug goes straight to Talk to build.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 14px; margin-top: 18px;">
+        <sc-for list="{{ supStats }}" as="ss" hint-placeholder-count="4">
+          <div class="card elev-sm" style="padding: 18px 20px;">
+            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ss.label }}</span>
+            <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1; margin: 10px 0 0;">{{ ss.value }}</p>
+            <p style="font-size: 13px; margin: 8px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ ss.note }}</p>
+          </div>
+        </sc-for>
+      </div>
+
+      <div class="card elev-sm" style="padding: clamp(20px,3vw,26px); margin-top: 16px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; font-size: 14.5px;"><strong>When to hire a support person</strong><span>{{ hireLine }}</span></div>
+        <div style="position: relative; height: 12px; border-radius: 999px; background: var(--color-bg); margin-top: 12px;">
+          <div style="{{ hireBar }}"></div>
+          <span style="position: absolute; left: 40%; top: -4px; width: 3px; height: 20px; border-radius: 999px; background: #c67139;"></span>
+        </div>
+        <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 68%, transparent);">Start the search at 20 businesses (the orange mark) so someone is trained by 50.</p>
+      </div>
+
+      <div style="display: grid; gap: 10px; margin-top: 16px;">
+        <sc-for list="{{ supItems }}" as="si" hint-placeholder-count="3">
+          <div class="card elev-sm" style="padding: 16px 20px; display: grid; gap: 8px;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 13px; color: color-mix(in srgb, var(--color-text) 62%, transparent);"><span>{{ si.who }}</span><span style="{{ si.waitChip }}">{{ si.wait }}</span></div>
+            <p style="font-size: 15px; font-weight: 700; line-height: 22px; margin: 0;">{{ si.ask }}</p>
+            <p style="font-size: 14px; line-height: 21px; margin: 0; padding: 10px 14px; border-radius: 14px; background: var(--color-bg);">SPEC's draft: {{ si.draft }}</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+              <sc-if value="{{ si.open }}" hint-placeholder-val="{{ true }}">
+                <button type="button" onClick="{{ si.send }}" class="btn btn-primary">Send it</button>
+                <sc-if value="{{ si.isBug }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Also sent to Talk to build as a bug.</span>
+                </sc-if>
+              </sc-if>
+              <sc-if value="{{ si.done }}" hint-placeholder-val="{{ false }}">
+                <span style="{{ si.doneChip }}">Replied in {{ si.wait }}</span>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
     <section id="talk" aria-label="Talk to build" style="padding-top: clamp(32px,4vw,44px);">
       <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(22px,2.6vw,28px); line-height: 1.2; margin: 0;">Talk to build</h2>
       <p style="font-size: 15px; line-height: 24px; margin: 10px 0 0; max-width: 68ch; color: color-mix(in srgb, var(--color-text) 75%, transparent);">SPEC Business Solutions runs on SPEC itself. Type an objective or a problem the business is facing — Claude reads it against the targets above and agrees the next step with you.</p>
@@ -268,7 +371,78 @@ const TALK_PROMPTS = [
 ];
 
 class Component extends DCLogic {
-  state = { talkText: '', talkReply: null, talkKicker: '', talkStep: '' };
+  state = { talkText: '', talkReply: null, talkKicker: '', talkStep: '', listen: {}, support: {} };
+
+  supportVals() {
+    const G = '#4f7a3f', A = '#c67139';
+    const chipOf = t => 'display:inline-flex;align-items:center;border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;white-space:nowrap;background:color-mix(in srgb, ' + t + ' 14%, transparent);color:' + t + ';';
+    const sent = this.state.support || {};
+    const ITEMS = [
+      { id: 's1', who: 'JBI Electrical · Jordan Cole', wait: '14 min', ask: 'How do I move an apprentice to another crew?', draft: 'Open the Org chart and drag Casey onto Tom\u2019s crew. Her KPIs, jobs and toolbox sign-ons move with her.' },
+      { id: 's2', who: 'JBI Electrical · Amrit Kaur', wait: '41 min', ask: 'Can I change an invoice that\u2019s already gone to Xero?', draft: 'Yes. Open the invoice, change it and save. SPEC sends Xero a credit note and the new invoice for you.' },
+      { id: 's3', who: 'JBI Electrical · Sione Tui', wait: '1 h 5 min', ask: 'The app asked me to sign the SWMS twice.', draft: 'Thanks Sione, that\u2019s our bug. Your first signature counts and you won\u2019t be asked twice again.', bug: true },
+    ];
+    const open = ITEMS.filter(i => !sent[i.id]).length;
+    const biz = 1;
+    return {
+      supStats: [
+        { label: 'Replied same day', value: '100%', note: 'Every question this week' },
+        { label: 'Median first reply', value: '38 min', note: 'Inside 7am to 7pm' },
+        { label: 'Open now', value: String(open), note: open ? 'Oldest waiting 1 h 5 min' : 'All answered' },
+        { label: 'Answered by', value: 'Kris', note: 'With SPEC drafting every reply' },
+      ],
+      hireLine: biz + ' of 50 businesses',
+      hireBar: 'height:100%;border-radius:999px;background:' + G + ';width:' + Math.max(3, biz / 50 * 100) + '%;',
+      supItems: ITEMS.map(i => {
+        const d = !!sent[i.id];
+        return {
+          who: i.who, wait: i.wait, ask: i.ask, draft: i.draft, isBug: !!i.bug,
+          open: !d, done: d,
+          waitChip: chipOf(d ? G : A), doneChip: chipOf(G),
+          send: () => this.setState(s => ({ support: { ...(s.support || {}), [i.id]: true } })),
+        };
+      }),
+    };
+  }
+
+  listenVals() {
+    const G = '#4f7a3f', A = '#c67139', R = '#a63b26';
+    const chipOf = t => 'display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:600;white-space:nowrap;background:color-mix(in srgb, ' + t + ' 14%, transparent);color:' + t + ';';
+    const THEMES = [
+      ['Too many clicks, needs admin staff', 41, 'Answered', 'One record from enquiry to paid'],
+      ['Hard to set up, needs an in-house expert', 27, 'Answered', 'Running in a day, we bring the data across'],
+      ['Mobile app freezes and loses notes', 33, 'Answered', 'Works with no signal, saves every tap'],
+      ['Invoices must be deleted to fix them', 18, 'Answered', 'Edit in place, credit note to Xero'],
+      ['Locked contracts and price rises', 22, 'Answered', 'Month to month, no exit fees'],
+      ['Support slow after signing', 19, 'Watch', 'Same-day human reply, needs staff as seats grow'],
+      ['AI can\u2019t answer real questions', 12, 'Answered', 'Ask SPEC reads your own jobs and numbers'],
+    ];
+    const ITEMS = [
+      { id: 'l1', src: 'siteVIP · Ask SPEC, JBI Electrical', said: 'Apprentices can\u2019t find the SWMS on the phone.', fix: 'make the SWMS step one on every job card.', start: 'shipped' },
+      { id: 'l2', src: 'Whirlpool forums', said: 'No reception in basements, so the job app is useless underground.', fix: 'offline job card and a photo queue that sends when signal returns.', start: 'proposed' },
+      { id: 'l3', src: 'Reddit · r/electricians', said: 'Loading supplier price files every month is a chore.', fix: 'load Rexel, MMEM and CNW price files automatically each month.', start: 'proposed' },
+      { id: 'l4', src: 'Capterra review', said: 'Customers keep ringing to ask when the tech will turn up.', fix: 'an \u201con my way\u201d text to the customer from the tech\u2019s phone.', start: 'proposed' },
+      { id: 'l5', src: 'G2 review', said: 'Our job software went up about 60% in three years.', fix: 'lead the pricing page with \u201cmonth to month, no exit fees\u201d.', start: 'marketing' },
+    ];
+    const st = this.state.listen || {};
+    const LABEL = { shipped: ['Shipped 19 Sep', G], build: ['In build · sent to Talk to build', A], parked: ['Parked', 'color-mix(in srgb, var(--color-text) 55%, transparent)'], queued: ['Added to the marketing plan', G] };
+    const set = (id, v) => this.setState(s => ({ listen: { ...(s.listen || {}), [id]: v } }));
+    return {
+      listenSources: 'Reddit, Whirlpool, G2, Capterra, Software Advice, ProductReview.com.au, App Store and Google Play reviews, and Ask SPEC messages from siteVIP users.',
+      listenSummary: 'This week: 214 posts and reviews read, 38 about job software, 6 about siteVIP.',
+      listenThemes: THEMES.map(([theme, count, status, answer]) => ({ theme, count: String(count), status, answer, chip: chipOf(status === 'Answered' ? G : A) })),
+      listenItems: ITEMS.map(i => {
+        const now = st[i.id] || i.start;
+        const lab = LABEL[now];
+        return {
+          src: i.src, said: i.said, fix: i.fix,
+          canApprove: now === 'proposed', canMarket: now === 'marketing', hasStatus: !!lab,
+          status: lab ? lab[0] : '', chip: lab ? chipOf(lab[1]) : '',
+          approve: () => set(i.id, 'build'), park: () => set(i.id, 'parked'), market: () => set(i.id, 'queued'),
+        };
+      }),
+    };
+  }
 
   renderVals() {
     const consultClients = 1, consultTarget = 4.5, consultRevenue = '$25,000/mo';
@@ -286,6 +460,8 @@ class Component extends DCLogic {
     ];
 
     return {
+      ...this.listenVals(),
+      ...this.supportVals(),
       wheels: wheelData.map(w => {
         const tone = rag(w.pct);
         const dash = Math.max(6, Math.round((w.pct / 100) * 264));

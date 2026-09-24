@@ -16,9 +16,10 @@
   a:hover { color: var(--color-accent-800); text-decoration: underline; }
   ::selection { background: var(--color-accent-200); }
 </style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); --shadow-lg: 0 0 0 1.5px #d2c3a9, 0 14px 36px rgba(32,30,29,0.13); } body { background: #ffffff; }</style>
 </helmet>
 
-<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); min-height: 100vh;">
+<div style="font-family: var(--font-body); color: var(--color-text); background: #ffffff; min-height: 100vh;">
 
   <nav class="nav" style="flex-wrap: wrap; row-gap: 8px; padding-inline: max(clamp(20px,5vw,72px), calc((100% - 1200px) / 2 + clamp(20px,5vw,72px)));">
     <a href="SPEC Home.dc.html" class="nav-brand" style="text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 22px;"><svg viewBox="0 0 100 100" width="56" height="56" role="img" aria-label="SPEC" style="display: block; flex: none;">
@@ -52,13 +53,15 @@
         </svg>SPEC</a>
     <a href="SPEC My Page.dc.html">My page</a>
     <a href="SPEC Jobs.dc.html">Jobs</a>
-    <a href="SPEC Org Chart.dc.html">Org chart</a>
+    <a href="SPEC Jobs.dc.html?tab=customers">CRM</a>
     <a href="SPEC People.dc.html">People</a>
     <a href="SPEC Safety.dc.html">Safety</a>
-    <a href="SPEC Monthly Scoring.dc.html">Scoring</a>
-    <a href="SPEC Board Pack.dc.html">Board pack</a>
-    <a href="#" style="color: var(--color-text); font-weight: 700;">Connections</a>
-    <a href="SPEC Home.dc.html">All pages</a>
+    <a href="SPEC Compliance.dc.html">Compliance</a>
+    <a href="SPEC Board Pack.dc.html">Board</a>
+    <span style="flex: 1 1 0; min-width: 8px;"></span>
+    <a href="SPEC Setup.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Setup</a>
+    <a href="SPEC Connections.dc.html" style="font-size: 13.5px; color: var(--color-text); font-weight: 700;">Connections</a>
+    <a href="SPEC Home.dc.html" style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">All pages</a>
   </nav>
 
   <div style="max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 72px;">
@@ -114,6 +117,51 @@
       </div>
 
       <p style="font-size: 13.5px; line-height: 21px; margin: 18px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ approvalsLine }} · every approval, decline and scope change is kept in the connection log.</p>
+    </section>
+
+    <section aria-label="Staff mailboxes" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(24px,3vw,36px); margin-top: clamp(20px,3vw,28px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px 16px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 0;">Staff mailboxes</h2>
+        <span style="{{ mailApprovedChip }}">Board approved · 22 Sep</span>
+      </div>
+      <p style="font-size: 15px; line-height: 24px; margin: 10px 0 0; max-width: 68ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">SPEC reads work email so enquiries, supplier bills, variations, complaints and safety reports turn into actions with a reply ready. Nothing is sent until someone presses Approve.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px; margin-top: 18px;">
+        <sc-for list="{{ mailRules }}" as="mr" hint-placeholder-count="4">
+          <div style="background: var(--color-bg); border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px;">
+            <strong style="font-size: 14.5px;">{{ mr.title }}</strong>
+            <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 75%, transparent);">{{ mr.body }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 24px;">
+        <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Microsoft 365 · jbielectrical.com.au · {{ mailCount }}</span>
+        <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ mailWho }}</span>
+      </div>
+      <div style="display: grid; gap: 8px; margin-top: 10px;">
+        <sc-for list="{{ mailboxes }}" as="mb" hint-placeholder-count="14">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 12px 16px; border-radius: 16px; background: var(--color-bg);">
+            <span style="display: grid; gap: 2px; flex: 1 1 260px; min-width: 0;">
+              <span style="font-size: 14.5px; font-weight: 700;">{{ mb.name }} <span style="font-weight: 400; color: color-mix(in srgb, var(--color-text) 62%, transparent);">· {{ mb.address }}</span></span>
+              <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ mb.feeds }}{{ mb.privateLine }}</span>
+            </span>
+            <button type="button" onClick="{{ mb.toggle }}" disabled="{{ mb.locked }}" style="{{ mb.style }}">{{ mb.state }}</button>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; margin-top: 20px;">
+        <div style="flex: 1 1 300px; min-width: 0; border-radius: 18px; padding: 16px 18px; background: color-mix(in srgb, #4f7a3f 9%, transparent);">
+          <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: #3d5c31;">What each person sees on My Page</span>
+          <p style="font-size: 14.5px; line-height: 22px; margin: 8px 0 0;"><strong>SPEC reads your work inbox.</strong> 3 things found this week, all approved by you. Private: 1 folder, 2 senders.</p>
+          <p style="font-size: 13.5px; margin: 8px 0 0; color: var(--color-accent-700);">See what SPEC read · Manage private mail</p>
+        </div>
+        <div style="flex: 1 1 260px; min-width: 0; border-radius: 18px; padding: 16px 18px; background: var(--color-bg);">
+          <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Mark anything private</span>
+          <p style="font-size: 14px; line-height: 21px; margin: 8px 0 0;">A folder, a sender, or one email. SPEC skips it from then on and never shows it to anyone, including the GM.</p>
+        </div>
+      </div>
     </section>
 
     <section aria-label="Connection summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; padding: clamp(20px,3vw,28px) 0;">
@@ -369,6 +417,51 @@ class Component extends DCLogic {
     aiProvider: 'Claude', aiKey: '', aiConnected: false,
   };
 
+  mailVals(authorised) {
+    const G = '#4f7a3f';
+    const off = this.state.mailOff || {};
+    const BOXES = [
+      ['Office', 'office@', 'Enquiries, complaints and quote replies', ''],
+      ['Accounts', 'accounts@', 'Supplier bills, remittances and debtor replies', ''],
+      ['Estimating', 'estimating@', 'Quote requests and plans from builders', ''],
+      ['Kris Harold', 'kris@', 'Board and customer mail', 'Board papers folder'],
+      ['Jordan Cole', 'jordan@', 'Crew and site mail', '2 senders'],
+      ['Lena Ford', 'lena@', 'Quotes, wins and customer mail', ''],
+      ['Amrit Kaur', 'amrit@', 'Scheduling and office mail', ''],
+      ['Nadia Cole', 'nadia@', 'Quote requests and supplier prices', ''],
+      ['Tom Reyes', 'tom@', 'Crew, variations and safety reports', '1 folder, 2 senders'],
+      ['Anthony Reeve', 'anthony@', 'Crew, variations and safety reports', ''],
+      ['Dane Whitmore', 'dane@', 'Crew, variations and safety reports', ''],
+      ['Jai Fenton', 'jai@', 'Crew and customer callbacks', ''],
+      ['Sam Price', 'sam@', 'Safety, licences and WorkSafe mail', ''],
+      ['Hemi Walker', 'hemi@', 'Safety reports and job questions', ''],
+    ];
+    const reading = BOXES.filter(b => !off[b[1]]).length;
+    return {
+      mailApprovedChip: 'display:inline-flex;align-items:center;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:700;white-space:nowrap;background:color-mix(in srgb, ' + G + ' 14%, transparent);color:#3d5c31;',
+      mailRules: [
+        { title: 'Work mail only', body: 'Only the work mailboxes listed here. Nothing personal, and no one\u2019s phone.' },
+        { title: 'Private stays private', body: 'Anyone can mark a folder, a sender or one email private. SPEC never reads it.' },
+        { title: 'You see what it read', body: 'Everyone can see exactly what SPEC picked up from their inbox, and why.' },
+        { title: 'Every read is logged', body: 'Every email read and every reply sent is in the connection log, for the Board.' },
+      ],
+      mailCount: reading + ' of ' + BOXES.length + ' mailboxes being read',
+      mailWho: authorised ? 'Changes go to the Board for approval.' : 'Only the GM, the Board or the Commercial Manager can change these.',
+      mailboxes: BOXES.map(([name, local, feeds, priv]) => {
+        const on = !off[local];
+        return {
+          name, address: local + 'jbielectrical.com.au', feeds,
+          privateLine: priv ? ' · Private: ' + priv : '',
+          state: on ? 'Reading' : 'Off',
+          locked: !authorised,
+          toggle: () => this.setState(s => ({ mailOff: { ...(s.mailOff || {}), [local]: !(s.mailOff || {})[local] } })),
+          style: 'cursor:' + (authorised ? 'pointer' : 'default') + ';border:0;border-radius:999px;padding:8px 16px;min-width:88px;font-family:var(--font-body);font-size:13px;font-weight:700;'
+            + (on ? 'background:' + G + ';color:#fff;' : 'background:#fff;color:color-mix(in srgb, var(--color-text) 60%, transparent);box-shadow:var(--shadow-sm);'),
+        };
+      }),
+    };
+  }
+
   renderVals() {
     const authorised = this.state.authorised;
     const fixed = this.state.fixed || {};
@@ -403,6 +496,7 @@ class Component extends DCLogic {
     const ghost = 'cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13px;flex:none;white-space:nowrap;background:var(--color-bg);color:var(--color-text);';
 
     return {
+      ...this.mailVals(authorised),
       authStyle: 'border-radius:var(--radius-lg);padding:22px 24px;background:' + (authorised ? 'color-mix(in srgb, ' + GREEN + ' 10%, transparent)' : 'var(--color-accent-100)') + ';',
       authTitle: authorised ? 'You are authorised to connect systems' : 'You can see connections, but not change them',
       authBody: authorised

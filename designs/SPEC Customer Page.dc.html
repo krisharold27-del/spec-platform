@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: #ffffff; }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+</style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); }</style>
+</helmet>
+<div style="font-family: var(--font-body); color: var(--color-text); background: #ffffff; min-height: 100vh; display: grid; justify-items: center; padding: 28px 16px 60px; box-sizing: border-box;">
+  <div style="width: 100%; max-width: 420px; display: grid; gap: 14px;">
+    <p style="font-size: 13px; text-align: center; margin: 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">What your customer sees · a link in every text and email</p>
+
+    <div style="background: var(--color-surface, #fff); border-radius: 24px; box-shadow: var(--shadow-md); padding: 20px; display: grid; gap: 6px;">
+      <span style="font-size: 12.5px; font-weight: 700; color: var(--color-accent-700);">JBI Electrical</span>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 26px; line-height: 1.15; margin: 0;">Hi Priya</h1>
+      <p style="font-size: 14.5px; line-height: 22px; margin: 0;">EV charger and switchboard upgrade · Marrickville</p>
+    </div>
+
+    <div style="background: var(--color-surface, #fff); border-radius: 24px; box-shadow: var(--shadow-sm); padding: 20px; display: grid; gap: 12px;">
+      <strong style="font-size: 16px;">{{ stepTitle }}</strong>
+      <div style="display: grid; gap: 8px;">
+        <sc-for list="{{ steps }}" as="st" hint-placeholder-count="5">
+          <div style="display: flex; gap: 12px; align-items: center; font-size: 14.5px;">
+            <span style="{{ st.dot }}">{{ st.mark }}</span><span style="{{ st.text }}">{{ st.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-if value="{{ needBooking }}" hint-placeholder-val="{{ true }}">
+      <div style="background: var(--color-surface, #fff); border-radius: 24px; box-shadow: var(--shadow-sm); padding: 20px; display: grid; gap: 12px;">
+        <strong style="font-size: 16px;">Pick a time that suits you</strong>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+          <sc-for list="{{ slots }}" as="sl" hint-placeholder-count="4">
+            <button type="button" onClick="{{ sl.pick }}" style="{{ sl.style }}">{{ sl.label }}</button>
+          </sc-for>
+        </div>
+        <button type="button" onClick="{{ book }}" disabled="{{ noSlot }}" class="btn btn-primary" style="min-height: 48px;">Book it</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onTheWay }}" hint-placeholder-val="{{ false }}">
+      <div style="background: color-mix(in srgb, #4f7a3f 10%, transparent); border-radius: 24px; padding: 20px; display: grid; gap: 6px;">
+        <strong style="font-size: 17px; color: #2f4a26;">Hemi is on his way</strong>
+        <span style="font-size: 14.5px; line-height: 22px;">About 20 minutes away. Ute 04, white HiLux. He'll call when he's out the front.</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showVariation }}" hint-placeholder-val="{{ false }}">
+      <div style="background: var(--color-surface, #fff); border-radius: 24px; box-shadow: var(--shadow-sm); padding: 20px; display: grid; gap: 10px;">
+        <strong style="font-size: 16px;">Hemi found something</strong>
+        <span style="font-size: 14.5px; line-height: 22px;">The cable to the garage needs to run under the house, not through the roof. It adds 1.5 hours and one junction box.</span>
+        <div style="display: flex; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 14px; background: var(--color-bg); font-size: 15px;"><span>Extra cost</span><strong>$236.50 inc GST</strong></div>
+        <sc-if value="{{ varOpen }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button type="button" onClick="{{ approveVar }}" class="btn btn-primary" style="min-height: 48px; flex: 1 1 140px;">Approve</button>
+            <button type="button" onClick="{{ callVar }}" class="btn btn-secondary" style="min-height: 48px; flex: 1 1 140px;">Call me first</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ varDone }}" hint-placeholder-val="{{ false }}">
+          <span style="font-size: 14px; color: #2f4a26; font-weight: 600;">{{ varDoneLabel }}</span>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showInvoice }}" hint-placeholder-val="{{ false }}">
+      <div style="background: var(--color-surface, #fff); border-radius: 24px; box-shadow: var(--shadow-sm); padding: 20px; display: grid; gap: 10px;">
+        <strong style="font-size: 16px;">All done. Here's your invoice.</strong>
+        <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 15px;"><span>INV-8852</span><strong>{{ invTotal }}</strong></div>
+        <span style="font-size: 13px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Includes your certificate of compliance and test results. Photos of the finished work are below.</span>
+        <sc-if value="{{ payOpen }}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{ pay }}" class="btn btn-primary" style="min-height: 48px;">Pay by card or bank</button>
+        </sc-if>
+        <sc-if value="{{ paid }}" hint-placeholder-val="{{ false }}">
+          <span style="font-size: 14px; color: #2f4a26; font-weight: 600;">Paid. Thanks, Priya.</span>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 6px;">
+      <sc-for list="{{ demo }}" as="dm" hint-placeholder-count="4">
+        <button type="button" onClick="{{ dm.go }}" style="{{ dm.style }}">{{ dm.label }}</button>
+      </sc-for>
+    </div>
+    <p style="font-size: 12.5px; text-align: center; margin: 0; color: color-mix(in srgb, var(--color-text) 60%, transparent);">Preview only: switch stages to see each step. <a href="SPEC Jobs.dc.html?tab=customers">Back to Customers</a></p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:480,&quot;height&quot;:900}}">
+const GREEN = '#4f7a3f';
+const STAGES = ['Quote approved', 'Booked', 'On the way', 'Working', 'Done'];
+const SLOTS = ['Mon 29 Sep · 7am', 'Mon 29 Sep · 12pm', 'Tue 30 Sep · 7am', 'Wed 1 Oct · 7am'];
+class Component extends DCLogic {
+  state = { stage: 0, slot: '', varState: '', paid: false };
+  renderVals() {
+    const s = this.state;
+    const pill = on => 'cursor:pointer;border:0;border-radius:14px;min-height:48px;padding:10px;font-family:var(--font-body);font-size:14px;font-weight:600;' + (on ? 'background:var(--color-text);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);');
+    const TITLES = ['Your quote is approved. Pick a time.', 'Booked for ' + (s.slot || 'Mon 29 Sep · 7am'), 'Hemi is on his way', 'Work in progress', 'Finished'];
+    return {
+      stepTitle: TITLES[s.stage],
+      steps: STAGES.map((label, i) => {
+        const done = i < s.stage, on = i === s.stage;
+        return {
+          label, mark: done ? '✓' : String(i + 1),
+          dot: 'width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-content:center;font-size:13px;font-weight:700;' + (done ? 'background:' + GREEN + ';color:#fff;' : on ? 'background:var(--color-accent);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);'),
+          text: on ? 'font-weight:700;' : done ? '' : 'color:color-mix(in srgb, var(--color-text) 60%, transparent);',
+        };
+      }),
+      needBooking: s.stage === 0,
+      slots: SLOTS.map(label => ({ label, pick: () => this.setState({ slot: label }), style: pill(s.slot === label) })),
+      noSlot: !s.slot,
+      book: () => this.setState({ stage: 1 }),
+      onTheWay: s.stage === 2,
+      showVariation: s.stage === 3,
+      varOpen: !s.varState, varDone: !!s.varState,
+      varDoneLabel: s.varState === 'ok' ? 'Approved. Hemi has it on his phone.' : 'Hemi will call you in the next few minutes.',
+      approveVar: () => this.setState({ varState: 'ok' }),
+      callVar: () => this.setState({ varState: 'call' }),
+      showInvoice: s.stage === 4,
+      invTotal: s.varState === 'ok' ? '$3,914.50 inc GST' : '$3,678.00 inc GST',
+      payOpen: !s.paid, paid: s.paid,
+      pay: () => this.setState({ paid: true }),
+      demo: STAGES.map((label, i) => ({ label, go: () => this.setState({ stage: i }), style: 'cursor:pointer;border:0;border-radius:999px;padding:7px 12px;font-family:var(--font-body);font-size:12.5px;' + (i === s.stage ? 'background:var(--color-text);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);') })),
+    };
+  }
+}
+</script>
+</body>
+</html>
