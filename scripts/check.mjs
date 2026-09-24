@@ -389,6 +389,17 @@ const JOURNEYS = [
     the screen would pass on a build that stores the name and simply declines to print it.
   */
   ['safety', 'reporting a hazard, and an anonymous report having no name in the row', 'safety-journey'],
+  /*
+    A job photo is different from every other row in SPEC: it is a picture of somebody's
+    switchboard, their meter box, the inside of their house, held by a business that is our
+    customer. So the separation is WALKED with two real businesses rather than asserted.
+
+    What it cannot prove without a file store, it says out loud that it cannot prove, instead of
+    banking a pass it did not earn — with no store every photo answers 404, so the route-level
+    cross-business check passes whether the fence is there or not. That one is carried by
+    tests/photos.test.ts, where taking the fence out fails four checks.
+  */
+  ['photo', 'a job photo saving, and one business never seeing another’s', 'photo-journey.mts'],
   // Needs the offline Xero server above. When it is not there the journey says so and skips rather
   // than passing quietly — a connector nobody exercised is not a connector anybody has proven.
   ['xero', 'a business linking its accounts, and the board guarding the ledger', 'xero-journey.mts'],

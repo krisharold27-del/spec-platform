@@ -95,6 +95,11 @@ export function claims(testCount: number, testFiles: number, journeys: number, r
       backing: 'Each of the 38 carries its own state, and a test fails if anything claimed as built does not name a page that exists. Until 24 September this screen claimed all 38.',
     },
     {
+      says: 'A job photo is readable only by the business that took it.',
+      standing: 'read',
+      backing: 'Stored privately, never at a public URL, and served by a route that looks the record up scoped to the signed-in business — proven in tests/photos.test.ts, where removing that fence fails four checks. The route-level cross-business check is not yet proven end to end: until a file store is connected every photo answers 404, so scripts/photo-journey says that one is unproven rather than banking a pass. Walk it once the store is on.',
+    },
+    {
       says: 'Nobody at SPEC can read a customer’s numbers.',
       standing: 'read',
       backing: 'There is no support tool that renders them and no break-glass path. That is true of the code as written, and it is asserted rather than tested — the honest standing is read, not proven.',

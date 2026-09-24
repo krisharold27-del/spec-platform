@@ -12,6 +12,9 @@ import { getCurrentUser, canManage } from '@/lib/auth';
 import { refusedReason } from '@/lib/refuse';
 import { pillTone, LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { crewFor, type CrewMember } from '@/lib/jobs-data';
+import { photoHref, photoLine } from '@/lib/photos';
+import { JobPhoto } from '@/components/job-photo';
+import { recordLabel } from '@/lib/tech-day';
 import {
   STAGES, jobMargin, marginLight, marginSlip, slippedCount, pipelineStats, priceQuote, labourCostCents, billable,
   workWeek, dayLabel, weekLabel, shiftWeek, priceFileState, stale, parseComponents, expandKit,
@@ -237,6 +240,23 @@ async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasR
         .where(and(eq(schema.crmDeals.tenantId, open.tenantId), eq(schema.crmDeals.jobId, open.id)))
     : [];
 
+  /*
+    What the crew recorded on site: the SWMS they signed, the photos, the materials, the client's
+    signature. Fetched for the OPEN job only — this is a board, and reading every record for every
+    job to show one job's is a query that gets slower as the business grows.
+
+    The photos matter here more than anywhere else. Until a file store was connected SPEC kept only
+    the caption, so the office had an evidence chain it could read and never look at.
+  */
+  const dayRecords = open
+    ? await db.select({
+        id: schema.jobRecords.id, kind: schema.jobRecords.kind, who: schema.jobRecords.who,
+        what: schema.jobRecords.what, fileRef: schema.jobRecords.fileRef, atTime: schema.jobRecords.atTime,
+      }).from(schema.jobRecords)
+        .where(and(eq(schema.jobRecords.tenantId, open.tenantId), eq(schema.jobRecords.jobId, open.id)))
+        .orderBy(schema.jobRecords.atTime)
+    : [];
+
   const tiles: { label: string; value: string; note: string; light: Light }[] = [
     { label: 'Quotes out', value: money(stats.quotesOutCents), note: stats.quotesOut ? `${stats.quotesOut} waiting on an answer` : 'None out right now', light: 'pending' },
     { label: 'Work on the books', value: money(stats.onBooksCents), note: `${stats.live} live ${stats.live === 1 ? 'job' : 'jobs'}`, light: 'pending' },
@@ -337,17 +357,20 @@ async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasR
           job={open} crew={crew} manage={manage} now={now} tabHref={tabHref} hasRate={hasRate} fromDeal={fromDeal ?? null}
           bookings={bookings.filter(b => b.jobId === open.id)}
           quotes={quotes.filter(q => q.jobId === open.id)}
+          dayRecords={dayRecords}
         />
       )}
     </div>
   );
 }
 
-function JobDetail({ job, crew, bookings, quotes, manage, now, tabHref, hasRate, fromDeal }: {
+function JobDetail({ job, crew, bookings, quotes, manage, now, tabHref, hasRate, fromDeal, dayRecords }: {
   job: Costed; crew: CrewMember[]; bookings: (typeof schema.scheduleBookings.$inferSelect)[];
   quotes: (typeof schema.quotes.$inferSelect)[]; manage: boolean; now: Date;
   tabHref: (k: string, e?: Record<string, string>) => string; hasRate: boolean;
   fromDeal: { id: string; title: string } | null;
+  /** What the crew recorded on the phone for this job — see `FromSite`. */
+  dayRecords: { id: string; kind: string; who: string; what: string; fileRef: string | null; atTime: string }[];
 }) {
   const stage = STAGES.find(s => s.key === job.stage) ?? STAGES[0];
   const light = marginLight(job.margin);
@@ -492,8 +515,68 @@ function JobDetail({ job, crew, bookings, quotes, manage, now, tabHref, hasRate,
             </div>
           </div>
         </div>
+
+        <FromSite records={dayRecords} />
       </div>
     </section>
+  );
+}
+
+/**
+ * What the crew recorded on site, and the photos themselves.
+ *
+ * ── Why the office sees this at all ──────────────────────────────────────────────────────────────
+ *
+ * The phone has recorded the SWMS, the photos, the materials and the client's signature for a
+ * while, and none of it had anywhere to be read. An evidence chain nobody can open is a filing
+ * cabinet nobody has the key to: it is only worth keeping if somebody can produce it when the
+ * argument happens — a variation the client disputes, an insurer asking what the board looked like
+ * before the work started.
+ *
+ * Each picture is served from `/api/photo/<record id>`, which checks this business owns the record
+ * before it streams anything. The stored path is never in the page, so there is no address here for
+ * anybody to try their luck with.
+ *
+ * A record with no file is one taken before the store was connected. It keeps its place in the
+ * chain and says plainly that the picture stayed on the phone, rather than showing a broken frame.
+ */
+function FromSite({ records }: {
+  records: { id: string; kind: string; who: string; what: string; fileRef: string | null; atTime: string }[];
+}) {
+  if (!records.length) return null;
+  const photos = records.filter(r => r.kind === 'photo');
+  const rest = records.filter(r => r.kind !== 'photo');
+
+  return (
+    <div className="card-inset lg:col-span-2">
+      <p className="label-caps mb-3">From site</p>
+
+      {photos.length > 0 && (
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {photos.map(p => (
+            <figure key={p.id} className="grid gap-1">
+              {p.fileRef ? (
+                <JobPhoto src={photoHref(p.id)} alt={p.what || `Photo on this job by ${p.who}`} />
+              ) : (
+                <div className="grid aspect-square w-full place-items-center rounded-lg border border-ink/10 bg-cream px-2 text-center text-xs text-ink-light">
+                  Picture stayed on the phone
+                </div>
+              )}
+              <figcaption className="text-xs leading-4 text-ink-light">{photoLine(p)}</figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-2">
+        {rest.map(r => (
+          <div key={r.id} className="text-sm leading-5">
+            <span className="text-ink-light">{r.atTime.slice(0, 10)}</span> · {recordLabel(r.kind)}
+            {r.what ? ` — ${r.what}` : ''} <span className="text-ink-light">· {r.who}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

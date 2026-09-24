@@ -5,7 +5,9 @@ import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
+import { head } from '@vercel/blob';
 import { isDayRecord, recordLabel, validClock, dayNear, daysAround, officeMinutes } from '@/lib/tech-day';
+import { ownsPath } from '@/lib/photos';
 
 /**
  * Start and Finish on the phone, written to the office's timesheets (23 September).
@@ -152,4 +154,68 @@ export async function recordOnJob(input: {
   revalidatePath('/tech-day');
   revalidatePath('/jobs');
   return { ok: true, says: `${recordLabel(input.kind)} recorded.` };
+}
+
+/**
+ * Attach a photo that has already gone into the store.
+ *
+ * ── Why the row is written here and not by the store's own callback ──────────────────────────────
+ *
+ * Vercel Blob will call back to a deployment when an upload finishes, and writing the row there
+ * looks tidier. It cannot reach a laptop, so a product built that way works in production and does
+ * nothing at all everywhere it is developed, tested and demonstrated — the class of thing that is
+ * found by a customer. One path, the same one everywhere.
+ *
+ * ── Which means the phone's word is not enough ───────────────────────────────────────────────────
+ *
+ * The phone tells SPEC where it put the file. Two things are asked before that becomes a record:
+ * the path is inside this business's own folder, and `head()` says a file is really there. Without
+ * the second, a row could claim a photo that was never uploaded, and the register would show an
+ * evidence chain with nothing on the end of it — which is worse than the honest gap SPEC had
+ * before, because this one looks complete.
+ */
+export async function attachPhoto(input: {
+  jobId: string;
+  path: string;
+  caption: string;
+  who?: string | null;
+}): Promise<Recorded> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, says: 'Sign in first.' };
+  try {
+    await assertWritable(user.tenantId);
+  } catch {
+    return { ok: false, says: 'This business is read-only until the payment is sorted.' };
+  }
+
+  const path = String(input.path ?? '').slice(0, 400);
+  if (!ownsPath(user.tenantId, path)) {
+    return { ok: false, says: 'SPEC cannot keep a photo from there.' };
+  }
+
+  const jobId = String(input.jobId ?? '').slice(0, 64);
+  const [job] = await db.select({ id: schema.jobs.id }).from(schema.jobs)
+    .where(and(eq(schema.jobs.id, jobId), eq(schema.jobs.tenantId, user.tenantId)));
+  if (!job) return { ok: false, says: 'That job is not in this business.' };
+
+  // The file has to actually be there. A record pointing at nothing is a worse lie than no record.
+  const there = await head(path).catch(() => null);
+  if (!there) return { ok: false, says: 'That photo did not reach the store. Try it again.' };
+
+  await db.insert(schema.jobRecords).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    jobId,
+    kind: 'photo',
+    who: String(input.who ?? user.name ?? 'Crew').slice(0, 120),
+    what: String(input.caption ?? '').slice(0, 400),
+    itemId: null,
+    qty: null,
+    fileRef: path,
+    atTime: new Date().toISOString(),
+  });
+
+  revalidatePath('/tech-day');
+  revalidatePath('/jobs');
+  return { ok: true, says: 'Photo saved to the job.' };
 }

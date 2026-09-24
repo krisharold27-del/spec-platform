@@ -8,6 +8,7 @@ import { currentPeriod } from '@/lib/period';
 import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
 import { TechDayPhone, type ClearToWork, type OfficeEntry } from '@/components/tech-day-phone';
+import { storeConnected } from '@/lib/photos';
 
 export const dynamic = 'force-dynamic';
 
@@ -126,9 +127,15 @@ export default async function TechDay() {
 
   const firstName = (user.name ?? '').trim().split(/\s+/)[0] || '';
   return (
+    /*
+      Whether a photo can actually be kept is decided here, on the server, from the environment —
+      never in the browser. The token itself never leaves this process; the phone learns only that
+      there is somewhere to put a picture, which is all it needs in order to say the right thing.
+    */
     <TechDayPhone
       userId={user.id} name={user.name ?? ''} firstName={firstName}
       clear={clear} booked={booked} open={open} records={records} items={items}
+      tenantId={user.tenantId} storeConnected={storeConnected()}
     />
   );
 }

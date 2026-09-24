@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { clockOn, clockOff, recordOnJob } from '@/app/tech-day/actions';
+import { clockOn, clockOff, recordOnJob, attachPhoto } from '@/app/tech-day/actions';
 import { SiteVipMark } from '@/components/sitevip-mark';
 import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
+import { mayUpload, pathFor, photoPromise } from '@/lib/photos';
 import {
   STEPS, EMPTY_DAY, apply, canDo, doneLine, isDone, nextStep, primaryLabel, primaryNote, revive,
   storageKey, summary, timesheet, clock, hoursLabel, bookedOn, hhmm,
@@ -58,7 +59,7 @@ function KeptHere({ children }: { children: React.ReactNode }) {
  * The tech's phone. Every tap goes through `apply` in lib/tech-day, so the order the page allows is
  * the order the tests hold — a SWMS before Start, the on-job steps after it, Finish last.
  */
-export function TechDayPhone({ userId, name, firstName, clear, booked = [], open = null, records = [], items = [] }: {
+export function TechDayPhone({ userId, name, firstName, clear, booked = [], open = null, records = [], items = [], tenantId = '', storeConnected = false }: {
   userId: string; name: string; firstName: string; clear: ClearToWork;
   /** The office's bookings for this person, either side of today — the phone keeps its own day's. */
   booked?: Booked[];
@@ -68,6 +69,22 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
   records?: { jobId: string; kind: string; who: string; what: string; atTime: string }[];
   /** The catalogue, so materials come off a list rather than being typed as a note. */
   items?: { id: string; name: string }[];
+  /**
+   * This business, so a photo is uploaded into its own folder.
+   *
+   * Only ever a suggestion: the upload route checks the path against the SIGNED-IN person's
+   * business before it issues a token, so a phone that sends somebody else's id gets nothing. It is
+   * here because the file has to be addressed before it is sent, not because it is trusted.
+   */
+  tenantId?: string;
+  /**
+   * Whether there is anywhere to put a picture.
+   *
+   * Read on the server from the environment and handed down, so every sentence on this phone about
+   * what happens to a photo follows whether a store is really connected — never a line of copy
+   * somebody has to remember to change on the day it is.
+   */
+  storeConnected?: boolean;
 }) {
   const router = useRouter();
   /** What the office said about the last Start or Finish, when it could not take it. */
@@ -218,6 +235,8 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
                 records={records}
                 items={items}
                 who={name}
+                tenantId={tenantId}
+                storeConnected={storeConnected}
                 onOpen={job => { act({ type: 'open', job }); setView('job'); }}
               />
             )}
@@ -244,7 +263,10 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
             {officeNote && <KeptHere>{officeNote}</KeptHere>}
             <KeptHere>
               Jobs the office books you on land here. Start and Finish go straight to the office&rsquo;s
-              timesheets; photos, materials and sign-offs stay on this phone for now.
+              timesheets;{' '}
+              {storeConnected
+                ? 'photos, materials and sign-offs go onto the job.'
+                : 'photos, materials and sign-offs stay on this phone for now.'}
             </KeptHere>
           </>
         )}
@@ -287,6 +309,7 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
                       {step.key === 'swms' && <SwmsPanel name={name} onSign={by => { act({ type: 'swms', by, at: nowIso() }); setPanel(null); }} />}
                       {step.key === 'photos' && (
                         <PhotosPanel
+                          connected={storeConnected}
                           urls={photoUrls}
                           onAdd={files => {
                             const urls = files.map(f => URL.createObjectURL(f));
@@ -336,7 +359,7 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
         )}
 
         {view === 'done' && (
-          <DoneScreen s={s} now={now} signature={signature} onNext={nextJob} note={officeNote} />
+          <DoneScreen s={s} now={now} signature={signature} onNext={nextJob} note={officeNote} connected={storeConnected} />
         )}
       </main>
 
@@ -395,12 +418,15 @@ function ClearCard({ clear }: { clear: ClearToWork }) {
  * order is fixed — sign the SWMS, start, photos, materials, the client signs — so SPEC knows where
  * the day has got to and shows one button, not five tabs.
  */
-function BookedJobs({ jobs, onOpen, records = [], items = [], who = '' }: {
+function BookedJobs({ jobs, onOpen, records = [], items = [], who = '', tenantId = '', storeConnected = false }: {
   jobs: Booked[];
   onOpen: (job: TechJob) => void;
   records?: { jobId: string; kind: string; who: string; what: string; atTime: string }[];
   items?: { id: string; name: string }[];
   who?: string;
+  /** Passed through to the photo step — see the note on `TechDayPhone`. */
+  tenantId?: string;
+  storeConnected?: boolean;
 }) {
   if (!jobs.length) return null;
   return (
@@ -420,7 +446,7 @@ function BookedJobs({ jobs, onOpen, records = [], items = [], who = '' }: {
               {j.site && <span className="text-sm text-ink-light">{j.site}</span>}
             </button>
             <p className="text-[13px] text-ink-light">{dayLine(mine, mine.some(r => r.kind !== 'swms'))}</p>
-            <NextThing jobId={j.jobId} records={mine} items={items} who={who} />
+            <NextThing jobId={j.jobId} records={mine} items={items} who={who} tenantId={tenantId} storeConnected={storeConnected} />
           </div>
         );
       })}
@@ -466,7 +492,7 @@ function SwmsPanel({ name, onSign }: { name: string; onSign: (by: string) => voi
   );
 }
 
-function PhotosPanel({ urls, onAdd, onDone }: { urls: string[]; onAdd: (files: File[]) => void; onDone: () => void }) {
+function PhotosPanel({ urls, onAdd, onDone, connected }: { urls: string[]; onAdd: (files: File[]) => void; onDone: () => void; connected: boolean }) {
   return (
     <div className="grid gap-2.5">
       <label className="btn-primary flex min-h-[48px] cursor-pointer items-center justify-center text-base">
@@ -486,7 +512,17 @@ function PhotosPanel({ urls, onAdd, onDone }: { urls: string[]; onAdd: (files: F
           {urls.map(u => <img key={u} src={u} alt="" className="aspect-square w-full rounded-lg object-cover" />)}
         </div>
       )}
-      <p className="text-[12.5px] leading-5 text-ink-light">Photos stay on this phone for now — they are not uploaded to the job yet.</p>
+      {/*
+        The panel on the step list is a quick counter — "three photos added" — and it is NOT where a
+        photo is attached to the job; `NextThing` does that, one at a time, with a caption, because
+        a photo nobody can describe is not evidence. So this says where the pictures are, which
+        follows the store rather than a sentence somebody has to remember to change.
+      */}
+      <p className="text-[12.5px] leading-5 text-ink-light">
+        {connected
+          ? 'Counted here. Add them to the job one at a time below, so each one says what it shows.'
+          : 'Photos stay on this phone for now — they are not uploaded to the job yet.'}
+      </p>
       {urls.length > 0 && <button type="button" onClick={onDone} className="btn-secondary min-h-[44px]">Done for now</button>}
     </div>
   );
@@ -593,7 +629,7 @@ function SignPanel({ onSign }: { onSign: (by: string, image: string | null) => v
   );
 }
 
-function DoneScreen({ s, now, signature, onNext, note }: { s: TechDayState; now: string; signature: string | null; onNext: () => void; note: string | null }) {
+function DoneScreen({ s, now, signature, onNext, note, connected }: { s: TechDayState; now: string; signature: string | null; onNext: () => void; note: string | null; connected: boolean }) {
   const sum = summary(s, now);
   const sheet = timesheet(s, now);
   return (
@@ -615,7 +651,9 @@ function DoneScreen({ s, now, signature, onNext, note }: { s: TechDayState; now:
         {s.entryId
           ? 'Your timesheet built itself from Start and Finish and is on the office’s Timesheets, waiting for approval. '
           : 'Your timesheet built itself from Start and Finish, but the office did not get it — tell your supervisor your hours. '}
-        Photos, materials and the sign-off stay on this phone for now, so tell your supervisor the job is done the way you do today.
+        {connected
+          ? 'Photos you added to the job are with the office. Materials and the sign-off are on the job card.'
+          : 'Photos, materials and the sign-off stay on this phone for now, so tell your supervisor the job is done the way you do today.'}
       </p>
       {note && <p className="text-[12.5px] leading-5 text-ink-light">{note}</p>}
       <button type="button" onClick={onNext} className="min-h-[52px] rounded-full bg-ink px-4 py-4 text-[15.5px] font-semibold text-white">
@@ -632,11 +670,13 @@ function DoneScreen({ s, now, signature, onNext, note }: { s: TechDayState; now:
  * technician is on site with a customer waiting, so nothing here argues — the order is shown, not
  * enforced, and the office sees what was missed on the job card.
  */
-function NextThing({ jobId, records, items, who }: {
+function NextThing({ jobId, records, items, who, tenantId, storeConnected }: {
   jobId: string;
   records: { kind: string; who: string; what: string; atTime: string }[];
   items: { id: string; name: string }[];
   who: string;
+  tenantId: string;
+  storeConnected: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
@@ -644,6 +684,7 @@ function NextThing({ jobId, records, items, who }: {
   const [what, setWhat] = useState('');
   const [itemId, setItemId] = useState('');
   const [qty, setQty] = useState('1');
+  const [file, setFile] = useState<File | null>(null);
 
   const started = records.some(r => r.kind !== 'swms');
   const next = nextAction(records, started);
@@ -651,8 +692,52 @@ function NextThing({ jobId, records, items, who }: {
     return <p className="text-[13px] font-semibold" style={{ color: LIGHT_INK.green }}>Signed off. Nothing left on this one.</p>;
   }
 
+  /*
+    ── The picture, when there is somewhere to put it ────────────────────────────────────────────
+
+    The file goes phone → store directly, because a serverless function takes 4.5MB of body and a
+    phone photo is often more; the token that allows it is issued by /api/photo/upload only after
+    it has checked this person's business owns the path and the job. Then the row is written, which
+    is what makes the photo part of the job rather than a file in a bucket.
+
+    If any of that fails the day does NOT stop. The caption, who and when are recorded the way they
+    always were, and the technician is told the picture did not go — the job is still in front of
+    them and a phone that refuses to record anything is a phone that gets put away.
+  */
+  const sendPhoto = async (): Promise<boolean> => {
+    if (!file || !storeConnected) return false;
+    const allowed = mayUpload(file);
+    if (!allowed.ok) { setSaid(allowed.says); return false; }
+
+    try {
+      const { upload } = await import('@vercel/blob/client');
+      const unique = (globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
+      const done = await upload(pathFor(tenantId, jobId, file.name, unique), file, {
+        access: 'private',
+        handleUploadUrl: '/api/photo/upload',
+        clientPayload: JSON.stringify({ jobId }),
+      });
+      const answer = await attachPhoto({ jobId, path: done.pathname, caption: what, who });
+      setSaid(answer.says);
+      return answer.ok;
+    } catch {
+      setSaid('The photo did not go — SPEC kept what it shows, who took it and when. Keep the picture on the phone.');
+      return false;
+    }
+  };
+
   const send = async () => {
     setBusy(true);
+
+    if (next.key === 'photo' && file && storeConnected) {
+      const saved = await sendPhoto();
+      setBusy(false);
+      if (saved) { setOpen(false); setWhat(''); setFile(null); return; }
+      // It did not go. Fall through on the NEXT press rather than silently recording a photo the
+      // technician believes was uploaded.
+      return;
+    }
+
     const answer = await recordOnJob({
       jobId,
       kind: next.key,
@@ -720,15 +805,31 @@ function NextThing({ jobId, records, items, who }: {
           )}
 
           {/*
-            Said plainly rather than hidden: SPEC has nowhere to put the image yet. The caption, who
-            took it and when are the evidence chain and they are kept; the picture stays on the
-            phone until a file store is connected. Pretending otherwise would be worse.
+            The picture itself, when there is somewhere to put it.
+
+            SPEC ran without a file store for a long time and said so plainly rather than pretending
+            the image was safe somewhere — the caption, who took it and when are the evidence chain
+            and they were always kept. Both sentences still exist and `photoPromise` picks between
+            them, so the screen follows the store rather than a line somebody has to remember.
           */}
           {next.key === 'photo' && (
-            <p className="text-[12.5px] text-ink-light">
-              The photo stays on your phone for now — SPEC records what it shows, who took it and
-              when. Keep it until the office asks.
-            </p>
+            <div className="grid gap-2">
+              {storeConnected && (
+                <label className="btn-secondary flex min-h-[48px] cursor-pointer items-center justify-center text-base">
+                  {file ? 'Different photo' : 'Take or choose the photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="sr-only"
+                    aria-label="Take or choose the photo"
+                    onChange={e => setFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              )}
+              {file && <p className="text-[12.5px] text-ink-light">{file.name} ready to go.</p>}
+              <p className="text-[12.5px] text-ink-light">{photoPromise(storeConnected)}</p>
+            </div>
           )}
 
           <div className="flex gap-2">
