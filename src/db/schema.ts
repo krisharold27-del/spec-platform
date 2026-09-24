@@ -1743,3 +1743,41 @@ export const complianceItems = pgTable('compliance_items', {
   index('compliance_items_tenant').on(t.tenantId),
   index('compliance_items_kind').on(t.tenantId, t.kind),
 ]).enableRLS();
+
+/**
+ * Materials ordered from a supplier, and the bill that answers it.
+ *
+ * The Stock & buying tab carried a heading called Purchase orders with nothing behind it. What a
+ * trade business actually loses money on is not raising the order — it is the bill that arrives
+ * three weeks later for more than the order said, gets paid because nobody had the order in front
+ * of them, and takes the margin off a job quoted at the old price. So the bill total lives on the
+ * same row as the order total: the comparison is the point, and a comparison that needs a join is
+ * a comparison somebody skips. See `match` in lib/purchasing.
+ */
+export const purchaseOrders = pgTable('purchase_orders', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** PO-0001. Shaped like a job reference so a pile of paperwork sorts itself. */
+  ref: text('ref').notNull(),
+  supplier: text('supplier').notNull(),
+  /** The job it is for, when it is for one. Free text rather than a key — see the CRM tables. */
+  jobId: text('job_id'),
+  /** draft | sent | received | billed | closed — see ORDER_STATES in lib/purchasing. */
+  state: text('state').notNull().default('draft'),
+  /** What was ordered, in the business's own words. One line is enough to check a bill against. */
+  what: text('what'),
+  totalCents: integer('total_cents').notNull().default(0),
+  expectedAt: text('expected_at'),
+  /** The supplier's own invoice number, and what they billed. Null until the bill arrives. */
+  billRef: text('bill_ref'),
+  billTotalCents: integer('bill_total_cents'),
+  /** Set when somebody has looked at a difference and accepted it. */
+  matchedAt: text('matched_at'),
+  matchedBy: text('matched_by'),
+  note: text('note'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  index('purchase_orders_tenant').on(t.tenantId),
+  uniqueIndex('purchase_orders_ref').on(t.tenantId, t.ref),
+]).enableRLS();

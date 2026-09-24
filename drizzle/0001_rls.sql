@@ -162,6 +162,9 @@ begin
     -- lodgement reference or a subcontractor's cover, and a policy that depends on a join is a
     -- policy with one more way to be wrong.
     'compliance_items',
+    -- Purchase orders carry a supplier's prices and a business's buying history, which is
+    -- commercially sensitive between tenants in a way a job title is not.
+    'purchase_orders',
     -- Safety, added 23 September. Each carries its own tenant_id: an injury, a claim and an
     -- anonymous wellbeing report are the last rows in SPEC that should ever depend on a join to
     -- stay inside their own business.

@@ -7,6 +7,7 @@ import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
 import { assertWritable } from '@/lib/plan';
 import { crewFor, createJob } from '@/lib/jobs-data';
+import { nextOrderRef, match } from '@/lib/purchasing';
 import {
   parseEnquiry, nextRef, nextStage, lineFrom, priceQuote, MARKUPS, DEFAULT_MARKUP,
   toCents, minutesBetween, bookingRefusal, workWeek, parseComponents, parsePriceFile,
@@ -443,3 +444,121 @@ export async function approveWeek(formData: FormData) {
   back('time', { week });
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * Buying materials, and checking the bill against the order
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/** Money typed by a person: "1,240.50" and "$1240.5" both mean the same thing. */
+const cents = (f: FormData, k: string): number => {
+  const raw = String(f.get(k) ?? '').replace(/[^0-9.]/g, '');
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : 0;
+};
+
+/** Raise an order. From a job when there is one, because that is where the money lands. */
+export async function raiseOrder(formData: FormData) {
+  const user = await writer();
+  const supplier = str(formData, 'supplier', 120);
+  if (!supplier) back('stock', {}, 'An order needs a supplier.');
+
+  const total = cents(formData, 'total');
+  if (total <= 0) back('stock', {}, 'An order needs an amount, so the bill has something to be checked against.');
+
+  const jobId = str(formData, 'jobId', 64);
+  if (jobId) {
+    // Only this business's own job. The id arrives from a form anybody can edit.
+    const job = await ownJob(user.tenantId, jobId);
+    if (!job) back('stock', {}, 'That job is not in this business.');
+  }
+
+  const existing = await db.select({ ref: schema.purchaseOrders.ref })
+    .from(schema.purchaseOrders).where(eq(schema.purchaseOrders.tenantId, user.tenantId));
+
+  const stamp = now();
+  await db.insert(schema.purchaseOrders).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    ref: nextOrderRef(existing.map(e => e.ref)),
+    supplier,
+    jobId: jobId || null,
+    what: str(formData, 'what', 300) || null,
+    totalCents: total,
+    expectedAt: str(formData, 'expectedAt', 10) || null,
+    state: 'sent',
+    createdAt: stamp,
+    updatedAt: stamp,
+  });
+  revalidatePath('/jobs');
+  back('stock');
+}
+
+/**
+ * Record the supplier's bill against an order.
+ *
+ * Nothing is decided here. `match` in lib/purchasing works out whether it holds, and the screen
+ * says so — a bill higher than its order holds payment, a lower one does not, and that asymmetry
+ * is the whole reason this capability is worth having.
+ */
+export async function recordBill(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'id', 64);
+  const [order] = await db.select().from(schema.purchaseOrders)
+    .where(and(eq(schema.purchaseOrders.id, id), eq(schema.purchaseOrders.tenantId, user.tenantId)));
+  if (!order) back('stock', {}, 'That order is not in this business.');
+
+  await db.update(schema.purchaseOrders).set({
+    billRef: str(formData, 'billRef', 80) || null,
+    billTotalCents: cents(formData, 'billTotal'),
+    state: 'billed',
+    // A new bill is a new question: anything accepted before does not carry over.
+    matchedAt: null,
+    matchedBy: null,
+    updatedAt: now(),
+  }).where(eq(schema.purchaseOrders.id, id));
+  revalidatePath('/jobs');
+  back('stock');
+}
+
+/**
+ * Accept a difference somebody has looked at, and close the order.
+ *
+ * The note is required when the bill came in over. A held bill released with no reason is the same
+ * as not having held it — and in six months the question will be why this job's margin was short.
+ */
+export async function acceptBill(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'id', 64);
+  const [order] = await db.select().from(schema.purchaseOrders)
+    .where(and(eq(schema.purchaseOrders.id, id), eq(schema.purchaseOrders.tenantId, user.tenantId)));
+  if (!order) back('stock', {}, 'That order is not in this business.');
+
+  const note = str(formData, 'note', 300);
+  const verdict = match(order.totalCents, order.billTotalCents);
+  if (verdict.holds && !note) {
+    back('stock', {}, 'Say why the extra is accepted before releasing it — in six months the question will be why the margin was short.');
+  }
+
+  await db.update(schema.purchaseOrders).set({
+    matchedAt: now(),
+    matchedBy: user.id,
+    note: note || order.note,
+    state: 'closed',
+    updatedAt: now(),
+  }).where(eq(schema.purchaseOrders.id, id));
+  revalidatePath('/jobs');
+  back('stock');
+}
+
+/** The materials turned up. */
+export async function orderArrived(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'id', 64);
+  const [order] = await db.select({ id: schema.purchaseOrders.id }).from(schema.purchaseOrders)
+    .where(and(eq(schema.purchaseOrders.id, id), eq(schema.purchaseOrders.tenantId, user.tenantId)));
+  if (!order) return;
+  await db.update(schema.purchaseOrders).set({ state: 'received', updatedAt: now() })
+    .where(eq(schema.purchaseOrders.id, id));
+  revalidatePath('/jobs');
+  back('stock');
+}

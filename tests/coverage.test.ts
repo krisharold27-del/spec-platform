@@ -107,7 +107,7 @@ describe('the switch', () => {
     expect(none).toEqual({
       total: 38, inSpec: 38, connected: 0, systems: [],
       // Counted separately since 24 September — "running here" and "built" are different claims.
-      builtHere: 22, partlyHere: 13,
+      builtHere: 23, partlyHere: 14,
     });
     expect(connectedNote(none)).toBe('Nothing connected. SPEC runs it all');
     const some = totalsOf(choose(chooseArea(defaultChoices(), 'jobs', 'own'), 'customers', 'spec'));
@@ -314,7 +314,7 @@ describe('what the map claims is true', () => {
   */
   it('KNOWS EXACTLY WHICH ARE NOT WRITTEN AT ALL', () => {
     expect(CAPABILITIES.filter(c => c.built === 'no').map(c => c.key).sort())
-      .toEqual(['claims', 'kits', 'po']);
+      .toEqual(['claims']);
   });
 
   it('and the screen shows a capability’s own state on its own row', () => {

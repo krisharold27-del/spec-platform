@@ -10,7 +10,7 @@ import { Refused } from '@/components/refused';
 import { QuoteBuilder } from '@/components/quote-builder';
 import { getCurrentUser, canManage } from '@/lib/auth';
 import { refusedReason } from '@/lib/refuse';
-import { pillTone, LIGHT_COLOUR } from '@/lib/today';
+import { pillTone, LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { crewFor, type CrewMember } from '@/lib/jobs-data';
 import {
   STAGES, jobMargin, marginLight, pipelineStats, priceQuote, labourCostCents, billable,
@@ -21,7 +21,12 @@ import {
 import {
   addEnquiry, advanceJob, recordMaterials, startQuote, saveQuote, addItem, loadPriceFile, retireItem,
   addRate, addKit, bookCrew, unbookCrew, recordTime, approveWeek,
+  raiseOrder, recordBill, acceptBill, orderArrived,
 } from './actions';
+
+import {
+  match, isLate, byAttention, purchasingStats, purchasingLine, orderStateLabel, type OrderRow,
+} from '@/lib/purchasing';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +77,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const today = now.toISOString().slice(0, 10);
 
   /* Everything this business has recorded for Jobs, read once and scoped by tenant in the query. */
-  const [jobs, quotes, itemRows, kitRows, rateRows, jobTime] = await Promise.all([
+  const [jobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
     db.select().from(schema.quotes).where(eq(schema.quotes.tenantId, user.tenantId)).orderBy(schema.quotes.createdAt),
     db.select().from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, user.tenantId)).orderBy(schema.catalogueItems.name),
@@ -82,6 +87,8 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
     db.select({ jobId: schema.timesheetEntries.jobId, minutes: schema.timesheetEntries.minutes })
       .from(schema.timesheetEntries)
       .where(and(eq(schema.timesheetEntries.tenantId, user.tenantId), isNotNull(schema.timesheetEntries.jobId))),
+    db.select().from(schema.purchaseOrders).where(eq(schema.purchaseOrders.tenantId, user.tenantId))
+      .orderBy(schema.purchaseOrders.createdAt),
   ]);
   const crew = await crewFor(user);
 
@@ -154,7 +161,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       {tab === 'catalogue' && (
         <Catalogue items={itemRows} kits={kits} kitRows={kitRows} rates={rates} q={one(sp.q)} skipped={one(sp.skipped)} manage={manage} today={today} />
       )}
-      {tab === 'stock' && <Register groups={stockGroups()} />}
+      {tab === 'stock' && <Stock orders={orderRows} jobs={jobs} manage={manage} today={today} />}
       {tab === 'billing' && <Register groups={billingGroups(costed, now)} />}
       {tab === 'service' && <Register groups={serviceGroups()} />}
 
@@ -1009,12 +1016,6 @@ function stockGroups(): Group[] {
       empty: 'Not set up yet. First step: make sure what the vans carry is in the Catalogue — van stock is counted against those items. Until then, record materials on each job from the Jobs tab.',
     },
     {
-      title: 'Purchase orders',
-      blurb: 'Raised from the job or the quote in one click, sent to the supplier, and matched to their bill when it arrives.',
-      rows: [],
-      empty: 'Not set up yet. First step: put the materials on the job’s quote — that is what a purchase order is raised from. Keep raising orders the way you do today in the meantime.',
-    },
-    {
       title: 'Warehouse',
       blurb: 'One place for yard stock, with stock-takes, transfers to vans and a reorder list built from what jobs will need next week.',
       rows: [],
@@ -1105,6 +1106,132 @@ function Register({ groups }: { groups: Group[] }) {
           )}
         </section>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Stock & buying — the purchase orders, and the two things still to come.
+ *
+ * The tab used to be three headings with nothing behind them. Purchase orders is now real; van
+ * stock and the warehouse keep their honest "not set up yet" notes rather than being dressed up.
+ */
+function Stock({ orders, jobs, manage, today }: {
+  orders: (typeof schema.purchaseOrders.$inferSelect)[];
+  jobs: JobRow[];
+  manage: boolean;
+  today: string;
+}) {
+  const rows: OrderRow[] = orders.map(o => ({
+    id: o.id, ref: o.ref, supplier: o.supplier, state: o.state,
+    totalCents: o.totalCents, billTotalCents: o.billTotalCents, expectedAt: o.expectedAt,
+    jobRef: jobs.find(j => j.id === o.jobId)?.ref ?? null,
+  }));
+  const stats = purchasingStats(rows, today);
+  const sorted = byAttention(rows, today);
+  const cash = (c: number) => `$${(c / 100).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-serif text-xl text-ink">Purchase orders</h2>
+          <p className="text-sm text-ink-light">{purchasingLine(stats)}</p>
+        </div>
+        <p className="mt-1 max-w-3xl text-sm text-ink-light">
+          Raised against the job the materials are for, then checked against the supplier’s bill when
+          it arrives. A bill higher than its order holds payment — a price rise on a job quoted at
+          the old price comes straight off the margin.
+        </p>
+
+        {sorted.length === 0 && (
+          <p className="mt-4 text-sm text-ink-light">No orders yet. Raise the first one below.</p>
+        )}
+
+        <ul className="mt-4 grid gap-2">
+          {sorted.map(o => {
+            const full = orders.find(x => x.id === o.id)!;
+            const verdict = match(o.totalCents, o.billTotalCents);
+            const late = isLate(o, today);
+            const light: Light = verdict.holds ? 'red' : late ? 'amber' : o.state === 'closed' ? 'green' : 'pending';
+            return (
+              <li key={o.id} className="rounded-2xl bg-cream px-4 py-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-ink">
+                      {o.ref} · {o.supplier}
+                      {o.jobRef && <span className="text-ink-light"> · {o.jobRef}</span>}
+                    </p>
+                    <p className="text-sm text-ink-light">
+                      {[full.what, `Ordered ${cash(o.totalCents)}`,
+                        o.billTotalCents !== null ? `billed ${cash(o.billTotalCents)}` : null,
+                        o.expectedAt ? `due ${o.expectedAt}` : null].filter(Boolean).join(' · ')}
+                    </p>
+                    {verdict.state !== 'no_bill' && (
+                      <p className="mt-1 text-sm" style={{ color: verdict.holds ? LIGHT_INK.red : LIGHT_INK.green }}>
+                        {verdict.says}
+                      </p>
+                    )}
+                    {late && <p className="mt-1 text-sm" style={{ color: LIGHT_INK.amber }}>Due {o.expectedAt} and not arrived.</p>}
+                    {full.note && <p className="mt-1 text-sm text-ink-light">Accepted: {full.note}</p>}
+                  </div>
+                  <Pill light={light}>{orderStateLabel(o.state)}</Pill>
+                </div>
+
+                {manage && o.state !== 'closed' && (
+                  <div className="mt-3 grid gap-2 border-t border-cream-border pt-3">
+                    {o.state === 'sent' && (
+                      <form action={orderArrived}>
+                        <input type="hidden" name="id" value={o.id} />
+                        <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Materials arrived</SubmitButton>
+                      </form>
+                    )}
+                    {o.billTotalCents === null ? (
+                      <form action={recordBill} className="flex flex-wrap items-end gap-2">
+                        <input type="hidden" name="id" value={o.id} />
+                        <input name="billRef" placeholder="Their invoice number" className="input py-1.5 text-sm" />
+                        <input name="billTotal" required placeholder="What they billed" className="input w-40 py-1.5 text-sm" />
+                        <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Record the bill</SubmitButton>
+                      </form>
+                    ) : (
+                      <form action={acceptBill} className="flex flex-wrap items-end gap-2">
+                        <input type="hidden" name="id" value={o.id} />
+                        {verdict.holds && (
+                          <input name="note" required placeholder="Why the extra is accepted" className="input flex-1 py-1.5 text-sm" />
+                        )}
+                        <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">
+                          {verdict.holds ? 'Accept and close' : 'Close it'}
+                        </SubmitButton>
+                      </form>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+
+        {manage && (
+          <form action={raiseOrder} className="mt-5 grid gap-2 border-t border-cream-border pt-5 sm:grid-cols-5">
+            <input name="supplier" required placeholder="Supplier" className="input" />
+            <input name="what" placeholder="What you ordered" className="input sm:col-span-2" />
+            <input name="total" required placeholder="Amount" className="input" />
+            <select name="jobId" defaultValue="" className="input">
+              <option value="">No job</option>
+              {jobs.map(j => <option key={j.id} value={j.id}>{j.ref} · {j.title}</option>)}
+            </select>
+            <label className="text-xs text-ink-light sm:col-span-2">
+              Expected
+              <input type="date" name="expectedAt" className="input mt-1 w-full py-1.5 text-sm" />
+            </label>
+            <div className="sm:col-span-5">
+              <SubmitButton className="btn-secondary px-5 py-2">Raise the order</SubmitButton>
+            </div>
+          </form>
+        )}
+      </section>
+
+      <Register groups={stockGroups()} />
     </div>
   );
 }
