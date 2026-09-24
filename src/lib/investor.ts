@@ -105,9 +105,14 @@ export function claims(testCount: number, testFiles: number, journeys: number, r
       backing: 'npm run restore-drill proved it on 26 tables and 77,207 rows — onto a separate server, from a copy. It has never been run against the live database, and it is not scheduled.',
     },
     {
-      says: 'The live site is up and working.',
+      says: 'The public front door is live — sitevipapp.com loads and reads correctly.',
+      standing: 'read',
+      backing: 'Reported on 24 September by a Claude session running on Kris’s own laptop, which can reach it. Not proven here: this container cannot load the site, so nothing automated confirms it and nothing would notice if it stopped.',
+    },
+    {
+      says: 'The signed-in product works on production.',
       standing: 'unverified',
-      backing: 'Everything above was proven against a real build and a real database, but not against production. Load the live site and run npm run check on a machine that can reach it before saying this out loud.',
+      backing: 'Everything else was proven against a real build and a real database, and never against production. The front door loading says nothing about what is behind the sign-in — that is where every screen changed today. Walk it on the live site before saying this out loud.',
     },
   ];
 }
