@@ -87,7 +87,7 @@ export const SCALE_CHECKS: ScaleCheck[] = [
     done: true,
     // Multi-tenant data isolation, named both ways on purpose: the plain sentence is for Kris, and
     // the term is what a buyer's IT person will ask for by name.
-    evidence: 'Multi-tenant data isolation, enforced in application code, proven by tests/tenant-isolation.test.ts, and again by row-level security on 60 of 60 tables.',
+    evidence: 'Multi-tenant data isolation, enforced in application code, proven by tests/tenant-isolation.test.ts, and again by row-level security on 62 of 62 tables.',
   },
   {
     label: 'The database keeps up with the build',
@@ -97,7 +97,7 @@ export const SCALE_CHECKS: ScaleCheck[] = [
   {
     label: 'Nothing reaches production unchecked',
     done: true,
-    evidence: 'npm run check — 1,881 tests, the security policies, and 23 customer journeys driven in a real browser.',
+    evidence: 'npm run check — 1,882 tests, the security policies, and 23 customer journeys driven in a real browser.',
   },
   {
     label: 'Anybody can see whether it is working',

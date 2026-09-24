@@ -536,3 +536,61 @@ export const WORKED_EXAMPLE: { title: string; lines: QuoteLine[]; markupPct: num
     { kind: 'labour', ref: 'x-app', name: 'Apprentice', unitCostCents: 0, hours: 1, rateCostCents: 3200, rateChargeCents: 7500, qty: 8 },
   ],
 };
+
+/* ── The margin slipping, while there is still time to do something ──────────────────────────── */
+
+/**
+ * A job whose margin has fallen below what it was quoted at — said while the job is still running.
+ *
+ * ── Why this is worth its own function ───────────────────────────────────────────────────────────
+ *
+ * The margin was already computed and shown. What was missing is the only part that changes an
+ * outcome: **saying so before the job finishes.** A margin reported on a finished job is a post
+ * mortem. The same number on Tuesday, while there are still three days of labour to go, is a
+ * decision — put a second person on it, stop the unbilled extras, or raise the variation that was
+ * never raised.
+ *
+ * So this only fires on a LIVE job. A job that is invoiced or paid has had its answer; a job still
+ * being quoted has no actuals to slip against.
+ */
+export interface MarginSlip {
+  /** True when this needs saying now. */
+  slipped: boolean;
+  light: Light;
+  says: string;
+}
+
+export function marginSlip(
+  job: { stage: string; margin: number | null; valueCents: number },
+  benchmark = MARGIN_BENCHMARK,
+): MarginSlip {
+  const quiet: MarginSlip = { slipped: false, light: 'pending', says: '' };
+  if (!LIVE_STAGES.includes(job.stage as StageKey)) return quiet;
+  if (job.margin === null || !Number.isFinite(job.margin)) return quiet;
+  if (job.valueCents <= 0) return quiet;
+
+  const pct = Math.round(job.margin * 100);
+  const target = Math.round(benchmark * 100);
+  if (job.margin >= benchmark - 1e-9) return { slipped: false, light: 'green', says: `${pct}% margin, on the ${target}% benchmark.` };
+
+  /*
+    Under water is a different sentence from merely thin. A job running at a loss needs somebody to
+    stop and look today; one at 32% against a 40% benchmark needs the variation raising.
+  */
+  if (job.margin < 0) {
+    return {
+      slipped: true, light: 'red',
+      says: `Running at a loss — ${pct}%. Stop and look at this one today.`,
+    };
+  }
+  return {
+    slipped: true,
+    light: job.margin >= benchmark - 0.1 ? 'amber' : 'red',
+    says: `${pct}% margin against the ${target}% benchmark, and the job is still running. Raise the variation now, not at invoicing.`,
+  };
+}
+
+/** How many live jobs have slipped — the figure the Jobs board leads on. */
+export const slippedCount = (
+  jobs: readonly { stage: string; margin: number | null; valueCents: number }[],
+): number => jobs.filter(j => marginSlip(j).slipped).length;

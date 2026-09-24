@@ -107,7 +107,7 @@ describe('the switch', () => {
     expect(none).toEqual({
       total: 38, inSpec: 38, connected: 0, systems: [],
       // Counted separately since 24 September — "running here" and "built" are different claims.
-      builtHere: 27, partlyHere: 10,
+      builtHere: 33, partlyHere: 5,
     });
     expect(connectedNote(none)).toBe('Nothing connected. SPEC runs it all');
     const some = totalsOf(choose(chooseArea(defaultChoices(), 'jobs', 'own'), 'customers', 'spec'));
@@ -309,12 +309,20 @@ describe('what the map claims is true', () => {
   });
 
   /*
-    The three that are not written at all. Named here so building one breaks this test and somebody
-    has to update the claim — and so a fourth cannot appear without being noticed.
+    ── Nothing is unwritten any more ────────────────────────────────────────────────────────────
+
+    There were three on 24 September: pre-builds, purchase orders, progress claims. All three are
+    built. This now asserts the empty set, so the day something is added to the map without being
+    written, it fails here rather than going out as a claim.
   */
-  it('KNOWS EXACTLY WHICH ARE NOT WRITTEN AT ALL', () => {
-    expect(CAPABILITIES.filter(c => c.built === 'no').map(c => c.key).sort())
-      .toEqual(['claims']);
+  it('HAS NOTHING LEFT THAT IS NOT WRITTEN AT ALL', () => {
+    expect(CAPABILITIES.filter(c => c.built === 'no').map(c => c.key)).toEqual([]);
+  });
+
+  /* And the five still partly there, named, so finishing one has to be recorded here. */
+  it('knows exactly which are still only partly built', () => {
+    expect(CAPABILITIES.filter(c => c.built === 'partly').map(c => c.key).sort())
+      .toEqual(['catalogue', 'kits', 'leads', 'mobile', 'stock']);
   });
 
   it('and the screen shows a capability’s own state on its own row', () => {

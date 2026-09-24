@@ -13,7 +13,7 @@ import { refusedReason } from '@/lib/refuse';
 import { pillTone, LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { crewFor, type CrewMember } from '@/lib/jobs-data';
 import {
-  STAGES, jobMargin, marginLight, pipelineStats, priceQuote, labourCostCents, billable,
+  STAGES, jobMargin, marginLight, marginSlip, slippedCount, pipelineStats, priceQuote, labourCostCents, billable,
   workWeek, dayLabel, weekLabel, shiftWeek, priceFileState, stale, parseComponents, expandKit,
   money, money2, pctLabel, MARGIN_BENCHMARK, BILLABLE_TARGET, DEFAULT_MARKUP, WORKED_EXAMPLE,
   type Light, type QuoteLine, type Kit, type CatalogueItem, type LabourRate,
@@ -22,11 +22,20 @@ import {
   addEnquiry, advanceJob, recordMaterials, startQuote, saveQuote, addItem, loadPriceFile, retireItem,
   addRate, addKit, bookCrew, unbookCrew, recordTime, approveWeek,
   raiseOrder, recordBill, acceptBill, orderArrived,
+  raiseBill, agreeVariation, sendBill, sendReminder, markPaid, releaseRetention,
+  addRecurring, recordDone, bookRecurring,
 } from './actions';
 
 import {
   match, isLate, byAttention, purchasingStats, purchasingLine, orderStateLabel, type OrderRow,
 } from '@/lib/purchasing';
+import {
+  moneyStats, moneyLine, moneyLabel, chase, maySend, billKindLabel,
+  BILL_KINDS, BILL_STATE_LABEL, isBillState,
+} from '@/lib/billing-job';
+import {
+  RECUR_KINDS, recurStats, recurLine, byDue, dueStateOf, dueLine, needsBooking, DUE_LABEL,
+} from '@/lib/recurring';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,7 +86,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const today = now.toISOString().slice(0, 10);
 
   /* Everything this business has recorded for Jobs, read once and scoped by tenant in the query. */
-  const [jobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows] = await Promise.all([
+  const [jobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
     db.select().from(schema.quotes).where(eq(schema.quotes.tenantId, user.tenantId)).orderBy(schema.quotes.createdAt),
     db.select().from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, user.tenantId)).orderBy(schema.catalogueItems.name),
@@ -89,6 +98,10 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       .where(and(eq(schema.timesheetEntries.tenantId, user.tenantId), isNotNull(schema.timesheetEntries.jobId))),
     db.select().from(schema.purchaseOrders).where(eq(schema.purchaseOrders.tenantId, user.tenantId))
       .orderBy(schema.purchaseOrders.createdAt),
+    db.select().from(schema.jobBills).where(eq(schema.jobBills.tenantId, user.tenantId))
+      .orderBy(schema.jobBills.createdAt),
+    db.select().from(schema.recurringWork).where(eq(schema.recurringWork.tenantId, user.tenantId))
+      .orderBy(schema.recurringWork.nextDueAt),
   ]);
   const crew = await crewFor(user);
 
@@ -162,8 +175,8 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
         <Catalogue items={itemRows} kits={kits} kitRows={kitRows} rates={rates} q={one(sp.q)} skipped={one(sp.skipped)} manage={manage} today={today} />
       )}
       {tab === 'stock' && <Stock orders={orderRows} jobs={jobs} manage={manage} today={today} />}
-      {tab === 'billing' && <Register groups={billingGroups(costed, now)} />}
-      {tab === 'service' && <Register groups={serviceGroups()} />}
+      {tab === 'billing' && <Billing bills={billRows} jobs={jobs} manage={manage} now={now} />}
+      {tab === 'service' && <Recurring rows={recurRows} manage={manage} today={today} />}
 
       {/*
         The way out to a job system somebody already runs, the same offer the People screen makes for
@@ -289,6 +302,17 @@ async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasR
                           <span style={{ color: pillTone(ml).color }}>{pctLabel(j.margin)} margin</span>
                         )}
                       </span>
+                      {/*
+                        Said WHILE the job is running, which is the only version of this that
+                        changes an outcome. The same number at invoicing is a post mortem; on
+                        Tuesday with three days of labour to go it is a decision.
+                      */}
+                      {(() => {
+                        const slip = marginSlip(j);
+                        return slip.slipped
+                          ? <span className="mt-1.5 block text-xs" style={{ color: pillTone(slip.light).color }}>{slip.says}</span>
+                          : null;
+                      })()}
                     </Link>
                   );
                 })}
@@ -1232,6 +1256,244 @@ function Stock({ orders, jobs, manage, today }: {
       </section>
 
       <Register groups={stockGroups()} />
+    </div>
+  );
+}
+
+/**
+ * Invoices & claims — variations, progress claims with their retention, and what is owed.
+ *
+ * Three empty headings became one list, because they are one fact: a sum against this job that
+ * somebody owes or will owe. What differs is the rule before it can be sent, and that lives in
+ * lib/billing-job.
+ */
+function Billing({ bills, jobs, manage, now }: {
+  bills: (typeof schema.jobBills.$inferSelect)[];
+  jobs: JobRow[];
+  manage: boolean;
+  now: Date;
+}) {
+  const stats = moneyStats(bills, now);
+  const refOf = (jobId: string) => jobs.find(j => j.id === jobId)?.ref ?? '';
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-serif text-xl text-ink">Invoices, claims and variations</h2>
+          <p className="text-sm text-ink-light">{moneyLine(stats)}</p>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {[
+            { label: 'Owed to you', value: moneyLabel(stats.owedCents), tone: stats.overdueCents > 0 ? LIGHT_COLOUR.amber : LIGHT_COLOUR.green },
+            { label: 'Held in retention', value: moneyLabel(stats.retentionCents), tone: LIGHT_COLOUR.pending },
+            { label: 'Need chasing', value: String(stats.chasesDue), tone: stats.chasesDue ? LIGHT_COLOUR.red : LIGHT_COLOUR.green },
+          ].map(x => (
+            <div key={x.label} className="rounded-2xl bg-cream px-4 py-3">
+              <span className="flex items-center gap-2 text-sm text-ink-light">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: x.tone }} />{x.label}
+              </span>
+              <p className="font-serif text-2xl text-ink">{x.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {bills.length === 0 && (
+          <p className="mt-4 text-sm text-ink-light">Nothing raised yet. Add the first one below.</p>
+        )}
+
+        <ul className="mt-4 grid gap-2">
+          {bills.map(b => {
+            const c = chase(b, now);
+            const send = maySend(b);
+            const light: Light = b.state === 'paid' ? 'green'
+              : c.due !== null ? 'red'
+                : b.state === 'draft' && b.kind === 'variation' ? 'amber' : 'pending';
+            return (
+              <li key={b.id} className="rounded-2xl bg-cream px-4 py-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-ink">
+                      {billKindLabel(b.kind).replace(/s$/, '')} · {b.what}
+                      {refOf(b.jobId) && <span className="text-ink-light"> · {refOf(b.jobId)}</span>}
+                    </p>
+                    <p className="text-sm text-ink-light">
+                      {[moneyLabel(b.amountCents),
+                        b.retentionCents > 0 ? `${moneyLabel(b.retentionCents)} retention${b.releasedAt ? ' (released)' : ' held'}` : null,
+                        b.agreedBy ? `agreed by ${b.agreedBy}` : null,
+                        c.says || null].filter(Boolean).join(' · ')}
+                    </p>
+                    {!send.ok && send.why && b.state === 'draft' && (
+                      <p className="mt-1 text-sm" style={{ color: LIGHT_INK.amber }}>{send.why}</p>
+                    )}
+                  </div>
+                  <Pill light={light}>{BILL_STATE_LABEL[(isBillState(b.state) ? b.state : 'draft')]}</Pill>
+                </div>
+
+                {manage && (
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-cream-border pt-3">
+                    {b.kind === 'variation' && b.state === 'draft' && (
+                      <form action={agreeVariation} className="flex flex-wrap items-end gap-2">
+                        <input type="hidden" name="id" value={b.id} />
+                        <input name="agreedBy" required placeholder="Who agreed it, on site" className="input py-1.5 text-sm" />
+                        <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">They agreed it</SubmitButton>
+                      </form>
+                    )}
+                    {send.ok && (
+                      <form action={sendBill}>
+                        <input type="hidden" name="id" value={b.id} />
+                        <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Send it</SubmitButton>
+                      </form>
+                    )}
+                    {c.due !== null && (
+                      <form action={sendReminder}>
+                        <input type="hidden" name="id" value={b.id} />
+                        <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Send the {c.due}-day reminder</SubmitButton>
+                      </form>
+                    )}
+                    {b.state === 'sent' && (
+                      <form action={markPaid}>
+                        <input type="hidden" name="id" value={b.id} />
+                        <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Paid</SubmitButton>
+                      </form>
+                    )}
+                    {b.retentionCents > 0 && !b.releasedAt && (
+                      <form action={releaseRetention}>
+                        <input type="hidden" name="id" value={b.id} />
+                        <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Release the retention</SubmitButton>
+                      </form>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+
+        {manage && jobs.length > 0 && (
+          <form action={raiseBill} className="mt-5 grid gap-2 border-t border-cream-border pt-5 sm:grid-cols-5">
+            <select name="kind" defaultValue="invoice" className="input">
+              {BILL_KINDS.map(k => <option key={k.key} value={k.key}>{k.label.replace(/s$/, '')}</option>)}
+            </select>
+            <select name="jobId" required defaultValue="" className="input">
+              <option value="" disabled>Which job</option>
+              {jobs.map(j => <option key={j.id} value={j.id}>{j.ref} · {j.title}</option>)}
+            </select>
+            <input name="what" required placeholder="What it is for" className="input" />
+            <input name="amount" required placeholder="Amount" className="input" />
+            <input name="retentionPct" placeholder="Retention % (claims)" className="input" />
+            <div className="sm:col-span-5">
+              <SubmitButton className="btn-secondary px-5 py-2">Raise it</SubmitButton>
+            </div>
+          </form>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/**
+ * Service & assets — maintenance agreements and tested items, on one register.
+ *
+ * Three empty headings became one list, because "next due" is the whole feature. The register is
+ * not the point; the date arriving before somebody notices is.
+ */
+function Recurring({ rows, manage, today }: {
+  rows: (typeof schema.recurringWork.$inferSelect)[];
+  manage: boolean;
+  today: string;
+}) {
+  const live = rows.filter(r => r.active);
+  const stats = recurStats(live, today);
+  const sorted = byDue(live, today);
+
+  return (
+    <div className="grid gap-6">
+      {RECUR_KINDS.map(k => {
+        const mine = sorted.filter(r => r.kind === k.key);
+        return (
+          <section key={k.key} className="card">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-serif text-xl text-ink">{k.label}</h2>
+              <p className="text-sm text-ink-light">{recurLine(recurStats(mine, today))}</p>
+            </div>
+            <p className="mt-1 max-w-3xl text-sm text-ink-light">{k.blurb}</p>
+
+            {mine.length === 0 && (
+              <p className="mt-4 text-sm text-ink-light">Nothing on the register yet.</p>
+            )}
+
+            <ul className="mt-4 grid gap-2">
+              {mine.map(r => {
+                const state = dueStateOf(r, today);
+                const light: Light = state === 'failed' || state === 'overdue' ? 'red'
+                  : state === 'due_soon' || state === 'never_done' ? 'amber' : 'green';
+                return (
+                  <li key={r.id} className="rounded-2xl bg-cream px-4 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-ink">
+                          {r.title}{r.forWhom && <span className="text-ink-light"> · {r.forWhom}</span>}
+                        </p>
+                        <p className="text-sm text-ink-light">
+                          {dueLine(r, today)} Every {r.everyMonths} months.
+                          {r.bookedJobId ? ' Job raised.' : ''}
+                        </p>
+                      </div>
+                      <Pill light={light}>{DUE_LABEL[state]}</Pill>
+                    </div>
+
+                    {manage && (
+                      <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-cream-border pt-3">
+                        {needsBooking(r, today) && (
+                          <form action={bookRecurring}>
+                            <input type="hidden" name="id" value={r.id} />
+                            <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Raise the job</SubmitButton>
+                          </form>
+                        )}
+                        <form action={recordDone} className="flex flex-wrap items-end gap-2">
+                          <input type="hidden" name="id" value={r.id} />
+                          <input type="date" name="doneAt" defaultValue={today} className="input py-1.5 text-sm" aria-label="Done on" />
+                          {r.kind === 'asset' && (
+                            <select name="result" defaultValue="pass" className="input py-1.5 text-sm" aria-label="Result">
+                              <option value="pass">Passed</option>
+                              <option value="fail">Failed</option>
+                            </select>
+                          )}
+                          <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Done</SubmitButton>
+                        </form>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+            {manage && (
+              <form action={addRecurring} className="mt-5 grid gap-2 border-t border-cream-border pt-5 sm:grid-cols-5">
+                <input type="hidden" name="kind" value={k.key} />
+                <input name="title" required placeholder={k.key === 'asset' ? 'What the item is' : 'What the agreement covers'} className="input sm:col-span-2" />
+                <input name="forWhom" placeholder={k.key === 'asset' ? 'Where it lives' : 'Which client'} className="input" />
+                <label className="text-xs text-ink-light">
+                  Every (months)
+                  <input name="everyMonths" defaultValue={12} className="input mt-1 w-full py-1.5 text-sm" />
+                </label>
+                <label className="text-xs text-ink-light">
+                  Last done
+                  <input type="date" name="lastDoneAt" className="input mt-1 w-full py-1.5 text-sm" />
+                </label>
+                <div className="sm:col-span-5">
+                  <SubmitButton className="btn-secondary px-5 py-2">Add it</SubmitButton>
+                </div>
+              </form>
+            )}
+          </section>
+        );
+      })}
+      <p className="text-sm text-ink-light">
+        Total across both: {stats.overdue} overdue, {stats.failed} failed, {stats.toBook} to book.
+      </p>
     </div>
   );
 }

@@ -8,6 +8,8 @@ import { requireManager } from '@/lib/guard';
 import { assertWritable } from '@/lib/plan';
 import { crewFor, createJob } from '@/lib/jobs-data';
 import { nextOrderRef, match } from '@/lib/purchasing';
+import { isBillKind, claimMaths, maySend, DEFAULT_RETENTION } from '@/lib/billing-job';
+import { isRecurKind, nextDue } from '@/lib/recurring';
 import {
   parseEnquiry, nextRef, nextStage, lineFrom, priceQuote, MARKUPS, DEFAULT_MARKUP,
   toCents, minutesBetween, bookingRefusal, workWeek, parseComponents, parsePriceFile,
@@ -561,4 +563,209 @@ export async function orderArrived(formData: FormData) {
     .where(eq(schema.purchaseOrders.id, id));
   revalidatePath('/jobs');
   back('stock');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * Money against a job: variations, progress claims, invoices
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/** Raise a variation, a claim or an invoice against a job. */
+export async function raiseBill(formData: FormData) {
+  const user = await writer();
+  const kind = str(formData, 'kind', 20);
+  const jobId = str(formData, 'jobId', 64);
+  const what = str(formData, 'what', 300);
+  if (!isBillKind(kind) || !what) back('billing', {}, 'Say what it is for.');
+
+  const job = await ownJob(user.tenantId, jobId);
+  if (!job) back('billing', {}, 'That job is not in this business.');
+
+  const amount = cents(formData, 'amount');
+  if (amount <= 0) back('billing', {}, 'It needs an amount.');
+
+  /*
+    Retention only applies to a progress claim, and only when the business says so. A default is
+    offered on the form; nothing is held back silently.
+  */
+  const pct = Number(String(formData.get('retentionPct') ?? '').replace(/[^0-9.]/g, ''));
+  const maths = kind === 'claim'
+    ? claimMaths(amount, Number.isFinite(pct) && pct > 0 ? pct / 100 : DEFAULT_RETENTION)
+    : { grossCents: amount, retentionCents: 0, netCents: amount };
+
+  const stamp = now();
+  await db.insert(schema.jobBills).values({
+    id: randomUUID(), tenantId: user.tenantId, jobId, kind, what,
+    amountCents: maths.grossCents, retentionCents: maths.retentionCents,
+    state: 'draft', createdAt: stamp, updatedAt: stamp,
+  });
+  revalidatePath('/jobs');
+  back('billing');
+}
+
+/**
+ * Record that the customer agreed the extra work, on site, before it was done.
+ *
+ * This is the row that stops a write-off. Extra work done on a nod and invoiced afterwards is the
+ * single most common way a job loses money, and a name and a date against it is what settles the
+ * argument three months later.
+ */
+export async function agreeVariation(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'id', 64);
+  const who = str(formData, 'agreedBy', 120);
+  if (!who) back('billing', {}, 'Who agreed it? A variation with no name against it is a variation that gets disputed.');
+
+  const [bill] = await db.select().from(schema.jobBills)
+    .where(and(eq(schema.jobBills.id, id), eq(schema.jobBills.tenantId, user.tenantId)));
+  if (!bill) back('billing', {}, 'That is not in this business.');
+
+  await db.update(schema.jobBills)
+    .set({ state: 'agreed', agreedBy: who, agreedAt: now(), updatedAt: now() })
+    .where(eq(schema.jobBills.id, id));
+  revalidatePath('/jobs');
+  back('billing');
+}
+
+/** Send it. `maySend` refuses an unagreed variation — the one rule that saves real money. */
+export async function sendBill(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'id', 64);
+  const [bill] = await db.select().from(schema.jobBills)
+    .where(and(eq(schema.jobBills.id, id), eq(schema.jobBills.tenantId, user.tenantId)));
+  if (!bill) back('billing', {}, 'That is not in this business.');
+
+  const verdict = maySend(bill);
+  if (!verdict.ok) back('billing', {}, verdict.why);
+
+  await db.update(schema.jobBills)
+    .set({ state: 'sent', sentAt: now(), updatedAt: now() })
+    .where(eq(schema.jobBills.id, id));
+  revalidatePath('/jobs');
+  back('billing');
+}
+
+/** Record the reminder as sent, so the same one never goes twice. */
+export async function sendReminder(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'id', 64);
+  const [bill] = await db.select().from(schema.jobBills)
+    .where(and(eq(schema.jobBills.id, id), eq(schema.jobBills.tenantId, user.tenantId)));
+  if (!bill) return;
+
+  await db.update(schema.jobBills)
+    .set({ remindersSent: bill.remindersSent + 1, lastReminderAt: now(), updatedAt: now() })
+    .where(eq(schema.jobBills.id, id));
+  revalidatePath('/jobs');
+  back('billing');
+}
+
+/** Paid. */
+export async function markPaid(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'id', 64);
+  const [bill] = await db.select({ id: schema.jobBills.id }).from(schema.jobBills)
+    .where(and(eq(schema.jobBills.id, id), eq(schema.jobBills.tenantId, user.tenantId)));
+  if (!bill) return;
+  await db.update(schema.jobBills)
+    .set({ state: 'paid', paidAt: now(), updatedAt: now() })
+    .where(eq(schema.jobBills.id, id));
+  revalidatePath('/jobs');
+  back('billing');
+}
+
+/** Release the retention held on a claim — the money businesses forget to collect. */
+export async function releaseRetention(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'id', 64);
+  const [bill] = await db.select({ id: schema.jobBills.id }).from(schema.jobBills)
+    .where(and(eq(schema.jobBills.id, id), eq(schema.jobBills.tenantId, user.tenantId)));
+  if (!bill) return;
+  await db.update(schema.jobBills)
+    .set({ releasedAt: now(), updatedAt: now() })
+    .where(eq(schema.jobBills.id, id));
+  revalidatePath('/jobs');
+  back('billing');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * Work that comes round again: service contracts and tested items
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/** Put something on the recurring register — a maintenance agreement, or an item to be tested. */
+export async function addRecurring(formData: FormData) {
+  const user = await writer();
+  const kind = str(formData, 'kind', 20);
+  const title = str(formData, 'title', 160);
+  if (!isRecurKind(kind) || !title) back('service', {}, 'It needs a name.');
+
+  const everyMonths = Math.max(1, Math.round(Number(str(formData, 'everyMonths', 4)) || 12));
+  const lastDoneAt = str(formData, 'lastDoneAt', 10) || null;
+  const stamp = now();
+
+  await db.insert(schema.recurringWork).values({
+    id: randomUUID(), tenantId: user.tenantId, kind, title,
+    forWhom: str(formData, 'forWhom', 160) || null,
+    everyMonths, lastDoneAt,
+    nextDueAt: nextDue(lastDoneAt, everyMonths),
+    createdAt: stamp, updatedAt: stamp,
+  });
+  revalidatePath('/jobs');
+  back('service');
+}
+
+/**
+ * Record that it was done, and work out when it comes round again.
+ *
+ * The next date is computed here rather than asked for: a person typing a date twelve months out is
+ * a person who will eventually type the wrong one, and the interval is already known.
+ */
+export async function recordDone(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'id', 64);
+  const [row] = await db.select().from(schema.recurringWork)
+    .where(and(eq(schema.recurringWork.id, id), eq(schema.recurringWork.tenantId, user.tenantId)));
+  if (!row) return;
+
+  const doneAt = str(formData, 'doneAt', 10) || now().slice(0, 10);
+  const result = str(formData, 'result', 10);
+
+  await db.update(schema.recurringWork).set({
+    lastDoneAt: doneAt,
+    nextDueAt: nextDue(doneAt, row.everyMonths),
+    result: result === 'pass' || result === 'fail' ? result : null,
+    // Doing it clears the booking: the job it was raised for is finished.
+    bookedJobId: null,
+    updatedAt: now(),
+  }).where(eq(schema.recurringWork.id, id));
+  revalidatePath('/jobs');
+  back('service');
+}
+
+/**
+ * Raise the job for it — the whole of "books itself".
+ *
+ * A register that only lists what is due leaves the last step to somebody remembering, which is the
+ * step that gets missed. This puts it on the Jobs board where the rest of the week already is.
+ */
+export async function bookRecurring(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'id', 64);
+  const [row] = await db.select().from(schema.recurringWork)
+    .where(and(eq(schema.recurringWork.id, id), eq(schema.recurringWork.tenantId, user.tenantId)));
+  if (!row) return;
+
+  const job = await createJob({
+    tenantId: user.tenantId,
+    stage: 'won',
+    client: row.forWhom ?? 'Service contract',
+    title: row.result === 'fail' ? `${row.title} — failed test, make safe` : row.title,
+    site: row.forWhom ?? '',
+    createdBy: user.id,
+  });
+
+  await db.update(schema.recurringWork)
+    .set({ bookedJobId: job.id, updatedAt: now() })
+    .where(eq(schema.recurringWork.id, id));
+  revalidatePath('/jobs');
+  back('service');
 }

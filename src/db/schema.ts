@@ -1865,3 +1865,81 @@ export const payRuns = pgTable('pay_runs', {
   index('pay_runs_tenant').on(t.tenantId),
   uniqueIndex('pay_runs_week').on(t.tenantId, t.fromDate),
 ]).enableRLS();
+
+/**
+ * Money against a job — a variation, a progress claim, or an invoice.
+ *
+ * ── One table, three capabilities ────────────────────────────────────────────────────────────────
+ *
+ * SimPro has a screen for variations, one for progress claims, one for retention and one for
+ * invoicing. They are four views of one fact: a sum attached to this job that somebody owes or will
+ * owe. What genuinely differs is when it is raised and what must happen before it can be sent, and
+ * those are rules — they live in lib/billing-job, not in four sets of columns.
+ */
+export const jobBills = pgTable('job_bills', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  jobId: text('job_id').notNull(),
+  /** variation | claim | invoice — see BILL_KINDS in lib/billing-job. */
+  kind: text('kind').notNull(),
+  what: text('what').notNull(),
+  amountCents: integer('amount_cents').notNull().default(0),
+  /**
+   * Held back from a progress claim, and genuinely the business's money. Released later by somebody
+   * remembering — which is exactly why it is a column rather than a sum in somebody's head.
+   */
+  retentionCents: integer('retention_cents').notNull().default(0),
+  releasedAt: text('released_at'),
+  /** draft | agreed | sent | paid | declined. A variation may not be sent until it is agreed. */
+  state: text('state').notNull().default('draft'),
+  /** Who agreed the extra work, on site, before it was done. The thing that stops a write-off. */
+  agreedBy: text('agreed_by'),
+  agreedAt: text('agreed_at'),
+  sentAt: text('sent_at'),
+  paidAt: text('paid_at'),
+  /** How many of the 7, 14 and 30-day reminders have gone, so the same one never goes twice. */
+  remindersSent: integer('reminders_sent').notNull().default(0),
+  lastReminderAt: text('last_reminder_at'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  index('job_bills_tenant').on(t.tenantId),
+  index('job_bills_job').on(t.tenantId, t.jobId),
+]).enableRLS();
+
+/**
+ * Something that comes round again — a service contract, or a tested item.
+ *
+ * ── One table, because "next due" is the whole feature ───────────────────────────────────────────
+ *
+ * A maintenance agreement and a tagged appliance look like different things and behave like one:
+ * each has an interval, a last-done date, and a next-due date that nobody works out until it is
+ * late. The design asks for contracts "that book themselves" and for every tested item "with
+ * result, photo and next due date" — both are the same sentence, which is why splitting them would
+ * make two screens out of one question.
+ */
+export const recurringWork = pgTable('recurring_work', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** contract | asset — see RECUR_KINDS in lib/recurring. */
+  kind: text('kind').notNull(),
+  title: text('title').notNull(),
+  /** The client, or where the item lives. */
+  forWhom: text('for_whom'),
+  /** How often it comes round, in months. Test and tag is usually 12; a service contract varies. */
+  everyMonths: integer('every_months').notNull().default(12),
+  lastDoneAt: text('last_done_at'),
+  /** Worked out from the interval when it was last done — stored so a query can sort on it. */
+  nextDueAt: text('next_due_at'),
+  /** pass | fail for an item that was tested. Null for a contract. */
+  result: text('result'),
+  /** The job SPEC raised for it, so "books itself" means something. */
+  bookedJobId: text('booked_job_id'),
+  note: text('note'),
+  active: boolean('active').notNull().default(true),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  index('recurring_work_tenant').on(t.tenantId),
+  index('recurring_work_due').on(t.tenantId, t.nextDueAt),
+]).enableRLS();

@@ -168,6 +168,10 @@ begin
     -- A person's contract, a conduct process and a pay run. The most sensitive rows in the product
     -- after the wellbeing register: what somebody is paid, and what was said about their conduct.
     'people_records', 'pay_runs',
+    -- What a job has billed, what is held in retention and what is still owed.
+    'job_bills',
+    -- Service contracts and tested items: what is due, and what failed its last test.
+    'recurring_work',
     -- Safety, added 23 September. Each carries its own tenant_id: an injury, a claim and an
     -- anonymous wellbeing report are the last rows in SPEC that should ever depend on a join to
     -- stay inside their own business.
