@@ -294,9 +294,14 @@ begin
 end $$;
 
 -- ───────────────────────────────────────────────────────────────────────────────────────────────
--- Growth (24 September): the business's own streams of work, the chases that have gone out on a
--- quote, and shutdown windows. Kris: "jbi has 4 streams - industrial, commercial, renewables and
--- mining - both maintenance and project work including shutdowns".
+-- Growth (24 September): the business's own sectors, the chases that have gone out on a quote, and
+-- shutdown windows. Kris: "jbi has 4 streams - industrial, commercial, renewables and mining -
+-- both maintenance and project work including shutdowns", and the next morning, settling the word:
+-- "streams commercial, operations and growth - sectors industrial, commercial, mining and
+-- renewables but this is jbi".
+--
+-- (The first of these was called work_streams for a day. The table was renamed before any business
+-- had one.)
 --
 -- These three went in and were NOT added here, and the deploy reported "69 tables carry the tenant
 -- policy" exactly as it had before — the same number, for a schema that had grown by three. That
@@ -307,7 +312,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['work_streams', 'quote_chases', 'shutdowns']
+  foreach t in array array['sectors', 'quote_chases', 'shutdowns']
   loop
     continue when to_regclass(t) is null;
     execute format('alter table %I enable row level security', t);

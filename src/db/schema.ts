@@ -1470,14 +1470,14 @@ export const jobs = pgTable('jobs', {
    */
   source: text('source'),
   /**
-   * Which stream of work this belongs to — the business's own, from `work_streams`.
+   * Which sector this work came from — the business's own, from `sectors`.
    *
-   * Null on every job until a business sets its streams up, and null forever for a business that
-   * only runs one. A single-stream business must never be made to tag anything.
+   * Null on every job until a business sets its sectors up, and null forever for a business that
+   * only works in one. A single-sector business must never be made to tag anything.
    */
-  streamId: text('stream_id'),
+  sectorId: text('sector_id'),
   /**
-   * maintenance | project | shutdown — see WORK_KINDS in lib/work-streams.
+   * maintenance | project | shutdown — see WORK_KINDS in lib/sectors.
    *
    * The one field that answers how much of next year is already there without anybody selling
    * anything, which is what Kris's "steadily" actually means.
@@ -2315,19 +2315,21 @@ export const apprenticeClaims = pgTable('apprentice_claims', {
 }, t => [index('apprentice_claims_tenant').on(t.tenantId)]).enableRLS();
 
 /**
- * The streams of work a business runs in — its own markets, in its own words.
+ * The sectors a business works in — its own markets, in its own words.
  *
- * Kris, 24 September: *"jbi has 4 streams - industrial, commercial, renewables and mining"*.
+ * Kris, 24 September: *"jbi has 4 streams - industrial, commercial, renewables and mining"*, and
+ * the next morning, settling the word: *"streams commercial, operations and growth - sectors
+ * industrial, commercial, mining and renewables but this is jbi"*.
  *
  * A row per business, never a fixed list. Nobody outside JBI knows JBI has four, and a business
- * shown streams it did not choose keeps them — at which point SPEC has quietly decided what markets
- * somebody works in. `lib/work-streams` holds JBI's as an example for an empty screen and applies
+ * shown sectors it did not choose keeps them — at which point SPEC has quietly decided what markets
+ * somebody works in. `lib/sectors` holds JBI's as an example for an empty screen and applies
  * nothing.
  *
- * Switched off rather than deleted, because a stream a business has left still has years of jobs
+ * Switched off rather than deleted, because a sector a business has left still has years of jobs
  * hanging off it and those jobs have to keep reading correctly.
  */
-export const workStreams = pgTable('work_streams', {
+export const sectors = pgTable('sectors', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull(),
   name: text('name').notNull(),
@@ -2335,7 +2337,7 @@ export const workStreams = pgTable('work_streams', {
   /** What the business wants to see on this stream. Ordering is theirs, not alphabetical. */
   position: integer('position').notNull().default(0),
   createdAt: text('created_at').notNull(),
-}, t => [index('work_streams_tenant').on(t.tenantId)]).enableRLS();
+}, t => [index('sectors_tenant').on(t.tenantId)]).enableRLS();
 
 /**
  * Each chase that has gone out on a quote, so the same one never goes twice.
@@ -2377,7 +2379,7 @@ export const shutdowns = pgTable('shutdowns', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull(),
   title: text('title').notNull(),
-  streamId: text('stream_id'),
+  sectorId: text('sector_id'),
   client: text('client'),
   startsAt: text('starts_at').notNull(),
   endsAt: text('ends_at').notNull(),

@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
  * THEIR tables appear in it. Between them they covered most of the schema and nothing covered the
  * gap: a new table nobody wrote a test for.
  *
- * On 24 September three went in — work_streams, quote_chases, shutdowns — and the deploy printed
+ * On 24 September three went in — sectors (then called work_streams), quote_chases, shutdowns — and the deploy printed
  * "69 tables carry the tenant policy", the same number it had printed before, for a schema that had
  * just grown by three. Nothing failed. The number did not even move, because it counts the tables
  * the file names rather than the tables that exist.

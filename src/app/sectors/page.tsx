@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Footer } from '@/components/ui';
 import { PublicNav } from '@/components/public-nav';
-import { SECTORS, sectorByKey, QUESTIONS } from '@/lib/sectors';
+import { INDUSTRIES, industryByKey, QUESTIONS } from '@/lib/industries';
 import { PILLARS } from '@/lib/scoring';
 import { PILLAR_META, BRAND_COLOUR } from '@/lib/pillars';
 import { CHARTER } from '@/lib/charter';
@@ -18,7 +18,7 @@ export const metadata = { title: 'SPEC — by sector' };
  */
 export default async function Sectors({ searchParams }: { searchParams: Promise<{ s?: string }> }) {
   const { s } = await searchParams;
-  const sector = sectorByKey(s);
+  const sector = industryByKey(s);
 
   return (
     <div className="min-h-screen">
@@ -35,7 +35,7 @@ export default async function Sectors({ searchParams }: { searchParams: Promise<
         </p>
 
         <div className="mt-8 flex flex-wrap gap-2">
-          {SECTORS.map(x => (
+          {INDUSTRIES.map(x => (
             <Link
               key={x.key}
               href={`/sectors?s=${x.key}`}
