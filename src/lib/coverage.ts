@@ -97,56 +97,91 @@ export interface Capability {
   connect: ConnectCategory;
   /** Where SPEC's own version of it lives, when it has a screen of its own. */
   href?: string;
+  /**
+   * Whether SPEC has actually BUILT it — which is a different question from whether the business
+   * has chosen to run it here.
+   *
+   * ── Why this had to be added ───────────────────────────────────────────────────────────────────
+   *
+   * `totalsOf` counted "running in SPEC" as *38 minus whatever you switched to your own system*. On
+   * a business with nothing connected, this screen therefore said **"Running in SPEC: 38 — nothing
+   * else to buy for these"** — including purchase orders, progress claims and pre-builds, none of
+   * which exist. The screen could not tell the difference between a capability SPEC runs and one
+   * nobody has written yet, so it claimed all of them.
+   *
+   * That is a claim on a screen a customer reads, and it would have been a claim in front of
+   * investors. So each of the 38 now says which it is, and `evidence` has to name the thing that
+   * makes it true.
+   *
+   * It is deliberately CONSERVATIVE. Where the honest answer is arguable, the answer is `partly`:
+   * understating what is built costs a sentence of explanation, and overstating it costs the room.
+   */
+  built: Built;
+  /** What makes the claim true — a route, a tab, a journey. Required for anything not `no`. */
+  evidence?: string;
 }
 
-const C = (area: AreaKey, key: string, name: string, what: string, connect: ConnectCategory | null = null, href?: string): Capability =>
-  ({ key, area, name, what, connect: connect ?? AREA_CATEGORY[area], ...(href ? { href } : {}) });
+/** `yes` = you can do the whole job here. `partly` = some of it. `no` = designed, not written. */
+export type Built = 'yes' | 'partly' | 'no';
+
+export const BUILT_LABEL: Record<Built, string> = {
+  yes: 'In SPEC now',
+  partly: 'Part of it',
+  no: 'Not built yet',
+};
+
+const C = (
+  area: AreaKey, key: string, name: string, what: string,
+  built: Built, evidence: string,
+  connect: ConnectCategory | null = null, href?: string,
+): Capability =>
+  ({ key, area, name, what, built, evidence, connect: connect ?? AREA_CATEGORY[area], ...(href ? { href } : {}) });
 
 /** The 38, in the design's order. */
 export const CAPABILITIES: Capability[] = [
   // Jobs, quoting and money — 17
-  C('jobs', 'leads', 'Enquiries & leads', 'Calls, emails and web forms on one list, with who’s following up.', 'job_management'),
-  C('jobs', 'quotes', 'Quoting', 'Build from the catalogue, kits and labour rates. Markup, margin and GST worked out as you go. Client accepts online.', 'job_management'),
-  C('jobs', 'jobs', 'Jobs & projects', 'Service jobs and big projects, split into stages, with budget against actual on every one.', 'job_management'),
-  C('jobs', 'schedule', 'Scheduling & dispatch', 'Drag crews onto days. Anyone not clear to work can’t be booked. Crews see it on their phone.', 'job_management'),
-  C('jobs', 'mobile', 'Field app', 'Job card, SWMS, photos, materials used and client sign-off on the phone.', 'job_management'),
-  C('jobs', 'time', 'Timesheets & labour', 'Hours from Start and Finish on the phone, costed to the job, billable % to the KPI board.', 'job_management'),
-  C('jobs', 'catalogue', 'Catalogue & supplier prices', 'The items you actually use, with supplier price files loaded automatically.', 'job_management'),
-  C('jobs', 'kits', 'Kits & pre-builds', 'Bundles of items and labour you quote in one line.', 'job_management'),
-  C('jobs', 'costing', 'Job costing & margin', 'Labour, materials and variations landing on the job live, with a warning when the margin slips.', 'job_management'),
-  C('jobs', 'stock', 'Stock, vans & warehouse', 'Van stock, yard stock, stock-takes and reorder lists built from the schedule.', 'job_management'),
-  C('jobs', 'po', 'Purchase orders & supplier bills', 'Order from the job, match the supplier invoice, flag price differences.', 'job_management'),
-  C('jobs', 'variations', 'Variations', 'Extra work priced and signed on site before it’s done.', 'job_management'),
-  C('jobs', 'claims', 'Progress claims & retention', 'Claim by stage or percentage, with retention held and released on time.', 'job_management'),
-  C('jobs', 'invoicing', 'Invoicing & debtors', 'Invoice on sign-off, sent to your accounting system, with reminders at 7, 14 and 30 days.', 'job_management'),
-  C('jobs', 'service', 'Service contracts & recurring work', 'Maintenance agreements that book themselves.', 'job_management'),
-  C('jobs', 'assets', 'Test & tag, client assets', 'Every tested item with result, photo and next due date.', 'job_management'),
-  C('jobs', 'customers', 'Customers & sites', 'Every client, site, contact and job history in one place.', 'crm', '/clients'),
+  C('jobs', 'leads', 'Enquiries & leads', 'Calls, emails and web forms on one list, with who’s following up.', 'partly', 'Enquiry is the first stage of the Jobs board and a new enquiry can be typed in. No Leads tab: no sources, no speed-to-quote, no chasing.', 'job_management'),
+  C('jobs', 'quotes', 'Quoting', 'Build from the catalogue, kits and labour rates. Markup, margin and GST worked out as you go. Client accepts online.', 'yes', '/jobs?tab=quotes — built from the catalogue, with margin against the benchmark.', 'job_management'),
+  C('jobs', 'jobs', 'Jobs & projects', 'Service jobs and big projects, split into stages, with budget against actual on every one.', 'yes', '/jobs — the board from enquiry to paid, with budget against actual.', 'job_management'),
+  C('jobs', 'schedule', 'Scheduling & dispatch', 'Drag crews onto days. Anyone not clear to work can’t be booked. Crews see it on their phone.', 'yes', '/jobs?tab=schedule — crew by day, and nobody who is not clear to work can be booked.', 'job_management'),
+  C('jobs', 'mobile', 'Field app', 'Job card, SWMS, photos, materials used and client sign-off on the phone.', 'partly', '/tech-day shows today’s jobs and Start and Finish. SWMS, photos, materials and client sign-off are not on it.', 'job_management'),
+  C('jobs', 'time', 'Timesheets & labour', 'Hours from Start and Finish on the phone, costed to the job, billable % to the KPI board.', 'yes', '/jobs?tab=time — hours from the phone, costed to the job.', 'job_management'),
+  C('jobs', 'catalogue', 'Catalogue & supplier prices', 'The items you actually use, with supplier price files loaded automatically.', 'partly', '/jobs?tab=catalogue holds the item list. Supplier price files are not loaded automatically.', 'job_management'),
+  C('jobs', 'kits', 'Kits & pre-builds', 'Bundles of items and labour you quote in one line.', 'no', 'Designed as Pre-builds — items, hours and a van pick list quoted in one line. Nothing written yet.', 'job_management'),
+  C('jobs', 'costing', 'Job costing & margin', 'Labour, materials and variations landing on the job live, with a warning when the margin slips.', 'partly', 'Margin shows on the job. There is no warning when it slips.', 'job_management'),
+  C('jobs', 'stock', 'Stock, vans & warehouse', 'Van stock, yard stock, stock-takes and reorder lists built from the schedule.', 'partly', '/jobs?tab=stock holds van and yard stock. No stock-take and no reorder list.', 'job_management'),
+  C('jobs', 'po', 'Purchase orders & supplier bills', 'Order from the job, match the supplier invoice, flag price differences.', 'no', 'Ordering, supplier-bill matching and price-rise flagging. Nothing written yet.', 'job_management'),
+  C('jobs', 'variations', 'Variations', 'Extra work priced and signed on site before it’s done.', 'partly', 'A variation can be recorded against a job. It is not priced and signed on site.', 'job_management'),
+  C('jobs', 'claims', 'Progress claims & retention', 'Claim by stage or percentage, with retention held and released on time.', 'no', 'Claiming by stage, and retention held and released. Nothing written yet.', 'job_management'),
+  C('jobs', 'invoicing', 'Invoicing & debtors', 'Invoice on sign-off, sent to your accounting system, with reminders at 7, 14 and 30 days.', 'partly', '/jobs?tab=billing invoices and sends to the accounting system. No reminders at 7, 14 and 30 days.', 'job_management'),
+  C('jobs', 'service', 'Service contracts & recurring work', 'Maintenance agreements that book themselves.', 'partly', '/jobs?tab=service holds the contracts. They do not book themselves yet.', 'job_management'),
+  C('jobs', 'assets', 'Test & tag, client assets', 'Every tested item with result, photo and next due date.', 'partly', 'Tested items are recorded under Service & assets. Next-due does not schedule itself.', 'job_management'),
+  C('jobs', 'customers', 'Customers & sites', 'Every client, site, contact and job history in one place.', 'yes', '/clients and /crm — every client, site, contact and job history.', 'crm', '/clients'),
 
   // People and HR — 10
-  C('hr', 'recruit', 'Recruitment', 'Vacancies from empty seats on the org chart, scored against the KPIs the person will hold.'),
-  C('hr', 'records', 'Employee records & documents', 'Everyone’s details, licences and documents against their role.'),
-  C('hr', 'contracts', 'Contracts & onboarding', 'Contracts built from the role, signed online, with a first-week plan.'),
-  C('hr', 'leave', 'Leave requests & balances', 'Request on the phone, approve in one tap, balances always current.'),
-  C('hr', 'reviews', 'Performance reviews', 'The last three months of the KPI board, plus one conversation.'),
-  C('hr', 'training', 'Training records', 'Every module finished, due or overdue, from SPEC Training.'),
-  C('hr', 'conduct', 'Warnings & fair process', 'A fair process one step at a time, so no step is missed.'),
-  C('hr', 'award', 'Award & pay rules', 'Every person checked against their award level, rates and allowances each pay run.'),
-  C('hr', 'payroll', 'Payroll export', 'Hours and leave sent to your accounting system’s payroll in one step.', 'financials'),
-  C('hr', 'exits', 'Exits & exit reasons', 'Right-reason and wrong-reason exits, feeding negative turnover.'),
+  C('hr', 'recruit', 'Recruitment', 'Vacancies from empty seats on the org chart, scored against the KPIs the person will hold.', 'yes', '/people — vacancies come from empty seats on the chart, candidates scored against the four pillars.'),
+  C('hr', 'records', 'Employee records & documents', 'Everyone’s details, licences and documents against their role.', 'yes', '/people — the staff list and documents, held against the role.'),
+  C('hr', 'contracts', 'Contracts & onboarding', 'Contracts built from the role, signed online, with a first-week plan.', 'partly', 'A contract is drafted from the role. It is not signed online.'),
+  C('hr', 'leave', 'Leave requests & balances', 'Request on the phone, approve in one tap, balances always current.', 'yes', '/people — requested, approved, and shown against who is available.'),
+  C('hr', 'reviews', 'Performance reviews', 'The last three months of the KPI board, plus one conversation.', 'yes', '/people — Reviews & conduct, built from the last three months of the KPI board.'),
+  C('hr', 'training', 'Training records', 'Every module finished, due or overdue, from SPEC Training.', 'yes', '/training — the path for each role and who has done it.'),
+  C('hr', 'conduct', 'Warnings & fair process', 'A fair process one step at a time, so no step is missed.', 'partly', 'The fair-process steps are on Reviews & conduct. No warning record is kept.'),
+  C('hr', 'award', 'Award & pay rules', 'Every person checked against their award level, rates and allowances each pay run.', 'partly', 'The award is named and checked on Pay & exits. It does not run against every pay run.'),
+  C('hr', 'payroll', 'Payroll export', 'Hours and leave sent to your accounting system’s payroll in one step.', 'partly', 'Hours export to the accounting system. Not a full payroll export.', 'financials'),
+  C('hr', 'exits', 'Exits & exit reasons', 'Right-reason and wrong-reason exits, feeding negative turnover.', 'yes', '/people — exits with right and wrong reasons, feeding negative turnover.'),
 
   // Safety — 11
-  C('safety', 'incidents', 'Incidents & injuries', 'From first aid up, tagged to the job, with what changed after.'),
-  C('safety', 'notifiable', 'Notifiable events', 'Flagged the moment a report looks notifiable to your regulator, with the steps to take.'),
-  C('safety', 'comp', 'Workers’ comp & return to work', 'Insurer told within 48 hours, suitable duties planned week by week.'),
-  C('safety', 'hazards', 'Hazards & near misses', 'Reported in one line, with an owner and a date to fix it.'),
-  C('safety', 'psych', 'Wellbeing & psychosocial', 'Raised privately or anonymously, seen only by the GM.'),
-  C('safety', 'actions', 'Corrective actions', 'Who fixes it by when. Overdue actions go to the weekly meeting.'),
-  C('safety', 'toolbox', 'Toolbox talks & sign-on', 'Crew signs on from the phone. Missing names show up on their own.'),
-  C('safety', 'swms', 'SWMS & JSA sign-off', 'Every crew member signs before high-risk work starts.'),
-  C('safety', 'inspections', 'Site inspections & audits', 'Every active site inspected monthly. Findings become actions.'),
-  C('safety', 'vehicles', 'Vehicle & plant checks', 'Weekly checks. A failed vehicle is pulled from the schedule.'),
-  C('safety', 'tickets', 'Licences & tickets', 'Warned 60 days before expiry. Not clear to work means can’t be booked.'),
+  C('safety', 'incidents', 'Incidents & injuries', 'From first aid up, tagged to the job, with what changed after.', 'yes', '/safety — every injury from first aid up, on one register.'),
+  C('safety', 'notifiable', 'Notifiable events', 'Flagged the moment a report looks notifiable to your regulator, with the steps to take.', 'yes', '/safety — flagged on the wording as a report is sent, with the regulator for the state the business works in.'),
+  C('safety', 'comp', 'Workers’ comp & return to work', 'Insurer told within 48 hours, suitable duties planned week by week.', 'yes', '/safety — claims and return to work, with the review date that gets missed.'),
+  C('safety', 'hazards', 'Hazards & near misses', 'Reported in one line, with an owner and a date to fix it.', 'yes', '/safety — hazards and near misses, each with an owner and a date.'),
+  C('safety', 'psych', 'Wellbeing & psychosocial', 'Raised privately or anonymously, seen only by the GM.', 'yes', '/safety — anonymous by default, and proved against the stored row by scripts/safety-journey.'),
+  C('safety', 'actions', 'Corrective actions', 'Who fixes it by when. Overdue actions go to the weekly meeting.', 'yes', '/safety — corrective actions raised against any report.'),
+  C('safety', 'toolbox', 'Toolbox talks & sign-on', 'Crew signs on from the phone. Missing names show up on their own.', 'yes', '/safety?tab=site — talks with who signed on.'),
+  C('safety', 'swms', 'SWMS & JSA sign-off', 'Every crew member signs before high-risk work starts.', 'yes', '/safety?tab=site — SWMS and JSA sign-off before high-risk work starts.'),
+  C('safety', 'inspections', 'Site inspections & audits', 'Every active site inspected monthly. Findings become actions.', 'yes', '/safety?tab=site — inspections booked, findings becoming corrective actions.'),
+  C('safety', 'vehicles', 'Vehicle & plant checks', 'Weekly checks. A failed vehicle is pulled from the schedule.', 'yes', '/safety?tab=site — vehicle and plant checks, with a fail pulling it off the schedule.'),
+  C('safety', 'tickets', 'Licences & tickets', 'Warned 60 days before expiry. Not clear to work means can’t be booked.', 'yes', '/people#clear-to-work, read again on /compliance. Not current means not bookable.'),
 ];
 
 export const capabilitiesIn = (area: AreaKey): Capability[] => CAPABILITIES.filter(c => c.area === area);
@@ -214,6 +249,10 @@ export interface Totals {
   total: number;
   inSpec: number;
   connected: number;
+  /** Of the ones running in SPEC, how many are fully built — see `Capability.built`. */
+  builtHere: number;
+  /** ...and how many are only partly there. Named, never folded into the number above. */
+  partlyHere: number;
   /** The business's own systems in use, by what they are. */
   systems: string[];
 }
@@ -221,12 +260,43 @@ export interface Totals {
 export function totalsOf(choices: Choices): Totals {
   const own = CAPABILITIES.filter(c => choices[c.key] === 'own');
   const systems = [...new Set(own.map(c => `your ${SYSTEM_NOUN[c.connect]}`))];
+  /*
+    Counted from what is BUILT, not from what is unconnected.
+
+    This used to read `inSpec: CAPABILITIES.length - own.length`, so a business that had connected
+    nothing was told SPEC runs all 38 — including purchase orders, progress claims and pre-builds,
+    none of which exist. The screen could not tell a capability SPEC runs from one nobody has
+    written, so it claimed every one of them.
+  */
+  const here = CAPABILITIES.filter(c => choices[c.key] !== 'own');
   return {
     total: CAPABILITIES.length,
-    inSpec: CAPABILITIES.length - own.length,
+    inSpec: here.length,
     connected: own.length,
+    builtHere: here.filter(c => c.built === 'yes').length,
+    partlyHere: here.filter(c => c.built === 'partly').length,
     systems,
   };
+}
+
+/** Every capability that is not finished, worst first — the list to be honest about. */
+export const unfinished = (): Capability[] =>
+  CAPABILITIES.filter(c => c.built !== 'yes')
+    .sort((a, b) => (a.built === 'no' ? 0 : 1) - (b.built === 'no' ? 0 : 1));
+
+/**
+ * The one sentence the Coverage screen leads on.
+ *
+ * It names the gap rather than burying it. A business reading "38 running in SPEC" and then finding
+ * no purchase orders has been misled by its own software, and an investor finding it in a demo has
+ * been misled by the person demonstrating.
+ */
+export function coverageLine(t: Totals): string {
+  const missing = t.inSpec - t.builtHere - t.partlyHere;
+  const bits = [`${t.builtHere} of ${t.total} are built and working`];
+  if (t.partlyHere) bits.push(`${t.partlyHere} are partly there`);
+  if (missing) bits.push(`${missing} are designed and not written yet`);
+  return `${bits.join(', ')}.`;
 }
 
 /** The note under "From connected systems". Says where it runs — never that anything arrives. */

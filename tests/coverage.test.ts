@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   AREAS, AREA_CATEGORY, CAPABILITIES, capabilitiesIn, CONNECTED_LABEL, SYSTEM_NOUN, defaultChoices, choose,
   chooseArea, areaRunner, effectiveChoices, rowsFor, totalsOf, connectedNote, connectionState, connectHref,
-  connectLabel, CONNECTION_WORDS, MODULE_TABS, ownLine, SLOT_CAPABILITY, sourceFor,
+  connectLabel, CONNECTION_WORDS, MODULE_TABS, ownLine, SLOT_CAPABILITY, sourceFor, coverageLine,
 } from '../src/lib/coverage';
 import { FRAMEWORK, sourceLine, withSources, powerReading } from '../src/lib/power-meter';
 import { CATEGORIES, COMMON_SYSTEMS } from '../src/lib/systems';
@@ -103,7 +104,11 @@ describe('the switch', () => {
 
   it('totals the way the design does, and never claims anything arrives', () => {
     const none = totalsOf(defaultChoices());
-    expect(none).toEqual({ total: 38, inSpec: 38, connected: 0, systems: [] });
+    expect(none).toEqual({
+      total: 38, inSpec: 38, connected: 0, systems: [],
+      // Counted separately since 24 September — "running here" and "built" are different claims.
+      builtHere: 22, partlyHere: 13,
+    });
     expect(connectedNote(none)).toBe('Nothing connected. SPEC runs it all');
     const some = totalsOf(choose(chooseArea(defaultChoices(), 'jobs', 'own'), 'customers', 'spec'));
     expect(some.connected).toBe(16);
@@ -241,5 +246,80 @@ describe('no vendor on any screen', () => {
   it('and the People page names none even in its notes', () => {
     for (const f of walk('src/app/people')) expect(readFileSync(f, 'utf8'), f).not.toMatch(VENDORS);
     expect(readFileSync('src/app/people/page.tsx', 'utf8')).toContain('Connect your HR system');
+  });
+});
+
+/*
+  ── What the map CLAIMS, against what is actually built ──────────────────────────────────────────
+
+  The most dangerous screen in the product, and it was wrong.
+
+  `totalsOf` counted "Running in SPEC" as *38 minus whatever the business had switched to its own
+  system*, under the words "Nothing else to buy for these". A business that had connected nothing
+  was therefore told SPEC runs all 38 — including purchase orders, progress claims and pre-builds,
+  none of which are written. The screen could not tell a capability SPEC runs from one nobody has
+  built, so it claimed every one of them.
+
+  Every test here passed while that was true, because they all checked that the LIST matched the
+  design. None of them asked whether the claim was true.
+*/
+describe('what the map claims is true', () => {
+  it('EVERY CAPABILITY SAYS WHETHER IT IS ACTUALLY BUILT', () => {
+    for (const c of CAPABILITIES) {
+      expect(['yes', 'partly', 'no'], c.key).toContain(c.built);
+      // Anything not finished has to say what is missing, or "partly" means nothing.
+      if (c.built !== 'yes') {
+        expect(c.evidence?.length ?? 0, `${c.key} must say what is missing`).toBeGreaterThan(20);
+      }
+    }
+  });
+
+  /*
+    A capability claimed as built has to name where it lives, and that route has to exist. This is
+    the check that would have caught the original fault: "Purchase orders & supplier bills" claimed
+    as running in SPEC, with no page anywhere behind it.
+  */
+  it('ANYTHING CLAIMED AS BUILT NAMES A ROUTE THAT EXISTS', () => {
+    const missing: string[] = [];
+    for (const c of CAPABILITIES.filter(x => x.built === 'yes')) {
+      const path = (c.evidence ?? '').match(/\/[a-z-]+(?=[?\s#.,]|$)/)?.[0];
+      expect(path, `${c.key} claims to be built but names no route`).toBeTruthy();
+      if (path && !existsSync(join(process.cwd(), 'src/app', path.replace(/^\//, ''), 'page.tsx'))) {
+        missing.push(`${c.key} → ${path}`);
+      }
+    }
+    expect(missing, 'claimed as built, with no page behind it').toEqual([]);
+  });
+
+  it('COUNTS WHAT IS BUILT, not what is merely unconnected', () => {
+    const t = totalsOf({});
+    expect(t.inSpec, 'nothing connected, so all 38 run here').toBe(38);
+    /*
+      ...and that is exactly why `inSpec` must never be the number on the tile. The honest counts
+      are these, and they add up to it.
+    */
+    expect(t.builtHere).toBeLessThan(t.inSpec);
+    expect(t.builtHere + t.partlyHere).toBeLessThanOrEqual(t.inSpec);
+  });
+
+  it('SAYS THE GAP OUT LOUD rather than burying it', () => {
+    const line = coverageLine(totalsOf({}));
+    expect(line).toMatch(/built and working/);
+    expect(line).toMatch(/partly there|not written/);
+  });
+
+  /*
+    The three that are not written at all. Named here so building one breaks this test and somebody
+    has to update the claim — and so a fourth cannot appear without being noticed.
+  */
+  it('KNOWS EXACTLY WHICH ARE NOT WRITTEN AT ALL', () => {
+    expect(CAPABILITIES.filter(c => c.built === 'no').map(c => c.key).sort())
+      .toEqual(['claims', 'kits', 'po']);
+  });
+
+  it('and the screen shows a capability’s own state on its own row', () => {
+    const map = readFileSync('src/app/coverage/coverage-map.tsx', 'utf8');
+    expect(map).toContain('BUILT_LABEL[c.built]');
+    expect(map, 'the old claim must be gone').not.toContain("note: 'Nothing else to buy for these'");
   });
 });

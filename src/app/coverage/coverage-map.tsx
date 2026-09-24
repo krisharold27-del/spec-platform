@@ -3,8 +3,10 @@ import {
   AREAS, AREA_CATEGORY, SYSTEM_NOUN, capabilitiesIn, CONNECTED_LABEL, CONNECTION_WORDS, areaRunner, totalsOf,
   connectedNote, connectionState, connectHref, connectLabel,
   type Choices, type ConnectCategory, type Runner,
+  BUILT_LABEL,
 } from '@/lib/coverage';
 import { chooseRunner } from './actions';
+import { LIGHT_INK } from '@/lib/today';
 
 /**
  * The map and its switches.
@@ -19,11 +21,28 @@ export function CoverageMap({ choices, connections, canChange }: {
   canChange: boolean;
 }) {
   const totals = totalsOf(choices);
+  /*
+    ── "Running in SPEC" used to mean "not connected to anything else" ────────────────────────────
+
+    The middle tile read `totals.inSpec` — 38 minus whatever the business had switched to its own
+    system — under the words "Nothing else to buy for these". So a business that had connected
+    nothing was told SPEC runs all 38, including purchase orders, progress claims and pre-builds,
+    none of which are written. The screen could not tell a capability SPEC runs from one nobody has
+    built, so it claimed every one of them.
+
+    It now counts what is BUILT, and the partly-built ones get a tile of their own rather than being
+    rounded up into the good number. See `Capability.built` in lib/coverage.
+  */
+  const notWritten = totals.inSpec - totals.builtHere - totals.partlyHere;
   const tiles = [
     { label: 'Things SPEC does', value: totals.total, note: 'Across jobs, HR and safety' },
-    { label: 'Running in SPEC', value: totals.inSpec, note: 'Nothing else to buy for these' },
+    { label: 'Built and working', value: totals.builtHere, note: 'You can do the whole job here' },
+    { label: 'Partly there', value: totals.partlyHere, note: 'Some of it, with the rest named' },
     { label: 'From connected systems', value: totals.connected, note: connectedNote(totals) },
   ];
+  if (notWritten > 0) {
+    tiles.push({ label: 'Not built yet', value: notWritten, note: 'Designed, and honest about it' });
+  }
 
   const pill = (on: boolean) =>
     `rounded-full px-3.5 py-1.5 text-[13px] font-semibold whitespace-nowrap transition-colors ${
@@ -109,6 +128,25 @@ export function CoverageMap({ choices, connections, canChange }: {
                           )}
                         </span>
                         <span className="text-[13px] leading-[19px] text-ink-light">{c.what}</span>
+                        {/*
+                          Said on the row, not only in the totals. A number at the top that nobody
+                          can trace to a row is a number nobody checks — and this is the screen a
+                          customer reads before deciding they do not need to buy something else.
+                        */}
+                        {!own && c.built !== 'yes' && (
+                          <span
+                            className="mt-1 text-[12.5px] leading-[18px]"
+                            /*
+                              Amber, never red — the same rule this screen already keeps for a
+                              capability the business runs elsewhere. Something SPEC has not built
+                              yet is not the business failing at anything, and colouring it red
+                              would read as a fault of theirs rather than a gap of ours.
+                            */
+                            style={{ color: LIGHT_INK.amber }}
+                          >
+                            <b>{BUILT_LABEL[c.built]}</b>{c.evidence ? ` — ${c.evidence}` : ''}
+                          </span>
+                        )}
                         {own && <span className="mt-0.5">{connection(c.connect)}</span>}
                       </span>
                       <span className="flex shrink-0 gap-1.5" role="group" aria-label={`Who runs ${c.name}`}>
