@@ -1483,6 +1483,15 @@ export const jobs = pgTable('jobs', {
    * anything, which is what Kris's "steadily" actually means.
    */
   workKind: text('work_kind'),
+  /**
+   * One person answerable for the whole job, however many crews are on it.
+   *
+   * Kris, 25 September: *"split scopes with one supervisor overall"*. Null on an ordinary
+   * single-crew job, where the one person on it is already the answer and asking would be ceremony.
+   * Required the moment a job has a second scope — see `needsSupervisor` in lib/crews.
+   */
+  supervisorKey: text('supervisor_key'),
+  supervisorName: text('supervisor_name'),
   /** When the quote actually went out. What speed-to-quote is measured from `createdAt` against. */
   quotedAt: text('quoted_at'),
   createdBy: text('created_by').notNull(),
@@ -2390,4 +2399,30 @@ export const shutdowns = pgTable('shutdowns', {
 }, t => [
   index('shutdowns_tenant').on(t.tenantId),
   index('shutdowns_window').on(t.tenantId, t.startsAt),
+]).enableRLS();
+
+/**
+ * A part of a job that a crew of its own does.
+ *
+ * Kris, 25 September: *"multi crew is common - split scopes with one supervisor overall"*.
+ *
+ * "Switchboard", "Lighting", "Final fix" — the business's own words for the parts it splits work
+ * into. A lead runs one; the SUPERVISOR on the job runs all of them, and those are deliberately two
+ * different fields in two different places, because a job where every scope has a lead and nothing
+ * has a supervisor is a job where nobody is answerable for the join.
+ */
+export const jobScopes = pgTable('job_scopes', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** No foreign key — house convention since the CRM block. */
+  jobId: text('job_id').notNull(),
+  name: text('name').notNull(),
+  /** Who runs this part. Not a supervisor — see lib/crews. */
+  leadKey: text('lead_key'),
+  leadName: text('lead_name'),
+  position: integer('position').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('job_scopes_tenant').on(t.tenantId),
+  index('job_scopes_job').on(t.tenantId, t.jobId),
 ]).enableRLS();

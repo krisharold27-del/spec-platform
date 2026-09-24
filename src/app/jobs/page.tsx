@@ -19,6 +19,7 @@ import { catalogueHealth, catalogueAlert, KEEP_IT_SHORT } from '@/lib/catalogue-
 import { wipRow, wipStats, wipLine, byWipAttention, wipMoney, WIP_LABEL } from '@/lib/wip';
 import { runForward, cashStats, cashAdvice, cashLine, cashLabel, DEFAULT_BUFFER_CENTS, type Week } from '@/lib/cashflow';
 import { seatOf, tabsFor, maySeeTab, stripMoney, insteadGoTo } from '@/lib/sight';
+import { crewWatch, crewLine, unheld, WHY_ONE_SUPERVISOR } from '@/lib/crews';
 import { seatFor } from '@/lib/seat-of';
 import { reworkStats, reworkLine, reworkMoney, pattern, CAUSES, causeLabel, recoverFrom, REWORK_TARGET, RETURNING_RULE, unpaidRework, carriedLine, carriedCents, RECOVERY_GOES_STALE_DAYS } from '@/lib/rework';
 import { reviewStats, reviewLine, needsReply, isComplaint, thankYou, mayAsk } from '@/lib/reviews';
@@ -39,7 +40,7 @@ import {
   addRecurring, recordDone, bookRecurring, setSource, markQuoted, setStock, orderTheShortfall, setKitPack,
   addTender,
   addTool,
-  logCallback, setReviewLink, askForReview, recordQuoteChase,
+  logCallback, setReviewLink, askForReview, recordQuoteChase, addScope, setSupervisor,
 } from './actions';
 
 import {
@@ -860,12 +861,61 @@ async function Schedule({ jobs, crew, week, book, manage, today, tenantId, tabHr
   const monday = days[0];
   const bookings = await db.select().from(schema.scheduleBookings)
     .where(and(eq(schema.scheduleBookings.tenantId, tenantId), inArray(schema.scheduleBookings.day, days)));
+  /*
+    ── Crews on a job ───────────────────────────────────────────────────────────────────────────
+
+    Kris, 25 September: "multi crew is common - split scopes with one supervisor overall". The
+    booking model already allowed several people on one job — its uniqueness rule is on person and
+    day, not job — so what is added here is the half that was missing: the parts a job is split
+    into, and the one name over all of them.
+  */
+  const scopeRows = await db.select().from(schema.jobScopes)
+    .where(eq(schema.jobScopes.tenantId, tenantId))
+    .orderBy(schema.jobScopes.position);
+  const scopes = scopeRows.map(r => ({
+    id: r.id, jobId: r.jobId, name: r.name, leadKey: r.leadKey, leadName: r.leadName,
+  }));
+  const supervised = jobs.map(j => ({
+    id: j.id, ref: j.ref, supervisorKey: j.supervisorKey ?? null, supervisorName: j.supervisorName ?? null,
+  }));
+  const noSupervisor = unheld(supervised, scopes);
+
   const waiting = jobs.filter(j => j.stage === 'won' || j.stage === 'scheduled');
   const target = waiting.find(j => j.id === book) ?? waiting.find(j => j.stage === 'won') ?? waiting[0] ?? null;
   const unbooked = jobs.filter(j => j.stage === 'won');
   const refOf = (id: string) => jobs.find(j => j.id === id)?.ref ?? 'A job';
 
+  const targetWatch = target ? crewWatch(
+    { id: target.id, ref: target.ref, supervisorKey: target.supervisorKey ?? null, supervisorName: target.supervisorName ?? null },
+    scopes,
+  ) : null;
+
   return (
+    <>
+    {noSupervisor.length > 0 && (
+      /*
+        Above the week, not below it. A job that has been split and never given anybody is a problem
+        that only shows itself on the day the scopes disagree — by which time the answer is whoever
+        happens to pick up the phone.
+      */
+      <section className="card mb-4" style={{ background: LIGHT_COLOUR.amber }}>
+        <h3 className="font-serif text-lg" style={{ color: LIGHT_INK.amber }}>
+          {noSupervisor.length} split {noSupervisor.length === 1 ? 'job has' : 'jobs have'} nobody over the whole of it
+        </h3>
+        <p className="mt-1 max-w-[74ch] text-[13.5px] leading-[20px]" style={{ color: LIGHT_INK.amber }}>
+          {WHY_ONE_SUPERVISOR}
+        </p>
+        <ul className="mt-3 grid gap-1.5">
+          {noSupervisor.map(w => (
+            <li key={w.job.id} className="text-[13px]" style={{ color: LIGHT_INK.amber }}>
+              <Link href={tabHref('schedule', { book: w.job.id })} className="underline">{w.job.ref}</Link>
+              {' — '}{w.scopes.map(sc => sc.name).join(', ')}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
     <section className="card overflow-x-auto">
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="font-serif text-xl text-ink">{weekLabel(monday)}</h2>
@@ -919,6 +969,57 @@ async function Schedule({ jobs, crew, week, book, manage, today, tenantId, tabHr
         </p>
       )}
     </section>
+
+    {target && targetWatch && manage && (
+      /*
+        Splitting the job, on the same screen as booking crew onto it — because splitting a job and
+        crewing it are one thought, and a business sent somewhere else to do the second half of one
+        thought does the first half and stops.
+      */
+      <section className="card mt-4">
+        <h3 className="font-serif text-lg text-ink">Crews on {target.ref}</h3>
+        <p className="mt-1 max-w-[74ch] text-sm text-ink-light">{crewLine(targetWatch)}</p>
+
+        {targetWatch.scopes.length > 0 && (
+          <ul className="mt-3 grid gap-1.5">
+            {targetWatch.scopes.map(sc => (
+              <li key={sc.id} className="flex flex-wrap items-baseline justify-between gap-2 rounded-2xl bg-cream px-4 py-2.5">
+                <span className="text-sm text-ink">{sc.name}</span>
+                <span className="text-[13px] text-ink-light">{sc.leadName ?? 'nobody on it yet'}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <form action={addScope} className="mt-3 grid gap-2 sm:grid-cols-[1.4fr_1fr_auto]">
+          <input type="hidden" name="jobId" value={target.id} />
+          <input className="input" name="name" placeholder="Switchboard" aria-label="What part of the job" required />
+          <select className="input" name="leadName" aria-label="Who runs this part">
+            <option value="">Who runs it</option>
+            {crew.map(c => <option key={c.key} value={c.name}>{c.name}</option>)}
+          </select>
+          <SubmitButton className="btn-secondary shrink-0" pending="Adding…">Split it</SubmitButton>
+        </form>
+
+        {/*
+          A separate form on purpose. A supervisor is not a property of a scope — that is the
+          confusion this whole thing turns on — and one form asking for both would invite somebody
+          to name a different supervisor with every part they added.
+        */}
+        <form action={setSupervisor} className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+          <input type="hidden" name="jobId" value={target.id} />
+          <select className="input" name="supervisorName"
+            defaultValue={target.supervisorName ?? ''} aria-label="Who is over the whole job">
+            <option value="">Over the whole job…</option>
+            {crew.map(c => <option key={c.key} value={c.name}>{c.name}</option>)}
+          </select>
+          <SubmitButton className="btn-secondary shrink-0" pending="Saving…">
+            {target.supervisorName ? 'Change who carries it' : 'Put somebody over it'}
+          </SubmitButton>
+        </form>
+      </section>
+    )}
+    </>
   );
 }
 

@@ -13,7 +13,7 @@
 // never counted as a pass.
 
 import { execFileSync, execSync, spawn } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const t0 = Date.now();
@@ -55,8 +55,34 @@ function step(name, what, fn) {
     process.stdout.write(`\r  ✓ ${what}${note ? ` — ${note}` : ''}\n`);
     results.push({ name, state: 'pass' });
   } catch (error) {
-    const why = String(error.stdout || error.stderr || error.message).trim().split('\n').slice(-3).join(' ');
-    process.stdout.write(`\r  ✗ ${what}\n      ${why.slice(0, 200)}\n`);
+    /*
+      ── Say enough to diagnose it, and keep the whole thing ──────────────────────────────────────
+
+      This took the last three lines and cut them at 200 characters. That is fine for a journey that
+      prints "3 FAILED: ..." on the way out, and useless for one that dies any other way: on
+      25 September two different journeys failed only under the full run and passed alone, and both
+      reported a blank line, because whatever went wrong was not in the last three lines of stdout.
+
+      An intermittent failure nobody can diagnose is worse than one that is simply red — it teaches
+      whoever reads the gate that red does not mean anything. So: prefer the lines that say FAIL,
+      fall back to the tail, and write the whole output to a file named on screen, so the next
+      occurrence can be read rather than guessed at.
+    */
+    const all = String(error.stdout || '') + String(error.stderr || '');
+    const said = all.trim() || String(error.message);
+    const lines = said.split('\n').map(l => l.trim()).filter(Boolean);
+    const failing = lines.filter(l => /FAIL|Error|Timeout|✗/i.test(l));
+    const why = (failing.length ? failing : lines.slice(-6)).slice(0, 6).join(' · ');
+
+    let kept = '';
+    try {
+      const path = `/tmp/spec-check-${name}.log`;
+      writeFileSync(path, said);
+      kept = `\n      full output: ${path}`;
+    } catch {
+      /* Nowhere to write is not a reason to lose the summary above. */
+    }
+    process.stdout.write(`\r  ✗ ${what}\n      ${why.slice(0, 600) || '(the journey exited non-zero and said nothing)'}${kept}\n`);
     results.push({ name, state: 'fail' });
   }
 }
@@ -427,6 +453,7 @@ const JOURNEYS = [
   */
   ['sight', 'a subbie and a team member never reaching the money', 'sight-journey'],
   ['rework', 'going back paid being a job, and going back free being rework', 'rework-journey'],
+  ['crews', 'splitting a job and somebody carrying the whole of it', 'crews-journey'],
   ['setup', 'setting a whole business up in one sitting, with an HR admin', 'setup-journey'],
   ['join', 'a tradie doing their own half on their phone, with no account', 'join-journey'],
   /*

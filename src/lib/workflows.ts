@@ -346,8 +346,8 @@ export const WORKFLOWS: Workflow[] = [
     'operations', ['gross_profit', 'productivity', 'safety_incident'], [
     { does: 'Split the job into scopes, and put a crew on each.', by: 'office', where: '/jobs?tab=schedule' },
     { does: 'Several people can be booked on one job on one day; nobody can be booked on two.', by: 'spec', where: '/jobs?tab=schedule' },
-    nowhere('office', 'Name ONE supervisor answerable for the whole job, not one per scope.',
-      'Kris, 25 September: "split scopes with one supervisor overall". SPEC can put two crews on a job and has nowhere to record who carries it — so on the day the scopes disagree, which is the day it matters, accountability is wherever the conversation lands.'),
+    { does: 'A second scope asks who carries the whole job — one name, not one per scope. One crew on one job is never asked.', by: 'spec', where: '/jobs?tab=schedule' },
+    { does: 'Name the supervisor. A lead runs their own part; the supervisor answers for the join, which is where the problem always is.', by: 'office', where: '/jobs?tab=schedule' },
     { does: 'Each crew’s Take 5 and hours land on the same job.', by: 'field', where: '/tech-day' },
   ]),
 

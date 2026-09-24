@@ -1142,3 +1142,55 @@ export async function recordQuoteChase(form: FormData) {
   });
   back('growth');
 }
+
+/**
+ * Split a job into another scope — a part of it a crew of its own does.
+ *
+ * Kris, 25 September: *"multi crew is common - split scopes with one supervisor overall"*.
+ */
+export async function addScope(form: FormData) {
+  const user = await writer();
+  const jobId = str(form, 'jobId', 64);
+  const job = await ownJob(user.tenantId, jobId);
+  if (!job) back('schedule', {}, 'That job is not in this business.');
+
+  const name = str(form, 'name', 120);
+  if (!name) back('schedule', { book: jobId }, 'Say what this part of the job is.');
+
+  const leadName = str(form, 'leadName', 120);
+  const existing = await db.select({ id: schema.jobScopes.id }).from(schema.jobScopes)
+    .where(and(eq(schema.jobScopes.tenantId, user.tenantId), eq(schema.jobScopes.jobId, jobId)));
+
+  await db.insert(schema.jobScopes).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    jobId,
+    name,
+    leadKey: leadName ? leadName.toLowerCase().replace(/\s+/g, '-').slice(0, 64) : null,
+    leadName: leadName || null,
+    position: existing.length,
+    createdAt: now(),
+  });
+  back('schedule', { book: jobId });
+}
+
+/**
+ * Name the one person answerable for the whole job.
+ *
+ * Deliberately its own action rather than a field on the scope form. A supervisor is not a property
+ * of a scope — that is the confusion the whole thing turns on — and a form that asked for both at
+ * once would invite somebody to name a different one each time.
+ */
+export async function setSupervisor(form: FormData) {
+  const user = await writer();
+  const jobId = str(form, 'jobId', 64);
+  const job = await ownJob(user.tenantId, jobId);
+  if (!job) back('schedule', {}, 'That job is not in this business.');
+
+  const who = str(form, 'supervisorName', 120);
+  await db.update(schema.jobs).set({
+    supervisorName: who || null,
+    supervisorKey: who ? who.toLowerCase().replace(/\s+/g, '-').slice(0, 64) : null,
+  }).where(eq(schema.jobs.id, jobId));
+  back('schedule', { book: jobId });
+}
