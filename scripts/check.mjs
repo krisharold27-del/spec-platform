@@ -392,6 +392,11 @@ const JOURNEYS = [
   // Needs the offline Xero server above. When it is not there the journey says so and skips rather
   // than passing quietly — a connector nobody exercised is not a connector anybody has proven.
   ['xero', 'a business linking its accounts, and the board guarding the ledger', 'xero-journey.mts'],
+  /*
+    Not a browser journey: it drives `currentPeriod` against a real database, because the fault it
+    guards is in WHICH ROW comes back. Nothing that stops short of the database can catch it.
+  */
+  ['month', 'a month rolling over on the 1st, without touching the one that finished', 'month-roll.mts'],
   // Not a browser journey: it drives the real delete function against a real database, because what
   // is worth checking is the guards, not a page. '.mts' so it can import the product's TypeScript.
   ['delete', 'clearing a test business, and every guard that stops the wrong one going', 'delete-journey.mts'],

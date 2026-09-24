@@ -35,6 +35,56 @@ export async function hasSomethingToScore(tenantId: string): Promise<boolean> {
   return false;
 }
 
+/** This calendar month, as the `YYYY-MM` a period is keyed on. */
+export const monthNow = (at: Date = new Date()): string => at.toISOString().slice(0, 7);
+
+/**
+ * Has the calendar moved past the last month this business has?
+ *
+ * ── The rhythm, and what it replaced ─────────────────────────────────────────────────────────────
+ *
+ * Kris, 24 September:
+ *
+ *   "Scores SET (lock) at the end of the last day of the month. On the 1st of the next month the
+ *    SCORES clear to zero. The KPIs themselves, targets, owners and team KPIs all carry over
+ *    unchanged. Nothing is deleted. The locked month is still reviewed and signed off (GM submits,
+ *    Director signs) as before, but scoring for the new month starts on the 1st regardless."
+ *
+ * This supersedes the rule still written on the `periods` table — *"Locking is a separate,
+ * deliberate act — a person's decision, never a date."* That was right about SIGN-OFF, which is
+ * still nobody's decision but a person's, and wrong about SCORING. A month whose marks can still be
+ * changed halfway through the next one is not a month a board pack can be built from.
+ *
+ * ── The fault this fixes is worse than a missing feature ─────────────────────────────────────────
+ *
+ * `currentPeriod` returned the LAST period whenever none was open. It never asked what month it is.
+ * So a business that signed September off would open SPEC on 1 October and be shown September —
+ * signed, unmarkable — as its current month, with no way to start the new one. That is not a
+ * feature waiting to be built. It is a product that stops working on the first of the month, and it
+ * would have happened to JBI in seven days.
+ *
+ * Nothing is migrated when a month rolls. KPIs, targets, owners and team KPIs live on the ROLE, not
+ * on the period, so they carry over by sitting still; the scores clear to zero because a new period
+ * simply has no marks against it yet. That is the whole mechanism, and it is why the schema needed
+ * no change at all.
+ */
+export const needsNewMonth = (
+  latest: { period: string } | undefined | null,
+  at: Date = new Date(),
+): boolean => Boolean(latest) && latest!.period < monthNow(at);
+
+/**
+ * May this month still be marked?
+ *
+ * Only the current one. A past month is set, whatever its sign-off state, because its marks are
+ * what the board pack, the Ace streaks and the incentives are read from — and a number that can
+ * move after the month it describes is not a record of anything.
+ */
+export const isMarkable = (
+  period: { period: string; status: string } | null | undefined,
+  at: Date = new Date(),
+): boolean => Boolean(period) && period!.period === monthNow(at) && period!.status !== 'locked';
+
 /**
  * The period to show. Returns null only when there is genuinely nothing to score yet — never
  * because of a billing state, which is a separate question and never a reason to hide a business's
@@ -42,15 +92,33 @@ export async function hasSomethingToScore(tenantId: string): Promise<boolean> {
  */
 export async function currentPeriod(tenantId: string) {
   const existing = await db.select().from(schema.periods).where(eq(schema.periods.tenantId, tenantId));
-  const open = existing.find(p => p.status === 'open');
-  if (open) return open;
-  if (existing.length) return existing[existing.length - 1];
+  const thisMonth = monthNow();
+
+  // The month that IS this month, whatever state it has reached.
+  const current = existing.find(p => p.period === thisMonth);
+  if (current) return current;
+
+  const latest = [...existing].sort((a, b) => a.period.localeCompare(b.period)).at(-1);
+
+  /*
+    A month has rolled over. Open the new one, and leave the old one exactly as it is — it is still
+    reviewed and signed off on its own timetable, and nothing about it is rewritten or deleted.
+  */
+  if (needsNewMonth(latest)) {
+    await db.insert(schema.periods)
+      .values({ id: randomUUID(), tenantId, period: thisMonth })
+      .onConflictDoNothing();
+    const after = await db.select().from(schema.periods).where(eq(schema.periods.tenantId, tenantId));
+    return after.find(p => p.period === thisMonth) ?? latest ?? null;
+  }
+
+  if (latest) return latest;
 
   if (!(await hasSomethingToScore(tenantId))) return null;
 
-  const id = randomUUID();
-  const period = new Date().toISOString().slice(0, 7);
-  await db.insert(schema.periods).values({ id, tenantId, period }).onConflictDoNothing();
+  await db.insert(schema.periods)
+    .values({ id: randomUUID(), tenantId, period: thisMonth })
+    .onConflictDoNothing();
   const created = await db.select().from(schema.periods).where(eq(schema.periods.tenantId, tenantId));
   return created[0] ?? null;
 }
