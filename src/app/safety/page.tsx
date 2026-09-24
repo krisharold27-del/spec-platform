@@ -10,6 +10,7 @@ import { SafetyReportBox } from '@/components/safety-report-box';
 import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
 import { getCurrentUser, canManage } from '@/lib/auth';
+import { rates, ratesLine, ENOUGH_HOURS } from '@/lib/trifr';
 import { getScope } from '@/lib/scope';
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { PILLAR_META } from '@/lib/pillars';
@@ -280,6 +281,27 @@ export default async function Safety({ searchParams }: { searchParams: Promise<R
       : { label: 'Not clear to work', value: '—', note: 'No licences or tickets recorded yet', tone: 'pending' },
   ];
 
+  /*
+    ── TRIFR, from real hours ──────────────────────────────────────────────────────────────────
+
+    Kris: "TRIFR figures easy as the system knows total hours". Most small businesses quote a rate
+    they are not sure of, because the injuries are in one system and the hours are in another. SPEC
+    holds both, so the denominator is a sum rather than headcount times an average week.
+
+    Shown under the four lights rather than among them: it is the number a builder asks for before
+    letting anybody on site, and it is a quarter's reading rather than today's.
+  */
+  const hoursWorked = (await db.select({ minutes: schema.timesheetEntries.minutes })
+    .from(schema.timesheetEntries)
+    .where(eq(schema.timesheetEntries.tenantId, user.tenantId)))
+    .reduce((t, e) => t + (e.minutes ?? 0), 0) / 60;
+
+  const safetyRates = rates(
+    data.reports.filter(r => r.kind === 'injury')
+      .map(r => ({ id: r.id, severity: r.severity, at: r.createdAt })),
+    hoursWorked,
+  );
+
   // ── The sent notice ─────────────────────────────────────────────────────────────────────────────
 
   const sentNotice = sent ? (() => {
@@ -407,6 +429,16 @@ export default async function Safety({ searchParams }: { searchParams: Promise<R
               </div>
             ))}
           </section>
+
+          {/*
+            The rate a builder asks for before anybody goes on site — from real hours, with the
+            hours printed beside it. A TRIFR quoted without its hours is a number nobody can check,
+            and for a small business it swings a long way on one event.
+          */}
+          <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-ink">
+            <b>Injury frequency.</b> {ratesLine(safetyRates)}
+            {safetyRates.trifr !== null && ' First aid is not counted \u2014 that is the standard definition, so this compares with anybody else\u2019s.'}
+          </p>
 
           <section className="card p-6 sm:p-8">
             <h2 className="font-serif text-xl text-ink">Needs doing</h2>

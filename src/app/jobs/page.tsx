@@ -13,6 +13,7 @@ import { refusedReason } from '@/lib/refuse';
 import { pillTone, LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { crewFor, type CrewMember } from '@/lib/jobs-data';
 import { photoHref, photoLine } from '@/lib/photos';
+import { catalogueHealth, catalogueAlert, KEEP_IT_SHORT } from '@/lib/catalogue-health';
 import { wipRow, wipStats, wipLine, byWipAttention, wipMoney, WIP_LABEL } from '@/lib/wip';
 import { runForward, cashStats, cashAdvice, cashLine, cashLabel, DEFAULT_BUFFER_CENTS, type Week } from '@/lib/cashflow';
 import { reworkStats, reworkLine, reworkMoney, pattern, CAUSES, causeLabel, recoverFrom, REWORK_TARGET } from '@/lib/rework';
@@ -1088,6 +1089,27 @@ function Catalogue({ items, kits, kitRows, rates, q, skipped, rises, rose, manag
           </div>
         )}
       </section>
+      )}
+
+      {/*
+        ── When the list itself is the problem ──────────────────────────────────────────────────
+
+        Kris: "the catalogue must always be streamlined and the system must alert the business if
+        speeds slow due to excess items". Nobody decides to let a catalogue reach nine thousand
+        lines — somebody imports a supplier's whole file and every search is slower from then on,
+        quoting takes longer, and the tech on site stops recording materials because finding them
+        is a nuisance.
+
+        Shown only when the list is BOTH big and mostly unused. A big list that is all in use is a
+        busy business; a small dead one is a business that has not started. And it shows nothing at
+        all when there is nothing to say — an alert that is always on the page is furniture.
+      */}
+      {only !== 'kits' && catalogueAlert(catalogueHealth(items, today)) && (
+        <p className="rounded-2xl px-4 py-3 text-sm text-ink" style={{ background: `color-mix(in srgb, ${LIGHT_COLOUR.amber} 12%, transparent)` }}>
+          <b>This list is slowing everybody down.</b>{' '}
+          {catalogueAlert(catalogueHealth(items, today))}{' '}
+          {KEEP_IT_SHORT.join(' ')}
+        </p>
       )}
 
       <section className="card">
