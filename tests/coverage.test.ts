@@ -107,7 +107,7 @@ describe('the switch', () => {
     expect(none).toEqual({
       total: 38, inSpec: 38, connected: 0, systems: [],
       // Counted separately since 24 September — "running here" and "built" are different claims.
-      builtHere: 33, partlyHere: 5,
+      builtHere: 38, partlyHere: 0,
     });
     expect(connectedNote(none)).toBe('Nothing connected. SPEC runs it all');
     const some = totalsOf(choose(chooseArea(defaultChoices(), 'jobs', 'own'), 'customers', 'spec'));
@@ -295,17 +295,34 @@ describe('what the map claims is true', () => {
     const t = totalsOf({});
     expect(t.inSpec, 'nothing connected, so all 38 run here').toBe(38);
     /*
-      ...and that is exactly why `inSpec` must never be the number on the tile. The honest counts
-      are these, and they add up to it.
+      `inSpec` must never be the number on the tile: it only says "not connected elsewhere". The
+      honest counts are these, and they have to account for every one of the 38 with nothing
+      falling between them.
     */
-    expect(t.builtHere).toBeLessThan(t.inSpec);
     expect(t.builtHere + t.partlyHere).toBeLessThanOrEqual(t.inSpec);
+    expect(t.builtHere).toBe(CAPABILITIES.filter(c => c.built === 'yes').length);
+    expect(t.partlyHere).toBe(CAPABILITIES.filter(c => c.built === 'partly').length);
   });
 
-  it('SAYS THE GAP OUT LOUD rather than burying it', () => {
-    const line = coverageLine(totalsOf({}));
+  /*
+    ── The line has to match the map, whichever way the map reads ───────────────────────────────
+
+    This used to demand the words "partly there" or "not written", which was right while there was
+    a gap and would now fail on the truth. What it must actually hold is that the sentence agrees
+    with the counts: it names a gap when there is one, and says so plainly when there is not.
+  */
+  it('SAYS THE GAP OUT LOUD when there is one, and does not invent one when there is not', () => {
+    const t = totalsOf({});
+    const line = coverageLine(t);
     expect(line).toMatch(/built and working/);
-    expect(line).toMatch(/partly there|not written/);
+    if (t.builtHere === t.total) {
+      expect(line, 'nothing to hedge about').not.toMatch(/partly there|not written/);
+    } else {
+      expect(line).toMatch(/partly there|not written/);
+    }
+    // And a map WITH a gap still says so — proved on a stand-in rather than by waiting for one.
+    expect(coverageLine({ ...t, builtHere: 30, partlyHere: 5 }))
+      .toMatch(/30 of 38 are built and working, 5 are partly there, 3 are designed and not written/);
   });
 
   /*
@@ -319,10 +336,18 @@ describe('what the map claims is true', () => {
     expect(CAPABILITIES.filter(c => c.built === 'no').map(c => c.key)).toEqual([]);
   });
 
-  /* And the five still partly there, named, so finishing one has to be recorded here. */
-  it('knows exactly which are still only partly built', () => {
-    expect(CAPABILITIES.filter(c => c.built === 'partly').map(c => c.key).sort())
-      .toEqual(['catalogue', 'kits', 'leads', 'mobile', 'stock']);
+  /*
+    ── 38 means 38 ──────────────────────────────────────────────────────────────────────────────
+
+    Kris's rule, in CLAUDE.md: "Build all 38 pages. 22 of 38 is a failure, not progress."
+
+    Every one of them is now `yes`, and the test above proves each names a route that exists. This
+    asserts the set is EMPTY rather than counting, so the day something regresses — or a 39th is
+    added to the map without being written — it fails here instead of going out as a claim.
+  */
+  it('HAS NOTHING PARTLY BUILT EITHER — all 38 mean 38', () => {
+    expect(CAPABILITIES.filter(c => c.built === 'partly').map(c => c.key)).toEqual([]);
+    expect(CAPABILITIES.filter(c => c.built === 'yes')).toHaveLength(38);
   });
 
   it('and the screen shows a capability’s own state on its own row', () => {

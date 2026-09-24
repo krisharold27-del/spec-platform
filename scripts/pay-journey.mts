@@ -21,6 +21,7 @@
 //   node scripts/pay-journey.mjs
 
 import { chromium } from 'playwright';
+import { SEAT_PRICES } from '../src/lib/pricing';
 import { tidyUp } from './test-cleanup.mjs';
 import { reportCrashes } from './journey-crash.mjs';
 
@@ -35,6 +36,33 @@ const sql = postgres(process.env.DATABASE_URL, { onnotice: () => {} });
 const stamp = Date.now();
 const EMAIL = `pay-${stamp}@example.test`;
 const BUSINESS = `Pay Test ${stamp}`;
+
+/*
+  ── The price is read from the product, never typed here ─────────────────────────────────────────
+
+  This journey carried `A$26` for a team seat. That was right on 19 September and wrong from 22
+  September, when every price was matched to what the live Stripe account actually charges and the
+  team seat became A$17. Nothing failed at the time, because the copy in this file kept agreeing
+  with itself — the journey went on asserting a price SPEC had stopped charging.
+
+  A test that holds its own copy of a number is a test that stops checking the number. So the seat
+  price is imported from `lib/pricing` — the same table the product bills from. Change the price
+  there and this follows; change it in only one of the two and this is what says so.
+*/
+const TEAM_SEAT_AUD = SEAT_PRICES.aud.team;
+
+/*
+  ── And the page it is decided on ────────────────────────────────────────────────────────────────
+
+  This walked `/journey`, which is where the price and the checkout both used to live. On 22
+  September Kris said of what it costs: *"put under pricing"*, and everything that decides the bill
+  — seats, Start paying, Stripe's own portal — moved to `/billing`. This file kept opening the old
+  page, found no checkout button there, and reported that a paying business had no way to pay.
+
+  That is the same failure in reverse: the journey naming a page the decision has left. It walks
+  `/billing` now, because that is where a customer is sent.
+*/
+const PAY_PAGE = '/billing';
 
 const b = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
 reportCrashes({ browser: () => b, business: BUSINESS, since: RUN_STARTED });
@@ -114,7 +142,7 @@ check(
   `${page.url()}${inside || (await authStandInUp()) ? '' : HARNESS_DOWN}`,
 );
 
-await page.goto(`${BASE}/journey`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}${PAY_PAGE}`, { waitUntil: 'networkidle' });
 let b1 = await buttons();
 
 // ── THE INVARIANT ────────────────────────────────────────────────────────────────────────────────
@@ -154,16 +182,17 @@ await sql`
   insert into users (id, tenant_id, email, name, access, invited_at)
   values (${`u-${stamp}`}, ${tenantId}, ${`mate-${stamp}@example.test`}, 'A Mate', 'readonly', now())`;
 
-await page.goto(`${BASE}/journey`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}${PAY_PAGE}`, { waitUntil: 'networkidle' });
 const b2 = await buttons();
 
 check('a business with people in it is shown what it costs', b2.cost !== null, String(b2.cost));
-// Two people, one seat charged for. The number is the whole decision: A$52 here would mean the free
-// seat exists in the label and nowhere else.
+// Two people, one seat charged for. The number is the whole decision: twice the seat price here
+// would mean the free seat exists in the label and nowhere else. The seat price comes from
+// lib/pricing rather than from this file — see the note at the top.
 check(
   'AND THE SECOND PERSON IS THE FIRST ONE CHARGED FOR',
-  b2.cost === 'A$26 a month · 2 people, first seat free',
-  `two people, and the page says ${b2.cost}`,
+  b2.cost === `A$${TEAM_SEAT_AUD} a month · 2 people, first seat free`,
+  `two people, and the page says ${b2.cost} — one seat is A$${TEAM_SEAT_AUD}`,
 );
 check(
   'AND IS GIVEN A WAY TO START PAYING',
@@ -243,67 +272,110 @@ await sql`
   insert into role_assignments (id, role_id, user_id, from_date)
   values (${`ra-${stamp}`}, ${supervisorRole}, ${supervisorId}, now())`;
 
-// Eligibility is a pure rule, so it is asked directly.
-const { canBeTrained, isFrontlineLeader, TRAINING_SEAT_ON_SALE } = await import('../src/lib/pricing.ts');
-check(
-  'A TEAM MEMBER IS NEVER A FRONTLINE LEADER',
-  isFrontlineLeader('staff') === false && isFrontlineLeader('gm') === false && isFrontlineLeader('manager') === false,
-);
-check('and a supervisor is', isFrontlineLeader('supervisor') === true);
-
 /*
-  ── And nobody can be put on it at all, because the pack is not finished ────────────────────────
+  ── Eligibility is a pure rule, so it is asked directly ─────────────────────────────────────────
 
-  Kris, 16 September: "happy to remove the 44 from the plan for the short term and start cleanly...
-  leave it as a price for the future - i havent finished the supervisor training pack anyway".
+  This block asked `isFrontlineLeader('supervisor')` and asserted `TRAINING_SEAT_ON_SALE === false`.
+  Neither survives: on 22 September Kris was asked whether the seat turns on business-wide or per
+  person and said *"per-person... on now"*, and the rule was broadened at the same time from a role
+  LEVEL string to the chart itself — `eligibleForTrainingSeat`, the same leadership question billing
+  resolves from. The control moved off Settings and onto `/training`, beside the material it
+  unlocks.
 
-  So the check is the opposite of what it was an hour ago: not that an administrator CAN do this,
-  but that they cannot, and that the page says why rather than the control quietly disappearing. The
-  machinery behind it — the two-rate bill, the install, the eligibility rule — stays built and stays
-  unit-tested, so turning it on is one constant.
+  None of that was caught, because the import above this line could not resolve under plain node and
+  the journey crashed here every run. `check.mjs` reported the two checks before the crash and this
+  half simply never executed — a journey that stops early looks a lot like a journey that passed.
+  It runs through tsx now, which is why the staleness is visible at all.
+*/
+const { eligibleForTrainingSeat, TRAINING_SEAT_ON_SALE } = await import('../src/lib/pricing');
+const asRole = (title: string, hasDirectReports: boolean) => ({ title, hasDirectReports });
+
+check(
+  'SOMEBODY WHO LEADS NOBODY IS NEVER OFFERED THE TRAINING SEAT',
+  eligibleForTrainingSeat(asRole('Electrician', false)) === false
+  && eligibleForTrainingSeat(asRole('Apprentice', false)) === false,
+);
+check(
+  'and somebody who leads people is',
+  eligibleForTrainingSeat(asRole('Site Supervisor', true)) === true,
+);
+/*
+  An administrator's override beats the chart, in both directions — because eligibility must never
+  disagree with what the person is actually billed as.
 */
 check(
-  'NOBODY CAN BE PUT ON THE A$44 SEAT WHILE THE PACK IS UNFINISHED',
-  TRAINING_SEAT_ON_SALE === false && canBeTrained('supervisor') === false,
+  'AN OVERRIDE ONTO THE TEAM SEAT TAKES THE OFFER AWAY, however the chart reads',
+  eligibleForTrainingSeat(asRole('Site Supervisor', true), 'team') === false,
+);
+check(
+  'and an override onto the leadership seat grants it',
+  eligibleForTrainingSeat(asRole('Electrician', false), 'leadership') === true,
 );
 
-await page.goto(`${BASE}/settings`, { waitUntil: 'networkidle' });
-const settings = await page.evaluate(() => document.body.innerText);
+/*
+  ── And it is on sale, per person, where the material is ───────────────────────────────────────
+
+  The version of this check that ran in September asserted the opposite — that nobody could be put
+  on the seat while the supervisor pack was unfinished. That was Kris's 16 September decision and it
+  was reversed on the 22nd. What matters now is that an administrator can actually do it, on the
+  page that holds the training itself.
+*/
+check('THE TRAINING SEAT IS ON SALE', TRAINING_SEAT_ON_SALE === true);
+
+await page.goto(`${BASE}/training`, { waitUntil: 'networkidle' });
+const training = await page.evaluate(() => document.body.innerText);
 check(
-  'the administrator is told it is coming, not left wondering where it went',
-  /not open yet/i.test(settings),
+  'the administrator is shown what a training seat costs, per person',
+  /Leadership training seats/i.test(training) && /a person a month/i.test(training),
+  training.slice(0, 200).replace(/\n/g, ' '),
 );
 check(
-  'and there is no way to put anybody on it',
-  (await page.locator('form:has(input[name="userId"])').count()) === 0,
+  'AND THERE IS A WAY TO PUT A REAL PERSON ON IT',
+  (await page.locator('form:has(input[name="userId"]) button:has-text("Put on training")').count()) > 0,
+  'the supervisor inserted above holds a leadership seat, so the control has somebody to offer',
 );
 /*
-  Somebody already on a seat, from before the pack was held back — asked of the PAGE, where the
-  number becomes money, rather than of the column.
+  ── Putting somebody on it changes the bill, on the page where it becomes money ─────────────────
 
-  This is the case nobody would ever find: production has nobody on a training seat, so a switch
-  that closed the door and went on charging the people already through it would have looked perfect.
-  The column is deliberately left alone — when the pack is finished those people are still chosen —
-  so the only honest test is what the bill says.
+  Asked of the PAGE rather than of the column, because a column somebody set is not a charge. The
+  earlier version of this check asserted the opposite — that a person on a training seat was NOT
+  billed for it — which was right while the supervisor pack was held back and wrong from the moment
+  Kris turned it on per person. It never ran again after that to disagree.
 
-  Three people now, one free: A$26 if the switch holds, A$44 if it does not.
+  Three people, one free. The supervisor inserted above leads people, so they are on a LEADERSHIP
+  seat, and the mate is on a team seat. Putting the supervisor on training must REPLACE the
+  leadership rate with the training rate, never stack on top of it — so the bill goes from
+  leadership + team to leadershipWithTraining + team, and comes back when they are taken off.
+  Every number comes from lib/pricing rather than being written down here, for the reason at the
+  top of this file: the version that said "A$70" was checking a price SPEC had stopped charging.
 */
 await sql`update users set training_seat = true where id = ${supervisorId}`;
-await page.goto(`${BASE}/journey`, { waitUntil: 'networkidle' });
-const stillCheap = await page.evaluate(() => document.body.innerText);
+await page.goto(`${BASE}${PAY_PAGE}`, { waitUntil: 'networkidle' });
+const withTraining = await page.evaluate(() => document.body.innerText);
+const trainingBill = `A$${TEAM_SEAT_AUD + SEAT_PRICES.aud.leadershipWithTraining} a month · 3 people, first seat free`;
 check(
-  'AND SOMEBODY ALREADY ON ONE IS NOT BILLED FOR IT',
-  stillCheap.includes('A$70 a month') === false && /A\$\d+ a month · 3 people, first seat free/.test(stillCheap),
-  stillCheap.match(/A\$[\d,]+ a month · \d+ (?:person|people), first seat free/)?.[0] ?? 'no cost line',
+  'AND SOMEBODY PUT ON ONE IS ACTUALLY BILLED FOR IT',
+  withTraining.includes(trainingBill),
+  `${withTraining.match(/A\$[\d,]+ a month · \d+ (?:person|people), first seat free/)?.[0] ?? 'no cost line'} — expected ${trainingBill}`,
 );
+
+// And taking them off puts the bill back. A charge that cannot be stopped is the one people notice.
 await sql`update users set training_seat = false where id = ${supervisorId}`;
+await page.goto(`${BASE}${PAY_PAGE}`, { waitUntil: 'networkidle' });
+const withoutTraining = await page.evaluate(() => document.body.innerText);
+const plainBill = `A$${TEAM_SEAT_AUD + SEAT_PRICES.aud.leadership} a month · 3 people, first seat free`;
+check(
+  'AND TAKING THEM BACK OFF PUTS THE BILL BACK',
+  withoutTraining.includes(plainBill),
+  `${withoutTraining.match(/A\$[\d,]+ a month · \d+ (?:person|people), first seat free/)?.[0] ?? 'no cost line'} — expected ${plainBill}`,
+);
 
 // ── The "payment received" banner has to agree with the page under it ────────────────────────────
 //
 // `?upgraded=1` is a word in an address bar. It says a checkout finished SOMEWHERE — never that this
 // business paid. Shown to the wrong business it reads "Payment received" directly above "Nothing has
 // been charged yet", which is what the first real test payment actually produced.
-await page.goto(`${BASE}/journey?upgraded=1`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}${PAY_PAGE}?upgraded=1`, { waitUntil: 'networkidle' });
 const unpaid = await page.evaluate(() => document.body.innerText);
 check(
   'a business that has NOT paid is never told its payment came through',
@@ -317,13 +389,13 @@ check(
 
 // ── Once subscribed, the start button goes and the portal appears ────────────────────────────────
 await sql`update tenants set stripe_subscription_id = 'sub_test', stripe_customer_id = 'cus_test', plan = 'basic' where id = ${tenantId}`;
-await page.goto(`${BASE}/journey`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}${PAY_PAGE}`, { waitUntil: 'networkidle' });
 const b3 = await buttons();
 check('ONCE SUBSCRIBED THE START BUTTON GOES AWAY', b3.startPaying.length === 0, b3.startPaying.join(', '));
 check('and the billing portal takes over', b3.billing.length > 0, b3.billing.join(', '));
 
 // And the cheerful banner is not withheld from a business that really did pay.
-await page.goto(`${BASE}/journey?upgraded=1`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}${PAY_PAGE}?upgraded=1`, { waitUntil: 'networkidle' });
 const paid = await page.evaluate(() => document.body.innerText);
 check('a business that HAS paid is told so', paid.includes('Payment received'));
 
@@ -331,7 +403,7 @@ check('a business that HAS paid is told so', paid.includes('Payment received'));
 // Reaching the portal with no Stripe customer used to reload the same page with nothing said, which
 // is how a leader ends up clicking the same button over and over.
 await sql`update tenants set stripe_customer_id = null where id = ${tenantId}`;
-await page.goto(`${BASE}/journey?no_subscription=1`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}${PAY_PAGE}?no_subscription=1`, { waitUntil: 'networkidle' });
 const said = await page.textContent('body');
 check(
   'a portal with nothing to show SAYS SO rather than reloading the page',
@@ -356,9 +428,12 @@ check(
   'a read-only business is told so BEFORE it types anything',
   onArrival.includes('Read-only until the payment is sorted'),
 );
+// Pointed at PAY_PAGE, not at a written-down address: this link moved with everything else that
+// decides the bill, and a banner whose way out leads to the old page is a dead end at the worst
+// possible moment.
 check(
   'and is given the way out on the same line',
-  await page.locator('a[href="/journey"]', { hasText: 'Fix payment' }).count() > 0,
+  await page.locator(`a[href="${PAY_PAGE}"]`, { hasText: 'Fix payment' }).count() > 0,
 );
 
 // Now do exactly what he did.

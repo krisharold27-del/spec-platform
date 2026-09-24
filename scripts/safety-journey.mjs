@@ -84,10 +84,33 @@ const pick = async label => {
   await page.getByRole('radio', { name: label, exact: true }).click();
 };
 
-/** Type the line and press Enter, which is how the design says a report is sent. */
+/**
+ * Type the line and press Enter, which is how the design says a report is sent.
+ *
+ * ── Waiting for THIS report, not for a page that already said "Received." ────────────────────────
+ *
+ * Every step here used to send and then poll the page text for a word like "received" or "sent".
+ * After the first report those words are permanently on the screen, so every later wait returned
+ * instantly — on the previous report's confirmation — and whatever came next ran before the new row
+ * had been written. The wellbeing check read the database in that gap and found nothing, which
+ * looked exactly like SPEC failing to store an anonymous report.
+ *
+ * SPEC already answers this precisely: a sent report redirects to `/safety?sent=<id>`, and that id
+ * is new every time. So this waits for the id to CHANGE, which no earlier report can satisfy. It is
+ * the fourth time in this repo a journey has been wrong by waiting for something that was already
+ * true, and the only reliable fix has been to wait on something a previous run could not produce.
+ */
 const send = async text => {
+  const before = new URL(page.url()).searchParams.get('sent');
   await page.getByLabel('Describe what happened').fill(text);
   await page.getByLabel('Describe what happened').press('Enter');
+  const until = Date.now() + 15000;
+  while (Date.now() < until) {
+    const now = new URL(page.url()).searchParams.get('sent');
+    if (now && now !== before) return now;
+    await page.waitForTimeout(150);
+  }
+  return null;
 };
 
 // ── A real business, signed up the way anybody does ──────────────────────────────────────────────
@@ -184,16 +207,34 @@ await shot('safety-anonymous');
  * The checks that read the row back out of the database
  * ───────────────────────────────────────────────────────────────────────────── */
 
-const { db, schema } = await import('../src/db/index.ts').catch(() => ({}));
-if (!db) {
+/*
+  ── Read with SQL, not through the application's own ORM ─────────────────────────────────────────
+
+  This used to import `src/db/index.ts`. Under plain node that import cannot resolve — the file
+  reaches for `./schema` with no extension, which only a TypeScript loader can follow — and the
+  `.catch(() => ({}))` on it turned that failure into an empty object. Every check below was then
+  skipped, and the run reported the promise UNVERIFIED.
+
+  It said so out loud, which is the only reason this was caught rather than passing quietly. But a
+  check that cannot run is not a check, and this is the one promise named as absolute: an anonymous
+  psychosocial report must never store a name at all.
+
+  So it opens the database directly and reads the columns themselves. That is also the stronger
+  test — the question is what is actually IN the row, and going through the same ORM the
+  application writes with could only ever show what that ORM chooses to hand back.
+*/
+const { default: postgres } = await import('postgres');
+const sql = process.env.DATABASE_URL
+  ? postgres(process.env.DATABASE_URL, { onnotice: () => {}, max: 1 })
+  : null;
+
+if (!sql) {
   check('THE ANONYMOUS REPORT HAS NO NAME STORED AGAINST IT', false,
-        'could not open the database — the promise is UNVERIFIED, which is not the same as kept');
+        'no DATABASE_URL — the promise is UNVERIFIED, which is not the same as kept');
 } else {
-  const { eq, and } = await import('drizzle-orm');
-  const [tenant] = await db.select().from(schema.tenants).where(eq(schema.tenants.name, BUSINESS));
+  const [tenant] = await sql`select id from tenants where name = ${BUSINESS}`;
   const mine = kind => (tenant
-    ? db.select().from(schema.safetyReports)
-      .where(and(eq(schema.safetyReports.tenantId, tenant.id), eq(schema.safetyReports.kind, kind)))
+    ? sql`select * from safety_reports where tenant_id = ${tenant.id} and kind = ${kind}`
     : Promise.resolve([]));
 
   const [wellbeing] = await mine('wellbeing');
@@ -201,20 +242,20 @@ if (!db) {
 
   if (wellbeing) {
     check('THE ANONYMOUS REPORT HAS NO NAME STORED AGAINST IT',
-          wellbeing.reportedBy === null,
-          `reported_by is ${JSON.stringify(wellbeing.reportedBy)} — the promise is BROKEN`);
+          wellbeing.reported_by === null,
+          `reported_by is ${JSON.stringify(wellbeing.reported_by)} — the promise is BROKEN`);
     check('and no ROLE either, which would name them just as well in a small business',
-          wellbeing.roleId === null);
+          wellbeing.role_id === null);
     check('and no job reference, which places them on a site on a day',
-          wellbeing.jobRef === null);
+          wellbeing.job_ref === null);
     /*
       The time of day. A wellbeing report stamped 14:52:07 is a name to anybody holding the roster,
       so only the date survives. This is the subtlest of the four and the easiest to lose in a
       refactor that "tidies up" a timestamp.
     */
     check('AND NOT THE MINUTE IT WAS SENT — a timestamp is a name if you hold the roster',
-          !/\d\d:\d\d/.test(String(wellbeing.createdAt)),
-          `created_at is ${JSON.stringify(wellbeing.createdAt)}`);
+          !/\d\d:\d\d/.test(String(wellbeing.created_at)),
+          `created_at is ${JSON.stringify(wellbeing.created_at)}`);
     check('it is marked anonymous, so a screen can say so rather than "not recorded"',
           wellbeing.anonymous === true);
     check('and nothing else on the row carries who sent it',
@@ -224,9 +265,11 @@ if (!db) {
   // A NAMED report must keep its name, or the register has nobody to go back to.
   const [hazard] = await mine('hazard');
   check('A NAMED REPORT STILL KEEPS ITS NAME',
-        Boolean(hazard?.reportedBy),
+        Boolean(hazard?.reported_by),
         'anonymity has to be the exception that was asked for, not the default everywhere');
 }
+
+await sql?.end({ timeout: 5 }).catch(() => {});
 
 check('no page crashed while doing any of it', faults.length === 0, faults.join(' | '));
 

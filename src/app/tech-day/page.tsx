@@ -96,6 +96,39 @@ export default async function TechDay() {
     // The phone still runs the day on its own; it says so.
   }
 
+  /*
+    What has already been recorded on today's jobs — the SWMS, photos, materials, the client's
+    signature. The phone shows only the NEXT thing, so it has to know where the day has got to.
+  */
+  let records: { jobId: string; kind: string; who: string; what: string; atTime: string }[] = [];
+  try {
+    const ids = booked.map(b => b.jobId);
+    if (ids.length) {
+      records = await db.select({
+        jobId: schema.jobRecords.jobId, kind: schema.jobRecords.kind,
+        who: schema.jobRecords.who, what: schema.jobRecords.what, atTime: schema.jobRecords.atTime,
+      }).from(schema.jobRecords).where(and(
+        eq(schema.jobRecords.tenantId, user.tenantId),
+        inArray(schema.jobRecords.jobId, ids),
+      ));
+    }
+  } catch {
+    // Same rule as everything else here: no database is a phone that still works.
+  }
+
+  /* The catalogue, so materials used come off a list rather than being typed as a note. */
+  let items: { id: string; name: string }[] = [];
+  try {
+    items = await db.select({ id: schema.catalogueItems.id, name: schema.catalogueItems.name })
+      .from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, user.tenantId))
+      .orderBy(schema.catalogueItems.name);
+  } catch { /* the day runs without it */ }
+
   const firstName = (user.name ?? '').trim().split(/\s+/)[0] || '';
-  return <TechDayPhone userId={user.id} name={user.name ?? ''} firstName={firstName} clear={clear} booked={booked} open={open} />;
+  return (
+    <TechDayPhone
+      userId={user.id} name={user.name ?? ''} firstName={firstName}
+      clear={clear} booked={booked} open={open} records={records} items={items}
+    />
+  );
 }

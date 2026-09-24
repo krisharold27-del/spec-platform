@@ -1375,6 +1375,20 @@ export const jobs = pgTable('jobs', {
    * with no materials recorded has not got a flattering margin, it has an unmeasured one.
    */
   materialsCents: integer('materials_cents'),
+  /**
+   * Where the work came from — the website form, a Google search, a missed call, a repeat customer,
+   * a builder, a referral.
+   *
+   * ── Why this is a column and not a Leads table ───────────────────────────────────────────────
+   *
+   * A lead IS an enquiry, and an enquiry is already the first stage of the Jobs board. Building a
+   * separate Leads register would mean the same piece of work living in two lists that drift, and
+   * somebody having to move it from one to the other. Two columns on the job it already is gives
+   * the whole Leads tab: where it came from, and how long it has been waiting.
+   */
+  source: text('source'),
+  /** When the quote actually went out. What speed-to-quote is measured from `createdAt` against. */
+  quotedAt: text('quoted_at'),
   createdBy: text('created_by').notNull(),
   createdAt: text('created_at').notNull(),
   /** When it entered the stage it is in. */
@@ -1470,6 +1484,16 @@ export const kits = pgTable('kits', {
   components: text('components').notNull().default('[]'),
   labourHours: real('labour_hours').notNull().default(0),
   labourRateId: text('labour_rate_id'),
+  /**
+   * The job pack that turns a kit into a pre-build — the design's Good/Better/Best tiers.
+   *
+   * A kit prices the work. A PRE-BUILD also tells the crew how to do it: which SWMS applies, what
+   * to check before leaving, and what to load on the van. Those three are the difference between a
+   * line on a quote and a job that goes right the first time, and they are all lists of short
+   * lines, so they are stored as lists rather than as three more tables.
+   */
+  swms: text('swms'),
+  checklist: text('checklist').notNull().default('[]'),
   extraCostCents: integer('extra_cost_cents').notNull().default(0),
   createdAt: text('created_at').notNull(),
 }, t => [index('kits_tenant').on(t.tenantId)]).enableRLS();
@@ -1942,4 +1966,77 @@ export const recurringWork = pgTable('recurring_work', {
 }, t => [
   index('recurring_work_tenant').on(t.tenantId),
   index('recurring_work_due').on(t.tenantId, t.nextDueAt),
+]).enableRLS();
+
+/**
+ * How much of a catalogue item is in a place — a van, or the yard.
+ *
+ * ── The reorder list is the feature ──────────────────────────────────────────────────────────────
+ *
+ * A stock register nobody counts is a register that is wrong within a fortnight, and a wrong
+ * register is worse than none because people trust it. So this stores the two numbers a reorder
+ * list actually needs — how many are here, and how few is too few — and everything else is derived.
+ *
+ * One row per item per place. `countedAt` is when somebody last physically looked, which is the
+ * only thing that makes the number worth anything.
+ */
+export const stockLevels = pgTable('stock_levels', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  itemId: text('item_id').notNull(),
+  /** 'Yard' for the warehouse, or a van's name. Free text: a business names its own vans. */
+  place: text('place').notNull(),
+  qty: integer('qty').notNull().default(0),
+  /** Below this, it goes on the reorder list. Zero means never reorder it automatically. */
+  minQty: integer('min_qty').notNull().default(0),
+  countedAt: text('counted_at'),
+  countedBy: text('counted_by'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  index('stock_levels_tenant').on(t.tenantId),
+  uniqueIndex('stock_levels_item_place').on(t.tenantId, t.itemId, t.place),
+]).enableRLS();
+
+/**
+ * What happened on a job, recorded from the phone.
+ *
+ * ── One table, four things ───────────────────────────────────────────────────────────────────────
+ *
+ * The design's day runs: sign the SWMS → start → photos → materials used → client sign-off →
+ * finish. Four of those are records against a job made by a person at a time, and the only thing
+ * that differs is what the record says. So they share a table and a `kind`, the way the safety
+ * register does.
+ *
+ * Starting and finishing are NOT here: they are hours, they already have `timesheet_entries`, and
+ * a second place for the same fact is how two numbers disagree.
+ */
+export const jobRecords = pgTable('job_records', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  jobId: text('job_id').notNull(),
+  /** swms | photo | materials | signoff — see DAY_RECORDS in lib/tech-day. */
+  kind: text('kind').notNull(),
+  /** Who did it — the crew member's name, or the client's for a sign-off. */
+  who: text('who').notNull(),
+  /** What it says: the SWMS name, the caption, what was used, or what the client signed for. */
+  what: text('what').notNull().default(''),
+  /**
+   * For materials: which catalogue item and how many, so it lands on the job cost rather than
+   * being a note nobody prices. Null for the other kinds.
+   */
+  itemId: text('item_id'),
+  qty: integer('qty'),
+  /**
+   * Where the photo itself is, once there is somewhere to put it.
+   *
+   * SPEC has no file store yet. A photo is recorded here with its caption, who took it and when —
+   * which is the evidence chain — and the image stays on the phone until blob storage is
+   * connected. Saying that plainly is better than pretending the picture is safe somewhere.
+   */
+  fileRef: text('file_ref'),
+  atTime: text('at_time').notNull(),
+}, t => [
+  index('job_records_tenant').on(t.tenantId),
+  index('job_records_job').on(t.tenantId, t.jobId),
 ]).enableRLS();

@@ -23,7 +23,7 @@ import {
   addRate, addKit, bookCrew, unbookCrew, recordTime, approveWeek,
   raiseOrder, recordBill, acceptBill, orderArrived,
   raiseBill, agreeVariation, sendBill, sendReminder, markPaid, releaseRetention,
-  addRecurring, recordDone, bookRecurring,
+  addRecurring, recordDone, bookRecurring, setSource, markQuoted, setStock, orderTheShortfall, setKitPack,
 } from './actions';
 
 import {
@@ -36,6 +36,13 @@ import {
 import {
   RECUR_KINDS, recurStats, recurLine, byDue, dueStateOf, dueLine, needsBooking, DUE_LABEL,
 } from '@/lib/recurring';
+import {
+  leadStats, leadLine, waitingForQuote, bySource, SOURCES, QUOTE_TARGET_DAYS, type Lead,
+} from '@/lib/leads';
+import {
+  stockStats, stockLine, byShortage, stockStateOf, STOCK_LABEL, reorderList, shortBy, placesIn,
+} from '@/lib/stock';
+import { packState, parseChecklist, vanList } from '@/lib/prebuild';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +60,7 @@ export const dynamic = 'force-dynamic';
  */
 
 const TABS = [
+  { key: 'leads', label: 'Leads' },
   { key: 'pipeline', label: 'Jobs' },
   { key: 'quotes', label: 'Quotes' },
   { key: 'schedule', label: 'Schedule' },
@@ -86,7 +94,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const today = now.toISOString().slice(0, 10);
 
   /* Everything this business has recorded for Jobs, read once and scoped by tenant in the query. */
-  const [jobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows] = await Promise.all([
+  const [jobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
     db.select().from(schema.quotes).where(eq(schema.quotes.tenantId, user.tenantId)).orderBy(schema.quotes.createdAt),
     db.select().from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, user.tenantId)).orderBy(schema.catalogueItems.name),
@@ -102,6 +110,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       .orderBy(schema.jobBills.createdAt),
     db.select().from(schema.recurringWork).where(eq(schema.recurringWork.tenantId, user.tenantId))
       .orderBy(schema.recurringWork.nextDueAt),
+    db.select().from(schema.stockLevels).where(eq(schema.stockLevels.tenantId, user.tenantId)),
   ]);
   const crew = await crewFor(user);
 
@@ -172,9 +181,10 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
         <Timesheets jobs={jobs} crew={crew} week={one(sp.week)} manage={manage} today={today} tenantId={user.tenantId} tabHref={tabHref} />
       )}
       {tab === 'catalogue' && (
-        <Catalogue items={itemRows} kits={kits} kitRows={kitRows} rates={rates} q={one(sp.q)} skipped={one(sp.skipped)} manage={manage} today={today} />
+        <Catalogue items={itemRows} kits={kits} kitRows={kitRows} rates={rates} q={one(sp.q)} skipped={one(sp.skipped)} rises={one(sp.rises)} rose={one(sp.rose)} manage={manage} today={today} />
       )}
-      {tab === 'stock' && <Stock orders={orderRows} jobs={jobs} manage={manage} today={today} />}
+      {tab === 'leads' && <Leads jobs={jobs} manage={manage} now={now} />}
+      {tab === 'stock' && <Stock orders={orderRows} jobs={jobs} manage={manage} today={today} levels={stockRows} items={items} />}
       {tab === 'billing' && <Billing bills={billRows} jobs={jobs} manage={manage} now={now} />}
       {tab === 'service' && <Recurring rows={recurRows} manage={manage} today={today} />}
 
@@ -828,9 +838,9 @@ async function Timesheets({ jobs, crew, week, manage, today, tenantId, tabHref }
 
 /* ══ Catalogue ════════════════════════════════════════════════════════════════════════════════════ */
 
-function Catalogue({ items, kits, kitRows, rates, q, skipped, manage, today }: {
+function Catalogue({ items, kits, kitRows, rates, q, skipped, rises, rose, manage, today }: {
   items: (typeof schema.catalogueItems.$inferSelect)[]; kits: Kit[]; kitRows: (typeof schema.kits.$inferSelect)[];
-  rates: LabourRate[]; q: string; skipped: string; manage: boolean; today: string;
+  rates: LabourRate[]; q: string; skipped: string; rises: string; rose: string; manage: boolean; today: string;
 }) {
   const suppliers = [...new Set(items.map(i => i.supplier).filter(Boolean))].sort().map(name => {
     const theirs = items.filter(i => i.supplier === name);
@@ -847,6 +857,18 @@ function Catalogue({ items, kits, kitRows, rates, q, skipped, manage, today }: {
       {skipped && (
         <p role="status" className="rounded-lg bg-surface p-4 text-sm text-ink">
           Price file loaded. {skipped} {skipped === '1' ? 'line was' : 'lines were'} skipped because they had no price SPEC could read.
+        </p>
+      )}
+
+      {/*
+        The import always replaced the costs quietly. A jump of more than 5% is the one worth
+        stopping on: every quote already out with that item on it is now wrong, and nobody finds
+        that out by reading a catalogue.
+      */}
+      {rises && (
+        <p role="alert" className="rounded-lg p-4 text-sm text-ink" style={{ background: `color-mix(in srgb, ${LIGHT_COLOUR.amber} 14%, transparent)` }}>
+          <b>{rises} {rises === '1' ? 'price went' : 'prices went'} up by more than 5%{rose ? `: ${rose}` : ''}.</b>{' '}
+          Any quote already out carrying those is now wrong — worth checking before they are accepted.
         </p>
       )}
 
@@ -948,12 +970,55 @@ function Catalogue({ items, kits, kitRows, rates, q, skipped, manage, today }: {
               const row = kitRows.find(r => r.id === k.id);
               const rate = rates.find(r => r.id === row?.labourRateId) ?? rates[0];
               return (
-                <div key={k.id} className="flex flex-wrap justify-between gap-2.5 rounded-xl bg-cream px-3.5 py-2.5 text-sm">
-                  <strong>{k.name}</strong>
-                  <span>
-                    {money(e.costCents)} materials + {k.labourHours} h labour{rate && k.labourHours ? ` at ${rate.name}` : ''}
-                    {e.missing.length ? <span className="ml-2"><Pill light="amber">{e.missing.length} part{e.missing.length === 1 ? '' : 's'} no longer in the catalogue</Pill></span> : null}
-                  </span>
+                <div key={k.id} className="rounded-xl bg-cream px-3.5 py-2.5 text-sm">
+                  <div className="flex flex-wrap justify-between gap-2.5">
+                    <strong>{k.name}</strong>
+                    <span>
+                      {money(e.costCents)} materials + {k.labourHours} h labour{rate && k.labourHours ? ` at ${rate.name}` : ''}
+                      {e.missing.length ? <span className="ml-2"><Pill light="amber">{e.missing.length} part{e.missing.length === 1 ? '' : 's'} no longer in the catalogue</Pill></span> : null}
+                    </span>
+                  </div>
+
+                  {/*
+                    ── What turns a kit into a pre-build ───────────────────────────────────────
+
+                    A kit prices the work. A pre-build also tells the crew how to do it: which
+                    SWMS applies, what to check before leaving, and what to load. The van list is
+                    not stored — it IS the kit's components, and keeping a second copy would mean
+                    two lists that disagree the first time somebody edits the kit.
+                  */}
+                  {(() => {
+                    const pack = packState({ swms: row?.swms ?? null, checklist: row?.checklist ?? null, components: k.components });
+                    const checks = parseChecklist(row?.checklist);
+                    const load = vanList(k.components, plain);
+                    return (
+                      <div className="mt-2 border-t border-cream-border pt-2">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <Pill light={pack.ready ? 'green' : 'amber'}>
+                            {pack.ready ? 'Pre-build — job pack ready' : 'Kit — not a pre-build yet'}
+                          </Pill>
+                          {!pack.ready && (
+                            <span className="text-xs text-ink-light">Still needs {pack.missing.join(', ')}.</span>
+                          )}
+                        </span>
+                        {(row?.swms || checks.length > 0 || load.length > 0) && (
+                          <div className="mt-2 grid gap-1 text-xs text-ink-light sm:grid-cols-3">
+                            <span><b className="text-ink">SWMS:</b> {row?.swms || 'none named'}</span>
+                            <span><b className="text-ink">Before leaving:</b> {checks.length ? `${checks.length} checks` : 'none set'}</span>
+                            <span><b className="text-ink">On the van:</b> {load.length ? load.map(l => `${l.qty}× ${l.name}`).join(', ') : 'nothing listed'}</span>
+                          </div>
+                        )}
+                        {manage && (
+                          <form action={setKitPack} className="mt-2 grid gap-1.5 sm:grid-cols-4">
+                            <input type="hidden" name="id" value={k.id} />
+                            <input name="swms" defaultValue={row?.swms ?? ''} placeholder="Which SWMS applies" className="input py-1.5 text-xs" />
+                            <input name="checklist" defaultValue={checks.join('\n')} placeholder="What to check before leaving, one per line" className="input py-1.5 text-xs sm:col-span-2" />
+                            <SubmitButton className="btn-secondary px-3 py-1 text-xs">Save the pack</SubmitButton>
+                          </form>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -1140,11 +1205,13 @@ function Register({ groups }: { groups: Group[] }) {
  * The tab used to be three headings with nothing behind them. Purchase orders is now real; van
  * stock and the warehouse keep their honest "not set up yet" notes rather than being dressed up.
  */
-function Stock({ orders, jobs, manage, today }: {
+function Stock({ orders, jobs, manage, today, levels, items }: {
   orders: (typeof schema.purchaseOrders.$inferSelect)[];
   jobs: JobRow[];
   manage: boolean;
   today: string;
+  levels: (typeof schema.stockLevels.$inferSelect)[];
+  items: CatalogueItem[];
 }) {
   const rows: OrderRow[] = orders.map(o => ({
     id: o.id, ref: o.ref, supplier: o.supplier, state: o.state,
@@ -1255,8 +1322,110 @@ function Stock({ orders, jobs, manage, today }: {
         )}
       </section>
 
-      <Register groups={stockGroups()} />
+      <VanAndYard levels={levels} items={items} manage={manage} today={today} />
     </div>
+  );
+}
+
+/**
+ * Van stock and the yard, and the reorder list that falls out of them.
+ *
+ * Two headings that said "not set up yet" became one register, because the reorder list IS the
+ * feature. SPEC asks for the only two numbers it needs — how many are here, and how few is too few
+ * — and works out the rest.
+ */
+function VanAndYard({ levels, items, manage, today }: {
+  levels: (typeof schema.stockLevels.$inferSelect)[];
+  items: CatalogueItem[];
+  manage: boolean;
+  today: string;
+}) {
+  const stats = stockStats(levels, today);
+  const sorted = byShortage(levels, today);
+  const short = reorderList(levels);
+  const nameOf = (id: string) => items.find(i => i.id === id)?.name ?? 'An item';
+
+  return (
+    <section className="card">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-serif text-xl text-ink">Van stock and the yard</h2>
+        <p className="text-sm text-ink-light">{stockLine(stats)}</p>
+      </div>
+      <p className="mt-1 max-w-3xl text-sm text-ink-light">
+        How many are here, and how few is too few. Everything else is worked out — including the
+        reorder list, and the order it turns into.
+      </p>
+
+      {items.length === 0 && (
+        <p className="mt-4 text-sm text-ink-light">
+          Stock is counted against the Catalogue. Add what the vans carry there first.
+        </p>
+      )}
+
+      {short.length > 0 && (
+        <div className="mt-4 rounded-2xl bg-cream px-4 py-3">
+          <p className="font-semibold text-ink">To reorder</p>
+          <ul className="mt-1 grid gap-1 text-sm text-ink-light">
+            {short.map(l => (
+              <li key={`${l.itemId}-${l.place}`}>
+                <b className="text-ink">{l.buy} × {nameOf(l.itemId)}</b> · {l.place} — {l.qty} on hand, minimum {l.minQty}
+              </li>
+            ))}
+          </ul>
+          {manage && (
+            <form action={orderTheShortfall} className="mt-3 flex flex-wrap items-end gap-2">
+              <input name="supplier" placeholder="Supplier" className="input py-1.5 text-sm" />
+              <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Raise the order</SubmitButton>
+            </form>
+          )}
+        </div>
+      )}
+
+      {sorted.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="table-clean min-w-[560px]">
+            <thead><tr><th>Item</th><th>Where</th><th>On hand</th><th>Minimum</th><th>State</th></tr></thead>
+            <tbody>
+              {sorted.map(l => {
+                const state = stockStateOf(l, today);
+                return (
+                  <tr key={l.id}>
+                    <td><strong>{nameOf(l.itemId)}</strong></td>
+                    <td>{l.place}</td>
+                    <td>{l.qty}</td>
+                    <td>{l.minQty || '—'}</td>
+                    <td>
+                      <Pill light={state === 'out' ? 'red' : state === 'low' ? 'amber' : state === 'ok' ? 'green' : 'pending'}>
+                        {STOCK_LABEL[state]}
+                      </Pill>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {manage && items.length > 0 && (
+        <form action={setStock} className="mt-5 grid gap-2 border-t border-cream-border pt-5 sm:grid-cols-5">
+          <select name="itemId" required defaultValue="" className="input sm:col-span-2">
+            <option value="" disabled>Which item</option>
+            {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+          </select>
+          <input name="place" list="stock-places" defaultValue="Yard" placeholder="Where" className="input" />
+          <input name="qty" required placeholder="On hand" className="input" />
+          <input name="minQty" placeholder="Minimum" className="input" />
+          <datalist id="stock-places">
+            <option value="Yard" />
+            {placesIn(levels).map(p => <option key={p} value={p} />)}
+          </datalist>
+          <div className="sm:col-span-5">
+            <SubmitButton className="btn-secondary px-5 py-2">Count it</SubmitButton>
+          </div>
+        </form>
+      )}
+    </section>
   );
 }
 
@@ -1494,6 +1663,108 @@ function Recurring({ rows, manage, today }: {
       <p className="text-sm text-ink-light">
         Total across both: {stats.overdue} overdue, {stats.failed} failed, {stats.toBook} to book.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Leads — where the work came from, and what is still waiting for a quote.
+ *
+ * Built entirely from the Jobs board, because a lead IS an enquiry. Two columns on the job it
+ * already is, rather than a second list that drifts from the first.
+ */
+function Leads({ jobs, manage, now }: { jobs: JobRow[]; manage: boolean; now: Date }) {
+  const leads: Lead[] = jobs.map(j => ({
+    id: j.id, ref: j.ref, title: j.title, client: j.client, stage: j.stage,
+    source: j.source, createdAt: j.createdAt, quotedAt: j.quotedAt, valueCents: j.valueCents,
+  }));
+  const stats = leadStats(leads, now);
+  const waiting = waitingForQuote(leads, now);
+  const sources = bySource(leads);
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-serif text-xl text-ink">Waiting for a quote</h2>
+          <p className="text-sm text-ink-light">{leadLine(stats)}</p>
+        </div>
+        <p className="mt-1 max-w-3xl text-sm text-ink-light">
+          Oldest first. Work quoted on day four is usually work somebody else has already won, so the
+          number that matters is how long the oldest one has been sitting — not how many there are.
+        </p>
+
+        {waiting.length === 0 && (
+          <p className="mt-4 text-sm text-ink-light">Nothing waiting. Every enquiry has been quoted.</p>
+        )}
+
+        <ul className="mt-4 grid gap-2">
+          {waiting.map(w => (
+            <li key={w.lead.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3">
+              <span className="min-w-0">
+                <span className="font-semibold text-ink">{w.lead.ref} · {w.lead.title}</span>
+                <span className="block text-sm text-ink-light">
+                  {w.lead.client} · {w.says}{w.lead.source ? ` · ${w.lead.source}` : ''}
+                </span>
+              </span>
+              <span className="flex flex-wrap items-center gap-2">
+                <Pill light={w.light}>{w.days === 0 ? 'Today' : `${w.days}d`}</Pill>
+                {manage && (
+                  <>
+                    {!w.lead.source && (
+                      <form action={setSource} className="flex items-center gap-1.5">
+                        <input type="hidden" name="jobId" value={w.lead.id} />
+                        <select name="source" defaultValue="" className="input py-1 text-xs" aria-label="Where it came from">
+                          <option value="" disabled>Where from?</option>
+                          {SOURCES.map(x => <option key={x} value={x}>{x}</option>)}
+                        </select>
+                        <SubmitButton className="btn-secondary px-3 py-1 text-xs">Save</SubmitButton>
+                      </form>
+                    )}
+                    <form action={markQuoted}>
+                      <input type="hidden" name="jobId" value={w.lead.id} />
+                      <SubmitButton className="btn-secondary px-3 py-1 text-xs">Quote sent</SubmitButton>
+                    </form>
+                  </>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="card">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-serif text-xl text-ink">Where the work comes from</h2>
+          <p className="text-sm text-ink-light">
+            {stats.speed === null
+              ? 'Speed to quote shows once something has been quoted.'
+              : `Quoting in ${stats.speed} days on average, against a ${QUOTE_TARGET_DAYS}-day target.`}
+          </p>
+        </div>
+        <p className="mt-1 max-w-3xl text-sm text-ink-light">
+          Sorted by what was won, not by what came in — the useful question is which source is worth
+          answering first on a Monday.
+        </p>
+        {sources.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-light">No enquiries yet.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="table-clean min-w-[520px]">
+              <thead><tr><th>Source</th><th>Came in</th><th>Quoted</th><th>Won</th><th>Value won</th></tr></thead>
+              <tbody>
+                {sources.map(r => (
+                  <tr key={r.source}>
+                    <td><strong>{r.source}</strong></td>
+                    <td>{r.came}</td><td>{r.quoted}</td><td>{r.won}</td>
+                    <td>{r.wonCents ? money(r.wonCents) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

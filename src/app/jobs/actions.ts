@@ -10,6 +10,9 @@ import { crewFor, createJob } from '@/lib/jobs-data';
 import { nextOrderRef, match } from '@/lib/purchasing';
 import { isBillKind, claimMaths, maySend, DEFAULT_RETENTION } from '@/lib/billing-job';
 import { isRecurKind, nextDue } from '@/lib/recurring';
+import { isSource } from '@/lib/leads';
+import { reorderList } from '@/lib/stock';
+import { reprice, bigRises, splitChecklist } from '@/lib/prebuild';
 import {
   parseEnquiry, nextRef, nextStage, lineFrom, priceQuote, MARKUPS, DEFAULT_MARKUP,
   toCents, minutesBetween, bookingRefusal, workWeek, parseComponents, parsePriceFile,
@@ -274,8 +277,21 @@ export async function loadPriceFile(formData: FormData) {
     }
   }
   if (fresh.length) await db.insert(schema.catalogueItems).values(fresh);
+
+  /*
+    ── What went up, said out loud ────────────────────────────────────────────────────────────────
+
+    The import already replaced the costs. What it never did was mention that some of them JUMPED —
+    and a price rise nobody sees is every quote already out with that item on it quietly going
+    wrong. `bigRises` names the ones past 5%; below that it is noise.
+  */
+  const rises = bigRises(reprice(rows, have));
+
   revalidatePath('/jobs');
-  back('catalogue', skipped ? { skipped: String(skipped) } : {});
+  back('catalogue', {
+    ...(skipped ? { skipped: String(skipped) } : {}),
+    ...(rises.length ? { rises: String(rises.length), rose: rises.slice(0, 3).map(r => r.name).join(', ') } : {}),
+  });
 }
 
 /** Take an item off the list. Quotes that carry it keep their own copy of its price. */
@@ -768,4 +784,134 @@ export async function bookRecurring(formData: FormData) {
     .where(eq(schema.recurringWork.id, id));
   revalidatePath('/jobs');
   back('service');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * Where the work came from, and what is on the vans
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/** Say where an enquiry came from. Two columns on the job it already is — never a second list. */
+export async function setSource(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'jobId', 64);
+  const source = str(formData, 'source', 40);
+  const job = await ownJob(user.tenantId, id);
+  if (!job || !isSource(source)) return;
+
+  await db.update(schema.jobs).set({ source }).where(eq(schema.jobs.id, id));
+  revalidatePath('/jobs');
+  back('leads');
+}
+
+/**
+ * Mark the quote as gone.
+ *
+ * Stamped here rather than inferred from the stage, because a job can reach `quoted` by somebody
+ * dragging it, and speed-to-quote measured off a drag is a number that flatters.
+ */
+export async function markQuoted(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'jobId', 64);
+  const job = await ownJob(user.tenantId, id);
+  if (!job) return;
+
+  await db.update(schema.jobs)
+    .set({ quotedAt: now(), stage: job.stage === 'enquiry' ? 'quoted' : job.stage, stageAt: now() })
+    .where(eq(schema.jobs.id, id));
+  revalidatePath('/jobs');
+  back('leads');
+}
+
+/** Put an item on the register for a place — a van, or the yard. */
+export async function setStock(formData: FormData) {
+  const user = await writer();
+  const itemId = str(formData, 'itemId', 64);
+  const place = str(formData, 'place', 60) || 'Yard';
+  if (!itemId) back('stock', {}, 'Pick the item — stock is counted against the catalogue.');
+
+  const [item] = await db.select({ id: schema.catalogueItems.id }).from(schema.catalogueItems)
+    .where(and(eq(schema.catalogueItems.id, itemId), eq(schema.catalogueItems.tenantId, user.tenantId)));
+  if (!item) back('stock', {}, 'That item is not in this business’s catalogue.');
+
+  const qty = Math.max(0, Math.round(Number(str(formData, 'qty', 6)) || 0));
+  const minQty = Math.max(0, Math.round(Number(str(formData, 'minQty', 6)) || 0));
+  const stamp = now();
+
+  const [existing] = await db.select().from(schema.stockLevels).where(and(
+    eq(schema.stockLevels.tenantId, user.tenantId),
+    eq(schema.stockLevels.itemId, itemId),
+    eq(schema.stockLevels.place, place),
+  ));
+
+  if (existing) {
+    await db.update(schema.stockLevels)
+      .set({ qty, minQty, countedAt: stamp, countedBy: user.id, updatedAt: stamp })
+      .where(eq(schema.stockLevels.id, existing.id));
+  } else {
+    await db.insert(schema.stockLevels).values({
+      id: randomUUID(), tenantId: user.tenantId, itemId, place, qty, minQty,
+      countedAt: stamp, countedBy: user.id, createdAt: stamp, updatedAt: stamp,
+    });
+  }
+  revalidatePath('/jobs');
+  back('stock');
+}
+
+/**
+ * Turn the reorder list into a purchase order.
+ *
+ * The last step of "a reorder list built from what jobs will need": a list that still leaves
+ * somebody to type an order is a list that gets read and not acted on.
+ */
+export async function orderTheShortfall(formData: FormData) {
+  const user = await writer();
+  const supplier = str(formData, 'supplier', 120) || 'To be decided';
+
+  const [levels, items] = await Promise.all([
+    db.select().from(schema.stockLevels).where(eq(schema.stockLevels.tenantId, user.tenantId)),
+    db.select().from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, user.tenantId)),
+  ]);
+  const short = reorderList(levels);
+  if (short.length === 0) back('stock', {}, 'Nothing is under its minimum.');
+
+  const nameOf = (id: string) => items.find(i => i.id === id)?.name ?? 'An item';
+  const costOf = (id: string) => items.find(i => i.id === id)?.costCents ?? 0;
+  const total = short.reduce((t, l) => t + l.buy * costOf(l.itemId), 0);
+  const what = short.slice(0, 8).map(l => `${l.buy} × ${nameOf(l.itemId)} (${l.place})`).join(', ');
+
+  const existing = await db.select({ ref: schema.purchaseOrders.ref })
+    .from(schema.purchaseOrders).where(eq(schema.purchaseOrders.tenantId, user.tenantId));
+
+  const stamp = now();
+  await db.insert(schema.purchaseOrders).values({
+    id: randomUUID(), tenantId: user.tenantId,
+    ref: nextOrderRef(existing.map(e => e.ref)),
+    supplier,
+    what: short.length > 8 ? `${what}, and ${short.length - 8} more` : what,
+    totalCents: total,
+    state: 'draft',
+    createdAt: stamp, updatedAt: stamp,
+  });
+  revalidatePath('/jobs');
+  back('stock');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * Supplier price files, and the pre-build job pack
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/** Give a kit its job pack — which SWMS, and what to check before leaving. */
+export async function setKitPack(formData: FormData) {
+  const user = await writer();
+  const id = str(formData, 'id', 64);
+  const [kit] = await db.select({ id: schema.kits.id }).from(schema.kits)
+    .where(and(eq(schema.kits.id, id), eq(schema.kits.tenantId, user.tenantId)));
+  if (!kit) back('catalogue', {}, 'That kit is not in this business.');
+
+  await db.update(schema.kits).set({
+    swms: str(formData, 'swms', 200) || null,
+    checklist: JSON.stringify(splitChecklist(String(formData.get('checklist') ?? '').slice(0, 4000))),
+  }).where(eq(schema.kits.id, id));
+  revalidatePath('/jobs');
+  back('catalogue');
 }

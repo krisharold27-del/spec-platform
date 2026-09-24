@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { clockOn, clockOff } from '@/app/tech-day/actions';
+import { clockOn, clockOff, recordOnJob } from '@/app/tech-day/actions';
 import { SiteVipMark } from '@/components/sitevip-mark';
 import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import {
   STEPS, EMPTY_DAY, apply, canDo, doneLine, isDone, nextStep, primaryLabel, primaryNote, revive,
   storageKey, summary, timesheet, clock, hoursLabel, bookedOn, hhmm,
+  nextAction, dayLine,
   type Material, type StepKey, type TechDayAction, type TechDayState, type Booked, type TechJob,
 } from '@/lib/tech-day';
 
@@ -57,12 +58,16 @@ function KeptHere({ children }: { children: React.ReactNode }) {
  * The tech's phone. Every tap goes through `apply` in lib/tech-day, so the order the page allows is
  * the order the tests hold — a SWMS before Start, the on-job steps after it, Finish last.
  */
-export function TechDayPhone({ userId, name, firstName, clear, booked = [], open = null }: {
+export function TechDayPhone({ userId, name, firstName, clear, booked = [], open = null, records = [], items = [] }: {
   userId: string; name: string; firstName: string; clear: ClearToWork;
   /** The office's bookings for this person, either side of today — the phone keeps its own day's. */
   booked?: Booked[];
   /** An office Start with no Finish, if there is one. */
   open?: OfficeEntry | null;
+  /** What has already been recorded on today's jobs: the SWMS, photos, materials, the sign-off. */
+  records?: { jobId: string; kind: string; who: string; what: string; atTime: string }[];
+  /** The catalogue, so materials come off a list rather than being typed as a note. */
+  items?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   /** What the office said about the last Start or Finish, when it could not take it. */
@@ -210,6 +215,9 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
             {(!s.job || s.finishedAt) && (
               <BookedJobs
                 jobs={bookedOn(booked, day)}
+                records={records}
+                items={items}
+                who={name}
                 onOpen={job => { act({ type: 'open', job }); setView('job'); }}
               />
             )}
@@ -378,24 +386,44 @@ function ClearCard({ clear }: { clear: ClearToWork }) {
   );
 }
 
-/** The jobs the office booked you on today, one press to open. */
-function BookedJobs({ jobs, onOpen }: { jobs: Booked[]; onOpen: (job: TechJob) => void }) {
+/**
+ * The jobs the office booked you on today, one press to open — and the next thing to do on each.
+ *
+ * ── Outsimple them: one step, never a menu ─────────────────────────────────────────────────────
+ *
+ * SimPro's field app asks the technician to navigate. This asks them to press the next thing. The
+ * order is fixed — sign the SWMS, start, photos, materials, the client signs — so SPEC knows where
+ * the day has got to and shows one button, not five tabs.
+ */
+function BookedJobs({ jobs, onOpen, records = [], items = [], who = '' }: {
+  jobs: Booked[];
+  onOpen: (job: TechJob) => void;
+  records?: { jobId: string; kind: string; who: string; what: string; atTime: string }[];
+  items?: { id: string; name: string }[];
+  who?: string;
+}) {
   if (!jobs.length) return null;
   return (
     <section className="grid gap-2 rounded-[20px] bg-white px-[18px] py-4 shadow-sm">
       <h2 className="text-[15px] font-bold">Today&rsquo;s jobs</h2>
-      {jobs.map(j => (
-        <button
-          key={j.jobId}
-          type="button"
-          onClick={() => onOpen({ title: j.title, site: j.site, jobId: j.jobId, ref: j.ref })}
-          className="grid min-h-[56px] gap-0.5 rounded-2xl bg-cream px-4 py-3 text-left"
-        >
-          <span className="text-[12.5px] text-ink-light">{j.ref} · {j.client}</span>
-          <span className="text-[16px] font-bold leading-snug">{j.title}</span>
-          {j.site && <span className="text-sm text-ink-light">{j.site}</span>}
-        </button>
-      ))}
+      {jobs.map(j => {
+        const mine = records.filter(r => r.jobId === j.jobId);
+        return (
+          <div key={j.jobId} className="grid gap-2 rounded-2xl bg-cream px-4 py-3">
+            <button
+              type="button"
+              onClick={() => onOpen({ title: j.title, site: j.site, jobId: j.jobId, ref: j.ref })}
+              className="grid min-h-[44px] gap-0.5 text-left"
+            >
+              <span className="text-[12.5px] text-ink-light">{j.ref} · {j.client}</span>
+              <span className="text-[16px] font-bold leading-snug">{j.title}</span>
+              {j.site && <span className="text-sm text-ink-light">{j.site}</span>}
+            </button>
+            <p className="text-[13px] text-ink-light">{dayLine(mine, mine.some(r => r.kind !== 'swms'))}</p>
+            <NextThing jobId={j.jobId} records={mine} items={items} who={who} />
+          </div>
+        );
+      })}
     </section>
   );
 }
@@ -593,6 +621,126 @@ function DoneScreen({ s, now, signature, onNext, note }: { s: TechDayState; now:
       <button type="button" onClick={onNext} className="min-h-[52px] rounded-full bg-ink px-4 py-4 text-[15.5px] font-semibold text-white">
         Next job &rarr;
       </button>
+    </div>
+  );
+}
+
+/**
+ * The next thing to press on this job, and nothing else.
+ *
+ * One button. The SWMS comes before everything; the client's signature ends it. Between them the
+ * technician is on site with a customer waiting, so nothing here argues — the order is shown, not
+ * enforced, and the office sees what was missed on the job card.
+ */
+function NextThing({ jobId, records, items, who }: {
+  jobId: string;
+  records: { kind: string; who: string; what: string; atTime: string }[];
+  items: { id: string; name: string }[];
+  who: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [what, setWhat] = useState('');
+  const [itemId, setItemId] = useState('');
+  const [qty, setQty] = useState('1');
+
+  const started = records.some(r => r.kind !== 'swms');
+  const next = nextAction(records, started);
+  if (!next) {
+    return <p className="text-[13px] font-semibold" style={{ color: LIGHT_INK.green }}>Signed off. Nothing left on this one.</p>;
+  }
+
+  const send = async () => {
+    setBusy(true);
+    const answer = await recordOnJob({
+      jobId,
+      kind: next.key,
+      who: next.key === 'signoff' ? (what || 'The client') : who,
+      what: next.key === 'signoff' ? 'Signed that the work is done' : what,
+      itemId: next.key === 'materials' ? itemId : null,
+      qty: next.key === 'materials' ? Number(qty) : null,
+    });
+    setBusy(false);
+    setSaid(answer.says);
+    if (answer.ok) { setOpen(false); setWhat(''); setItemId(''); setQty('1'); }
+  };
+
+  return (
+    <div className="grid gap-2">
+      {said && <p className="text-[13px] text-ink-light">{said}</p>}
+
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="btn-primary min-h-[48px] text-base"
+        >
+          {next.key === 'swms' ? 'Sign the SWMS'
+            : next.key === 'photo' ? 'Add a photo'
+              : next.key === 'materials' ? 'Materials used'
+                : 'Client sign-off'}
+        </button>
+      ) : (
+        <div className="grid gap-2">
+          <p className="text-[13px] text-ink-light">{next.prompt}</p>
+
+          {next.key === 'materials' ? (
+            <div className="grid gap-2">
+              <select
+                value={itemId}
+                onChange={e => setItemId(e.target.value)}
+                className="input min-h-[48px] text-base"
+                aria-label="What came off the van"
+              >
+                <option value="">What came off the van</option>
+                {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+              </select>
+              <input
+                value={qty}
+                onChange={e => setQty(e.target.value)}
+                inputMode="numeric"
+                className="input min-h-[48px] text-base"
+                aria-label="How many"
+                placeholder="How many"
+              />
+            </div>
+          ) : (
+            <input
+              value={what}
+              onChange={e => setWhat(e.target.value)}
+              className="input min-h-[48px] text-base"
+              aria-label={next.key === 'signoff' ? 'Who signed' : 'What it is'}
+              placeholder={
+                next.key === 'swms' ? 'Which SWMS you signed'
+                  : next.key === 'photo' ? 'What the photo shows'
+                    : 'Who signed'
+              }
+            />
+          )}
+
+          {/*
+            Said plainly rather than hidden: SPEC has nowhere to put the image yet. The caption, who
+            took it and when are the evidence chain and they are kept; the picture stays on the
+            phone until a file store is connected. Pretending otherwise would be worse.
+          */}
+          {next.key === 'photo' && (
+            <p className="text-[12.5px] text-ink-light">
+              The photo stays on your phone for now — SPEC records what it shows, who took it and
+              when. Keep it until the office asks.
+            </p>
+          )}
+
+          <div className="flex gap-2">
+            <button type="button" onClick={send} disabled={busy} className="btn-primary min-h-[48px] flex-1 text-base">
+              {busy ? 'One moment…' : 'Record it'}
+            </button>
+            <button type="button" onClick={() => setOpen(false)} className="btn-secondary min-h-[48px] px-5">
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

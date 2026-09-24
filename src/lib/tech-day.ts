@@ -356,3 +356,85 @@ export function daysAround(now: Date): string[] {
 export function officeMinutes(startedIso: string, now: Date): number {
   return Math.min(24 * 60, minutesBetween(startedIso, now.toISOString()));
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * The rest of the day: the SWMS, the photos, the materials and the client's signature
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ *
+ * Clocking on and off is above and is hours. These four are records against a job made by a person
+ * at a time, and they share one table — the order is fixed, so SPEC knows where the technician is
+ * in it and the screen only ever shows the next thing.
+ */
+
+export type DayRecord = 'swms' | 'photo' | 'materials' | 'signoff';
+
+export const DAY_RECORDS: { key: DayRecord; label: string; prompt: string }[] = [
+  { key: 'swms', label: 'SWMS', prompt: 'Sign the SWMS before anything starts.' },
+  { key: 'photo', label: 'Photos', prompt: 'Photos of what you found and what you did.' },
+  { key: 'materials', label: 'Materials used', prompt: 'What came off the van onto this job.' },
+  { key: 'signoff', label: 'Client sign-off', prompt: 'The client signs that it is done.' },
+];
+
+export const isDayRecord = (v: string): v is DayRecord => DAY_RECORDS.some(r => r.key === v);
+
+export const recordLabel = (v: string): string =>
+  DAY_RECORDS.find(r => r.key === v)?.label ?? 'Record';
+
+export interface Rec { kind: string; who: string; what: string; atTime: string; qty?: number | null }
+
+/**
+ * Has the SWMS been signed for this job?
+ *
+ * The one that gates everything else. High-risk work started before the SWMS is signed is the
+ * single thing a regulator asks about first, and it is the easiest to skip when it is a form rather
+ * than the thing standing between the technician and the Start button.
+ */
+export const swmsSigned = (recs: readonly Rec[]): boolean =>
+  recs.some(r => r.kind === 'swms');
+
+export const signedOff = (recs: readonly Rec[]): boolean =>
+  recs.some(r => r.kind === 'signoff');
+
+export const countOf = (recs: readonly Rec[], kind: DayRecord): number =>
+  recs.filter(r => r.kind === kind).length;
+
+/**
+ * The next thing to press — and only ever one.
+ *
+ * Null once the client has signed: the day on that job is done and the screen should say so rather
+ * than offering a fifth thing.
+ */
+export function nextAction(recs: readonly Rec[], started: boolean): { key: DayRecord; prompt: string } | null {
+  if (!swmsSigned(recs)) return { key: 'swms', prompt: DAY_RECORDS[0].prompt };
+  if (signedOff(recs)) return null;
+  if (!started) return null;          // the Start button is the next thing, and it is not a record
+  if (countOf(recs, 'photo') === 0) return { key: 'photo', prompt: DAY_RECORDS[1].prompt };
+  if (countOf(recs, 'materials') === 0) return { key: 'materials', prompt: DAY_RECORDS[2].prompt };
+  return { key: 'signoff', prompt: DAY_RECORDS[3].prompt };
+}
+
+/** What the job card says it is waiting on. */
+export function dayLine(recs: readonly Rec[], started: boolean): string {
+  if (!swmsSigned(recs)) return 'The SWMS is not signed. Nothing starts until it is.';
+  if (signedOff(recs)) return 'Signed off by the client. Done.';
+  if (!started) return 'SWMS signed. Press Start when you are on the tools.';
+  const photos = countOf(recs, 'photo');
+  const mats = countOf(recs, 'materials');
+  return `${photos} ${photos === 1 ? 'photo' : 'photos'}, ${mats} ${mats === 1 ? 'material line' : 'material lines'}. The client has not signed yet.`;
+}
+
+/**
+ * Whether the day's record is complete enough to invoice from.
+ *
+ * Not a gate on the technician — they are on site and the customer is waiting. It is what the
+ * office sees: an invoice raised off a job with no sign-off is the one that gets disputed.
+ */
+export interface Evidence { complete: boolean; missing: string[] }
+
+export function evidenceOf(recs: readonly Rec[]): Evidence {
+  const missing: string[] = [];
+  if (!swmsSigned(recs)) missing.push('the SWMS was never signed');
+  if (countOf(recs, 'photo') === 0) missing.push('no photos');
+  if (!signedOff(recs)) missing.push('the client did not sign');
+  return { complete: missing.length === 0, missing };
+}

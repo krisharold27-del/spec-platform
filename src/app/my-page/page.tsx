@@ -722,7 +722,17 @@ export default async function MyPage({
           you back.
         </p>
 
-        <div className="mt-6 grid gap-8 sm:grid-cols-2">
+        {/*
+          Three columns on a wide screen, not two.
+
+          This block is the tallest thing on My Page, and it grew when the work was split into its
+          real doors — Clients, Compliance, Coverage, Tech day. At two columns a new business met a
+          twelve-hundred-pixel wall of links as the last thing on their first morning, which is the
+          opposite of what this page is for. Nothing is hidden or shortened; it is laid out in the
+          width that is already there. `register-journey` fails the build if the page passes what a
+          person can take in, which is how this was found.
+        */}
+        <div className="mt-6 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {ways.map(group => (
             <div key={group.title}>
               <span className="label-caps">{group.title}</span>

@@ -375,7 +375,7 @@ const JOURNEYS = [
   ['predict', 'SPEC reading the chart and the leader deciding', 'predict-journey'],
   ['cascade', 'the goal reaching a scorecard without setting anybody\u2019s target', 'cascade-journey'],
   ['automation', 'what a process could do, seen only by the people who decide', 'automation-journey'],
-  ['pay', 'a business that wants to pay being able to', 'pay-journey'],
+  ['pay', 'a business that wants to pay being able to', 'pay-journey.mts'],
   ['seat', 'somebody you invited taking their seat', 'seat-journey'],
   ['boards', 'a board a team can pin, read the working on, and argue over', 'boards-journey'],
   ['cockpit', 'your own cockpit staying private', 'cockpit-journey'],

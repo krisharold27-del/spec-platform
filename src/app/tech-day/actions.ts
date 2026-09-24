@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
-import { validClock, dayNear, daysAround, officeMinutes } from '@/lib/tech-day';
+import { isDayRecord, recordLabel, validClock, dayNear, daysAround, officeMinutes } from '@/lib/tech-day';
 
 /**
  * Start and Finish on the phone, written to the office's timesheets (23 September).
@@ -18,6 +18,9 @@ import { validClock, dayNear, daysAround, officeMinutes } from '@/lib/tech-day';
  */
 
 type Result = { ok: true; entryId: string } | { ok: false; reason: string };
+
+/** What `recordOnJob` answers with — a sentence for the phone, not an id. */
+export type Recorded = { ok: true; says: string } | { ok: false; says: string };
 
 async function me() {
   const user = await getCurrentUser();
@@ -87,4 +90,66 @@ export async function clockOff(input: { entryId: string; clock: string }): Promi
   revalidatePath('/jobs');
   revalidatePath('/tech-day');
   return { ok: true, entryId: entry.id };
+}
+
+/**
+ * Record one thing that happened on the job — the SWMS, a photo, materials, the client's signature.
+ *
+ * One action for all four, because they are one shape: who, what, when. The order is enforced by
+ * the screen showing only the next thing, not by refusing here — the technician is on site with a
+ * customer waiting, and a phone that argues is a phone that gets put back in the pocket.
+ */
+export async function recordOnJob(input: {
+  jobId: string;
+  kind: string;
+  who: string;
+  what: string;
+  itemId?: string | null;
+  qty?: number | null;
+}): Promise<Recorded> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, says: 'Sign in first.' };
+  if (!isDayRecord(input.kind)) return { ok: false, says: 'SPEC does not know that kind of record.' };
+
+  const jobId = String(input.jobId ?? '').slice(0, 64);
+  const [job] = await db.select({ id: schema.jobs.id }).from(schema.jobs)
+    .where(and(eq(schema.jobs.id, jobId), eq(schema.jobs.tenantId, user.tenantId)));
+  if (!job) return { ok: false, says: 'That job is not in this business.' };
+
+  /*
+    Materials land on the job's cost rather than sitting as a note nobody prices. Only an item from
+    this business's own catalogue, and only a sensible quantity.
+  */
+  let itemId: string | null = null;
+  let qty: number | null = null;
+  if (input.kind === 'materials' && input.itemId) {
+    const [item] = await db.select({ id: schema.catalogueItems.id, costCents: schema.catalogueItems.costCents })
+      .from(schema.catalogueItems)
+      .where(and(eq(schema.catalogueItems.id, input.itemId), eq(schema.catalogueItems.tenantId, user.tenantId)));
+    if (item) {
+      itemId = item.id;
+      qty = Math.max(1, Math.min(9999, Math.round(Number(input.qty) || 1)));
+      const [current] = await db.select({ materialsCents: schema.jobs.materialsCents })
+        .from(schema.jobs).where(eq(schema.jobs.id, jobId));
+      await db.update(schema.jobs)
+        .set({ materialsCents: (current?.materialsCents ?? 0) + item.costCents * qty })
+        .where(eq(schema.jobs.id, jobId));
+    }
+  }
+
+  await db.insert(schema.jobRecords).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    jobId,
+    kind: input.kind,
+    who: String(input.who ?? user.name ?? 'Crew').slice(0, 120),
+    what: String(input.what ?? '').slice(0, 400),
+    itemId,
+    qty,
+    atTime: new Date().toISOString(),
+  });
+
+  revalidatePath('/tech-day');
+  revalidatePath('/jobs');
+  return { ok: true, says: `${recordLabel(input.kind)} recorded.` };
 }
