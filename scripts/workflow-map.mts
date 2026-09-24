@@ -29,3 +29,13 @@ const idle = movesNothing();
 console.log(idle.length ? `  MOVES NOTHING: ${idle.map(w => w.name).join(', ')}` : '  Every workflow moves at least one measure.');
 const busiest = [...FRAMEWORK].map(s => ({ s, n: movedBy(s.id).length })).sort((a,b)=>b.n-a.n);
 console.log(`  Most workflows behind it: ${busiest[0].s.name} (${busiest[0].n}) · fewest: ${busiest[busiest.length-1].s.name} (${busiest[busiest.length-1].n})`);
+
+const { byStream, ownedBy, emptyStreams } = await import('../src/lib/workflows');
+const { STREAMS, ABOVE, ownerLabel } = await import('../src/lib/streams');
+console.log('\n── THE THREE STREAMS ──');
+for (const t of byStream()) {
+  const pct = t.steps ? Math.round(t.auto / t.steps * 100) : 0;
+  console.log(`  ${ownerLabel(t.owner).padEnd(20)} ${String(t.total).padStart(2)} workflows · ${t.whole} end to end · ${pct}% of steps happen on their own`);
+}
+const empty = emptyStreams();
+console.log(empty.length ? `  EMPTY STREAM: ${empty.join(', ')}` : '  No stream is empty.');

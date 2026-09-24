@@ -4,7 +4,9 @@ import { join } from 'node:path';
 import {
   WORKFLOWS, FAMILIES, FamilyKey, placeOf, placesFor, peopleIn, tooFar, gaps,
   stateOf, tally, unreachable, movesNothing, movedBy, screensOf, doneForYou,
+  ownedBy, byStream, emptyStreams,
 } from '../src/lib/workflows';
+import { STREAMS, STREAM_KEYS, type Owner } from '../src/lib/streams';
 import { FRAMEWORK } from '../src/lib/power-meter';
 
 const APP = join(process.cwd(), 'src/app');
@@ -211,5 +213,68 @@ describe('the counts SPEC publishes about itself are the real ones', () => {
     const w = WORKFLOWS.find(x => x.id === 'day-on-phone')!;
     expect(screensOf(w)[0]).toBe('/tech-day');
     expect(new Set(screensOf(w)).size).toBe(screensOf(w).length);
+  });
+});
+
+/*
+  ── The three streams ───────────────────────────────────────────────────────────────────────────
+
+  Kris, 24 September: "there are three main streams in a successful trade business - even transport
+  business - COGS - Commercial making sure money is in order more in than out, Operations getting
+  the work done safely and Growth making sure new work is coming in steadily - all focused on
+  solving problems and maximising business potential".
+*/
+describe('every workflow belongs to one stream', () => {
+  it('has an owner, and it is one of the three or the seat above', () => {
+    const allowed = new Set<Owner>([...STREAM_KEYS, 'whole']);
+    for (const w of WORKFLOWS) {
+      expect(allowed.has(w.owner), `${w.id} is owned by "${w.owner}"`).toBe(true);
+    }
+  });
+
+  it('no stream is empty', () => {
+    /*
+      If Growth came back empty it would mean SPEC had quietly become a job system with a safety
+      module bolted on, which is most of this market and the thing it is meant not to be.
+    */
+    expect(emptyStreams()).toEqual([]);
+  });
+
+  it('`whole` is the General Manager’s own work, not a bin for awkward ones', () => {
+    /*
+      The failure mode this guards. `whole` is the easy answer for anything that does not obviously
+      belong to one manager, and an escape hatch used freely is an escape hatch that empties the
+      model: three streams that own nothing, and a GM who owns everything, which is the business
+      SPEC exists to fix rather than describe.
+    */
+    const theirs = ownedBy('whole');
+    expect(theirs.length).toBeLessThan(WORKFLOWS.length * 0.15);
+    for (const w of theirs) {
+      expect(w.family, `${w.id} is filed above the streams but is not the business's own rhythm`).toBe('run');
+    }
+  });
+
+  it('the three streams between them own everything that is not the GM’s', () => {
+    const covered = STREAM_KEYS.reduce((n, k) => n + ownedBy(k).length, 0);
+    expect(covered + ownedBy('whole').length).toBe(WORKFLOWS.length);
+  });
+
+  it('each stream is described in the business’s words, not in ours', () => {
+    for (const s of STREAMS) {
+      expect(s.is.length).toBeGreaterThan(40);
+      expect(s.asks).toMatch(/\?$/);
+      /* What it looks like going wrong BEFORE the numbers show it — the bit worth reading. */
+      expect(s.slips.length).toBeGreaterThan(60);
+      expect(s.seat).toMatch(/Manager$/);
+    }
+    expect(STREAMS.map(s => s.key)).toEqual(['commercial', 'operations', 'growth']);
+  });
+
+  it('a stream’s tally is counted, never stated', () => {
+    for (const t of byStream()) {
+      const ws = ownedBy(t.owner);
+      expect(t.total).toBe(ws.length);
+      expect(t.steps).toBe(ws.reduce((n, w) => n + w.steps.length, 0));
+    }
   });
 });
