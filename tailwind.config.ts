@@ -46,9 +46,29 @@ export default {
           600: '#728157', 700: '#56633f', 800: '#3d472b', 900: '#272e1b',
         },
 
-        /** The ground. `cream` is the page, `surface` the card that sits on it. */
-        cream: { DEFAULT: '#f5ead8', border: '#dcd3c4' },
-        surface: { DEFAULT: '#ebddc5', raised: '#f9f4ed' },
+        /*
+          ── The ground, inverted on 24 September ──────────────────────────────────────────────
+
+          It used to run sandy page → darker sandy card → sandy inset, so a card was the darkest
+          thing on the screen and everything sat under a wash of colour. Kris: *"the background must
+          be white so it looks clean — the sandy colour is annoying to me."*
+
+          It now runs the way the design's own latest pass runs it: a WHITE page, WHITE cards
+          separated by a hairline warm ring rather than by a change of fill, and the sandy tone kept
+          for things that are RECESSED — a nested block, an unselected pill, the fill behind an
+          input. So the relationship inverts: an inset is now darker than the card it sits in,
+          where before it dropped back to the page.
+
+          That is why this is two token edits rather than a sweep of three hundred class names.
+          Every `bg-cream` in the product is already an inset, a pill or an input fill, and every
+          `bg-surface` is already a card. They keep their jobs; only the colours move.
+
+          `cream` also does a second job — `text-cream` is the light ink on a dark or coloured fill,
+          48 times over — which is why it stays warm rather than becoming white. White text on rust
+          is a different look, and nobody asked for it.
+        */
+        cream: { DEFAULT: '#f4ede1', border: '#e0d3be' },
+        surface: { DEFAULT: '#ffffff', raised: '#faf6f0' },
 
         ink: {
           DEFAULT: '#201e1d',

@@ -10,7 +10,12 @@
  * a colour — every value is a token, so the look is retuned in one file.
  */
 
-body { @apply bg-cream font-sans text-ink antialiased; }
+/*
+  White, since 24 September — Kris: "the background must be white so it looks clean — the sandy
+  colour is annoying to me." The sandy tone is not gone; it moved to the things that are recessed.
+  See the note on `cream` and `surface` in tailwind.config.
+*/
+body { @apply bg-white font-sans text-ink antialiased; }
 
 /**
  * Caprasimo has one weight. Asking the browser for a bolder one gets a synthesised smear, so the
@@ -42,7 +47,12 @@ body { @apply bg-cream font-sans text-ink antialiased; }
     own `overflow-x-auto` never got the chance to scroll, because its parent had already given it
     all the room it asked for. Conversation boards was 316px wider than the screen because of this.
   */
-  .card { @apply min-w-0 rounded-lg border border-ink/10 bg-surface p-5 shadow-sm; }
+  /*
+  A white card on a white page, so the edge is what separates it rather than the fill. A hairline
+  warm ring does that without drawing a box: `cream-border` is the design's own `#e0d3be`, and the
+  soft drop underneath is what keeps it reading as ON the page rather than cut out of it.
+*/
+  .card { @apply min-w-0 rounded-lg border border-cream-border bg-surface p-5 shadow-sm; }
 
   /* A row or tile nested inside a card — drops back to the page ground so it reads as recessed. */
   .card-inset { @apply rounded-lg bg-cream p-4; }

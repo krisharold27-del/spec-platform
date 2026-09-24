@@ -115,7 +115,7 @@ was checked in the code, the file is named. Nothing here is marked done because 
 | **CRM** — customers inside jobs | ◐ | `/crm` and `/clients` are built and real; **they are separate pages rather than a Customers tab on Jobs**, which is what the 24 Sep note asks for |
 | **Compliance** — the full new system | ✗ | `SPEC Compliance.dc.html` is in the bundle; **there is no `/compliance` page**. Licences, insurances, certificates, audits, contracts, breaches |
 | **Nav: key areas** — My page · Jobs · CRM · People · Safety · Compliance · Board, Setup/Connections/All pages on the right | ◐ | the bar reads Setup · My page · Jobs · CRM · Clients · Org chart · People · Safety · Pricing · Scoring · Board pack · Mirrors · Connections · All pages. **Compliance is absent, Setup is still first rather than on the right, and Org chart / Training / Scoring / Mirrors are not folded under People and Board** |
-| **siteVIP Landing** | ✗ | not built, and it needs a domain decision first — see below |
+| **siteVIP Landing** | ✅ | **I marked this missing and was wrong.** It is the root page: `/` serves siteVIP, `/spec` serves the SPEC edition, one deployment. Kris confirmed that shape on 24 September — *"just one deployment seems sensible to me right? why would i want a second one?"* — and the code was already built for it. Only the DNS remains, which is an account change rather than a code one |
 | **Monthly rhythm** — lock on the last day, scores clear to zero on the 1st, KPIs carry over | ✅ | **Fixed in this pass, and it was worse than missing.** `currentPeriod` returned the LAST period whenever none was open and never asked what month it is, so a business that signed September off would have opened SPEC on 1 October and been shown September — signed, unmarkable — as its current month, with no way to start the new one. `scripts/month-roll.mts` proves the roll against a real database and reads FAIL on the old code |
 | **Seat price A$134 / A$17, AI included** | ✅ | `lib/pricing`, matches the live Stripe account |
 | **No non-AI tier anywhere** | ✅ | no "Basic" on any customer-facing page |
@@ -153,14 +153,12 @@ was checked in the code, the file is named. Nothing here is marked done because 
    Pre-builds are the two a trade business feels first.
 5. **"Is the business going well?"** — the verdict, the rolling average and the serious-event cap.
 6. **Subcontractors.** Kris corrected this himself on 24 September: a paid team seat, not free.
-7. **siteVIP Landing.** Blocked on the domain decision, not on the build.
 
 ## Two things I would ask about
 
-- **sitevipapp.com.** One front door on the same app, or a separate project? The design reads like
-  the first — *"siteVIP is the trades edition of SPEC… More editions, built on the same engine, are
-  coming"* — and the first is also the one that does not double the ways SPEC can be down. Either
-  way the DNS has to be pointed at Vercel, which is a change to the account rather than to the code.
+- ~~**sitevipapp.com.**~~ **Settled 24 September: one deployment.** `/` is siteVIP, `/spec` is the
+  SPEC edition, and both are already built that way. What remains is pointing sitevipapp.com's DNS
+  at the Vercel project and adding the domain to it — an account change, not a code one.
 - **"Days without harm."** The design's first Safety tile counts how long the business has gone
   without an injury. It resets to zero the day somebody is hurt, so the way to keep it high is for
   nobody to report — and the same file says two sections later that *more reports is a good sign*.
