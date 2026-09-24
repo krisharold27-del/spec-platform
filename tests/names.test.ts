@@ -34,6 +34,13 @@ const NOT_PAGES: Record<string, string> = {
   'SPEC Inbox': 'at /inbox, where approvals wait',
   // 23 September 2026: the bare address became siteVIP, and SPEC's own front door moved to /spec.
   'SPEC Landing': 'SPEC’s own front door, at /spec since the bare address became siteVIP',
+  /*
+    The Setup that was replaced on 24 September, kept in the bundle so the file-driven rebuild can
+    be read against what it replaced. It is reference, not a backlog item — there is no /setup-v1
+    and there must never be one, because two setup wizards is how a business ends up half through
+    each.
+  */
+  'SPEC Setup v1': 'the superseded Setup, kept for reference only — never to be built',
   'siteVIP Landing': 'the address itself, / — the trades edition of SPEC',
 };
 

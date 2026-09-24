@@ -106,19 +106,35 @@ describe('the navigation bar', () => {
   */
   const f = { businesses: 1, runsSpec: false };
 
-  it('IS FOURTEEN ITEMS, not nineteen — Jobs, CRM, Clients, People and Safety joined on 23 September', () => {
+  it('IS TEN ITEMS — seven key areas, and three for setting it up', () => {
     /*
-      The argument was never that navigation is wrong. It was that nineteen of them is.
+      The argument was never that navigation is wrong. It was that nineteen of them is — and by 24
+      September the bar had grown back to FOURTEEN, one reasonable addition at a time. Kris, looking
+      at it: *"why is this like this - we already talked about these are to be combined."*
 
-      Seven since 18 September, when Kris sent the header he wants: the six screens plus **All
-      pages**, which is the door to the full grouped directory at the foot of My Page. Eight since
-      22 September, when Kris asked for the AI-powered question "under pricing" — see the note on
-      `/billing` in lib/doors.ts. Nine later the same day, when Kris asked for Setup as tab one. "All
-      pages" is what lets the bar stay this short whatever else is added — SPEC has far more than
-      nine screens and always will, and nothing may be reachable only by knowing it is there.
+      The design says the shape: **My page · Jobs · CRM · People · Safety · Compliance · Board**,
+      with Setup, Connections and All pages on the right. Org chart and Training under People;
+      Scoring and Mirrors under Board; Clients under CRM; Pricing under Setup.
+
+      Ten is the ceiling this test defends. The next thing that wants a tab should take somebody
+      else's rather than making it eleven — that is exactly how it got to fourteen.
     */
-    expect(navDoors(f)).toHaveLength(14);
+    expect(navDoors(f)).toHaveLength(10);
     expect(navDoors(f).length).toBeLessThan(allDoors(f).length);
+  });
+
+  /*
+    ── The rule that makes shortening the bar safe ─────────────────────────────────────────────
+
+    Taking something off the bar must never make it hard to find. Every page that was on the bar on
+    23 September and is not on it now has to still be in the full directory, which is one click away
+    behind All pages — otherwise "combining" is just hiding.
+  */
+  it('KEEPS EVERY PAGE IT TOOK OFF THE BAR REACHABLE IN THE DIRECTORY', () => {
+    const directory = new Set(allDoors(f).map(d => d.href));
+    for (const gone of ['/org', '/clients', '/billing', '/scoring', '/mirrors', '/training']) {
+      expect(directory.has(gone), `${gone} came off the bar and is now unreachable`).toBe(true);
+    }
   });
 
   it('EVERY ITEM IS A REAL ROUTE', () => {
@@ -135,14 +151,16 @@ describe('the navigation bar', () => {
     }
   });
 
-  it('starts at Setup, since Kris asked for it as tab one', () => {
+  it('starts at My page, and Setup has moved to the right', () => {
     /*
-      Was "starts at My page, because that is where every day starts" until 22 September, when Kris
-      looked at the built bar and said tab one should be Setup instead. My Page keeps its other jobs
-      — the logo's destination, and the address every other door here is described as opening from —
-      it is simply no longer first on the bar.
+      Kris asked for Setup as tab one on 22 September, and it was tab one for two days. The 24
+      September design supersedes that: the bar is the KEY AREAS — the things somebody works in
+      every day — and Setup, Connections and All pages sit to the right of them because setting the
+      business up is not one of them. My Page goes back to first, which is where every day starts.
     */
-    expect(navDoors(f)[0].href).toBe('/setup');
+    expect(navDoors(f)[0].href).toBe('/my-page');
+    const labels = navDoors(f).map(d => d.label);
+    expect(labels.indexOf('Setup')).toBeGreaterThan(labels.indexOf('Board'));
   });
 
   it('and every item carries the words the design uses', () => {
@@ -156,7 +174,10 @@ describe('the navigation bar', () => {
       written before the rename and nobody updated it — so it was asserting the old name as though
       it were the design's.
     */
-    expect(labels).toEqual(['Setup', 'My page', 'Jobs', 'CRM', 'Clients', 'Org chart', 'People', 'Safety', 'Pricing', 'Scoring', 'Board pack', 'Mirrors', 'Connections', 'All pages']);
+    expect(labels).toEqual([
+      'My page', 'Jobs', 'CRM', 'People', 'Safety', 'Compliance', 'Board',
+      'Setup', 'Connections', 'All pages',
+    ]);
   });
 
   it('THE BAR AND THE DIRECTORY CANNOT DISAGREE', () => {

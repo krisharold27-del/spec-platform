@@ -35,6 +35,7 @@ const PAGES = [
   ['safety-hazards', '/safety?tab=hazards'],
   ['safety-onsite', '/safety?tab=site'],
   ['safety-clear', '/safety?tab=clear'],
+  ['compliance', '/compliance'],
   ['coverage', '/coverage'],
   ['tech-day', '/tech-day'],
   ['training', '/training'],

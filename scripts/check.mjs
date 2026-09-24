@@ -393,6 +393,14 @@ const JOURNEYS = [
   // than passing quietly — a connector nobody exercised is not a connector anybody has proven.
   ['xero', 'a business linking its accounts, and the board guarding the ledger', 'xero-journey.mts'],
   /*
+    The two checks here that are easy to get backwards: an EMPTY compliance page must not read as a
+    clean bill of health (zero stopping work and zero breaches is what an empty register looks like
+    too), and the two areas SPEC already holds — licences on People, breaches on Safety — must be
+    READ rather than copied, because a second copy is what makes both pages untrustworthy the day
+    they disagree.
+  */
+  ['compliance', 'recording something that must stay current, and it stopping work when it lapses', 'compliance-journey'],
+  /*
     Both halves of what Kris asked for on 24 September, and the refusal that stops a business
     reaching nobody. It also guards the wider fault it found: /settings awaited its searchParams and
     threw them away, so every refusal on the screen where seats, billing and administration are

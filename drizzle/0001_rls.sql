@@ -157,6 +157,11 @@ begin
     -- reason connection_credentials does: this table decides who can see whose scorecards, and a
     -- policy that depends on a join is a policy with one more way to be wrong.
     'role_grants',
+    -- Compliance items: insurance, certificates, audits and contracts. Its own tenant_id rather
+    -- than a join, for the same reason as role_grants above — a row here names a policy number, a
+    -- lodgement reference or a subcontractor's cover, and a policy that depends on a join is a
+    -- policy with one more way to be wrong.
+    'compliance_items',
     -- Safety, added 23 September. Each carries its own tenant_id: an injury, a claim and an
     -- anonymous wellbeing report are the last rows in SPEC that should ever depend on a join to
     -- stay inside their own business.

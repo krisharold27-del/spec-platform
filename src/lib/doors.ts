@@ -74,6 +74,7 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
         { href: '/org', label: 'Org chart', note: 'Who does what, and who reports to whom.' },
         { href: '/people', label: 'People', note: 'Who you have, who is clear to work, who you need.' },
         { href: '/safety', label: 'Safety', note: 'Report it, fix it, and who is clear to work.' },
+        { href: '/compliance', label: 'Compliance', note: 'Licences, insurance, certificates, audits, contracts — and nothing lapsed.' },
         { href: '/training', label: 'Training', note: 'What each role has to know, and who has done it.' },
         { href: '/team', label: 'Team roll-up', note: 'How the roles beneath you are scoring.' },
       ],
@@ -183,51 +184,59 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
  * Built from `doors()` rather than written out again, so a route that is renamed cannot leave the
  * bar pointing at nothing while the directory quietly stays right.
  */
-export const NAV_HREFS = ['/setup', '/my-page', '/jobs', '/crm', '/clients', '/org', '/people', '/safety', '/billing', '/scoring', '/board', '/mirrors', '/connections', '/my-page#everywhere'] as const;
+export const NAV_HREFS = ['/my-page', '/jobs', '/crm', '/people', '/safety', '/compliance', '/board', '/setup', '/connections', '/my-page#everywhere'] as const;
 
 export function navDoors(f: DoorsFor): Door[] {
   const all = allDoors(f);
   const find = (href: string) => all.find(d => d.href === href);
   return [
     /*
-      Tab one, since 22 September — Kris, looking at the built bar: "tab 1 is supposed to be set
-      up." My Page is still where the logo goes home and still the address every other door on this
-      bar is described as opening FROM, but the bar itself now opens on Setup rather than on it.
+      ── The key areas, 24 September ────────────────────────────────────────────────────────────
+
+      Kris, looking at a bar of fourteen: *"why is this like this - we already talked about these
+      are to be combined."* He is right, and the design says it plainly:
+
+        "Top menu on every app page is now the key areas: My page · Jobs · CRM · People · Safety ·
+         Compliance · Board, with Setup, Connections and All pages on the right. Org chart and
+         Training sit under People; Scoring and Mirrors under Board."
+
+      Fourteen tabs is not navigation, it is a list of everything — the exact fault that got the old
+      nineteen-item dropdown deleted in September, growing back one reasonable addition at a time.
+      Each of Clients, Org chart, Pricing, Scoring and Mirrors earned its place on its own, and
+      together they made a bar nobody reads.
+
+      So the bar is now SEVEN key areas plus three on the right. What came off it did not become
+      unreachable: Org chart and Training are opened from People, Scoring and Mirrors from Board,
+      Clients from CRM, Pricing from Setup — and every one of them is still in the full directory
+      behind All pages. `tests/doors.test.ts` holds that: nothing may leave the bar without still
+      being reachable from somewhere a person would look.
     */
-    { href: '/setup', label: 'Setup', note: 'Roles, KPIs and the things still to do.' },
     { href: '/my-page', label: 'My page', note: 'Your day, and everything else opens from it.' },
-    /*
-      23 September design: "Setup · My page · Jobs · Org chart · People · Safety · …" — SPEC now runs
-      the jobs, the HR and the safety itself, so those are places somebody goes every day.
-    */
     find('/jobs') ?? { href: '/jobs', label: 'Jobs', note: 'Quote it, win it, book the crew, do the job, invoice it.' },
-    // CRM beside Jobs: the deals before there is a job, then the job. Kris asked for it 23 September.
-    find('/crm') ?? { href: '/crm', label: 'CRM', note: 'Deals, people and follow-ups, before there is a job.' },
     /*
-      Clients after CRM (23 September) — Kris: "we must have full client lists, we must have
-      contacts". The CRM is the selling; this is everybody the business works for, sold to or not.
-      No separate Staff item: the staff list is a tab of People, which is already on the bar.
+      CRM, and Clients folded into it. The design: "CRM opens Jobs on the Customers tab." Ours is
+      its own page and stays that way — what matters is that the selling and the people sold to are
+      one door rather than two beside each other.
     */
-    find('/clients') ?? { href: '/clients', label: 'Clients', note: 'Every client and everyone at them.' },
-    find('/org') ?? { href: '/org', label: 'Org chart', note: 'Who does what, and who reports to whom.' },
-    find('/people') ?? { href: '/people', label: 'People', note: 'Who you have, who is clear to work, who you need.' },
-    find('/safety') ?? { href: '/safety', label: 'Safety', note: 'Report it, fix it, and who is clear to work.' },
-    find('/billing') ?? { href: '/billing', label: 'Pricing', note: 'What it costs, and Stripe billing.' },
-    { href: '/scoring', label: 'Scoring', note: 'Mark the month, and close it when it is done.' },
+    find('/crm') ?? { href: '/crm', label: 'CRM', note: 'Deals, the clients behind them, and everyone at them.' },
+    /* People, with the chart and the training under it — they are all the same question. */
+    find('/people') ?? { href: '/people', label: 'People', note: 'Who you have, the chart they sit in, what they are trained on, who you need.' },
+    find('/safety') ?? { href: '/safety', label: 'Safety', note: 'Report it, fix it, prove it.' },
+    { href: '/compliance', label: 'Compliance', note: 'Licences, insurance, certificates, audits, contracts — and nothing lapsed.' },
     /*
-      The pack itself lives at /board/[periodId]. `/board` is the door — it opens the most recently
-      closed month, because a board pack is a record of a month that finished.
+      Board: the pack, and the month and the mirrors that feed it. The pack lives at
+      /board/[periodId]; `/board` is the door, and it opens the most recently closed month, because
+      a board pack is a record of a month that finished.
     */
-    { href: '/board', label: 'Board pack', note: 'What went to the Board for the last closed month.' },
-    find('/mirrors') ?? { href: '/mirrors', label: 'Mirrors', note: 'Artifacts your team pins and runs projects through.' },
+    { href: '/board', label: 'Board', note: 'The pack, the month being scored, and the mirrors behind it.' },
+
+    /* ── The three on the right: setting it up, not running it ──────────────────────────────── */
+    { href: '/setup', label: 'Setup', note: 'Roles, KPIs, pricing and the things still to do.' },
     find('/connections') ?? { href: '/connections', label: 'Connections', note: 'The systems that feed your numbers.' },
     /*
-      The last item on the bar, and the reason the bar can stay this short whatever else gets added.
-
-      SPEC has far more than nine screens and always will. The complete grouped directory is at the
-      foot of My Page — this is the door to it, so the bar never has to grow and nothing is ever
-      only reachable by knowing it is there. Kris drew the original six plus this one on the header
-      he sent on 18 September.
+      The last item, and the reason the bar can stay this short whatever else gets added. SPEC has
+      far more than ten screens and always will. The complete grouped directory is at the foot of My
+      Page — this is the door to it, so nothing is ever only reachable by knowing it is there.
     */
     { href: '/my-page#everywhere', label: 'All pages', note: 'Every screen in SPEC, grouped.' },
   ];

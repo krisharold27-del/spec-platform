@@ -1684,3 +1684,62 @@ export const coverageChoices = pgTable('coverage_choices', {
 }, t => [
   uniqueIndex('coverage_choices_tenant_capability').on(t.tenantId, t.capability),
 ]).enableRLS();
+
+/**
+ * Compliance items — insurance, certificates, audits and contracts.
+ *
+ * ── Four areas, not six ──────────────────────────────────────────────────────────────────────────
+ *
+ * The Compliance screen shows six areas and this table holds four of them. The other two are things
+ * SPEC already knows: **licences and tickets** are `obligations`, the same rows that gate Clear to
+ * Work on People, and **breaches and corrective actions** are the actions already raised against
+ * safety reports. Both are read there rather than copied here.
+ *
+ * That is the same rule the safety register was built on. One copy of an answer, because the day
+ * two copies disagree nobody believes either — and a licence that says "current" on People and
+ * "lapsed" on Compliance is worse than having neither page.
+ *
+ * One table with a `kind` rather than four, for the reason the safety register is one table: these
+ * differ in what they are ABOUT and not in what happens to them. Every one of them is a thing with
+ * a date that has to be renewed, chased or lodged, and every one of them stops some work when it
+ * lapses. A schema that splits them makes four screens out of one question.
+ */
+export const complianceItems = pgTable('compliance_items', {
+  id: text('id').primaryKey(),
+  /*
+    No foreign key, like every table added since the CRM block. The additive migrator only ever
+    emits `create table if not exists` and `add column if not exists`, and a constraint it cannot
+    add later is a constraint that silently is not there — so the scoping is enforced in every
+    query and by row-level security, which are the two places that actually run.
+  */
+  tenantId: text('tenant_id').notNull(),
+  /** insurance | certificates | audits | contracts — see AREAS in lib/compliance. */
+  kind: text('kind').notNull(),
+  /** What it is, in the business's own words: "JBI public liability, $20m". */
+  title: text('title').notNull(),
+  /** Who or what it covers — a person, a subcontractor, a vehicle, a job. Free text on purpose. */
+  covers: text('covers'),
+  /**
+   * When it lapses. Null means nobody has recorded one, which `stateOf` reads as `missing` rather
+   * than as fine: a policy with no expiry is not a policy anybody can say is in force.
+   */
+  expiresAt: text('expires_at'),
+  /**
+   * Set when a one-off is DONE rather than renewed — a certificate lodged, an audit passed.
+   *
+   * A certificate does not expire, it gets lodged; an audit does not lapse, it happens. Without
+   * this they would sit on the register forever reading as missing, which is how a page full of
+   * red teaches people to stop looking at it.
+   */
+  satisfiedAt: text('satisfied_at'),
+  /** Where the evidence is — a reference, a policy number, a lodgement number. */
+  reference: text('reference'),
+  /** Whose job it is to renew or lodge it. A role, because people leave and the duty does not. */
+  ownerRoleId: text('owner_role_id'),
+  note: text('note'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  index('compliance_items_tenant').on(t.tenantId),
+  index('compliance_items_kind').on(t.tenantId, t.kind),
+]).enableRLS();
