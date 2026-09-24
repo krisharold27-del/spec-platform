@@ -379,6 +379,16 @@ const JOURNEYS = [
   ['seat', 'somebody you invited taking their seat', 'seat-journey'],
   ['boards', 'a board a team can pin, read the working on, and argue over', 'boards-journey'],
   ['cockpit', 'your own cockpit staying private', 'cockpit-journey'],
+  /*
+    The only journey that reads a stored row back out of the database at the end.
+
+    `tests/safety.test.ts` proves `anonymise()` returns nothing identifying. That is the rule, and
+    it is not the promise: Kris's instruction is about the ROW — *"an anonymous psychosocial report
+    must never store a name at all"* — and between the rule and the row sit a form, an action, a
+    schema default and a column a later edit could quietly start filling. Every check that stops at
+    the screen would pass on a build that stores the name and simply declines to print it.
+  */
+  ['safety', 'reporting a hazard, and an anonymous report having no name in the row', 'safety-journey'],
   // Needs the offline Xero server above. When it is not there the journey says so and skips rather
   // than passing quietly — a connector nobody exercised is not a connector anybody has proven.
   ['xero', 'a business linking its accounts, and the board guarding the ledger', 'xero-journey.mts'],
