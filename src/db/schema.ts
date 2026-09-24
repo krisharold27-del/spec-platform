@@ -507,6 +507,18 @@ export const staff = pgTable('staff', {
   /** When their induction was done. Null until it is — and not bookable until then. */
   inductedAt: text('inducted_at'),
   /**
+   * When the PERSON said they had read the induction, which is not the same thing.
+   *
+   * Two fields on purpose. `inductedAt` is the business's mark and is what Clear to Work reads;
+   * this is the person's own acknowledgement, made from their phone with nothing but a link. If
+   * one field served both, anybody holding a forwarded text message could grant themselves the
+   * check that stops an uninducted body walking onto a site.
+   *
+   * It is still worth recording: it tells the office who has actually read the thing, so the
+   * induction itself becomes a conversation rather than a signature hunt.
+   */
+  inductionReadAt: text('induction_read_at'),
+  /**
    * The link this person opens on their phone to finish their own record.
    *
    * Thirty-eight people with a licence, a ticket, an induction and a start date is well over a

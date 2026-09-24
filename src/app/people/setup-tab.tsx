@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { SubmitButton } from '@/components/submit-button';
+import { CopyBox } from '@/components/copy-box';
 import { pillTone, LIGHT_COLOUR, LIGHT_INK, type Light } from '@/lib/today';
 import {
   SEAT_KINDS, seatKindLabel, gapsFor, stopsWork, lapsedLicences, readyToWork,
   billFor, billLine, readiness, finaliseLine, isPersonalEmail, WHY_COMPANY_EMAIL,
-  phoneProgress, GAP_LABEL, money, type Person, type SeatKind,
+  phoneProgress, inviteText, GAP_LABEL, money, type Person, type SeatKind,
 } from '@/lib/onboarding';
 import { setSeatKind, setSubcontractor, savePersonDetail, addLicence, markInducted, sendSetupLink } from './actions';
 
@@ -36,7 +37,7 @@ function Pill({ light, children }: { light: Light; children: React.ReactNode }) 
  * dates they run out, on their phone. Thirty-eight people is well over a hundred fields, and an HR
  * admin typing them from a pile of photocopies produces a register nobody trusts.
  */
-export function SetupTab({ people, roles, today, currency, canPay, subscribed }: {
+export function SetupTab({ people, roles, today, currency, canPay, subscribed, business, appUrl }: {
   people: (Person & { chartSeat: SeatKind; setupToken: string | null })[];
   roles: { id: string; title: string }[];
   today: string;
@@ -44,6 +45,10 @@ export function SetupTab({ people, roles, today, currency, canPay, subscribed }:
   /** Whether this person may confirm the bill — administration only. */
   canPay: boolean;
   subscribed: boolean;
+  /** The business's own name, for the message that goes with the link. */
+  business: string;
+  /** Where SPEC lives, so the link is one somebody can actually paste into a text. */
+  appUrl: string;
 }) {
   const withSeats = people.map(p => ({
     ...p,
@@ -236,11 +241,29 @@ export function SetupTab({ people, roles, today, currency, canPay, subscribed }:
                   and the link gets sent three more times.
                 */}
                 {p.setupToken && (
-                  <p className="mt-1.5 text-xs text-ink-light">
-                    Link sent · {phone.next
-                      ? `${phone.done} of ${phone.of} done on their phone · next: ${phone.next}`
-                      : 'everything we asked them for is in. Nothing left for them to do.'}
-                  </p>
+                  <div className="mt-1.5 grid gap-2">
+                    <p className="text-xs text-ink-light">
+                      Link sent · {phone.next
+                        ? `${phone.done} of ${phone.of} done on their phone · next: ${phone.next}`
+                        : 'everything we asked them for is in. Nothing left for them to do.'}
+                    </p>
+                    {/*
+                      The message itself, ready to go, in a box that selects on one press.
+
+                      SPEC does not send the text. Kris's businesses send these from the phone that
+                      is already in the admin's hand and already has everybody's number in it, and
+                      building an SMS gateway to save a paste would add a cost, a signup and a thing
+                      that can be down — to replace something that already works.
+
+                      What it MUST not do is make somebody build the link themselves. An admin who
+                      has to assemble a URL out of a token gets one wrong somewhere in thirty-eight,
+                      and the person on the other end of that one just never finishes.
+                    */}
+                    <CopyBox
+                      label="Send them this"
+                      value={inviteText(business, p.name ?? 'there', `${appUrl.replace(/\/+$/, '')}/join/${p.setupToken}`)}
+                    />
+                  </div>
                 )}
               </section>
             );

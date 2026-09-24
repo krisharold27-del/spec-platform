@@ -408,6 +408,7 @@ export default async function People({ searchParams }: { searchParams: Promise<R
         <SetupTab
           people={setupPeople} roles={visible.map(r => ({ id: r.id, title: r.title }))}
           today={todayIso} currency={setupCurrency} canPay={scope.canAdminister} subscribed={setupSubscribed}
+          business={tenant.name} appUrl={process.env.APP_URL ?? ''}
         />
       ) : tab === 'subbies' ? (
         <SubbiesTab rows={subbieRows} manage={manage} today={todayIso} business={tenant.name} />

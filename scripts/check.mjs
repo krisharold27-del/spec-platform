@@ -412,6 +412,16 @@ const JOURNEYS = [
   */
   ['compliance', 'recording something that must stay current, and it stopping work when it lapses', 'compliance-journey'],
   /*
+    The two halves of setting a business up, which are done by two people on two devices.
+
+    Kris, 24 September, with an HR admin booked for Monday: the office does the structure and the
+    money, and the person's half gets done "on their phone". They are separate journeys because
+    they are separate sittings — and the second one runs at 390x844 with touch, because a layout
+    that only works at desk width fails the only test this page has.
+  */
+  ['setup', 'setting a whole business up in one sitting, with an HR admin', 'setup-journey'],
+  ['join', 'a tradie doing their own half on their phone, with no account', 'join-journey'],
+  /*
     Both halves of what Kris asked for on 24 September, and the refusal that stops a business
     reaching nobody. It also guards the wider fault it found: /settings awaited its searchParams and
     threw them away, so every refusal on the screen where seats, billing and administration are

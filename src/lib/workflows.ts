@@ -451,8 +451,8 @@ export const WORKFLOWS: Workflow[] = [
     'The office sends them a link.',
     'Their licences and tickets are in, photographed from their own wallet.', ['licensing', 'training_done'], [
     { does: 'The office sends a link, and can see how far they have got.', by: 'office', where: '/people?mode=setup' },
-    nowhere('worker', 'The person opens the link on their phone and adds their own licences and tickets.',
-      'The link is issued and its progress is shown, but the page it opens is not built. Until it is, the HR admin types thirty-eight people’s certificates off photocopies — which is the exact job this was meant to remove.'),
+    { does: 'The person opens it on their phone — no account, no password — and puts their own details, licences and expiry dates in off the cards in their wallet.', by: 'worker', where: '/join' },
+    { does: 'They can say they have read the induction. They cannot mark themselves inducted — that stays the business’s.', by: 'worker', where: '/join' },
   ]),
 
   W('people', 'onboard-apprentice', 'Take on an apprentice',
