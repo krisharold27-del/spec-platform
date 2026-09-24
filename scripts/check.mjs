@@ -419,6 +419,7 @@ const JOURNEYS = [
     they are separate sittings — and the second one runs at 390x844 with touch, because a layout
     that only works at desk width fails the only test this page has.
   */
+  ['growth', 'work coming in without anybody remembering to look', 'growth-journey'],
   ['setup', 'setting a whole business up in one sitting, with an HR admin', 'setup-journey'],
   ['join', 'a tradie doing their own half on their phone, with no account', 'join-journey'],
   /*

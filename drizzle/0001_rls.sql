@@ -292,3 +292,26 @@ begin
     execute format('create policy tenant_isolation on %I for all using (tenant_id = auth_tenant_id()) with check (tenant_id = auth_tenant_id())', t);
   end loop;
 end $$;
+
+-- ───────────────────────────────────────────────────────────────────────────────────────────────
+-- Growth (24 September): the business's own streams of work, the chases that have gone out on a
+-- quote, and shutdown windows. Kris: "jbi has 4 streams - industrial, commercial, renewables and
+-- mining - both maintenance and project work including shutdowns".
+--
+-- These three went in and were NOT added here, and the deploy reported "69 tables carry the tenant
+-- policy" exactly as it had before — the same number, for a schema that had grown by three. That
+-- is the whole failure mode this file's opening comment warns about, repeating in a new place: a
+-- list somebody has to remember to extend. `tests/rls-coverage.test.ts` now derives the list from
+-- schema.ts instead of trusting it, so the next three cannot be quiet.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['work_streams', 'quote_chases', 'shutdowns']
+  loop
+    continue when to_regclass(t) is null;
+    execute format('alter table %I enable row level security', t);
+    execute format('drop policy if exists tenant_isolation on %I', t);
+    execute format('create policy tenant_isolation on %I for all using (tenant_id = auth_tenant_id()) with check (tenant_id = auth_tenant_id())', t);
+  end loop;
+end $$;

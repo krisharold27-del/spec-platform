@@ -5,6 +5,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
+import { QUOTE_CHASE } from '@/lib/growth';
 import { assertWritable } from '@/lib/plan';
 import { crewFor, createJob } from '@/lib/jobs-data';
 import { nextOrderRef, match } from '@/lib/purchasing';
@@ -1047,4 +1048,37 @@ export async function addTender(formData: FormData) {
   });
   revalidatePath('/jobs');
   back('tenders');
+}
+
+/**
+ * Record a chase that has gone out on a quote.
+ *
+ * SPEC drafts it and works out which one is due; a person sends it from wherever they already send
+ * things, and presses this. The row is what stops the same chase going twice — and what lets the
+ * NEXT one be the right one, because a quote eleven days out needs the seven-day chase, not the
+ * gentle first nudge eleven days late.
+ *
+ * Deliberately not an email send. A business's voice is its own, and the thing that wins the work
+ * is that it came from the person who quoted it.
+ */
+export async function recordQuoteChase(form: FormData) {
+  const user = await writer();
+  const jobId = str(form, 'jobId', 64);
+  const day = Number(form.get('day') ?? 0);
+  if (!QUOTE_CHASE.includes(day as (typeof QUOTE_CHASE)[number])) back('growth');
+
+  /* Found in this business, so a job id from anywhere else finds nothing. */
+  const job = await ownJob(user.tenantId, jobId);
+  if (!job) back('growth', {}, 'That quote is not in this business.');
+
+  await db.insert(schema.quoteChases).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    jobId,
+    day,
+    said: str(form, 'said', 2000) || null,
+    sentAt: now(),
+    sentBy: user.id,
+  });
+  back('growth');
 }

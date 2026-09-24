@@ -55,6 +55,20 @@ function builtGroups(): { key: string; label: string; tabs: string[] }[] {
     }));
 }
 
+/*
+  ── Tabs added after the design, on purpose ─────────────────────────────────────────────────────
+
+  The design is the baseline, not the ceiling — but "the product may differ from the design" is how
+  a design stops being followed at all. So an addition is allowed and has to be NAMED, with who
+  asked for it. Anything else still fails, and every tab the design has must still be there.
+*/
+const ADDED_SINCE: { key: string; label: string; why: string }[] = [
+  {
+    key: 'growth', label: 'Keep work coming',
+    why: 'Kris, 24 September, after the three streams were mapped and Growth came out the least automatic of them at 30% of steps: "growth automation gap - thats our weakest and most important". Quotes that chase themselves, tenders counting down, and customers past their own rhythm — all of it already existed on other tabs as lists somebody had to open, which is the thing that does not happen in the week everybody is flat out.',
+  },
+];
+
 describe('the Jobs tabs match the design', () => {
   it('reads both sides, rather than quietly comparing nothing', () => {
     expect(designTabs().length, 'the design’s TABS').toBeGreaterThan(15);
@@ -63,16 +77,35 @@ describe('the Jobs tabs match the design', () => {
   });
 
   it('HAS EVERY TAB THE DESIGN HAS, by key', () => {
-    expect(builtTabs().map(t => t.key).sort()).toEqual(designTabs().map(t => t.key).sort());
+    const built = new Set(builtTabs().map(t => t.key));
+    const missing = designTabs().map(t => t.key).filter(k => !built.has(k));
+    expect(missing, `the design has these and the product does not: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('AND ADDS NOTHING THE DESIGN DOES NOT HAVE WITHOUT SAYING WHY', () => {
+    const fromDesign = new Set(designTabs().map(t => t.key));
+    const extra = builtTabs().map(t => t.key).filter(k => !fromDesign.has(k));
+    expect(extra.sort()).toEqual(ADDED_SINCE.map(a => a.key).sort());
+    for (const a of ADDED_SINCE) {
+      /* A reason short enough to be a shrug is not a reason. */
+      expect(a.why.length, `${a.key} needs a real reason`).toBeGreaterThan(80);
+      expect(a.why, `${a.key} does not say who asked for it`).toMatch(/Kris|design/);
+    }
   });
 
   it('AND CALLS EACH ONE WHAT THE DESIGN CALLS IT', () => {
     const want = new Map(designTabs().map(t => [t.key, t.label]));
-    for (const t of builtTabs()) expect(t.label, t.key).toBe(want.get(t.key));
+    const added = new Map(ADDED_SINCE.map(a => [a.key, a.label]));
+    for (const t of builtTabs()) {
+      expect(t.label, t.key).toBe(want.get(t.key) ?? added.get(t.key));
+    }
   });
 
   it('groups them the same way, in the same order', () => {
-    expect(builtGroups()).toEqual(designGroups());
+    /* An added tab joins a group the design already has; it never invents one. */
+    const added = new Set(ADDED_SINCE.map(a => a.key));
+    const stripped = builtGroups().map(g => ({ ...g, tabs: g.tabs.filter(t => !added.has(t)) }));
+    expect(stripped).toEqual(designGroups());
   });
 
   /*

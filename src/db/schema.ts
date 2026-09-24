@@ -1469,6 +1469,20 @@ export const jobs = pgTable('jobs', {
    * the whole Leads tab: where it came from, and how long it has been waiting.
    */
   source: text('source'),
+  /**
+   * Which stream of work this belongs to — the business's own, from `work_streams`.
+   *
+   * Null on every job until a business sets its streams up, and null forever for a business that
+   * only runs one. A single-stream business must never be made to tag anything.
+   */
+  streamId: text('stream_id'),
+  /**
+   * maintenance | project | shutdown — see WORK_KINDS in lib/work-streams.
+   *
+   * The one field that answers how much of next year is already there without anybody selling
+   * anything, which is what Kris's "steadily" actually means.
+   */
+  workKind: text('work_kind'),
   /** When the quote actually went out. What speed-to-quote is measured from `createdAt` against. */
   quotedAt: text('quoted_at'),
   createdBy: text('created_by').notNull(),
@@ -2299,3 +2313,79 @@ export const apprenticeClaims = pgTable('apprentice_claims', {
   receivedAt: text('received_at'),
   createdAt: text('created_at').notNull(),
 }, t => [index('apprentice_claims_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * The streams of work a business runs in — its own markets, in its own words.
+ *
+ * Kris, 24 September: *"jbi has 4 streams - industrial, commercial, renewables and mining"*.
+ *
+ * A row per business, never a fixed list. Nobody outside JBI knows JBI has four, and a business
+ * shown streams it did not choose keeps them — at which point SPEC has quietly decided what markets
+ * somebody works in. `lib/work-streams` holds JBI's as an example for an empty screen and applies
+ * nothing.
+ *
+ * Switched off rather than deleted, because a stream a business has left still has years of jobs
+ * hanging off it and those jobs have to keep reading correctly.
+ */
+export const workStreams = pgTable('work_streams', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  name: text('name').notNull(),
+  active: boolean('active').notNull().default(true),
+  /** What the business wants to see on this stream. Ordering is theirs, not alphabetical. */
+  position: integer('position').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+}, t => [index('work_streams_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * Each chase that has gone out on a quote, so the same one never goes twice.
+ *
+ * The same shape as the invoice reminders above, and for the same reason: a record of what was
+ * sent is what lets the next one be the RIGHT one. Without it, a quote eleven days out either gets
+ * the gentle first nudge eleven days late, or gets all three at once.
+ *
+ * A row rather than a counter on the quote, because which chase went matters as much as how many —
+ * the three say different things, and the third is the one that gets the most answers.
+ */
+export const quoteChases = pgTable('quote_chases', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** The job the quote belongs to. No foreign key — house convention since the CRM block. */
+  jobId: text('job_id').notNull(),
+  /** 3, 7 or 14 — which of the ladder this was. */
+  day: integer('day').notNull(),
+  /** What was actually sent, kept as sent rather than regenerated later. */
+  said: text('said'),
+  sentAt: text('sent_at').notNull(),
+  sentBy: text('sent_by'),
+}, t => [
+  index('quote_chases_tenant').on(t.tenantId),
+  index('quote_chases_job').on(t.tenantId, t.jobId),
+]).enableRLS();
+
+/**
+ * A shutdown — a project with a date that will not move.
+ *
+ * Kris, 24 September: JBI does *"both maintenance and project work including shutdowns"*.
+ *
+ * It is its own table rather than a flag on a job because the thing that has to be tracked is the
+ * WINDOW and what has to be true before it opens. The plant starts again on its date whether the
+ * work is finished or not, and anything left undone waits for the next shutdown a year away — so
+ * crew confirmed and materials ordered are columns, not notes somebody keeps.
+ */
+export const shutdowns = pgTable('shutdowns', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  title: text('title').notNull(),
+  streamId: text('stream_id'),
+  client: text('client'),
+  startsAt: text('starts_at').notNull(),
+  endsAt: text('ends_at').notNull(),
+  crewNeeded: integer('crew_needed').notNull().default(0),
+  crewConfirmed: integer('crew_confirmed').notNull().default(0),
+  materialsOrdered: boolean('materials_ordered').notNull().default(false),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('shutdowns_tenant').on(t.tenantId),
+  index('shutdowns_window').on(t.tenantId, t.startsAt),
+]).enableRLS();

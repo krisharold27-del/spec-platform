@@ -183,8 +183,8 @@ export const WORKFLOWS: Workflow[] = [
   W('win', 'repeat-call', 'A customer you already have rings back',
     'A name already in the system calls.',
     'The new job sits under their history, not as a stranger.', 'growth', ['revenue_growth'], [
-    { does: 'Find them and see every job they have ever had, without leaving Jobs.', by: 'office', where: '/jobs?tab=customers' },
-    { does: 'Raise the new one against the same customer and site.', by: 'office', where: '/jobs?tab=customers' },
+    { does: 'Customers past their own rhythm come up on their own, worked out of the job history already here — SPEC finds them, rather than somebody reading four years of jobs.', by: 'spec', where: '/jobs?tab=growth' },
+    { does: 'Ring them, and raise the job against the same customer and site without leaving Jobs.', by: 'office', where: '/jobs?tab=customers' },
   ]),
 
   W('win', 'quote-build', 'Build and send a quote',
@@ -205,8 +205,9 @@ export const WORKFLOWS: Workflow[] = [
   W('win', 'quote-chase', 'Chase a quote nobody answered',
     'A quote has been out longer than it should be.',
     'Answered, or marked lost with a reason.', 'growth', ['revenue_budget'], [
-    { does: 'Quotes waiting too long are named without anybody remembering to look.', by: 'spec', where: '/jobs?tab=quotes' },
-    { does: 'Chase it, and record that you did.', by: 'office', where: '/jobs?tab=quotes' },
+    { does: 'A quote that has gone quiet raises itself at 3, 7 and 14 days — the same way invoices have chased themselves since September.', by: 'spec', where: '/jobs?tab=growth' },
+    { does: 'The chase is written, and each of the three says something different. The last one lets them off the hook, which is the one that gets answers.', by: 'spec', where: '/jobs?tab=growth' },
+    { does: 'Send it and press once. The same chase never goes twice, and a quote nobody touched gets the chase that is DUE rather than the first one late.', by: 'office', where: '/jobs?tab=growth' },
   ]),
 
   W('win', 'quote-lost', 'Record why one was lost',
@@ -220,6 +221,7 @@ export const WORKFLOWS: Workflow[] = [
     'An invitation with a closing date.',
     'Submitted before it closes, or declined on purpose rather than by accident.', 'growth', ['revenue_growth', 'revenue_budget'], [
     { does: 'The tender goes on with its closing date.', by: 'office', where: '/jobs?tab=tenders' },
+    { does: 'SPEC counts it down and says so on the day. A closing date in somebody’s inbox passes in the week the estimator is covering for somebody else.', by: 'spec', where: '/jobs?tab=growth' },
     { does: 'Count off the plans.', by: 'office', where: '/jobs?tab=takeoff' },
     { does: 'Price it and submit.', by: 'office', where: '/jobs?tab=tenders' },
   ]),

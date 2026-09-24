@@ -6,6 +6,8 @@ import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
+import { CopyBox } from '@/components/copy-box';
+import { quoteWatch, chaseDraft, worthGoingBackFor, tenderWatch, growthLine } from '@/lib/growth';
 import { Refused } from '@/components/refused';
 import { QuoteBuilder } from '@/components/quote-builder';
 import { getCurrentUser, canManage } from '@/lib/auth';
@@ -35,7 +37,7 @@ import {
   addRecurring, recordDone, bookRecurring, setSource, markQuoted, setStock, orderTheShortfall, setKitPack,
   addTender,
   addTool,
-  logCallback, setReviewLink, askForReview,
+  logCallback, setReviewLink, askForReview, recordQuoteChase,
 } from './actions';
 
 import {
@@ -110,11 +112,12 @@ const TABS = [
   { key: 'service', label: 'Repeat work' },
   { key: 'rework', label: 'Callbacks & rework' },
   { key: 'reviews', label: 'Reviews' },
+  { key: 'growth', label: 'Keep work coming' },
 ] as const;
 type Tab = (typeof TABS)[number]['key'];
 
 export const TAB_GROUPS = [
-  { key: 'win', label: 'Win the work', tabs: ['leads', 'tenders', 'takeoff', 'customers', 'ace', 'quotes', 'prebuilds', 'howlong'] },
+  { key: 'win', label: 'Win the work', tabs: ['growth', 'leads', 'tenders', 'takeoff', 'customers', 'ace', 'quotes', 'prebuilds', 'howlong'] },
   { key: 'do', label: 'Do the work', tabs: ['pipeline', 'jobace', 'schedule', 'time', 'catalogue', 'stock', 'tools'] },
   { key: 'paid', label: 'Get paid and keep them', tabs: ['billing', 'wip', 'cash', 'service', 'rework', 'reviews'] },
 ] as const;
@@ -145,7 +148,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const today = now.toISOString().slice(0, 10);
 
   /* Everything this business has recorded for Jobs, read once and scoped by tenant in the query. */
-  const [jobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows] = await Promise.all([
+  const [jobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows, chaseRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
     db.select().from(schema.quotes).where(eq(schema.quotes.tenantId, user.tenantId)).orderBy(schema.quotes.createdAt),
     db.select().from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, user.tenantId)).orderBy(schema.catalogueItems.name),
@@ -171,6 +174,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       .orderBy(schema.tools.name),
     db.select().from(schema.tenders).where(eq(schema.tenders.tenantId, user.tenantId))
       .orderBy(schema.tenders.dueAt),
+    db.select().from(schema.quoteChases).where(eq(schema.quoteChases.tenantId, user.tenantId)),
   ]);
   const crew = await crewFor(user);
 
@@ -179,6 +183,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
 
   /* The two things this business sets for itself: where reviews go, and the floor under its cash. */
   const [tenantRow] = await db.select({
+    name: schema.tenants.name,
     reviewLink: schema.tenants.reviewLink,
     cashBufferCents: schema.tenants.cashBufferCents,
   }).from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
@@ -289,6 +294,10 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       {tab === 'cash' && <CashFlow tenantId={user.tenantId} bills={billRows} orders={orderRows} today={today} />}
       {tab === 'rework' && <Rework rows={callbackRows} jobs={jobs} crew={crew} manage={manage} minutes={workedMinutes} />}
       {tab === 'reviews' && <Reviews rows={reviewRows} jobs={jobs} manage={manage} link={tenantRow?.reviewLink ?? null} />}
+      {tab === 'growth' && (
+        <KeepWorkComing jobs={jobs} chases={chaseRows} tenders={tenderRows} manage={manage}
+          business={tenantRow?.name ?? 'us'} now={now} />
+      )}
       {tab === 'tools' && <Tools rows={toolRows} crew={crew} manage={manage} today={today} />}
       {tab === 'tenders' && <Tenders rows={tenderRows} manage={manage} today={today} />}
       {tab === 'takeoff' && <Takeoff kits={kits} items={itemRows} manage={manage} />}
@@ -3002,3 +3011,187 @@ const tabHrefFor = (tab: string, extra: Record<string, string> = {}) => {
   const q = new URLSearchParams({ tab, ...extra });
   return `/jobs?${q.toString()}`;
 };
+
+/**
+ * Keep work coming — the Growth stream, computed rather than remembered.
+ *
+ * ── Why this tab exists ──────────────────────────────────────────────────────────────────────────
+ *
+ * Kris, 24 September, shown that Growth was the least automatic of the three streams: *"growth
+ * automation gap - thats our weakest and most important"*.
+ *
+ * Everything on this screen already existed somewhere. Quotes were on the Quotes tab, tenders on
+ * Tenders, customers on Customers. Every one of them was a list somebody had to open — and a list
+ * somebody has to open is a list that does not get opened in the week everybody is flat out, which
+ * is the exact week that decides whether there is work in six.
+ *
+ * So nothing here is a list of everything. It is only what has come due, worked out from dates SPEC
+ * already holds, in the order things stop being possible: a tender closing today cannot be
+ * recovered tomorrow, a quote going cold is nearly gone, and a customer quiet eighteen months will
+ * still be there next week.
+ */
+function KeepWorkComing({ jobs, chases, tenders, manage, business, now }: {
+  jobs: JobRow[];
+  chases: (typeof schema.quoteChases.$inferSelect)[];
+  tenders: (typeof schema.tenders.$inferSelect)[];
+  manage: boolean;
+  business: string;
+  now: Date;
+}) {
+  const chasedBy = new Map<string, number[]>();
+  for (const c of chases) chasedBy.set(c.jobId, [...(chasedBy.get(c.jobId) ?? []), c.day]);
+
+  /* A quote is out when it has been sent and the job has not moved past 'quoted'. */
+  const watches = jobs
+    .filter(j => j.stage === 'quoted' && j.quotedAt)
+    .map(j => quoteWatch({
+      id: j.id, ref: j.ref, client: j.client ?? 'the customer',
+      valueCents: j.valueCents ?? 0, sentAt: j.quotedAt!,
+      chasedDays: chasedBy.get(j.id) ?? [],
+    }, now));
+
+  const ready = watches.filter(w => w.state === 'chase');
+  const cold = watches.filter(w => w.state === 'cold');
+
+  /*
+    The tenders table calls the closing date `dueAt` and records progress as a status rather than a
+    timestamp. Mapped here rather than renaming the column: a tender that has been submitted, won
+    or lost is one nobody needs chasing about, and only the ones still open can still be missed.
+  */
+  const DONE_WITH = ['submitted', 'won', 'lost', 'no-go'];
+  const tenderWatches = tenders
+    /*
+      A tender with no closing date cannot be counted down, and inventing one would be worse than
+      saying nothing — a countdown to a date nobody set is the kind of confidence that gets a
+      tender missed. It stays on the Tenders tab, where its missing date is visible.
+    */
+    .filter((t): t is typeof t & { dueAt: string } => Boolean(t.dueAt))
+    .map(t => tenderWatch({
+      id: t.id, title: t.title, client: t.builder ?? '',
+      closesAt: t.dueAt, submittedAt: DONE_WITH.includes(t.status) ? t.createdAt : null,
+    }, now))
+    .filter(w => w.state === 'today' || w.state === 'soon' || w.state === 'closed')
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+
+  /* Customers worth ringing back, built out of the job history that is already here. */
+  const byCustomer = new Map<string, { at: string; valueCents: number }[]>();
+  for (const j of jobs) {
+    const key = (j.client ?? '').trim();
+    if (!key) continue;
+    byCustomer.set(key, [...(byCustomer.get(key) ?? []), { at: j.createdAt, valueCents: j.valueCents ?? 0 }]);
+  }
+  const back = worthGoingBackFor(
+    [...byCustomer].map(([name, js]) => ({ key: name, name, jobs: js })), now,
+  ).slice(0, 12);
+
+  const line = growthLine({
+    chasesReady: ready.length,
+    goingCold: cold.length,
+    toRingBack: back.length,
+    closingSoon: tenderWatches.filter(w => w.state === 'today' || w.state === 'soon').length,
+    missedTenders: tenderWatches.filter(w => w.state === 'closed').length,
+  });
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">Keep work coming</h2>
+        <p className="mt-1 max-w-[74ch] text-sm text-ink-light">
+          Only what has come due, worked out from dates SPEC already holds. Nothing here is a list
+          to keep on top of — quoting stops in the week everybody is flat out, and the hole turns up
+          six weeks later, so the one thing this must not be is somewhere you have to remember to
+          look.
+        </p>
+        <p className="mt-3 text-sm font-semibold text-ink">{line}</p>
+      </section>
+
+      {tenderWatches.length > 0 && (
+        <section className="card">
+          <h3 className="font-serif text-lg text-ink">Tenders</h3>
+          <ul className="mt-3 grid gap-2">
+            {tenderWatches.map(w => (
+              <li key={w.tender.id} className="rounded-2xl bg-cream px-4 py-3">
+                <p className="text-sm text-ink">
+                  {w.tender.title}
+                  {w.tender.client ? <span className="text-ink-light"> · {w.tender.client}</span> : null}
+                </p>
+                <p className="mt-0.5 text-[13px] leading-[19px]"
+                  style={{ color: w.state === 'open' ? undefined : LIGHT_INK[w.state === 'closed' ? 'red' : 'amber'] }}>
+                  {w.says}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="card">
+        <h3 className="font-serif text-lg text-ink">Quotes waiting on an answer</h3>
+        <p className="mt-1 max-w-[74ch] text-sm text-ink-light">
+          Invoices have chased themselves at 7, 14 and 30 days since September. Quotes did not, and
+          nobody decided that — a quote going quiet is the cheapest work a business will ever win
+          walking out of the door, and it walks out silently. Three touches, each saying something
+          different, then stop.
+        </p>
+
+        {ready.length === 0 && cold.length === 0 ? (
+          <p className="mt-3 text-sm text-ink-light">
+            Nothing to chase. Every quote out is either answered or too new to touch.
+          </p>
+        ) : (
+          <ul className="mt-4 grid gap-3">
+            {[...ready, ...cold].map(w => (
+              <li key={w.quote.id} className="rounded-2xl bg-cream p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-sm text-ink">
+                    {w.quote.ref} · {w.quote.client}
+                    <span className="text-ink-light"> · {money(w.quote.valueCents)}</span>
+                  </p>
+                  <p className="text-[13px]" style={{ color: LIGHT_INK[w.state === 'cold' ? 'red' : 'amber'] }}>
+                    {w.says}
+                  </p>
+                </div>
+                {manage && w.due && (
+                  <form action={recordQuoteChase} className="mt-3 grid gap-2">
+                    <input type="hidden" name="jobId" value={w.quote.id} />
+                    <input type="hidden" name="day" value={w.due} />
+                    <input type="hidden" name="said" value={chaseDraft(w.quote, w.due, business)} />
+                    <CopyBox label={`The ${w.due}-day chase, written`} value={chaseDraft(w.quote, w.due, business)} rows={3} />
+                    <SubmitButton className="btn-secondary w-fit text-sm" pending="…">
+                      Sent it
+                    </SubmitButton>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="card">
+        <h3 className="font-serif text-lg text-ink">Worth ringing back</h3>
+        <p className="mt-1 max-w-[74ch] text-sm text-ink-light">
+          The cheapest lead a trade business has is somebody it has already worked for. Every
+          business knows it and almost none of them work it, because reading four years of jobs
+          looking for who has gone quiet is nobody&rsquo;s afternoon. It is already in here.
+        </p>
+        {back.length === 0 ? (
+          <p className="mt-3 text-sm text-ink-light">
+            Nobody is overdue. Every customer with a pattern is inside it.
+          </p>
+        ) : (
+          <ul className="mt-4 grid gap-2">
+            {back.map(b => (
+              <li key={b.key} className="flex flex-wrap items-baseline justify-between gap-2 rounded-2xl bg-cream px-4 py-3">
+                <span className="text-sm text-ink">{b.name}</span>
+                <span className="text-[13px] text-ink-light">
+                  {b.says} <span className="text-ink/70">{money(b.worthCents)} of work.</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
