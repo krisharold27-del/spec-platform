@@ -32,6 +32,10 @@ import { HR_TABS, tabOf, hrefOf, lastThree, lastPayWeek, exitsFrom, trainingStat
 import { ConductTab, PayTab, type ReviewPerson, type TrainingRow, type ContractRow, type ExitRow } from './hr-tabs';
 import { StaffListTab } from './staff-list';
 import { SubbiesTab, type SubbieRow } from './subbies-tab';
+import { SetupTab } from './setup-tab';
+import { seatKindFor } from '@/lib/chart-seats';
+import { planStateFor } from '@/lib/plan';
+import type { Person, SeatKind } from '@/lib/onboarding';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,6 +135,54 @@ export default async function People({ searchParams }: { searchParams: Promise<R
     forty subbies has 240 check rows, and every other tab on this screen would carry that read for
     nothing.
   */
+  /*
+    Everybody, for the setup list. Read only for that tab: it is the widest read on this screen —
+    the staff rows, their roles, their licences and their training all at once — and every other tab
+    would carry it for nothing.
+
+    The chart's own guess at each seat comes from `seatKindFor`, which is what billing uses. The
+    tick on the row beats it; until somebody ticks, the guess stands and the screen says so.
+  */
+  const setupPeople: (Person & { chartSeat: SeatKind; setupToken: string | null })[] = await (async () => {
+    if (tab !== 'setup') return [];
+    const [staffRows, assignments, licences, trainingDone] = await Promise.all([
+      db.select().from(schema.staff).where(eq(schema.staff.tenantId, user.tenantId))
+        .orderBy(schema.staff.name),
+      db.select().from(schema.roleAssignments).where(isNull(schema.roleAssignments.toDate)),
+      db.select().from(schema.obligations).where(eq(schema.obligations.tenantId, user.tenantId)),
+      db.select().from(schema.trainingRecords).where(eq(schema.trainingRecords.tenantId, user.tenantId)),
+    ]);
+    const roleById = new Map(scope.roles.map(r => [r.id, r]));
+    const leads = new Set(scope.roles.map(r => r.reportsToRoleId).filter((x): x is string => Boolean(x)));
+
+    return staffRows.map(st => {
+      const held = assignments.find(a => a.staffId === st.id);
+      const role = held ? roleById.get(held.roleId) : undefined;
+      return {
+        id: st.id,
+        name: st.name,
+        email: st.email,
+        roleTitle: role?.title ?? null,
+        seatKind: st.seatKind,
+        isSubcontractor: Boolean(st.isSubcontractor),
+        inductedAt: st.inductedAt,
+        licences: licences.filter(o => o.staffId === st.id)
+          .map(o => ({ what: o.what, expiresAt: o.expiresAt })),
+        trainingDone: trainingDone.filter(t => t.completedAt && (t.staffId === st.id || (t.userId && t.userId === st.userId))).length,
+        trainingNeeded: 0,
+        invited: Boolean(st.userId),
+        setupToken: st.setupToken,
+        chartSeat: (role
+          ? seatKindFor({ title: role.title, hasDirectReports: leads.has(role.id) })
+          : 'team') as SeatKind,
+      };
+    });
+  })();
+
+  const setupPlan = tab === 'setup' ? await planStateFor(user.tenantId) : null;
+  const setupCurrency = setupPlan?.currency ?? 'aud';
+  const setupSubscribed = Boolean(setupPlan?.billing);
+
   /* Apprentice claims, read only for the tab that shows them. */
   const claimRows = tab === 'pay'
     ? (await db.select().from(schema.apprenticeClaims)
@@ -352,6 +404,11 @@ export default async function People({ searchParams }: { searchParams: Promise<R
 
       {tab === 'staff' ? (
         <StaffListTab user={user} q={typeof sp.q === 'string' ? sp.q.slice(0, 80) : ''} />
+      ) : tab === 'setup' ? (
+        <SetupTab
+          people={setupPeople} roles={visible.map(r => ({ id: r.id, title: r.title }))}
+          today={todayIso} currency={setupCurrency} canPay={scope.canAdminister} subscribed={setupSubscribed}
+        />
       ) : tab === 'subbies' ? (
         <SubbiesTab rows={subbieRows} manage={manage} today={todayIso} business={tenant.name} />
       ) : tab === 'conduct' ? (

@@ -483,6 +483,41 @@ export const staff = pgTable('staff', {
   email: text('email'),
   /** The day they started with the business, when it is known. ISO date. */
   startDate: text('start_date'),
+  /*
+    ── Set before anybody is invited, so the bill is decided before it is charged ────────────────
+
+    Kris, 24 September, setting JBI up with his HR admin: put everybody in, tick what each one is,
+    and *"finalise payment after everything is set"*.
+
+    Billing reads `users.seatKindOverride`, which only exists once a person has an account. A
+    business filling its list in on a Monday morning has no accounts yet — so the intent is recorded
+    HERE, on the person, and carried onto their account when they are invited. Without that, the
+    business would have to invite everybody (and start paying) before it could say who was what.
+  */
+  /** leadership | team | null — null means take it from the chart, the way it always did. */
+  seatKind: text('seat_kind'),
+  /**
+   * A subcontractor, ticked on the same list as everybody else.
+   *
+   * Kris's correction of 24 September is what makes this a tick rather than a separate register:
+   * subbies are people working for the business, held to the full expectation, on a paid team seat.
+   * The only thing that differs is what they can see. A separate list would say the opposite.
+   */
+  isSubcontractor: boolean('is_subcontractor').notNull().default(false),
+  /** When their induction was done. Null until it is — and not bookable until then. */
+  inductedAt: text('inducted_at'),
+  /**
+   * The link this person opens on their phone to finish their own record.
+   *
+   * Thirty-eight people with a licence, a ticket, an induction and a start date is well over a
+   * hundred fields. An HR admin typing them from a pile of photocopies is a day's work producing a
+   * register nobody trusts, because the certificate is in a drawer and the row is a transcription.
+   * The office puts in what only the office knows; the person puts in what only they have.
+   *
+   * A credential, like the customer page's: 32 random characters, one per person, never printed
+   * anywhere else, and clearable once they are set up.
+   */
+  setupToken: text('setup_token'),
 }, t => [index('staff_tenant').on(t.tenantId)]).enableRLS();
 
 /**

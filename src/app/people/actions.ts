@@ -1,8 +1,8 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { and, eq } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
+import { and, eq, isNull } from 'drizzle-orm';
+import { randomUUID, randomBytes } from 'node:crypto';
 import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
 import { getScope } from '@/lib/scope';
@@ -13,6 +13,7 @@ import { refuseTo } from '@/lib/refuse';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { isCheckKind, mayBook } from '@/lib/subbies';
+import { isSeatKind } from '@/lib/onboarding';
 import { draftContract, mayTake, lastPayWeek, FAIR_PROCESS } from '@/lib/hr';
 import { isRecordKind, parseSteps, checkHours, mayExport } from '@/lib/hr-records';
 import type { Pillar } from '@/lib/scoring';
@@ -554,4 +555,165 @@ export async function recordSubbieCheck(form: FormData) {
 
   revalidatePath('/people');
   redirect('/people?mode=subbies');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * Setting everybody up — the list worked down once, before anybody is charged
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/** The person, confirmed to be in this business. Every action below starts here. */
+async function ownStaff(tenantId: string, staffId: string) {
+  const [row] = await db.select().from(schema.staff)
+    .where(and(eq(schema.staff.id, staffId), eq(schema.staff.tenantId, tenantId)));
+  return row ?? null;
+}
+
+const backToSetup = () => {
+  revalidatePath('/people');
+  redirect('/people?mode=setup');
+};
+
+/**
+ * Team member or leadership.
+ *
+ * Written to the STAFF row, and to their account as well when they have one — because billing reads
+ * `users.seatKindOverride` and the two must never disagree about the same person. Before anybody is
+ * invited the staff row is the only place it can live, which is the whole reason this screen exists.
+ */
+export async function setSeatKind(form: FormData) {
+  const user = await manager();
+  const staffId = txt(form, 'staffId', 64);
+  const kind = txt(form, 'seatKind', 20);
+  if (!isSeatKind(kind)) refuseTo('/people?mode=setup', 'SPEC does not know that kind of seat.');
+
+  const person = await ownStaff(user.tenantId, staffId);
+  if (!person) refuseTo('/people?mode=setup', 'That person is not in this business.');
+
+  await db.update(schema.staff).set({ seatKind: kind }).where(eq(schema.staff.id, staffId));
+  if (person.userId) {
+    await db.update(schema.users).set({ seatKindOverride: kind })
+      .where(and(eq(schema.users.id, person.userId), eq(schema.users.tenantId, user.tenantId)));
+  }
+  backToSetup();
+}
+
+/**
+ * A subcontractor, ticked on the same list as everybody else.
+ *
+ * Kris's correction of 24 September is what makes this a tick rather than a separate register:
+ * subbies are people working for the business, held to the full expectation, on a paid team seat.
+ * A separate list would say the opposite of that.
+ */
+export async function setSubcontractor(form: FormData) {
+  const user = await manager();
+  const staffId = txt(form, 'staffId', 64);
+  const person = await ownStaff(user.tenantId, staffId);
+  if (!person) refuseTo('/people?mode=setup', 'That person is not in this business.');
+
+  await db.update(schema.staff).set({ isSubcontractor: txt(form, 'on', 4) === '1' })
+    .where(eq(schema.staff.id, staffId));
+  backToSetup();
+}
+
+/**
+ * Their company email, and their role.
+ *
+ * The email is the login — it signs them in, receives the sign-in link and recovers the account —
+ * so a personal address is worth saying something about. It is SAVED either way: a business
+ * part-way through a rollout has people on a personal address today, and a screen that refuses is
+ * a screen they stop filling in. The warning is on the page beside the field.
+ */
+export async function savePersonDetail(form: FormData) {
+  const user = await manager();
+  const staffId = txt(form, 'staffId', 64);
+  const person = await ownStaff(user.tenantId, staffId);
+  if (!person) refuseTo('/people?mode=setup', 'That person is not in this business.');
+
+  const email = txt(form, 'email', 320).toLowerCase();
+  if (email && !/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(email)) {
+    refuseTo('/people?mode=setup', 'That does not look like an email address.');
+  }
+  if (email) {
+    await db.update(schema.staff).set({ email }).where(eq(schema.staff.id, staffId));
+  }
+
+  /* A role, when one was picked. Moving somebody is an assignment, not a column on the person. */
+  const roleId = txt(form, 'roleId', 64);
+  if (roleId) {
+    const [role] = await db.select({ id: schema.roles.id }).from(schema.roles)
+      .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
+    if (!role) refuseTo('/people?mode=setup', 'That role is not in this business.');
+
+    const today = new Date().toISOString().slice(0, 10);
+    await db.update(schema.roleAssignments)
+      .set({ toDate: today })
+      .where(and(eq(schema.roleAssignments.staffId, staffId), isNull(schema.roleAssignments.toDate)));
+    await db.insert(schema.roleAssignments).values({
+      id: randomUUID(), roleId, staffId, fromDate: today,
+    });
+  }
+  backToSetup();
+}
+
+/**
+ * A licence or ticket, with the date it runs out.
+ *
+ * The expiry is the point of the row. A licence with no date is a licence nobody will ever be
+ * warned about, so it is asked for — but not required, because a business with the certificate in
+ * front of it and no date on it should still be able to record that it exists.
+ */
+export async function addLicence(form: FormData) {
+  const user = await manager();
+  const staffId = txt(form, 'staffId', 64);
+  const person = await ownStaff(user.tenantId, staffId);
+  if (!person) refuseTo('/people?mode=setup', 'That person is not in this business.');
+
+  const what = txt(form, 'what', 120);
+  if (!what) refuseTo('/people?mode=setup', 'Say what the licence or ticket is.');
+
+  await db.insert(schema.obligations).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    what,
+    staffId,
+    userId: person.userId ?? null,
+    roleId: null,
+    expiresAt: txt(form, 'expiresAt', 10) || null,
+    evidence: null,
+    createdAt: stamp(),
+  });
+  backToSetup();
+}
+
+/** Their induction. One of the two things that decide whether somebody can be sent to a job. */
+export async function markInducted(form: FormData) {
+  const user = await manager();
+  const staffId = txt(form, 'staffId', 64);
+  const person = await ownStaff(user.tenantId, staffId);
+  if (!person) refuseTo('/people?mode=setup', 'That person is not in this business.');
+
+  await db.update(schema.staff).set({ inductedAt: new Date().toISOString().slice(0, 10) })
+    .where(eq(schema.staff.id, staffId));
+  backToSetup();
+}
+
+/**
+ * The link this person opens on their phone to finish their own record.
+ *
+ * ── Why a new token every time ───────────────────────────────────────────────────────────────────
+ *
+ * Pressing it again is what somebody does when the first text went to the wrong number. Reusing the
+ * token would leave the wrong phone holding a working link to a person's record, so each press
+ * issues a fresh one and the old one stops working. That is the behaviour somebody expects from
+ * "send it again" even though they would never think to ask for it.
+ */
+export async function sendSetupLink(form: FormData) {
+  const user = await manager();
+  const staffId = txt(form, 'staffId', 64);
+  const person = await ownStaff(user.tenantId, staffId);
+  if (!person) refuseTo('/people?mode=setup', 'That person is not in this business.');
+
+  await db.update(schema.staff).set({ setupToken: randomBytes(16).toString('hex') })
+    .where(eq(schema.staff.id, staffId));
+  backToSetup();
 }

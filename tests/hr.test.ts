@@ -9,7 +9,8 @@ import { FRAMEWORK } from '../src/lib/power-meter';
 describe('the People tabs', () => {
   it('are the design’s, in its order', () => {
     expect(HR_TABS.map(t => t.label)).toEqual([
-      'Who you have', 'Staff list', 'Reviews & conduct', 'Pay & exits', 'Subcontractors', 'Who you need',
+      'Who you have', 'Staff list', 'Set everybody up', 'Reviews & conduct', 'Pay & exits',
+      'Subcontractors', 'Who you need',
     ]);
     expect(tabOf('staff')).toBe('staff');
     expect(hrefOf('staff')).toBe('/people?mode=staff');
@@ -21,6 +22,17 @@ describe('the People tabs', () => {
     expectation on every job." Beside suppliers they would be a folder of certificates; here they
     are held to what everybody else is held to.
   */
+  /*
+    Setting everybody up is its own tab because of the MONEY, not the layout. Billing reads a seat
+    kind off an account, and accounts only exist once people are invited — so without a place to
+    record the intent first, a business would have to invite all thirty-eight people, and start
+    paying, before it could say which ones were leadership. See lib/onboarding.
+  */
+  it('HAVE A PLACE TO SET EVERYBODY UP BEFORE ANYBODY IS CHARGED', () => {
+    expect(tabOf('setup')).toBe('setup');
+    expect(hrefOf('setup')).toBe('/people?mode=setup');
+  });
+
   it('PUT SUBCONTRACTORS UNDER PEOPLE, not beside suppliers', () => {
     expect(tabOf('subbies')).toBe('subbies');
     expect(hrefOf('subbies')).toBe('/people?mode=subbies');

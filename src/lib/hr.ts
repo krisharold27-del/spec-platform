@@ -19,7 +19,7 @@ import { light, type Light, LIGHT_LABEL } from './today';
 
 /* ── The tabs ─────────────────────────────────────────────────────────────────────────────────── */
 
-export type HrTab = 'have' | 'staff' | 'conduct' | 'pay' | 'subbies' | 'hiring';
+export type HrTab = 'have' | 'setup' | 'staff' | 'conduct' | 'pay' | 'subbies' | 'hiring';
 
 /**
  * The tabs, in the design's order — HR, Reviews & conduct, Pay & exits, Recruitment — with the
@@ -35,6 +35,12 @@ export const HR_TABS: { tab: HrTab; mode: string | null; label: string }[] = [
     because it is the same question asked of everybody rather than of the viewer's own line.
   */
   { tab: 'staff', mode: 'staff', label: 'Staff list' },
+  /*
+    Setting everybody up — the list a business works down once, with its HR admin, before anybody
+    is charged. Second in the row because it is where a new business starts and then rarely
+    returns; see lib/onboarding for why it has to exist separately from the staff list.
+  */
+  { tab: 'setup', mode: 'setup', label: 'Set everybody up' },
   { tab: 'conduct', mode: 'conduct', label: 'Reviews & conduct' },
   { tab: 'pay', mode: 'pay', label: 'Pay & exits' },
   /*

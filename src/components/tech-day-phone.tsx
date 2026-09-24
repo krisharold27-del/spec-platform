@@ -7,6 +7,10 @@ import { clockOn, clockOff, recordOnJob, attachPhoto } from '@/app/tech-day/acti
 import { SiteVipMark } from '@/components/sitevip-mark';
 import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { mayUpload, pathFor, photoPromise } from '@/lib/photos';
+import { TAKE5, mayStart, concerns, needsNote, take5Line, type Take5 } from '@/lib/take5';
+import { REPORT_KINDS } from '@/lib/safety';
+import { sendReport } from '@/app/safety/actions';
+import { SubmitButton } from '@/components/submit-button';
 import {
   MARK_TOOLS, markLabel, markText, maySave, onPlan, savedLine, SAVED_TO, OFFLINE_LINE,
   type Mark, type MarkKind,
@@ -101,6 +105,8 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
   const [now, setNow] = useState(nowIso);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [signature, setSignature] = useState<string | null>(null);
+  /** This morning's Take 5. Kept on the phone so it survives a basement and a dropped signal. */
+  const [take5, setTake5] = useState<Take5 | null>(null);
 
   const key = day ? storageKey(userId, day) : '';
 
@@ -113,6 +119,10 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
     setS(kept);
     try { setFinished(JSON.parse(load(`${k}.finished`) ?? '[]') as DoneJob[]); } catch { setFinished([]); }
     setSignature(load(`${k}.signature`));
+    try {
+      const kept = load(`${k}.take5`);
+      setTake5(kept ? (JSON.parse(kept) as Take5) : null);
+    } catch { setTake5(null); }
     if (kept.job && !kept.finishedAt) setView('job');
     // The office already has this phone's Start (the answer was lost on the way back): take its entry.
     if (kept.startedAt && !kept.finishedAt && !kept.entryId && open) {
@@ -264,6 +274,24 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
               </section>
             )}
 
+            {/*
+              ── The day starts here ───────────────────────────────────────────────────────────
+
+              Kris: "start with a safety take 5 and set up the day right". Before the job list,
+              because that is the order the day happens in — and a Take 5 under the jobs is a Take 5
+              done after somebody has already picked up the tools.
+
+              Kept on this phone like everything else here, so it works with no signal. It is
+              recorded against the job the moment one is started.
+            */}
+            {!take5 ? (
+              <section className="rounded-[20px] bg-white p-4 shadow-sm">
+                <Take5Panel onDone={t => { setTake5(t); if (key) save(`${key}.take5`, JSON.stringify(t)); }} />
+              </section>
+            ) : (
+              <KeptHere>{take5Line(take5)}</KeptHere>
+            )}
+
             {officeNote && <KeptHere>{officeNote}</KeptHere>}
             <KeptHere>
               Jobs the office books you on land here. Start and Finish go straight to the office&rsquo;s
@@ -346,6 +374,13 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
               not one of them: it happens whenever something is found, which may be three times in a
               morning or not at all. Putting it in the sequence would make it a step people skip.
             */}
+            {/*
+              Straight into the safety register, with this job against it — see `SomethingWrong`.
+              Beside the day's work rather than buried in a menu: a hazard somebody has to go
+              looking for is a hazard that gets mentioned in the ute on the way home instead.
+            */}
+            <SomethingWrong jobRef={s.job?.ref ?? s.job?.title ?? ''} />
+
             <details className="rounded-[20px] bg-white p-4 shadow-sm">
               <summary className="flex min-h-[44px] cursor-pointer items-center text-[15px] font-bold">
                 Mark up the plan
@@ -1021,5 +1056,170 @@ function MarkUpPanel({ onSave }: { onSave: (marks: Mark[]) => void }) {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Take 5 — the two minutes before the tools come out.
+ *
+ * Kris: *"start with a safety take 5 and set up the day right"*. Five questions about THIS site,
+ * THIS morning — not a SWMS, which is written once for a kind of work. The rules are in lib/take5
+ * and tested there; this is the phone.
+ *
+ * One question at a time, two big buttons. A five-question form with ten small controls gets tapped
+ * through, and a Take 5 that gets tapped through is worse than none: it produces a record saying
+ * somebody checked when nobody did.
+ */
+function Take5Panel({ onDone }: { onDone: (t: Take5) => void }) {
+  const [answers, setAnswers] = useState<Record<string, 'yes' | 'no'>>({});
+  const [note, setNote] = useState('');
+
+  const t: Take5 = { answers, note, at: new Date().toISOString() };
+  const at = TAKE5.findIndex(q => !answers[q.key]);
+  const q = at === -1 ? null : TAKE5[at];
+  const verdict = mayStart(t);
+  const raised = concerns(t);
+
+  if (q) {
+    return (
+      <div className="grid gap-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <strong className="text-[15px]">Take 5</strong>
+          <span className="text-xs text-ink-light">{at + 1} of {TAKE5.length}</span>
+        </div>
+        <p className="text-[17px] font-semibold leading-6 text-ink">{q.ask}</p>
+        <div className="grid grid-cols-2 gap-2">
+          {(['yes', 'no'] as const).map(a => (
+            <button
+              key={a}
+              type="button"
+              onClick={() => setAnswers(s => ({ ...s, [q.key]: a }))}
+              className={`min-h-[52px] rounded-full text-base font-bold ${
+                a === 'yes' ? 'bg-light-green text-white' : 'bg-cream text-ink'
+              }`}
+            >
+              {a === 'yes' ? 'Yes' : 'No'}
+            </button>
+          ))}
+        </div>
+        <p className="text-[12.5px] leading-5 text-ink-light">{q.ifNot}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-3">
+      <strong className="text-[15px]">Take 5</strong>
+
+      {/*
+        The one that stops the day. Four of the five can be a no and the day carries on sensibly;
+        working on something that has not been isolated and tested dead is the one that kills
+        electricians, so SPEC says stop and means it.
+      */}
+      {!verdict.ok && (
+        <p
+          className="rounded-xl px-3.5 py-3 text-[14px] font-semibold leading-5"
+          style={{ background: `color-mix(in srgb, ${LIGHT_COLOUR.red} 14%, transparent)`, color: LIGHT_INK.red }}
+        >
+          {verdict.why}
+        </p>
+      )}
+
+      {raised.length > 0 && (
+        <div className="grid gap-2">
+          <p className="text-[13px] text-ink-light">
+            {raised.length === 1 ? 'One thing' : `${raised.length} things`} to sort before you start.
+          </p>
+          <textarea
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            rows={3}
+            className="input text-base"
+            aria-label="What is not right"
+            placeholder="What is it? This goes on the job and to your supervisor."
+          />
+        </div>
+      )}
+
+      <button
+        type="button"
+        disabled={!verdict.ok || needsNote(t)}
+        onClick={() => onDone(t)}
+        className="btn-primary min-h-[52px] text-base disabled:opacity-50"
+      >
+        {verdict.ok ? 'Done — start the day' : 'Cannot start yet'}
+      </button>
+      {needsNote(t) && (
+        <p className="text-[12.5px] text-ink-light">Write what it is first — a note nobody can read is a problem nobody can fix.</p>
+      )}
+      <button type="button" onClick={() => setAnswers({})} className="text-[12.5px] text-ink-light underline">
+        Start the five again
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Something is not right — straight into the safety register, from the job.
+ *
+ * Kris: *"in the jobs easy incident report and hazard or near miss directly into safety system"*.
+ *
+ * The job reference goes with it, so the office does not have to ask where. It posts to the same
+ * `sendReport` every other report uses — there is no second safety register and no phone-only
+ * shortcut that lands somewhere different, which is how a business ends up with two sets of numbers.
+ */
+function SomethingWrong({ jobRef }: { jobRef: string }) {
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState('hazard');
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="min-h-[48px] rounded-full border-2 border-rust px-4 text-[15px] font-bold text-rust"
+      >
+        Something&rsquo;s not right
+      </button>
+    );
+  }
+
+  return (
+    <form action={sendReport} className="grid gap-2.5 rounded-[20px] bg-white p-4 shadow-sm">
+      <strong className="text-[15px]">Tell the office</strong>
+      <input type="hidden" name="jobRef" value={jobRef} />
+      <input type="hidden" name="kind" value={kind} />
+      <div className="flex flex-wrap gap-1.5">
+        {REPORT_KINDS.filter(k => k.key !== 'wellbeing').map(k => (
+          <button
+            key={k.key}
+            type="button"
+            onClick={() => setKind(k.key)}
+            aria-pressed={kind === k.key}
+            className={`min-h-[44px] rounded-full px-3.5 text-[13.5px] font-semibold ${
+              kind === k.key ? 'bg-ink text-white' : 'bg-cream text-ink'
+            }`}
+          >
+            {k.label}
+          </button>
+        ))}
+      </div>
+      <textarea
+        name="text"
+        rows={3}
+        required
+        className="input text-base"
+        aria-label="What happened"
+        placeholder={REPORT_KINDS.find(k => k.key === kind)?.placeholder ?? 'One line is enough.'}
+      />
+      <p className="text-[12.5px] leading-5 text-ink-light">
+        Goes straight onto the safety register with this job against it. A report is never held
+        against you.
+      </p>
+      <div className="flex gap-2">
+        <SubmitButton className="btn-primary min-h-[48px] flex-1 text-base" pending="Sending…">Send it</SubmitButton>
+        <button type="button" onClick={() => setOpen(false)} className="btn-secondary min-h-[48px] px-5">Not now</button>
+      </div>
+    </form>
   );
 }
