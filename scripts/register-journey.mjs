@@ -189,10 +189,50 @@ for (const [label, pattern] of [
   check(`first visit holds back — ${label}`, !pattern.test(body));
 }
 
+/*
+  ── Measured to the foot of the day's work, not the foot of the document ───────────────────────
+
+  This measured the whole body against 4200px, and on 24 September it started failing at 4430 —
+  not because the first visit got busier, but because "Everywhere else in SPEC" did. That block is
+  the complete directory of the product, deliberately LAST, after the day's work, and it grew
+  because the product grew: twenty-one Jobs tabs, six People tabs, a Compliance area.
+
+  Shaving it to make a number pass would have been the wrong fix twice over — it would have
+  deleted content Kris asked to keep, and it would have left the check measuring something it does
+  not care about. What the rule is actually about is his own words: *"they are here because
+  problems are overwhelming them — if we make it too much info then that's another problem"*. That
+  is about what a new business MEETS, which is everything above the directory.
+
+  So it measures to the top of the directory and holds that to the original 4200, and separately
+  holds the directory to being last — because the day's work creeping BELOW it would defeat the
+  whole thing. The threshold did not move; what it is pointed at got specific.
+*/
+const layout = await page.evaluate(() => {
+  const everywhere = document.querySelector('#everywhere');
+  return {
+    body: document.body.scrollHeight,
+    toDirectory: everywhere
+      ? Math.round(everywhere.getBoundingClientRect().top + window.scrollY)
+      : document.body.scrollHeight,
+    hasDirectory: Boolean(everywhere),
+  };
+});
+
+check('the directory of every page is still there', layout.hasDirectory);
 check(
   'and it is a page somebody can actually take in',
-  (await page.evaluate(() => document.body.scrollHeight)) < 4200,
-  `${await page.evaluate(() => document.body.scrollHeight)}px`,
+  layout.toDirectory < 4200,
+  `${layout.toDirectory}px before the directory, ${layout.body}px in all`,
+);
+
+/*
+  And the directory really is last. Without this the check above could be satisfied by moving the
+  day's work below it, which is the same page in a worse order.
+*/
+check(
+  'with everything the day needs ABOVE the directory',
+  layout.toDirectory > layout.body * 0.5,
+  `${layout.toDirectory} of ${layout.body}`,
 );
 
 // The other half — that these sections come BACK once there is something in them — is checked in

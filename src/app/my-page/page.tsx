@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { redirect } from 'next/navigation';
 import { Shell, PILLAR_META, pct } from '@/components/ui';
@@ -20,6 +20,7 @@ import { isAdminEmail } from '@/lib/admin';
 import { myBusinesses } from '@/lib/auth';
 import { doSignOut } from '@/app/signin/actions';
 import { light, pillarNote, clearToWork, LIGHT_COLOUR, LIGHT_LABEL, type Light } from '@/lib/today';
+import { ROLE_STEPS, roleKindOf, stepsFor, nextStep, progressLine } from '@/lib/job-today';
 import type { Pillar, RoleScore } from '@/lib/scoring';
 import { Problems } from '@/components/problems';
 import { PowerMeter, PowerBreakdown } from '@/components/power-meter';
@@ -119,6 +120,27 @@ export default async function MyPage({
     the name and their own four pillars, which are the things they can actually act on.
   */
   const scope = await getScope(user);
+
+  /*
+    Your job today. The role's list comes from lib/job-today; the counts that make each step worth
+    doing come from what SPEC already holds. Where it holds no count the step keeps its own words
+    rather than showing a zero — a zero nobody can verify reads as "done" on work nobody looked at.
+  */
+  const jobKind = roleKindOf(data.myRole);
+  const [waitingTimesheets, openCallbacks] = await Promise.all([
+    db.select({ id: schema.timesheetEntries.id }).from(schema.timesheetEntries)
+      .where(and(
+        eq(schema.timesheetEntries.tenantId, user.tenantId),
+        isNull(schema.timesheetEntries.approvedAt),
+      )),
+    db.select({ id: schema.callbacks.id }).from(schema.callbacks)
+      .where(and(eq(schema.callbacks.tenantId, user.tenantId), eq(schema.callbacks.status, 'open'))),
+  ]);
+  const jobSteps = stepsFor(jobKind, {
+    timesheetsWaiting: waitingTimesheets.length,
+    openCallbacks: openCallbacks.length,
+  });
+  const nextJobStep = nextStep(jobSteps);
   /*
     The Snap Score goes IN to the meter as the twenty-fifth measure rather than sitting beside it
     as a second opinion — Kris, 19 September: *"snap score can be added to the Virtual GM power
@@ -701,6 +723,67 @@ export default async function MyPage({
         My Page is what a leader opens at seven in the morning; the argument is for the moment they
         stop to think about whether any of this is worth doing, and for explaining it to a board.
       */}
+      {/*
+        ── Your job today ──────────────────────────────────────────────────────────────────────
+
+        Design 17. Every other block on this page answers "how is it going"; this one answers "what
+        do I do", which is a different question and the one most people open a system with. A
+        supervisor at 6.45am does not want four pillars — they want to know the toolbox talk comes
+        before anything else.
+
+        Ordered, and the order IS the content. Each step opens exactly where it is done, and every
+        one of them lands inside SPEC: the design's principle is that the only other system anybody
+        touches is the financial one, and a step that sent somebody elsewhere would make that false.
+      */}
+      <section aria-label="Your job today" className="card mt-8">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-serif text-xl text-ink">{ROLE_STEPS[jobKind].title}</h2>
+          <span className="text-sm font-semibold text-ink-light">{progressLine(jobSteps)}</span>
+        </div>
+        <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
+          In order, for your role. Each step opens exactly where it is done — your accounting system
+          is the only other one you touch, and SPEC keeps that up to date.
+        </p>
+        <ol className="mt-4 grid gap-2">
+          {jobSteps.map(step => {
+            const isNext = step === nextJobStep;
+            return (
+              <li key={step.title}>
+                <Link
+                  href={step.where}
+                  className={`flex flex-wrap items-start gap-3 rounded-2xl px-4 py-3 ${
+                    isNext ? 'bg-surface shadow-sm ring-2 ring-rust' : 'bg-cream hover:bg-surface'
+                  }`}
+                >
+                  <span
+                    className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
+                    style={{ background: step.done ? LIGHT_COLOUR.green : isNext ? LIGHT_COLOUR.amber : LIGHT_COLOUR.pending }}
+                    aria-hidden
+                  >
+                    {step.done ? '✓' : ''}
+                  </span>
+                  {/*
+                    The note only on the step that is next, or one with a real count against it.
+
+                    Six steps each carrying two lines is the wall this page exists to avoid — and
+                    the reason for a step is only ever needed for the one about to be done. The rest
+                    are a list somebody scans. This is also what keeps My Page inside what a person
+                    can take in; `register-journey` fails the build when it is not.
+                  */}
+                  <span className="grid min-w-0 flex-[1_1_220px] gap-0.5">
+                    <strong className="text-sm text-ink">{step.title}</strong>
+                    {(isNext || (step.count ?? 0) > 0) && (
+                      <span className="text-xs leading-5 text-ink-light">{step.note}</span>
+                    )}
+                  </span>
+                  {isNext && <span className="label-caps shrink-0 self-center text-rust">Next</span>}
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+
       <Problems screen="myPage" heading="What this page changes" />
 
       {/*

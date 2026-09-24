@@ -8,6 +8,10 @@ import { SiteVipMark } from '@/components/sitevip-mark';
 import { LIGHT_COLOUR, LIGHT_INK } from '@/lib/today';
 import { mayUpload, pathFor, photoPromise } from '@/lib/photos';
 import {
+  MARK_TOOLS, markLabel, markText, maySave, onPlan, savedLine, SAVED_TO, OFFLINE_LINE,
+  type Mark, type MarkKind,
+} from '@/lib/markup';
+import {
   STEPS, EMPTY_DAY, apply, canDo, doneLine, isDone, nextStep, primaryLabel, primaryNote, revive,
   storageKey, summary, timesheet, clock, hoursLabel, bookedOn, hhmm,
   nextAction, dayLine,
@@ -335,6 +339,32 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
                 </div>
               );
             })}
+
+            {/*
+              The as-built, beside the steps rather than inside them. The six steps are a fixed
+              order — SWMS, start, photos, materials, sign-off, finish — and marking up the plan is
+              not one of them: it happens whenever something is found, which may be three times in a
+              morning or not at all. Putting it in the sequence would make it a step people skip.
+            */}
+            <details className="rounded-[20px] bg-white p-4 shadow-sm">
+              <summary className="flex min-h-[44px] cursor-pointer items-center text-[15px] font-bold">
+                Mark up the plan
+              </summary>
+              <div className="pt-3">
+                <MarkUpPanel
+                  onSave={marks => {
+                    if (s.job) {
+                      void recordOnJob({
+                        jobId: s.job.jobId ?? '',
+                        kind: 'photo',
+                        who: name,
+                        what: savedLine(marks),
+                      });
+                    }
+                  }}
+                />
+              </div>
+            </details>
 
             {next && (
               <>
@@ -841,6 +871,154 @@ function NextThing({ jobId, records, items, who, tenantId, storeConnected }: {
             </button>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Mark up the plan — the as-built, recorded by the person who did the work.
+ *
+ * ── Marks, not a photo of biro ───────────────────────────────────────────────────────────────────
+ *
+ * What normally happens is a photo of a paper plan with pen on it, and somebody in the office tries
+ * to read it a week later. This records each mark as a mark — a kind, a place on the plan, a note,
+ * and metres for a cable run — so it can go onto the job, the office copy and the certificate
+ * without anybody redrawing anything.
+ *
+ * ── It has to work in a basement ─────────────────────────────────────────────────────────────────
+ *
+ * Everything here is kept on the phone until it is saved, and the screen says so. Marking up must
+ * never depend on a signal: a screen that fails where the work happens is a screen people stop
+ * opening, and then the business has no as-built at all.
+ *
+ * Every target is 44px, because this is a thumb on a phone in a switchroom.
+ */
+function MarkUpPanel({ onSave }: { onSave: (marks: Mark[]) => void }) {
+  const [marks, setMarks] = useState<Mark[]>([]);
+  const [tool, setTool] = useState<MarkKind | null>(null);
+  const [what, setWhat] = useState('');
+  const [metres, setMetres] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const place = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!tool) return;
+    const box = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - box.left) / box.width) * 100;
+    const y = ((e.clientY - box.top) / box.height) * 100;
+    const mark: Mark = {
+      kind: tool,
+      x, y,
+      what: what.trim(),
+      metres: tool === 'cable' ? Number(metres) || null : null,
+    };
+    if (!onPlan(mark)) return;
+    setMarks(m => [...m, mark]);
+    setTool(null); setWhat(''); setMetres(''); setSaved(false);
+  };
+
+  const allowed = maySave(marks);
+
+  return (
+    <div className="grid gap-2.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <strong className="text-[15px]">Mark up the plan</strong>
+        <span className="text-xs text-ink-light">What was actually installed</span>
+      </div>
+
+      {/*
+        The plan. Without a drawing loaded it is a plain grid to place marks on — which is still the
+        useful half, because the marks and their notes are what the office reads. A grid that says
+        it is a grid is better than a picture that pretends to be the drawing.
+      */}
+      <div
+        onClick={place}
+        role={tool ? 'button' : undefined}
+        aria-label={tool ? `Tap where the ${markLabel(tool).toLowerCase()} goes` : 'The plan'}
+        className={`relative aspect-[4/3] overflow-hidden rounded-xl bg-cream ${tool ? 'cursor-crosshair ring-2 ring-rust' : ''}`}
+      >
+        <div className="grid h-full w-full grid-cols-2 grid-rows-2">
+          {['1', '2', '3', '4'].map(n => (
+            <div key={n} className="border-2 border-ink/20" />
+          ))}
+        </div>
+        {marks.map((m, i) => (
+          <span
+            key={i}
+            className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold text-white"
+            style={{ left: `${m.x}%`, top: `${m.y}%`, background: LIGHT_COLOUR.amber }}
+          >
+            {markText(m)}
+          </span>
+        ))}
+        {!marks.length && !tool && (
+          <span className="absolute inset-0 grid place-items-center px-6 text-center text-xs text-ink-light">
+            Pick a tool below, then tap where it goes.
+          </span>
+        )}
+      </div>
+
+      {tool && (
+        <div className="grid gap-2 rounded-xl bg-cream p-3">
+          <p className="text-[12.5px] text-ink-light">{MARK_TOOLS.find(t => t.key === tool)?.hint}</p>
+          {tool === 'cable' ? (
+            <input
+              value={metres}
+              onChange={e => setMetres(e.target.value)}
+              inputMode="decimal"
+              className="input min-h-[44px] text-base"
+              aria-label="How many metres"
+              placeholder="How many metres"
+            />
+          ) : (
+            <input
+              value={what}
+              onChange={e => setWhat(e.target.value)}
+              className="input min-h-[44px] text-base"
+              aria-label="What it is"
+              placeholder={tool === 'point' ? 'Which point, and where it went' : 'What the next person needs to know'}
+            />
+          )}
+          <p className="text-[12.5px] font-semibold text-ink">Now tap the plan where it goes.</p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-1.5">
+        {MARK_TOOLS.map(t => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => { setTool(tool === t.key ? null : t.key); setWhat(''); setMetres(''); }}
+            aria-pressed={tool === t.key}
+            className={`min-h-[44px] rounded-full px-3.5 py-2.5 text-[13.5px] font-semibold ${
+              tool === t.key ? 'bg-ink text-white' : 'bg-cream text-ink'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <p className="flex items-center gap-1.5 text-[12.5px]" style={{ color: LIGHT_INK.green }}>
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: LIGHT_COLOUR.green }} />
+        {OFFLINE_LINE}
+      </p>
+
+      {saved ? (
+        <p className="rounded-xl bg-cream px-3.5 py-2.5 text-[13px] text-ink">{savedLine(marks)}</p>
+      ) : (
+        <>
+          <button
+            type="button"
+            disabled={!allowed.ok}
+            onClick={() => { onSave(marks); setSaved(true); }}
+            className="btn-primary min-h-[48px] text-base disabled:opacity-50"
+          >
+            Save as the as-built
+          </button>
+          {!allowed.ok && <p className="text-[12.5px] text-ink-light">{allowed.why}</p>}
+          <p className="text-[12.5px] text-ink-light">Goes to {SAVED_TO.join(', ').toLowerCase()}.</p>
+        </>
       )}
     </div>
   );

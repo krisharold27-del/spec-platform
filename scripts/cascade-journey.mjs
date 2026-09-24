@@ -108,10 +108,28 @@ const firstRole = await page.locator('section[aria-label="Predictive KPIs from t
   .first().locator('span.font-serif').first().innerText();
 check('it reads from the top of the chart down', /General Manager|Head of/.test(firstRole), firstRole);
 
-// ── Drop one, and it must not come back ──────────────────────────────────────────────────────────
-const before = await page.locator('section[aria-label="Predictive KPIs from the goal"] li').count();
-await press('form button:has-text("Not this one")');
-const after = await page.locator('section[aria-label="Predictive KPIs from the goal"] li').count();
+/*
+  ── Drop one, and it must not come back ────────────────────────────────────────────────────────
+
+  Waits for the COUNT to change rather than for `networkidle` plus a fixed 900ms. A server action
+  posts and then re-renders, and networkidle settles while React has not yet committed the new list
+  — so the old count was read back and the check passed or failed on how fast the page happened to
+  be that day. It passed for weeks and then failed the moment My Page grew a query.
+
+  This is the fifth time in this repo a journey has been wrong by waiting for time instead of for
+  the thing it is about to assert. Poll for the state.
+*/
+const ROWS = 'section[aria-label="Predictive KPIs from the goal"] li';
+const before = await page.locator(ROWS).count();
+await page.click('form button:has-text("Not this one")');
+
+let after = before;
+const until = Date.now() + 15000;
+while (Date.now() < until) {
+  after = await page.locator(ROWS).count();
+  if (after !== before) break;
+  await page.waitForTimeout(200);
+}
 check('a dropped row goes', after === before - 1, `${before} → ${after}`);
 
 await press('button:has-text("Work the goal down the chart")').catch(() => {});

@@ -15,6 +15,7 @@ import { pathFor, pathProgress, signoffFor, aceSteps, type TrainingModule } from
 import { hasTrainingSeat } from '@/lib/training-seat';
 import { moneyLabel, trainingSeatPrice, eligibleForTrainingSeat, TRAINING_SEAT_ON_SALE, HOME_CURRENCY, type Currency } from '@/lib/pricing';
 import { planStateFor } from '@/lib/plan';
+import { ACES, ACE_STANDARD, RUN_LENGTH } from '@/lib/ace';
 import { setTrainingSeat } from './actions';
 import { PILLAR_META, Badge } from '@/components/ui';
 import { Material } from '@/components/material';
@@ -174,6 +175,70 @@ export default async function Training({ searchParams }: {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {/*
+        ── Aces across the business ─────────────────────────────────────────────────────────────
+
+        Design 17: every role has an Ace — Sales, Jobs, Safety, Office, Crew, Apprentice — each with
+        its training path, who holds it now, and everyone's three-month run.
+
+        One rule everywhere, which is the whole design. A business with six different bonus schemes
+        has six arguments; a business with one rule has one conversation, and the only thing that
+        varies between roles is which numbers the board is made of. It lives on Training rather than
+        beside the incentives because the path comes first: the run does not start until the role's
+        training is finished, and that is the part a manager can actually do something about.
+
+        Shown to whoever administers, because it names what everybody in the business is on.
+      */}
+      {scope.canAdminister && (
+        <section className="card mb-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-serif text-xl text-ink">Aces across the business</h2>
+            <span className="text-sm text-ink-light">
+              Path complete, then {ACE_STANDARD}%+ for {RUN_LENGTH} closed months
+            </span>
+          </div>
+          <p className="mt-1 max-w-[70ch] text-sm text-ink-light">
+            The same rule for every role. Finish the training path, then hold {ACE_STANDARD}%+ on
+            your board for {RUN_LENGTH} closed months in a row and you hold the Ace — the incentive
+            doubles where incentives are switched on for that person, and then the run restarts.
+          </p>
+          <ul className="mt-4 grid gap-2">
+            {ACES.map(a => (
+              <li key={a.key} className="grid gap-1 rounded-2xl bg-cream px-4 py-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <strong className="text-sm text-ink">{a.label}</strong>
+                  <span className="text-xs text-ink-light">{a.who}</span>
+                </div>
+                <p className="text-xs leading-5 text-ink-light">{a.blurb}</p>
+                <div className="mt-1 flex items-center gap-1.5">
+                  {/*
+                    Three dots, one per closed month in the run. They read as not-yet-scored rather
+                    than as zeros: nothing has judged anybody, and a row of red on somebody's first
+                    week is a judgement SPEC has not earned.
+                  */}
+                  {Array.from({ length: RUN_LENGTH }, (_, i) => (
+                    <span
+                      key={i}
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ background: LIGHT_COLOUR.pending }}
+                      title="No closed month scored yet"
+                    />
+                  ))}
+                  <span className="ml-1 text-xs text-ink-light">No closed month scored yet</span>
+                  {a.key === 'sales' && <Link href="/jobs?tab=ace" className="ml-auto text-xs text-rust underline">Open the board</Link>}
+                  {a.key === 'jobs' && <Link href="/jobs?tab=jobace" className="ml-auto text-xs text-rust underline">Open the board</Link>}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-ink-light">
+            A month counts only once it is closed and signed off. The live one is shown on each board
+            and never counted — a run that could be won on an open month is a run won by not
+            recording things.
+          </p>
         </section>
       )}
 
