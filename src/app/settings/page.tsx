@@ -13,7 +13,10 @@ import { PERMISSIONS, LEVELS, stateOf, STATE_LABEL, levelOf } from '@/lib/permis
 import { cadenceOf, CADENCE } from '@/lib/governance';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { adminActivity } from '@/lib/admin-activity';
-import { setCadence, setCeilings, resetCeilings, revokeRights } from './actions';
+import { setCadence, setCeilings, resetCeilings, revokeRights, setAdministrator } from './actions';
+import { isAdministrator, administratorNote } from '@/lib/administrators';
+import { Refused } from '@/components/refused';
+import { refusedReason } from '@/lib/refuse';
 import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsFor, usesOwnCeilings } from '@/lib/ceilings';
 import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_AT_OR_BELOW } from '@/lib/incentive';
 
@@ -34,7 +37,19 @@ const STATE_COLOUR = {
  * read in one go — hiding a button was never access control.
  */
 export default async function Settings({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  await searchParams;
+  /*
+    ── This screen used to throw its refusals away ────────────────────────────────────────────────
+
+    `await searchParams;` — awaited for the side effect and discarded. Every action on this page
+    that refuses does it through `refuseTo`, which redirects with the reason on the address, and
+    there was nothing here to read it. So a refusal arrived as a page that looked identical to the
+    one you left: you press the button, the address changes, and nothing whatever is said.
+
+    That is the failure mode `refuseTo`'s own doc names — *"a refusal that looks like a success is
+    worse than either"* — sitting on the screen where the refusals matter most, because this is
+    where seats, billing and who administers the business are changed.
+  */
+  const sp = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
@@ -126,6 +141,9 @@ export default async function Settings({ searchParams }: { searchParams: Promise
       headline="Permissions follow the role, not the person"
       subtitle="Administration, not management — your scope still decides what you manage."
     >
+      {/* First thing on the page, because a refusal nobody sees is a button that looks broken. */}
+      <Refused reason={refusedReason(sp)} />
+
       {/*
         The sentence that stops the most common misunderstanding: people ask for "access for Jo",
         and what they mean is a seat on a role. Move Jo and what she can see moves with her.
@@ -307,6 +325,54 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             {directors.length ? 'Add a director, or stand one down' : 'Record the board'}
           </Link>
         </p>
+      </section>
+
+      {/*
+        ── Who administers the business ───────────────────────────────────────────────────────────
+
+        Kris, 24 September: *"original person to sign up begins as an admin but they can change that
+        to someone else if they wish."* The first half was already true — signing up puts you in the
+        General Manager seat, and that role carries administrator. The second half had no path at
+        all: access was written once when a person was created, and nothing in SPEC could change it
+        afterwards. See lib/administrators.
+
+        It sits directly above "What each level may do" on purpose. That table describes the levels;
+        this is where somebody is actually moved between them, and a description with no door beside
+        it is how a screen teaches people it cannot help them.
+      */}
+      <section className="card mt-6">
+        <h2 className="font-serif text-xl text-ink">Who administers this business</h2>
+        <p className="mt-1 max-w-3xl text-sm text-ink-light">{administratorNote(seats)}</p>
+
+        <ul className="mt-4 grid gap-2">
+          {seats.map(s => {
+            const admin = isAdministrator(s);
+            return (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface-raised px-4 py-3 ring-1 ring-black/5"
+              >
+                <span className="min-w-0">
+                  <span className="font-semibold text-ink">{s.name}</span>
+                  {s.id === user.id && <span className="text-ink-light"> (you)</span>}
+                  <span className="block text-sm text-ink-light">{s.email}</span>
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="text-sm text-ink-light">
+                    {admin ? 'Administrator' : s.access === 'full' ? 'Manager' : 'Read only'}
+                  </span>
+                  <form action={setAdministrator}>
+                    <input type="hidden" name="userId" value={s.id} />
+                    {!admin && <input type="hidden" name="make" value="on" />}
+                    <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">
+                      {admin ? 'Step down' : 'Make an administrator'}
+                    </SubmitButton>
+                  </form>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       </section>
 
       <section className="card mt-6">

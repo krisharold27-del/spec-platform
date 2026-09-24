@@ -393,6 +393,13 @@ const JOURNEYS = [
   // than passing quietly — a connector nobody exercised is not a connector anybody has proven.
   ['xero', 'a business linking its accounts, and the board guarding the ledger', 'xero-journey.mts'],
   /*
+    Both halves of what Kris asked for on 24 September, and the refusal that stops a business
+    reaching nobody. It also guards the wider fault it found: /settings awaited its searchParams and
+    threw them away, so every refusal on the screen where seats, billing and administration are
+    changed arrived as a page identical to the one you left.
+  */
+  ['admin', 'handing administration on, and the last one not being able to go', 'admin-journey'],
+  /*
     Not a browser journey: it drives `currentPeriod` against a real database, because the fault it
     guards is in WHICH ROW comes back. Nothing that stops short of the database can catch it.
   */

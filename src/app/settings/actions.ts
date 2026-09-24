@@ -1,13 +1,15 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { getScope, assertAdministrator } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsToStore } from '@/lib/ceilings';
 import { revokeGrant } from '@/lib/rights';
+import { mayChangeAdministrator } from '@/lib/administrators';
+import { refuseTo } from '@/lib/refuse';
 
 /**
  * Company settings.
@@ -111,4 +113,38 @@ export async function revokeRights(form: FormData) {
   // Everywhere that asks scope a question. A right taken back has to stop working on the next page
   // somebody opens, not whenever a cache happens to expire.
   for (const path of ['/settings', '/org', '/team', '/inbox', '/my-page']) revalidatePath(path);
+}
+
+/**
+ * Hand administration to somebody else, or take it back.
+ *
+ * Kris, 24 September: *"original person to sign up begins as an admin but they can change that to
+ * someone else if they wish."* The first half was already true; the second half had no path at all
+ * — access was written once by `assignPerson` and nothing in SPEC could change it afterwards. See
+ * lib/administrators for the rules and for the one state they exist to make unreachable.
+ */
+export async function setAdministrator(form: FormData) {
+  const user = await administrator();
+  const subjectId = String(form.get('userId') ?? '');
+  const makeAdministrator = form.get('make') === 'on';
+  if (!subjectId) return;
+
+  /*
+    Read the seats fresh and decide from them, rather than trusting anything the form said about who
+    currently holds what. Two administrators stepping down in the same minute is exactly how a
+    business reaches nobody, and the count has to come from the database at the moment of the write.
+  */
+  const seats = await db.select({
+    id: schema.users.id, name: schema.users.name, email: schema.users.email, access: schema.users.access,
+  }).from(schema.users).where(eq(schema.users.tenantId, user.tenantId));
+
+  const decision = mayChangeAdministrator(seats, user.id, subjectId, makeAdministrator);
+  if (!decision.ok) refuseTo('/settings', decision.reason);
+
+  await db.update(schema.users).set({ access: decision.access })
+    .where(and(eq(schema.users.id, subjectId), eq(schema.users.tenantId, user.tenantId)));
+
+  // Every screen that asks who somebody is. Rights taken back have to stop working on the next page
+  // opened, not whenever a cache happens to expire.
+  for (const path of ['/settings', '/admin', '/org', '/team', '/inbox', '/my-page']) revalidatePath(path);
 }
