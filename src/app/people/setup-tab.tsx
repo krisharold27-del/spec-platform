@@ -227,9 +227,19 @@ export function SetupTab({ people, roles, today, currency, canPay, subscribed }:
                     </SubmitButton>
                   </form>
                 </div>
-                {p.setupToken && phone.next && (
+                {/*
+                  Shown whenever a link exists, INCLUDING when there is nothing left for them to do.
+
+                  It used to hang off `phone.next`, so pressing "Send them a link" for somebody who
+                  had already finished confirmed nothing — the admin pressed a button and the page
+                  looked identical. Working down thirty-eight people that reads as a broken button,
+                  and the link gets sent three more times.
+                */}
+                {p.setupToken && (
                   <p className="mt-1.5 text-xs text-ink-light">
-                    Link sent · {phone.done} of {phone.of} done on their phone · next: {phone.next}
+                    Link sent · {phone.next
+                      ? `${phone.done} of ${phone.of} done on their phone · next: ${phone.next}`
+                      : 'everything we asked them for is in. Nothing left for them to do.'}
                   </p>
                 )}
               </section>

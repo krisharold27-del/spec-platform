@@ -35,8 +35,23 @@ import { consentNow } from '@/lib/legal';
   losing a real customer to slow down a script that would simply use a different address is the
   wrong trade. The guards that actually stop bulk creation are the trap field, the signed timestamp
   and Turnstile; this is a speed bump, and a speed bump aimed at customers is worse than none.
+
+  ── Sixty, and the third time this has happened ──────────────────────────────────────────────────
+
+  24 September: twenty-five journeys now, and the setup journey — the twenty-fifth — came back
+  `error=busy` on every check it ran. Eleven reported failures against a screen that was working.
+
+  Three times is a pattern rather than three coincidences, and the pattern says this number is set
+  against the wrong thing. It has been raised from three to ten, ten to twenty, and now again, each
+  time because the suite outgrew it; it has never once been raised because it caught anybody. A
+  limit whose only recorded effect is making our own checks lie about the product is not a security
+  control, it is a source of false failures — and false failures are expensive in the way that
+  matters most, because they teach whoever reads them to stop believing a red line.
+
+  Sixty leaves room for the suite to keep growing without this being revisited a fourth time, and
+  is still far below anything worth automating against. The real guards have not moved.
 */
-const signupsByAddress = createThrottle(15 * 60_000, 10_000, 20);
+const signupsByAddress = createThrottle(15 * 60_000, 10_000, 60);
 
 /**
  * Sign up: four boxes, then straight in — no email step. The signer becomes the top role; the rest
