@@ -340,6 +340,17 @@ export const WORKFLOWS: Workflow[] = [
       'Today it is a phone call to the office and a note. A no-access costs an hour of a crew and is the single most common thing that wrecks a day, and SPEC does not count them — so nobody can see which customers do it repeatedly.'),
   ]),
 
+  W('do', 'multi-crew', 'Two crews on one job',
+    'A job too big for one crew, split into scopes.',
+    'Every scope finished, and one person answerable for the whole of it.',
+    'operations', ['gross_profit', 'productivity', 'safety_incident'], [
+    { does: 'Split the job into scopes, and put a crew on each.', by: 'office', where: '/jobs?tab=schedule' },
+    { does: 'Several people can be booked on one job on one day; nobody can be booked on two.', by: 'spec', where: '/jobs?tab=schedule' },
+    nowhere('office', 'Name ONE supervisor answerable for the whole job, not one per scope.',
+      'Kris, 25 September: "split scopes with one supervisor overall". SPEC can put two crews on a job and has nowhere to record who carries it — so on the day the scopes disagree, which is the day it matters, accountability is wherever the conversation lands.'),
+    { does: 'Each crew’s Take 5 and hours land on the same job.', by: 'field', where: '/tech-day' },
+  ]),
+
   W('do', 'multi-day', 'A project over weeks',
     'A job too big for one visit.',
     'Every stage finished, claimed and closed.', 'operations', ['gross_profit', 'cash_flow', 'contract_breach'], [
@@ -371,8 +382,9 @@ export const WORKFLOWS: Workflow[] = [
   W('do', 'defect-return', 'Go back and fix it',
     'A callback — something you did is not right.',
     'Fixed, and the cause is recorded so it stops happening.', 'operations', ['gross_profit', 'snap_score'], [
-    { does: 'The callback is raised against the original job.', by: 'office', where: '/jobs?tab=rework' },
-    { does: 'The cause is one of four, not a free-text excuse.', by: 'office', where: '/jobs?tab=rework' },
+    { does: 'One question first: are you being paid for it? Paid is a continuation of the job — the hours go on and it is invoiced like any other work, and it never reaches the rework screen.', by: 'office', where: '/jobs?tab=rework' },
+    { does: 'Unpaid is what rework IS. The cause is then one of four, not a free-text excuse — and it is only ever asked about the unpaid ones.', by: 'office', where: '/jobs?tab=rework' },
+    { does: 'What it cost is worked out from the business’s own labour rate. Nothing is invented: with no rate set it says hours rather than dollars.', by: 'spec', where: '/jobs?tab=rework' },
     { does: 'Rework as a share of work, against the target.', by: 'spec', where: '/jobs?tab=rework' },
   ]),
 

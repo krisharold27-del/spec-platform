@@ -35,10 +35,49 @@ export const CAUSES: { key: Cause; label: string; consequence: string }[] = [
     consequence: 'Sent back to them at their cost, and it counts on their score.',
   },
   {
-    key: 'not_ours', label: 'Not our work',
-    consequence: 'Invoiced as a call-out. Going out for nothing is still a day.',
+    key: 'not_ours', label: 'Not our work, and not charged',
+    consequence: 'Somebody else’s fault and the customer was not billed for the visit. Going out for nothing is still a day — and if you DID charge for it, this was never a callback.',
   },
 ];
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * The first question, and it is not the cause
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Kris, 25 September: *"if returning for troubleshooting etc and paid this is just a continuation
+ * of the job - anything paid simple job process - unpaid is re work and negative to the business"*.
+ *
+ * ── Why this reorders the whole screen ───────────────────────────────────────────────────────────
+ *
+ * Every return visit used to become a callback, and then SPEC asked what caused it. That put the
+ * hard question first — whose fault was it — on a screen somebody fills in at the end of a long
+ * day, and it quietly counted paid work as rework, which made the rate wrong in the one direction
+ * that matters: a business that goes back often AND charges for it was reading itself as a business
+ * with a quality problem.
+ *
+ * The real first question is one word and nobody has to think about it. **Is this being paid for?**
+ *
+ *   Paid — it is more work on the same job. Ordinary hours, ordinary invoice, nothing to explain.
+ *   A job you are called back to and paid for is a customer who trusts you, not a defect.
+ *
+ *   Unpaid — that is what rework IS. Not a category of callback: the definition of one.
+ *
+ * So `cause` is only ever asked about the unpaid ones, which is also the only time the answer
+ * changes what anybody does.
+ */
+export type Returning = 'continuation' | 'rework';
+
+export const returningIs = (paid: boolean): Returning => (paid ? 'continuation' : 'rework');
+
+/** Said at the moment somebody is deciding, in the words the decision is actually made in. */
+export const RETURNING_RULE =
+  'Being paid for it makes it more work on the same job — log the hours and invoice it as normal. Going back for nothing is rework, and that is the only kind that counts against the business.';
+
+export const returningSays = (paid: boolean): string =>
+  paid
+    ? 'Paid, so this is a continuation of the job. The hours go on the job and it is invoiced like any other work — it is not a callback and it will not count against your rework.'
+    : 'Not paid, so this is rework. The hours were paid for once and earned nothing, and that comes straight off gross profit.';
 
 export const isCause = (v: string): v is Cause => CAUSES.some(c => c.key === v);
 
@@ -240,7 +279,15 @@ export function unpaidRework(
  * Leads with what it cost and then, only if there is any, the part nobody asked for — which is the
  * half a business can get back this week rather than fix over a year.
  */
-export function carriedLine(u: Unpaid): string {
+export function carriedLine(u: Unpaid, hoursUnpaid = 0): string {
+  /*
+    Hours but no money means the business has not set a labour rate. Saying "nothing went back out
+    unpaid" then would be a lie by arithmetic — there is plenty going out, SPEC just has no rate to
+    price it with, and it says so rather than inventing one.
+  */
+  if (u.carriedCents === 0 && hoursUnpaid > 0) {
+    return `${Math.round(hoursUnpaid)} hours of going back for nothing. Set a labour rate on Quotes and SPEC will tell you what that cost.`;
+  }
   if (u.carriedCents === 0) return 'Nothing went back out unpaid.';
   const share = u.shareOfRevenue === null ? '' : ` — ${(u.shareOfRevenue * 100).toFixed(1)}% of what you billed`;
   const base = `${money(u.carriedCents)} of work done twice and paid for once${share}.`;

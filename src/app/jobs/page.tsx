@@ -20,7 +20,7 @@ import { wipRow, wipStats, wipLine, byWipAttention, wipMoney, WIP_LABEL } from '
 import { runForward, cashStats, cashAdvice, cashLine, cashLabel, DEFAULT_BUFFER_CENTS, type Week } from '@/lib/cashflow';
 import { seatOf, tabsFor, maySeeTab, stripMoney, insteadGoTo } from '@/lib/sight';
 import { seatFor } from '@/lib/seat-of';
-import { reworkStats, reworkLine, reworkMoney, pattern, CAUSES, causeLabel, recoverFrom, REWORK_TARGET, unpaidRework, carriedLine, carriedCents, RECOVERY_GOES_STALE_DAYS } from '@/lib/rework';
+import { reworkStats, reworkLine, reworkMoney, pattern, CAUSES, causeLabel, recoverFrom, REWORK_TARGET, RETURNING_RULE, unpaidRework, carriedLine, carriedCents, RECOVERY_GOES_STALE_DAYS } from '@/lib/rework';
 import { reviewStats, reviewLine, needsReply, isComplaint, thankYou, mayAsk } from '@/lib/reviews';
 import { ACES, runOf, runLine, boardScore, towards, under, ACE_STANDARD, type BoardLine, type AceMonth } from '@/lib/ace';
 import { JobPhoto } from '@/components/job-photo';
@@ -2339,7 +2339,7 @@ function Rework({ rows, jobs, crew, manage, minutes }: {
           it moves one of the Power Meter&rsquo;s five heavy hitters rather than a shared measure.
         </p>
         <p className="mt-3 text-sm font-semibold text-ink">{reworkLine(stats)}</p>
-        <p className="mt-1.5 text-sm text-ink">{carriedLine(unpaid)}</p>
+        <p className="mt-1.5 text-sm text-ink">{carriedLine(unpaid, stats.hours)}</p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
@@ -2426,24 +2426,58 @@ function Rework({ rows, jobs, crew, manage, minutes }: {
         )}
 
         {manage && (
-          <form action={logCallback} className="mt-4 grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
-            <select className="input" name="jobId" required aria-label="Which job">
-              <option value="">Which job</option>
-              {jobs.map(j => <option key={j.id} value={j.id}>{j.ref} · {j.title}</option>)}
-            </select>
-            <select className="input" name="cause" required aria-label="What caused it">
-              {CAUSES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-            </select>
-            <select className="input" name="who" aria-label="Who did the original work">
-              <option value="">Who did it</option>
-              {crew.map(c => <option key={c.key} value={c.name}>{c.name}</option>)}
-            </select>
-            <input className="input" name="hours" inputMode="decimal" placeholder="Hours" aria-label="Hours going back" />
-            <SubmitButton className="btn-secondary shrink-0" pending="Logging…">Log it</SubmitButton>
+          <form action={logCallback} className="mt-4 grid gap-3">
+            {/*
+              ── The first question, and it is one word ────────────────────────────────────────
+
+              Kris, 25 September: "anything paid simple job process - unpaid is re work and negative
+              to the business". So this asks whether it is being paid for BEFORE it asks whose fault
+              it was — because for a paid return the second question never needs asking at all, and
+              nobody should have to think about blame at the end of a long day for work a customer
+              is happily paying for.
+            */}
+            <fieldset className="grid gap-2">
+              <legend className="text-sm text-ink">Are you being paid for going back?</legend>
+              <p className="max-w-[70ch] text-xs text-ink-light">{RETURNING_RULE}</p>
+              <div className="flex flex-wrap gap-4">
+                {[
+                  { v: 'yes', label: 'Yes — it is being charged' },
+                  { v: 'no', label: 'No — we are wearing it' },
+                ].map(o => (
+                  <label key={o.v} className="flex items-center gap-2 text-sm text-ink">
+                    <input type="radio" name="paid" value={o.v} required className="h-4 w-4" />
+                    {o.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <div className="grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
+              <select className="input" name="jobId" required aria-label="Which job">
+                <option value="">Which job</option>
+                {jobs.map(j => <option key={j.id} value={j.id}>{j.ref} · {j.title}</option>)}
+              </select>
+              {/*
+                Only read when the answer above is "no" — see logCallback, which returns before it
+                ever looks at this. Left on the form rather than revealed by script, because a
+                server-rendered page that hides a field behind JavaScript is a page that breaks in
+                the one place this gets filled in: a phone with bad reception in a ute.
+              */}
+              <select className="input" name="cause" required aria-label="If unpaid, what caused it">
+                {CAUSES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+              <select className="input" name="who" aria-label="Who did the original work">
+                <option value="">Who did it</option>
+                {crew.map(c => <option key={c.key} value={c.name}>{c.name}</option>)}
+              </select>
+              <input className="input" name="hours" inputMode="decimal" placeholder="Hours" aria-label="Hours going back" />
+              <SubmitButton className="btn-secondary shrink-0" pending="Logging…">Log it</SubmitButton>
+            </div>
           </form>
         )}
-        <p className="mt-2 text-xs text-ink-light">
-          {CAUSES.map(c => `${c.label}: ${c.consequence}`).join(' ')}
+        <p className="mt-2 max-w-[80ch] text-xs text-ink-light">
+          If it is paid, the hours go on the job and it is invoiced like any other work — it never
+          reaches this page. If it is not: {CAUSES.map(c => `${c.label}: ${c.consequence}`).join(' ')}
         </p>
       </section>
     </div>

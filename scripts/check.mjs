@@ -426,6 +426,7 @@ const JOURNEYS = [
     door.
   */
   ['sight', 'a subbie and a team member never reaching the money', 'sight-journey'],
+  ['rework', 'going back paid being a job, and going back free being rework', 'rework-journey'],
   ['setup', 'setting a whole business up in one sitting, with an HR admin', 'setup-journey'],
   ['join', 'a tradie doing their own half on their phone, with no account', 'join-journey'],
   /*

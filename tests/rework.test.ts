@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import {
   carriedCents, unpaidRework, oursByDefault, carriedLine,
-  RECOVERY_GOES_STALE_DAYS, recoverFrom, ONA_US, type Callback,
+  RECOVERY_GOES_STALE_DAYS, recoverFrom, ONA_US, CAUSES,
+  returningIs, returningSays, RETURNING_RULE, type Callback,
 } from '../src/lib/rework';
 
 /*
@@ -96,5 +98,60 @@ describe('the rework that never got paid for', () => {
   it('gives no share when nothing was billed, rather than a zero', () => {
     expect(unpaidRework([cb()], 0, at('2026-06-01')).shareOfRevenue).toBeNull();
     expect(carriedLine(unpaidRework([cb()], 0, at('2026-06-01')))).not.toMatch(/%/);
+  });
+});
+
+/*
+  ── Paid is a continuation; unpaid is rework ────────────────────────────────────────────────────
+
+  Kris, 25 September: "if returning for troubleshooting etc and paid this is just a continuation of
+  the job - anything paid simple job process - unpaid is re work and negative to the business".
+*/
+describe('the first question is whether it is paid, not whose fault it was', () => {
+  it('paid is a continuation of the job', () => {
+    expect(returningIs(true)).toBe('continuation');
+    expect(returningSays(true)).toMatch(/not a callback/i);
+    expect(returningSays(true)).toMatch(/will not count against/i);
+  });
+
+  it('unpaid is rework, and says what it costs', () => {
+    expect(returningIs(false)).toBe('rework');
+    expect(returningSays(false)).toMatch(/gross profit/i);
+  });
+
+  it('the rule is stated in the words the decision is made in', () => {
+    expect(RETURNING_RULE).toMatch(/paid/i);
+    expect(RETURNING_RULE).toMatch(/rework/i);
+    /* No jargon, because it is read at the end of a long day. */
+    expect(RETURNING_RULE).not.toMatch(/utilisation|variance|classification/i);
+  });
+
+  it('"not our work" no longer claims to be invoiced', () => {
+    /*
+      It used to read "Invoiced as a call-out", which under this rule is a contradiction: if it was
+      invoiced it was paid, so it was never a callback. The cause now means what is left — somebody
+      else's fault and we did not charge for the visit.
+    */
+    const c = CAUSES.find(x => x.key === 'not_ours')!;
+    expect(c.label).toMatch(/not charged/i);
+    expect(c.consequence).not.toMatch(/^Invoiced/);
+  });
+
+  it('the action returns before it ever looks at the cause when it is paid', () => {
+    /*
+      Read off the file, because this is a rule about ORDER — and order is the whole point. Asking
+      whose fault it was for work a customer is happily paying for is the question that made people
+      stop filling this in.
+    */
+    const src = readFileSync('src/app/jobs/actions.ts', 'utf8');
+    const fn = src.slice(src.indexOf('export async function logCallback'));
+    const body = fn.slice(0, fn.indexOf('\n}'));
+    const paidAt = body.indexOf("'paid'");
+    const causeAt = body.indexOf("'cause'");
+    expect(paidAt).toBeGreaterThan(-1);
+    expect(causeAt).toBeGreaterThan(-1);
+    expect(paidAt, 'the cause is asked before the paid question').toBeLessThan(causeAt);
+    /* And a paid return writes time on the job rather than a callback row. */
+    expect(body.slice(paidAt, causeAt)).toContain('timesheetEntries');
   });
 });

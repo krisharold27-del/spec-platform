@@ -939,10 +939,70 @@ export async function logCallback(formData: FormData) {
     .where(and(eq(schema.jobs.id, jobId), eq(schema.jobs.tenantId, user.tenantId)));
   if (!job) back('rework', {}, 'That job is not in this business.');
 
+  const hours = Math.max(0, Math.min(200, Number(formData.get('hours')) || 0));
+
+  /*
+    ── The first question, and it is not the cause ──────────────────────────────────────────────
+
+    Kris, 25 September: "if returning for troubleshooting etc and paid this is just a continuation
+    of the job - anything paid simple job process - unpaid is re work and negative to the business".
+
+    So a paid return never becomes a callback at all. The hours go on the job as ordinary time and
+    it is invoiced like any other work — which is both the truth and the simpler path, because
+    nobody has to answer a question about fault for work a customer is happily paying for.
+
+    This also fixes the rate in the direction that mattered: counting paid returns as rework made a
+    business that goes back often AND charges for it read as a business with a quality problem.
+  */
+  if (str(formData, 'paid', 8) === 'yes') {
+    if (hours > 0) {
+      const whoBack = str(formData, 'who', 120);
+      await db.insert(schema.timesheetEntries).values({
+        id: randomUUID(),
+        tenantId: user.tenantId,
+        jobId,
+        /* Keyed on the name as typed, the way the rest of the Rework form records who went. */
+        personKey: whoBack.toLowerCase().replace(/\s+/g, '-').slice(0, 64) || 'unknown',
+        personName: whoBack || 'Unknown',
+        day: new Date().toISOString().slice(0, 10),
+        /*
+          The office is recording a visit that already happened and knows how long it took, not
+          clocking somebody on. Start is the honest anchor available — the minutes are what was
+          entered, and finish is left off because nobody watched a clock.
+        */
+        startedAt: new Date().toISOString(),
+        minutes: Math.round(hours * 60),
+        /* Billable, because that is exactly what makes it a continuation rather than rework. */
+        billable: true,
+        source: 'return-visit',
+        createdAt: new Date().toISOString(),
+      });
+    }
+    revalidatePath('/jobs');
+    back('pipeline');
+  }
+
   const cause = str(formData, 'cause', 24);
   if (!isCause(cause)) back('rework', {}, 'SPEC does not know that cause.');
 
-  const hours = Math.max(0, Math.min(200, Number(formData.get('hours')) || 0));
+  /*
+    ── What it cost, from the business's own labour rate ────────────────────────────────────────
+
+    This wrote a flat `costCents: 0`, every time, which meant the unpaid-rework figure could never
+    be anything but zero — the whole of "what did going back for nothing cost us" was a number that
+    was structurally incapable of moving. Found by driving it rather than by reading it: the model
+    was right, the tests were right, and nothing on earth was ever going to put a value in.
+
+    Costed off the business's OWN cheapest labour rate, which is the conservative end. SPEC has no
+    business inventing an hourly rate, so a business that has not set one gets a zero and a screen
+    that says hours rather than pretending to know dollars — the same rule as the lodgement window
+    in `lib/certificates` and the amount in `lib/apprentice-funding`.
+  */
+  const [rate] = await db.select({ costCents: schema.labourRates.costCents })
+    .from(schema.labourRates)
+    .where(eq(schema.labourRates.tenantId, user.tenantId))
+    .orderBy(schema.labourRates.costCents)
+    .limit(1);
 
   await db.insert(schema.callbacks).values({
     id: randomUUID(),
@@ -952,7 +1012,7 @@ export async function logCallback(formData: FormData) {
     what: str(formData, 'what', 400),
     who: str(formData, 'who', 120),
     minutes: Math.round(hours * 60),
-    costCents: 0,
+    costCents: Math.round(hours * (rate?.costCents ?? 0)),
     recoveredCents: 0,
     status: 'open',
     createdAt: new Date().toISOString(),
