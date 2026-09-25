@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OrgChartDoor } from '@/components/org-chart-door';
 import { after } from 'next/server';
 import { ensureReport } from '@/lib/make-it-simple-data';
 import { redirect } from 'next/navigation';
@@ -93,6 +94,7 @@ export default async function VirtualGm({
         <Link href="/financials" className="text-rust-700 hover:underline" data-door-financials-top>Financials &rarr;</Link>
       </div>
       <Refused reason={refusedReason(arrival)} />
+      <OrgChartDoor className="mt-3" />
       <p className="mt-2 max-w-3xl text-sm text-ink-light" data-vgm-both>{VIRTUAL_GM.both}</p>
 
       <h2 className="mt-8 font-serif text-3xl text-ink" data-vgm-side="gm">Virtual GM</h2>

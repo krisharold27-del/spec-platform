@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OrgChartDoor } from '@/components/org-chart-door';
 import { after } from 'next/server';
 import { ensureReport } from '@/lib/make-it-simple-data';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -66,6 +67,7 @@ export default async function MyPage({
   if (!data.period) {
     return (
       <Shell title={`Good morning, ${firstName}.`} subtitle={`${today} · your page`}>
+        <OrgChartDoor className="mb-4 max-w-2xl" />
         <div className="callout max-w-2xl">
           <div className="font-serif text-lg text-ink">Your day fills in as soon as a role has its KPIs</div>
           <p className="mt-1 text-sm text-ink-light">
@@ -230,6 +232,9 @@ export default async function MyPage({
           hrefFor={meterHref}
         />
       </div>
+
+      {/* The org chart — THE key component, one press from the page everybody opens first. */}
+      <OrgChartDoor className="mt-4" />
 
       {/*
         The door to the Virtual GM — the whole business on one screen. A door from here rather than a

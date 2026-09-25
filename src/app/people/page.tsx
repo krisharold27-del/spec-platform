@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OrgChartDoor } from '@/components/org-chart-door';
 import { redirect } from 'next/navigation';
 import { OwnSystemLine } from '@/components/own-system-line';
 import { ownSystemFor } from '@/lib/coverage-data';
@@ -379,6 +380,7 @@ export default async function People({ searchParams }: { searchParams: Promise<R
       subtitle={hiring ? 'The roles you need filled, and who is in front of you.' : 'Who is where, who is clear to work, and what each of them is measured on.'}
     >
       <Refused reason={cannot} />
+      <OrgChartDoor className="mb-6" />
       {/*
         The two lines the design carries above this page and the product did not.
 

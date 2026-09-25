@@ -29,9 +29,11 @@ describe('the Virtual GM reads the same dial as My Page', () => {
     expect(page).toMatch(/import \{[^}]*\bDial\b[^}]*\bPowerBreakdown\b[^}]*\} from '@\/components\/power-meter'/);
   });
 
-  it('is a door from My Page, not another tab on the bar', () => {
+  it('is a door from My Page, and — since 25 September — a tab on the bar as well', () => {
+    // It was a door only. Kris then named it a core component that must always be findable
+    // (docs/CORE-COMPONENTS.md), so it is in the menu too; tests/core-components.test.ts holds that.
     expect(myPage).toContain('href="/virtual-gm"');
-    expect(readFileSync('src/lib/doors.ts', 'utf8')).not.toContain("'/virtual-gm'");
+    expect(readFileSync('src/lib/doors.ts', 'utf8')).toContain("href: '/virtual-gm'");
   });
 });
 

@@ -120,7 +120,10 @@ describe('the navigation bar', () => {
       else's rather than making it eleven — that is exactly how it got to fourteen.
     */
     // Eleven since 25 September: Financials, which Kris asked for by name after People.
-    expect(navDoors(f)).toHaveLength(11);
+    // Fourteen later the same day: he could not find the org chart, and every core component in
+    // docs/CORE-COMPONENTS.md now has its own item — findability beats a short bar. The ceiling is
+    // held at fourteen; the next addition must be a core component Kris names, or go under one.
+    expect(navDoors(f)).toHaveLength(14);
     expect(navDoors(f).length).toBeLessThan(allDoors(f).length);
   });
 
@@ -176,8 +179,8 @@ describe('the navigation bar', () => {
       it were the design's.
     */
     expect(labels).toEqual([
-      'My page', 'Jobs', 'CRM', 'People', 'Financials', 'Safety', 'Compliance', 'Board',
-      'Setup', 'Connections', 'All pages',
+      'My page', 'Org chart', 'Virtual GM', 'Jobs', 'CRM', 'People', 'Financials', 'Safety', 'Compliance', 'Board',
+      'COGS meeting', 'Setup', 'Connections', 'All pages',
     ]);
   });
 
@@ -192,7 +195,7 @@ describe('the navigation bar', () => {
     const directory = new Set(allDoors(f).map(d => d.href));
     for (const d of navDoors(f)) {
       // All pages points AT the directory, so it cannot be in it.
-      if (d.href === '/my-page' || d.href === '/board' || d.href === '/my-page#everywhere') continue;
+      if (d.href === '/my-page' || d.href === '/board' || d.href === '/pages') continue;
       expect(directory.has(d.href), `${d.href} is in the bar but not the directory`).toBe(true);
     }
   });

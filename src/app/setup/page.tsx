@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OrgChartDoor } from '@/components/org-chart-door';
 import { redirect } from 'next/navigation';
 import { eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
@@ -81,6 +82,7 @@ export default async function Setup() {
       headline="Roles first. People second."
       subtitle={`${all.length} steps, in the only order they work in. Drawing the whole business is free.`}
     >
+      <OrgChartDoor className="mb-4" />
       <section className="card">
         <div className="flex flex-wrap items-center gap-2">
           {all.map(s => (

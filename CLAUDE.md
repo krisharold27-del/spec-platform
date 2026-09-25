@@ -3,6 +3,15 @@
 You are building the SPEC platform for SPEC Business Solutions. **Read this file first in every
 session, then read `docs/BUILD_SPEC.md`.**
 
+## Core components — read `docs/CORE-COMPONENTS.md`
+
+**Never remove or hide a core component. Every new feature must be reachable from the menu or a
+clearly linked page.** The org chart, My Page, Virtual GM + Virtual Admin, Financials, Jobs, CRM,
+People, Safety, Compliance, Board/COGS meeting, the Make it simple report, Setup and Connections are
+each in the main menu, the org chart second. `tests/core-components.test.ts` and
+`scripts/core-components-journey.mjs` fail the build if one goes missing or errors. (Kris, 25
+September, after he could not find the org chart.)
+
 ## The mantra: OUTSIMPLE THEM
 
 **Every screen, every step, every decision is judged against it. If SimPro takes fifteen screens,
