@@ -35,6 +35,11 @@ export interface Missing {
   what: string;
   /** Where to add it. Absent when SPEC itself does not hold it yet. */
   href?: string;
+  /**
+   * Whose move it is. `product` is the side the business cannot do anything about — SPEC or Angus
+   * Shield still getting ready — and is said in one line, apart from what the business can do now.
+   */
+  side?: 'you' | 'product';
 }
 
 /** What a Yes carries out. Every action is SPEC's own, named in full, and re-checked before it runs. */

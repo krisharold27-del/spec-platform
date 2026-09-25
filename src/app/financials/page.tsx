@@ -128,10 +128,10 @@ export default async function Financials({
         <section className="mt-12" data-financials-needs>
           <h2 className="font-serif text-2xl text-ink">What needs you</h2>
           {view.needs.length ? (
-            <ul className="mt-4 grid gap-2">
+            <ul className="card mt-4 divide-y divide-cream-border p-0">
               {view.needs.map(n => (
                 <li key={n.key}>
-                  <Link href={n.href} className="card flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-4 transition-colors hover:border-rust-300" data-financials-need={n.key}>
+                  <Link href={n.href} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-4 transition-colors hover:bg-cream/60" data-financials-need={n.key}>
                     <span className="text-sm text-ink">{n.says}</span>
                     <span className="text-sm font-medium text-rust-700">{n.action} &rarr;</span>
                   </Link>
@@ -154,9 +154,9 @@ export default async function Financials({
           Who worked, on which job, where and when — straight from the phone. Checked, approved, then
           sent to your payroll.
         </p>
-        <ol className="mt-5 grid gap-3 sm:grid-cols-3" data-financials-steps>
+        <ol className="card mt-5 grid divide-y divide-cream-border p-0 sm:grid-cols-3 sm:divide-x sm:divide-y-0" data-financials-steps>
           {view.payroll.steps.map((s, i) => (
-            <li key={s.key} className="card flex gap-3" data-financials-step={s.key} data-done={s.done || undefined}>
+            <li key={s.key} className="flex gap-3 p-4 sm:p-5" data-financials-step={s.key} data-done={s.done || undefined}>
               <span
                 aria-hidden
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${

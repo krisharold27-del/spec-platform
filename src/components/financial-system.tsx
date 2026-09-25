@@ -35,7 +35,7 @@ export function FinancialSystemPanel({
         <p className="mt-1 text-xs text-ink-light">Your choice, always. Nothing moves until you say so.</p>
       </div>
       <div className="mt-4">
-        <SwitchCards areas={['accounting']} back={back} />
+        <SwitchCards areas={['accounting']} back={back} inset />
       </div>
     </section>
   );

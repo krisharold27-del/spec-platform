@@ -128,18 +128,22 @@ export interface Check {
   found: string;
   /** Where to fix it. Absent when SPEC itself does not hold it yet. */
   href?: string;
+  /** For a check on the product's side, the thing itself in two words — "pay rates". */
+  short?: string;
+  /** When not met, what to do about it, said as the job — "Add start dates for 11 staff". */
+  todo?: string;
 }
 
 const n = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 
-const everyone = (have: number, of: number, what: string, href: string, id: string, label: string): Check => ({
-  id, label, href,
+const everyone = (have: number, of: number, what: string, href: string, id: string, label: string, todo?: (short: number) => string): Check => ({
+  id, label, href, todo: todo && of > 0 ? todo(of - have) : undefined,
   met: of > 0 && have === of,
   found: of === 0 ? 'Nobody on the chart yet' : have === of ? `All ${of} ${what}` : `${have} of ${of} ${what}`,
 });
 
 const onChart = (c: BusinessCounts): Check => ({
-  id: 'staff', label: 'Your people are on the chart', href: '/org',
+  id: 'staff', label: 'Your people are on the chart', href: '/org', todo: 'Put your people on the chart',
   met: c.staff > 0, found: c.staff ? n(c.staff, 'person', 'people') : 'Nobody yet',
 });
 
@@ -169,18 +173,18 @@ export function checksFor(a: SwitchArea, c: BusinessCounts): Check[] {
     case 'payroll':
       return [
         onChart(c),
-        everyone(c.staffWithStart, c.staff, 'have a start date', '/people', 'start', 'Everybody has a start date'),
-        { id: 'hours', label: 'Hours come in from the phone', href: '/jobs?tab=time', met: c.timesheets30 > 0, found: c.timesheets30 ? `${n(c.timesheets30, 'timesheet entry', 'timesheet entries')} in the last 30 days` : 'None in the last 30 days' },
-        { id: 'approved', label: 'Timesheets are reconciled and approved', href: '/jobs?tab=time', met: c.timesheetsApproved30 > 0, found: c.timesheetsApproved30 ? `${n(c.timesheetsApproved30, 'entry', 'entries')} approved in the last 30 days` : 'None approved in the last 30 days' },
-        { id: 'sent', label: 'An approved week has been sent on for processing', href: '/jobs?tab=time', met: c.payRunsSent > 0, found: c.payRunsSent ? n(c.payRunsSent, 'week') + ' sent' : 'None yet' },
+        everyone(c.staffWithStart, c.staff, 'have a start date', '/people', 'start', 'Everybody has a start date', k => `Add start dates for ${n(k, 'staff member', 'staff')}`),
+        { id: 'hours', todo: 'Clock hours on the phone', label: 'Hours come in from the phone', href: '/jobs?tab=time', met: c.timesheets30 > 0, found: c.timesheets30 ? `${n(c.timesheets30, 'timesheet entry', 'timesheet entries')} in the last 30 days` : 'None in the last 30 days' },
+        { id: 'approved', todo: 'Approve a week of timesheets', label: 'Timesheets are reconciled and approved', href: '/jobs?tab=time', met: c.timesheetsApproved30 > 0, found: c.timesheetsApproved30 ? `${n(c.timesheetsApproved30, 'entry', 'entries')} approved in the last 30 days` : 'None approved in the last 30 days' },
+        { id: 'sent', todo: 'Send an approved week on to pay', label: 'An approved week has been sent on for processing', href: '/jobs?tab=time', met: c.payRunsSent > 0, found: c.payRunsSent ? n(c.payRunsSent, 'week') + ' sent' : 'None yet' },
         /*
           The processing side. SiteVIP never holds pay rates, pay cycles or leave balances — Kris,
           25 September: SiteVIP's payroll job is the basics only. Angus Shield would take them from
           the business's current payroll system when it switches; until it can, they are missing.
         */
-        { id: 'rates', label: `${ANGUS_SHIELD.name} holds each person’s pay rate`, met: false, found: `Not yet — ${ANGUS_SHIELD.name} is not reading your payroll system` },
-        { id: 'cycles', label: `${ANGUS_SHIELD.name} knows your pay cycles`, met: false, found: 'Not yet' },
-        { id: 'balances', label: `${ANGUS_SHIELD.name} holds leave balances`, met: false, found: 'Not yet' },
+        { id: 'rates', label: `${ANGUS_SHIELD.name} holds each person’s pay rate`, short: 'pay rates', met: false, found: `Not yet — ${ANGUS_SHIELD.name} is not reading your payroll system` },
+        { id: 'cycles', label: `${ANGUS_SHIELD.name} knows your pay cycles`, short: 'pay cycles', met: false, found: 'Not yet' },
+        { id: 'balances', label: `${ANGUS_SHIELD.name} holds leave balances`, short: 'leave balances', met: false, found: 'Not yet' },
       ];
     case 'jobs':
       return [
@@ -263,6 +267,10 @@ export const SHADOW_LINES = [
 
 export const SHADOW_OFFER = `${ANGUS_SHIELD.name} runs in Shadow beside your accounting system: your figures read as business intelligence, while it checks it can match your books. Nothing in your accounting system changes.`;
 
+/** "a, b and c". */
+const listWords = (xs: readonly string[]): string =>
+  xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
+
 /** One line of what was found — "3 of 7 checks met". */
 const checkFacts = (checks: readonly Check[]): Fact[] =>
   checks.map(c => ({ label: c.label, value: c.met ? 'Yes' : 'Not yet', note: c.found }));
@@ -311,18 +319,37 @@ export function switchAdvice(a: SwitchArea, row: SwitchRow | null, checks: reado
     yes: a.key === 'accounting' ? `I want this — turn on Shadow` : 'I want this',
     action: { type: 'start_switch' as const, area: a.key },
   };
-  const missing: Missing[] = [];
-  if (!productReady(a)) {
-    missing.push({ what: `${product} isn’t ready to run your ${a.noun} yet — we’ll tell you here when it is` });
-  }
-  for (const c of checks) if (!c.met && !(a.key === 'accounting' && c.id === 'match')) missing.push({ what: `${c.label} — ${c.found.toLowerCase()}`, href: c.href });
+  /*
+    ── Two kinds of missing, said apart ────────────────────────────────────────────────────────
+    Kris, on the live page: seven "still missing" lines broke the simple-and-beautiful brief, and
+    four of them were Angus Shield's own homework. What the business can do now is listed, one line
+    each, with where to do it. What the product is still getting ready is ONE line — the business
+    cannot move it, so it earns no more room than that.
+  */
+  const lowerFirst = (t: string) => (/^[A-Z][a-z]/.test(t) && !t.startsWith(product) ? t.charAt(0).toLowerCase() + t.slice(1) : t);
+  const yours: Missing[] = checks
+    .filter(c => !c.met && c.href)
+    .map(c => ({ what: c.todo ?? `${c.label} — ${lowerFirst(c.found)}`, href: c.href, side: 'you' as const }));
+  const theirs = checks.filter(c => !c.met && !c.href && !(a.key === 'accounting' && c.id === 'match'));
+  const productLine: Missing[] = !productReady(a) || theirs.length
+    ? [{
+        side: 'product',
+        what: theirs.length
+          ? `${product} is still getting ready: ${listWords(theirs.map(c => c.short ?? lowerFirst(c.label)))}. We’ll tell you here when it is.`
+          : `${product} is still getting ready to run your ${a.noun}. We’ll tell you here when it is.`,
+      }]
+    : [];
+  const missing: Missing[] = [...yours, ...productLine];
 
   if (missing.length) {
+    const things = yours.length === 1 ? 'One thing' : `${yours.length} things`;
     return {
       kind: 'missing', topic, facts, missing, interest, recheck: 'on_change',
-      headline: productReady(a)
-        ? `Nearly ready to switch your ${a.noun}. ${missing.length === 1 ? 'One thing' : `${missing.length} things`} to sort first.`
-        : `We’ll tell you when ${product} is ready to run your ${a.noun}.`,
+      headline: !yours.length
+        ? `We’ll tell you when ${product} is ready to run your ${a.noun}.`
+        : productReady(a)
+          ? `Nearly ready to switch your ${a.noun}. ${things} to sort first.`
+          : `${things} to sort before ${product} can run your ${a.noun}.`,
     };
   }
 

@@ -33,9 +33,11 @@ interface CardProps {
   /** Who can own an action — for a fix accepted in the meeting. */
   owners?: string[];
   children?: React.ReactNode;
+  /** Drawn inside another card: a soft ground instead of a second border. One card style, never nested boxes. */
+  inset?: boolean;
 }
 
-export async function RecommendCard({ rec, tenantId, back, lead, owners = [], children }: CardProps) {
+export async function RecommendCard({ rec, tenantId, back, lead, owners = [], children, inset }: CardProps) {
   const [last, words] = await Promise.all([lastAnswer(tenantId, rec.topic), wordsFor(tenantId, rec)]);
   // Claude words it after the page has gone, so nobody waits on it. Next visit shows the wording.
   if (!words) after(() => wordInBackground(tenantId, rec));
@@ -80,7 +82,7 @@ export async function RecommendCard({ rec, tenantId, back, lead, owners = [], ch
   }
 
   return (
-    <article className="card grid gap-2" data-recommends={rec.topic} data-recommends-state={state}>
+    <article className={inset ? 'grid gap-2.5 rounded-xl bg-cream p-4 sm:p-5' : 'card grid gap-2.5'} data-recommends={rec.topic} data-recommends-state={state}>
       <span className="label-caps">{words ? 'Claude recommends' : 'SPEC recommends'}</span>
       {lead && <p className="text-sm text-ink-light" data-recommends-lead>{lead}</p>}
 
@@ -98,20 +100,45 @@ export async function RecommendCard({ rec, tenantId, back, lead, owners = [], ch
         <p className="text-sm text-ink">{rec.reason}</p>
       ) : null}
 
-      {rec.kind === 'missing' && (
-        <div data-recommends-missing>
-          <span className="text-sm text-ink">What’s still missing:</span>
-          <ul className="mt-1 grid gap-1 text-sm">
-            {rec.missing.map(m => (
-              <li key={m.what} className="text-ink-light">
-                {m.href ? <Link href={m.href} className="text-rust-700 hover:underline">{m.what}</Link> : m.what}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/*
+        What is still missing, folded to the headline's one line with "Show me" — Kris, on the live
+        page: seven lines of it broke the brief. Split by whose move it is: what the business can do
+        now, each with where, and what the product is still getting ready, in one line.
+      */}
+      {rec.kind === 'missing' && (() => {
+        const yours = rec.missing.filter(m => m.side !== 'product');
+        const theirs = rec.missing.filter(m => m.side === 'product');
+        return (
+          <details className="group text-sm" data-recommends-missing>
+            <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-rust-700 hover:underline [&::-webkit-details-marker]:hidden">
+              <span className="group-open:hidden">Show me</span>
+              <span className="hidden group-open:inline">Hide</span>
+            </summary>
+            <div className="mt-3 grid gap-4">
+              {yours.length > 0 && (
+                <div data-recommends-yours>
+                  <span className="label-caps">You can do now</span>
+                  <ul className="mt-1.5 grid gap-1.5">
+                    {yours.map(m => (
+                      <li key={m.what}>
+                        {m.href ? <Link href={m.href} className="text-ink hover:text-rust-700">{m.what} &rarr;</Link> : <span className="text-ink">{m.what}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {theirs.length > 0 && (
+                <div data-recommends-theirs>
+                  {theirs.map(m => <p key={m.what} className="text-ink-light">{m.what}</p>)}
+                </div>
+              )}
+            </div>
+          </details>
+        );
+      })()}
 
-      {rec.facts.length > 0 && (
+      {/* On a missing card the facts are the same list again — Show me already carries it. */}
+      {rec.facts.length > 0 && rec.kind !== 'missing' && (
         <details className="text-sm" data-recommends-facts>
           <summary className="cursor-pointer text-rust-700">The numbers behind it</summary>
           <dl className="mt-2 grid gap-1.5">
@@ -169,7 +196,7 @@ export async function Recommends({ topic, back }: { topic: string; back: string 
  * Switch when ready — a card for each of these areas that shows up for this business, with the
  * "Did you know?" line, Kris's guarantee, and for accounting the Shadow offer.
  */
-export async function SwitchCards({ areas, back }: { areas: readonly SwitchAreaKey[]; back: string }) {
+export async function SwitchCards({ areas, back, inset }: { areas: readonly SwitchAreaKey[]; back: string; inset?: boolean }) {
   const user = await viewer();
   if (!user) return null;
   const shown = (await relevantAreas(user.tenantId)).filter(a => areas.includes(a.key));
@@ -180,15 +207,16 @@ export async function SwitchCards({ areas, back }: { areas: readonly SwitchAreaK
   return (
     <div className="grid gap-3" data-switch-cards>
       {readings.map(r => (
-        <RecommendCard key={r.area.key} rec={r.rec} tenantId={user.tenantId} back={back} lead={r.row ? undefined : didYouKnow(r.area)}>
+        <RecommendCard key={r.area.key} rec={r.rec} tenantId={user.tenantId} back={back} inset={inset} lead={r.row ? undefined : didYouKnow(r.area)}>
           {r.area.key === 'accounting' && !r.row && (
             <div className="grid gap-1 rounded-xl bg-cream px-3.5 py-2.5 text-sm" data-shadow-offer>
               <span className="text-ink">{SHADOW_OFFER}</span>
               <span className="font-semibold text-ink">{SHADOW_LINES.join(' ')}</span>
             </div>
           )}
-          <p className="text-xs text-ink-light" data-own-path>{ownPath(r.area)}</p>
-          <p className="text-xs text-ink-light" data-guarantee>{GUARANTEE} {DAY_ONE}</p>
+          <p className="text-xs leading-relaxed text-ink-light">
+            <span data-own-path>{ownPath(r.area)}</span> <span data-guarantee>{GUARANTEE} {DAY_ONE}</span>
+          </p>
         </RecommendCard>
       ))}
     </div>

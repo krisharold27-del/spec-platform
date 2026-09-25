@@ -192,6 +192,28 @@ describe('Switch when ready', () => {
     expect(rec.interest?.yes).toBe('I want this');
   });
 
+  it('says what the business can do now apart from what Angus Shield is still getting ready — the latter in ONE line', () => {
+    const short = { ...FULL, staffWithStart: 3, timesheets30: 0, timesheetsApproved30: 0, payRunsSent: 0 };
+    const rec = switchAdvice(payroll, null, checksFor(payroll, short));
+    expect(rec.kind).toBe('missing');
+    if (rec.kind !== 'missing') return;
+    const yours = rec.missing.filter(m => m.side === 'you');
+    const theirs = rec.missing.filter(m => m.side === 'product');
+    expect(yours.length).toBe(4);
+    expect(yours.every(m => m.href)).toBe(true);
+    expect(theirs).toHaveLength(1);
+    expect(rec.headline).toBe(`4 things to sort before ${ANGUS_SHIELD.name} can run your payroll processing.`);
+    // A product name keeps its capitals mid-sentence.
+    for (const m of rec.missing) expect(m.what).not.toMatch(/angus shield/);
+  });
+
+  it('folds the list behind Show me, on every screen that draws the card', () => {
+    const card = readFileSync('src/components/recommends.tsx', 'utf8');
+    expect(card).toContain('Show me');
+    expect(card).toMatch(/<details[^>]*data-recommends-missing/);
+    expect(card).toContain('You can do now');
+  });
+
   it('offers Shadow for accounting, with Kris’s three lines', () => {
     const rec = switchAdvice(accounting, null, checksFor(accounting, FULL));
     expect(rec.kind === 'missing' && rec.interest?.yes).toBe('I want this — turn on Shadow');
