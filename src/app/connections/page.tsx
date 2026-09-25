@@ -12,13 +12,14 @@ import { CATEGORIES, categoryName, isSensitive, STATUS_LABEL, SENSITIVE_NOTE } f
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
 import { propose } from '@/lib/mapping';
 import { SystemChips } from '@/components/system-chips';
-import { connectSystem, disconnectSystem, markLive, startXero, chooseXeroOrg } from './actions';
+import { connectSystem, disconnectSystem, markLive, startXero, chooseXeroOrg, startAngusShield } from './actions';
+import { angusApp } from '@/lib/angus-shield-link';
 import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
 import { credentialFor } from '@/lib/xero-link';
 import { xeroApp } from '@/lib/xero-net';
 import { canHoldSecrets } from '@/lib/secret-box';
-import { isXero } from '@/lib/systems';
+import { isXero, isAngusShield } from '@/lib/systems';
 import { SwitchCards } from '@/components/recommends';
 
 export const dynamic = 'force-dynamic';
@@ -67,6 +68,8 @@ export default async function Connections({
     ),
   );
   const xeroReady = Boolean(xeroApp()) && canHoldSecrets();
+  const angusReady = Boolean(angusApp()) && canHoldSecrets();
+  const angusDone = sp.angus === 'connected';
   // A live connection is not worth the key SPEC would be holding until something is reading across
   // it. Naming systems and queuing board approvals stay free; going live needs the AI layer on.
   const { aiActive } = await planStateFor(user.tenantId);
@@ -122,6 +125,14 @@ export default async function Connections({
           </p>
         </div>
       )}
+      {angusDone && (
+        <div className="callout mb-6" data-angus-done>
+          <p className="text-sm text-ink">
+            Angus Shield is connected. Jobs, approved hours and invoice requests go across as they happen; invoices,
+            payments and each job’s money from your books come back. Bank details, tax file numbers and pay stay in Angus Shield.
+          </p>
+        </div>
+      )}
       {choosing && !linked && (
         <div className="callout mb-6" data-xero-choosing>
           <p className="text-sm text-ink">
@@ -151,7 +162,8 @@ export default async function Connections({
               const sensitive = isSensitive(c.category);
               const approval = approvals.find(a => a.refId === c.id);
               const approved = approval?.state === 'approved';
-              const xero = isXero(c.name);
+              const angus = isAngusShield(c.name);
+              const xero = !angus && isXero(c.name);
               const credential = credentials.get(c.id) ?? null;
               const tone = c.status === 'live' ? 'green' : c.status === 'broken' ? 'red' : 'pending';
               return (
@@ -187,7 +199,7 @@ export default async function Connections({
                     the row where somebody actually hands SPEC a key — and the screen has to be
                     exact about what has and has not happened.
                   */}
-                  {credential && (
+                  {credential && !angus && (
                     <div className="mt-2 text-xs text-ink-light" data-xero-linked={c.id}>
                       {credential.orgName
                         ? <>Linked to <b className="text-ink">{credential.orgName}</b> in Xero</>
@@ -206,6 +218,14 @@ export default async function Connections({
                         that look alike and mean completely different things is how somebody marks a
                         ledger live that nothing is reading.
                       */}
+                      {angus && angusReady && (!sensitive || approved) && (
+                        <form action={startAngusShield}>
+                          <input type="hidden" name="connectionId" value={c.id} />
+                          <SubmitButton className="btn-primary px-3 py-1.5 text-xs" pending="Going to Angus Shield…">
+                            {c.status === 'live' ? 'Connect Angus Shield again' : 'Connect Angus Shield'}
+                          </SubmitButton>
+                        </form>
+                      )}
                       {xero && xeroReady && aiActive && (!sensitive || approved) && (
                         <form action={startXero}>
                           <input type="hidden" name="connectionId" value={c.id} />
@@ -230,13 +250,13 @@ export default async function Connections({
                           Connecting needs the AI layer on. <Link href="/journey" className="link-go">Start paying</Link>, then come back.
                         </span>
                       )}
-                      {!xero && c.status !== 'live' && aiActive && (!sensitive || approved) && (
+                      {!xero && !angus && c.status !== 'live' && aiActive && (!sensitive || approved) && (
                         <form action={markLive}>
                           <input type="hidden" name="connectionId" value={c.id} />
                           <SubmitButton className="btn-secondary px-3 py-1.5 text-xs" pending="…">Mark it live</SubmitButton>
                         </form>
                       )}
-                      {!xero && c.status !== 'live' && !aiActive && (!sensitive || approved) && (
+                      {!xero && !angus && c.status !== 'live' && !aiActive && (!sensitive || approved) && (
                         <span className="text-xs text-ink-light">
                           Going live needs the AI layer on. <Link href="/journey" className="link-go">Start paying</Link>, then come back.
                         </span>

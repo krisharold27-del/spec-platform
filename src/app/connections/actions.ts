@@ -12,7 +12,8 @@ import { refuseTo } from '@/lib/refuse';
 import { cookies } from 'next/headers';
 import { authorizeUrl } from '@/lib/xero';
 import { endpoints, xeroApp } from '@/lib/xero-net';
-import { canHoldSecrets } from '@/lib/secret-box';
+import { canHoldSecrets, seal } from '@/lib/secret-box';
+import { ANGUS_STATE_COOKIE, angusApp, authorizeUrl as angusAuthorizeUrl, pkce } from '@/lib/angus-shield-link';
 import { STATE_COOKIE, STATE_MINUTES, newState, packState, chooseOrg, forgetCredential } from '@/lib/xero-link';
 
 /**
@@ -265,4 +266,38 @@ export async function markLive(formData: FormData) {
     .where(eq(schema.systemConnections.id, id));
   revalidatePath('/connections');
   revalidatePath('/my-page');
+}
+
+/*
+ * ── Angus Shield (docs/ANGUS_SHIELD_SITEVIP_CONTRACT.md §1) ─────────────────────────────────────
+ *
+ * The one yes. Angus Shield is a separate SPEC Business Solutions product (Kris, 25 September:
+ * "Separate product, one connection through the contract"), connected by OAuth with PKCE. Same gates
+ * as any financial system: an administrator, a writable plan, and the board's approval, because the
+ * connection carries the business's money. The PKCE verifier and state travel sealed in a
+ * fifteen-minute cookie, never in the address.
+ */
+export async function startAngusShield(formData: FormData) {
+  const user = await administrator();
+  const id = String(formData.get('connectionId') ?? '');
+  if (!id) return;
+  const [connection] = await db.select().from(schema.systemConnections)
+    .where(and(eq(schema.systemConnections.id, id), eq(schema.systemConnections.tenantId, user.tenantId), isNull(schema.systemConnections.personalFor)));
+  if (!connection) refuseTo('/connections', 'SPEC could not find that connection.');
+  if (isSensitive(connection.category)) {
+    const decisions = await db.select().from(schema.approvals)
+      .where(and(eq(schema.approvals.tenantId, user.tenantId), eq(schema.approvals.refId, id)));
+    if (!decisions.some(a => a.state === 'approved')) {
+      refuseTo('/connections', 'The board has not approved this one yet. Connecting Angus Shield links the business’s money, so it cannot happen before the decision — not even for an administrator.');
+    }
+  }
+  if (!canHoldSecrets()) refuseTo('/connections', 'This deployment cannot hold credentials yet, so SPEC will not ask Angus Shield for one.');
+  const app = angusApp();
+  if (!app) refuseTo('/connections', 'The Angus Shield connection is not set up on this deployment yet.');
+  const { verifier, challenge } = pkce();
+  const state = randomUUID();
+  (await cookies()).set(ANGUS_STATE_COOKIE, seal(JSON.stringify({ state, verifier, connectionId: id, tenantId: user.tenantId, until: Date.now() + 15 * 60_000 })), {
+    httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 15 * 60,
+  });
+  redirect(angusAuthorizeUrl(app, state, challenge));
 }

@@ -178,3 +178,6 @@ export function fileUnder(chosen: string, name: string): CategoryId {
 export const SENSITIVE_NOTE =
   'Financial and people systems go to the board with their exact data scope written on the request. '
   + 'A business should feel that the board approved it, because the board did.';
+
+/** Angus Shield, SPEC Business Solutions' own financial system: connected through the contract, not a vendor connector. */
+export const isAngusShield = (name: string): boolean => /angus\s*shield/i.test(name);

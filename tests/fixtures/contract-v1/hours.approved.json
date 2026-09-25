@@ -1,0 +1,13 @@
+{
+  "contract": "1.0.0",
+  "event_id": "5b0e7a52-2f4e-4c5a-9f6e-2d1c7a3b8e01",
+  "type": "hours.approved",
+  "occurred_at": "2026-09-21T06:00:00Z",
+  "tenant": { "sitevip_id": "sitevip-tenant", "angus_id": "__ANGUS_ID__" },
+  "data": {
+    "entries": [
+      { "sitevip_id": "te-1", "person": { "email": "mia@ironbark.example", "name": "Mia Torres" }, "job": { "ref": "J-2291" }, "day": "2026-09-14", "minutes": 456, "billable": true, "allowances": ["site"], "approved_by": "Supervisor", "approved_at": "2026-09-20T07:00:00Z" },
+      { "sitevip_id": "te-2", "person": { "email": "mia@ironbark.example" }, "job": { "ref": "J-2291" }, "day": "2026-09-19", "minutes": 240, "billable": true, "allowances": ["overtime"], "approved_by": "Supervisor", "approved_at": "2026-09-20T07:00:00Z" }
+    ]
+  }
+}

@@ -1,5 +1,17 @@
 /**
- * Angus Shield — SPEC's own financial system, and the one thing it must never be built as.
+ * Angus Shield — SPEC Business Solutions' financial system.
+ *
+ * ── Superseded 25 September: separate product, one connection through the contract ──────────────
+ *
+ * Kris, asked whether Angus Shield is part of SiteVIP (same login and database, as Design 19 below
+ * said) or a separate product: **"Separate product, one connection through the contract."** So it
+ * has its own codebase, database and login, and the only door between them is the connection in
+ * docs/ANGUS_SHIELD_SITEVIP_CONTRACT.md — one yes, OAuth with PKCE, signed events both ways within
+ * the minute, checked every night (lib/angus-shield-link, lib/angus-shield-data). And payroll is
+ * split (Kris, 25 September): SiteVIP captures and approves the hours; Angus Shield processes the
+ * pay. What still holds from below: never forced, `stay` is a first-class answer, and this module
+ * imports no vendor connector — Angus Shield's connection is its own, built to the contract.
+ * The Design 19 notes are kept as the record of what was decided before.
  *
  * ── The line at the top of Design 19 ─────────────────────────────────────────────────────────────
  *
@@ -42,7 +54,7 @@ import type { Figures } from './financials';
  * person reads rather than on a comment nobody sees.
  */
 export const ANGUS_IS_NOT_A_CONNECTOR =
-  'Angus Shield is SPEC. Same login, same data, no sync, no keys, no mapping — turning it on is a setting, not an integration.';
+  'Angus Shield is made by SPEC Business Solutions. One yes connects it: jobs, hours and crew go across, invoices, payments and job costs come back within the minute, and bank details, tax file numbers and pay stay in Angus Shield. Nothing to set up, nothing to map.';
 
 /** What sits under the money screens. Two states, and only two. */
 export type FinanceSource = 'angus' | 'connector';
@@ -55,7 +67,7 @@ export function sourceTitle(source: FinanceSource, connectorName: string | null)
 
 export function sourceNote(source: FinanceSource, connectorName: string | null): string {
   if (source === 'angus') {
-    return 'Live. Nothing to sync, because this is the same database the jobs are in — what you are reading is what happened.';
+    return 'Live from Angus Shield. Every change crosses within the minute and is checked again every night, so what you are reading is what happened.';
   }
   if (!connectorName) {
     return 'Connect the system you use today and these reviews fill themselves in. Or turn on Angus Shield and skip that step.';
@@ -391,6 +403,6 @@ export const PAYROLL_RULE =
 
 export function payrollPostsTo(source: FinanceSource, connectorName: string | null): string {
   return source === 'angus'
-    ? 'Each approved pay run posts straight into Angus Shield — same database, so there is nothing to export and nothing to reconcile.'
+    ? 'Approved hours go straight to Angus Shield, which works out the pay run (awards, tax, super, leave) — nothing to export and nothing to re-type.'
     : `Each approved pay run posts wages, PAYG and super into ${connectorName ?? 'your financial system'}.`;
 }
