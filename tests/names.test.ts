@@ -62,7 +62,7 @@ const NOT_PAGES: Record<string, string> = {
   */
   'siteVIP Angus Shield': 'at /money — what the owner looks for is their money; Angus Shield is what sits underneath it',
   'siteVIP GM': 'the Virtual GM home, at /virtual-gm — one home, not a second beside it',
-  'siteVIP Questions': 'at /questions',
+  'siteVIP Questions': 'at /questions — the design name is a description, and nobody would guess /sitevip-questions',
 };
 
 /**
