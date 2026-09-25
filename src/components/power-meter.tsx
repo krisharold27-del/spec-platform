@@ -119,9 +119,9 @@ export function PowerMeter({ reading, canRead, period, showing, hrefFor }: Omit<
  * never null now — nothing measured reads as a real 0, not an unknown — so the arc always draws;
  * see the note on `lib/power-meter`, 22 September.
  */
-function Dial({ reading, colour }: { reading: PowerReading; colour: string }) {
+export function Dial({ reading, colour = colourOf(reading), size = 60 }: { reading: PowerReading; colour?: string; size?: number }) {
   return (
-    <svg viewBox="0 0 100 100" width="60" height="60" role="img" className="shrink-0"
+    <svg viewBox="0 0 100 100" width={size} height={size} role="img" className="shrink-0"
       aria-label={`Virtual GM Power Meter — ${reading.score} out of 100, ${reading.verdict}`}
     >
       <circle cx="50" cy="50" r="42" fill="none" stroke="#fff2eb" strokeWidth="14" />

@@ -2,6 +2,8 @@ import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { answerFor } from './status';
 import type { Choices } from './coverage';
+import { coverageFor } from './coverage-data';
+import { snapScore, type RegisterEntry } from './register';
 import { powerReading, withSources, type Measure, type PowerReading, type SnapReading } from './power-meter';
 
 /**
@@ -57,6 +59,28 @@ export interface PowerMeterResult {
   period: string | null;
   /** True when that is not the month the business is currently in. */
   stale: boolean;
+}
+
+/**
+ * The reading a viewer sees — the ONE call My Page and the Virtual GM both make.
+ *
+ * Both screens draw the same dial, so both go through here with the same three inputs: the viewer's
+ * scope, the register their page already read (the Snap Score is the twenty-fifth measure), and the
+ * business's Coverage choices. A second screen assembling those inputs its own way is exactly how
+ * two dials end up disagreeing about one business.
+ */
+export async function viewerPowerMeter(input: {
+  tenantId: string;
+  visible: ReadonlySet<string>;
+  register: readonly RegisterEntry[];
+}): Promise<PowerMeterResult> {
+  return powerMeterFor({
+    tenantId: input.tenantId,
+    visible: input.visible,
+    snap: snapScore([...input.register]),
+    // Each measure's source follows who runs it — "from your safety system" once chosen on Coverage.
+    choices: await coverageFor(input.tenantId),
+  });
 }
 
 export async function powerMeterFor(input: PowerMeterInput): Promise<PowerMeterResult> {
