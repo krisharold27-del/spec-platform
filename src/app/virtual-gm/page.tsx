@@ -20,6 +20,10 @@ import { Recommends, SwitchCards } from '@/components/recommends';
 import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
 import { ledgerConnections } from '@/lib/virtual-gm-data';
+import { gmHomeFor } from '@/lib/gm-data';
+import { GM_QUESTIONS, gmLine, leversLine as pointsLine, ONLY_INJURY_REACHES_YOU } from '@/lib/gm-home';
+import { pointsFor } from '@/lib/power-meter';
+import { NOTHING_NEEDS_YOU } from '@/lib/adoption';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,6 +84,8 @@ export default async function VirtualGm({
 
   const toPull = levers(reading);
   const grid = coverageGrid();
+  // Design 19's GM home: the movement, the four questions, the nine areas and the away switch.
+  const gm = await gmHomeFor(user);
 
   // The breakdown is always open here — it is what this screen is for. Close goes back through the door.
   const showing = arrival.power === 'all' ? 'all' : 'open';
@@ -114,7 +120,36 @@ export default async function VirtualGm({
         </div>
       </section>
 
-      <div id="breakdown" className="mt-6 scroll-mt-20">
+      {/* ── The one question ─────────────────────────────────────────────────────────────────── */}
+      <section className="mt-6 rounded-xl border border-sand-300 bg-sand-50 p-5" data-gm-movement>
+        <span className="label-caps">Has the power meter got better?</span>
+        <p className="mt-1 font-serif text-2xl text-ink">{gm.movement.says}</p>
+      </section>
+
+      {/* ── The GM's four questions ──────────────────────────────────────────────────────────── */}
+      <section className="mt-8" data-gm-questions>
+        <h2 className="font-serif text-2xl text-ink">The four questions a GM gets asked</h2>
+        <p className="mt-1 max-w-3xl text-sm text-ink-light">{gmLine(gm.questions)}</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {gm.questions.map(a => (
+            <article key={a.q.key} className="card grid content-start gap-1" data-gm-question={a.q.key}>
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ background: a.answer === 'clear' ? LIGHT_COLOUR.green : a.answer === 'problem' ? LIGHT_COLOUR.red : a.answer === 'watch' ? LIGHT_COLOUR.amber : LIGHT_COLOUR.pending }}
+                  aria-hidden
+                />
+                <span className="font-serif text-lg text-ink">{a.q.question}</span>
+              </div>
+              <p className="text-sm text-ink">{a.read}</p>
+              <p className="text-xs text-ink-light">{a.q.why}</p>
+              {a.to && <Link href={a.to} className="mt-1 text-sm text-rust-700 hover:underline">Go and see &rarr;</Link>}
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <div id="breakdown" className="mt-10 scroll-mt-20">
         <PowerBreakdown
           reading={reading}
           canRead
@@ -130,13 +165,16 @@ export default async function VirtualGm({
       <section className="mt-10" data-vgm-levers>
         <h2 className="font-serif text-2xl text-ink">Levers to pull this week</h2>
         <p className="mt-1 text-sm text-ink-light">{leversLine(toPull, period)}</p>
+        <p className="mt-1 text-sm text-ink-light" data-gm-levers-worth>{pointsLine(gm.levers, reading)}</p>
         {toPull.length > 0 && (
           <ul className="mt-4 grid gap-3">
             {toPull.map(l => (
               <li key={l.slotId} className="card border-l-4" style={{ borderLeftColor: LIGHT_COLOUR.red }} data-vgm-lever={l.slotId}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-serif text-lg text-ink">{l.name}</span>
-                  {l.weight === 'heavy' && <span className="text-xs font-semibold text-ink-light">Heavy hitter · 15 points</span>}
+                  <span className="text-xs font-semibold text-ink-light">
+                    {l.weight === 'heavy' ? 'Heavy hitter · ' : ''}worth {pointsFor(l.weight)} {pointsFor(l.weight) === 1 ? 'point' : 'points'}
+                  </span>
                 </div>
                 <p className="mt-1 text-sm" style={{ color: LIGHT_COLOUR.red }}>{l.cause}</p>
                 <ul className="mt-3 grid gap-1.5">
@@ -154,25 +192,60 @@ export default async function VirtualGm({
       </section>
 
       {/* ── Everything the business needs, one login ─────────────────────────────────────────── */}
-      <section className="mt-10" data-vgm-coverage>
-        <h2 className="font-serif text-2xl text-ink">Everything the business needs, one login</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {grid.map(t => (
-            <Link key={t.key} href={t.href} className="card-inset grid gap-1 hover:bg-cream" data-vgm-family={t.key}>
-              <span className="font-serif text-base text-ink">{t.label}</span>
-              <span className="text-xs text-ink-light">{t.blurb}</span>
-              <span className="mt-1 text-xs font-semibold text-ink">
-                {t.whole} of {t.total} end to end in SPEC
+      {/*
+        Design 19's nine tiles, which replaced the seven workflow families that used to sit here.
+
+        The rule the design is built on: the owner only opens a tile when it says something needs
+        them. So each carries exactly ONE line — a thing to do, or the words "Nothing needs you" —
+        and never a summary of the area. A tile that always has something to report is a tile that
+        gets skimmed, and the second time somebody skims past one is the time it mattered.
+
+        An area running in another system is GREY. Not green, which would be an assurance siteVIP
+        has not earned, and not red, which would be a criticism of a business for using Simpro. What
+        is worth saying about it is only whether it is connected, and therefore whether that part of
+        the Power Meter is real or missing.
+      */}
+      <section className="mt-10" data-gm-tiles>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-serif text-2xl text-ink">Everything the business needs. One login.</h2>
+          <span className="label-caps" data-gm-adoption-count>{gm.adoption.running} of {gm.adoption.of} running in siteVIP</span>
+        </div>
+        <p className="mt-1 max-w-3xl text-sm text-ink-light">{gm.adoption.line}</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {gm.tiles.map(t => (
+            <Link
+              key={t.area.key}
+              href={t.to}
+              className={`grid content-start gap-1 rounded-xl border p-4 ${t.runningHere ? 'border-sand-300 bg-white hover:bg-cream' : 'border-sand-300 bg-sand-100 hover:bg-sand-200'}`}
+              data-gm-tile={t.area.key}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ background: t.dot === 'grey' ? LIGHT_COLOUR.pending : LIGHT_COLOUR[t.dot] }}
+                  aria-hidden
+                />
+                <span className="font-serif text-base text-ink">{t.area.label}</span>
+              </div>
+              <span className="text-xs text-ink-light">{t.area.covers}</span>
+              <span className={`mt-1 text-sm ${t.line === NOTHING_NEEDS_YOU ? 'text-ink-light' : 'font-semibold text-ink'}`}>
+                {t.line}
               </span>
-              {t.partial > 0 && (
-                <span className="text-xs" style={{ color: LIGHT_COLOUR.amber }}>
-                  {t.partial} with a step still to build
-                </span>
-              )}
+              <span className="mt-1 text-xs font-semibold text-rust-700">{t.action}</span>
             </Link>
           ))}
         </div>
-        <Link href="/workflows" className="mt-3 inline-block text-sm text-rust-700 hover:underline">Every workflow, step by step &rarr;</Link>
+        <Link href="/workflows" className="mt-3 inline-block text-sm text-rust-700 hover:underline">
+          Every workflow, step by step &rarr;
+        </Link>
+      </section>
+
+      {/* ── The owner's own life ─────────────────────────────────────────────────────────────── */}
+      <section className="mt-10 grid gap-2" data-gm-away>
+        <h2 className="font-serif text-2xl text-ink">When you are away</h2>
+        <p className="max-w-3xl text-sm text-ink">{gm.away.says}</p>
+        <p className="max-w-3xl text-sm text-ink-light">{ONLY_INJURY_REACHES_YOU}</p>
+        <p className="max-w-3xl text-sm text-ink-light" data-gm-saved>{gm.saved.says}</p>
       </section>
 
       {/* ── Claude recommends, on the GM side ────────────────────────────────────────────────── */}

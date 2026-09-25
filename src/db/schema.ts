@@ -2931,3 +2931,34 @@ export const gentleConfirmations = pgTable('gentle_confirmations', {
   about: text('about'),
   createdAt: text('created_at').notNull(),
 }, t => [index('gentle_confirmations_tenant').on(t.tenantId, t.createdAt)]).enableRLS();
+
+/**
+ * The Power Meter, as it stood at the end of a week.
+ *
+ * ── Why this table has to exist ──────────────────────────────────────────────────────────────────
+ *
+ * The GM home's one question is *"has the power meter got better?"* — and until now the meter was
+ * computed fresh on every read, from this month's marks. A number computed from scratch can say
+ * where a business IS and can never say which way it is MOVING, and the movement is the only thing
+ * a week's effort can actually answer.
+ *
+ * One row per business per week. Written when somebody looks, not by a job: a business nobody
+ * opened all week has no reading for that week, and inventing one by recomputing it later would be
+ * a figure attributed to a Monday that nothing was measured on.
+ *
+ * `score` is nullable because the meter genuinely refuses to give a number below its own evidence
+ * threshold. Null here means "that week, SPEC would not say" — which is a fact worth keeping, and
+ * quite different from a missing row.
+ */
+export const powerSnapshots = pgTable('power_snapshots', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** The Monday of the week this reading belongs to. */
+  weekStart: text('week_start').notNull(),
+  score: integer('score'),
+  band: text('band').notNull(),
+  takenAt: text('taken_at').notNull(),
+}, t => [
+  uniqueIndex('power_snapshots_week').on(t.tenantId, t.weekStart),
+  index('power_snapshots_tenant').on(t.tenantId, t.weekStart),
+]).enableRLS();
