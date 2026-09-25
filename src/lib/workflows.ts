@@ -769,7 +769,7 @@ export const WORKFLOWS: Workflow[] = [
   ]),
 
   W('run', 'connect-system', 'Connect the system you already run',
-    'A business arriving with simPRO, or a CRM, or a payroll system.',
+    'A business arriving with a job management system, a CRM or a payroll system.',
     'Its data is inside SPEC, as SPEC’s own rows.', 'whole', ['productivity'], [
     { does: 'Connect it by category — never by vendor.', by: 'office', where: '/connections' },
     { does: 'It writes rows SPEC owns, on a schedule. No screen reads it live.', by: 'spec', where: '/jobs?tab=pipeline' },

@@ -183,3 +183,14 @@ describe('help reaches the people who need it', () => {
     expect(doorsSrc).toContain("href: '/help'");
   });
 });
+
+describe('the public help page names no vendor', () => {
+  // /help is public. Systems are named by category (CLAUDE.md, the never list); the vendor names
+  // stay only in the search words, so somebody typing "xero" still lands on the right answer.
+  it('no answer says a vendor’s name out loud', () => {
+    const vendors = /xero|myob|quickbooks|simpro|servicem8|aroflo/i;
+    const naming = allAnswers().filter(a => vendors.test(a.ask) || vendors.test(a.say)).map(a => a.ask);
+    expect(naming).toEqual([]);
+    expect(findAnswers('xero')[0]?.ask).toBe('Do I have to connect my accounting or job system?');
+  });
+});

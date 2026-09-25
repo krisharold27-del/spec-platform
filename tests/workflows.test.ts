@@ -293,3 +293,9 @@ describe('every workflow belongs to one stream', () => {
     }
   });
 });
+
+describe('the public workflow map names no vendor', () => {
+  it('describes the systems a business arrives with by category', () => {
+    expect(JSON.stringify(WORKFLOWS)).not.toMatch(/xero|myob|quickbooks|simpro|servicem8|aroflo/i);
+  });
+});
