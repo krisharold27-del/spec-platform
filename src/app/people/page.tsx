@@ -35,6 +35,8 @@ import { PayRunPanel } from './pay-run-panel';
 import { payRunFor, type PayRunView } from '@/lib/pay-run-data';
 import { approvePayRun, approveLeave, declineLeave } from './actions';
 import { LeavePanel } from './leave-panel';
+import { OnCallPanel } from './on-call-panel';
+import { onCallFor, type OnCallView } from '@/lib/on-call-data';
 import { requestsFor, type SafeRequest } from '@/lib/leave-data';
 import { StaffListTab } from './staff-list';
 import { SubbiesTab, type SubbieRow } from './subbies-tab';
@@ -344,6 +346,7 @@ export default async function People({ searchParams }: { searchParams: Promise<R
   const leaveRequests: SafeRequest[] = tab === 'pay'
     ? await requestsFor(user.tenantId, manage ? 'approver' : 'anyone')
     : [];
+  const onCall: OnCallView | null = tab === 'pay' ? await onCallFor(user.tenantId, now) : null;
 
   const contracts: ContractRow[] = [];
   const exits: ExitRow[] = [];
@@ -474,6 +477,17 @@ export default async function People({ searchParams }: { searchParams: Promise<R
           see what kind it is. Every other screen that shows leave passes 'anyone'.
         */}
         <LeavePanel requests={leaveRequests} approve={approveLeave} decline={declineLeave} manage={manage} />
+        <div className="mt-6" />
+        {/*
+          On call, key roles, and who did the week on the phone. All three are lists whose value is
+          the absence they surface — an empty on-call week, a role one person is the only one who
+          can do, and somebody whose hours arrived as a text message.
+        */}
+        {onCall && (
+          <section className="card p-6 sm:p-8">
+            <OnCallPanel weeks={onCall.weeks} keyRoles={onCall.keyRoles} week={onCall.week} />
+          </section>
+        )}
         <div className="mt-6" />
         <PayTab
           signed={personRecords.filter(r => r.kind === 'contract')}

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, canManage } from '@/lib/auth';
 import { getScope, assertAdministrator } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsToStore } from '@/lib/ceilings';
@@ -147,4 +147,26 @@ export async function setAdministrator(form: FormData) {
   // Every screen that asks who somebody is. Rights taken back have to stop working on the next page
   // opened, not whenever a cache happens to expire.
   for (const path of ['/settings', '/admin', '/org', '/team', '/inbox', '/my-page']) revalidatePath(path);
+}
+
+/**
+ * Turn anonymised industry benchmarks on or off.
+ *
+ * Off is the default and this is the only thing that changes it. Owner-level, because it is a
+ * decision about the business's data leaving the business — even anonymised, even for its own
+ * benefit — and that is not a setting a manager should be able to flip.
+ */
+export async function setBenchmarks(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+  if (!canManage(user.access)) refuseTo('/settings', 'manage');
+
+  const on = String(formData.get('on') ?? '') === 'yes';
+  await db.update(schema.tenants)
+    .set({ benchmarksOptIn: on })
+    .where(eq(schema.tenants.id, user.tenantId));
+
+  revalidatePath('/settings');
+  redirect('/settings#access');
 }

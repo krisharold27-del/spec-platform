@@ -19,6 +19,10 @@ import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
 import { LADDER, MOST_A_CEILING_MAY_BE, ceilingsFor, usesOwnCeilings } from '@/lib/ceilings';
 import { DEDUCTION_PER_FAILED_PILLAR, DEDUCTION_CAP, FAILED_AT_OR_BELOW } from '@/lib/incentive';
+import { AccessPanel } from './access-panel';
+import { fromSeat } from '@/lib/money-sight';
+import { seatFor } from '@/lib/seat-of';
+import { setBenchmarks } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +57,12 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
+  /*
+    Which money seat this viewer is in. Read from the coarse seat rather than guessed: a screen that
+    decided this for itself would be a second opinion about permissions, and the day the two
+    disagreed nobody would know which was right.
+  */
+  const moneySeat = fromSeat(await seatFor(user));
   const scope = await getScope(user);
   const plan = await planStateFor(user.tenantId);
   const ceilings = ceilingsFor(tenant.ceilings);
@@ -130,7 +140,15 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           <h2 className="font-serif text-xl text-ink">What each level may do</h2>
           <PermissionTable />
         </section>
-      </Shell>
+        {/*
+        Design 19: who sees which money, two-step sign-in, and the promise that the data is theirs.
+        Together on one screen because an owner deciding whether to trust a system asks all three
+        in the same five minutes.
+      */}
+      <div className="mt-12" id="access">
+        <AccessPanel seat={moneySeat} benchmarksOn={tenant.benchmarksOptIn} toggleBenchmarks={setBenchmarks} />
+      </div>
+    </Shell>
     );
   }
 

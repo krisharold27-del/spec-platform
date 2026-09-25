@@ -56,6 +56,8 @@ import {
   match, isLate, byAttention, purchasingStats, purchasingLine, orderStateLabel, type OrderRow,
 } from '@/lib/purchasing';
 import { ClaimsPanel } from './claims-panel';
+import { RatePanel } from './rate-panel';
+import { rateFor, type RateView } from '@/lib/our-rate-data';
 import { FILTERS, isFilter, matches, mix, typeOf, type Filter } from '@/lib/job-type';
 import { claimsFor, type ClaimsView } from '@/lib/claims-data';
 import {
@@ -191,6 +193,8 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   /* Everything this business has recorded for Jobs, read once and scoped by tenant in the query. */
   /* Claims, retentions and defects — read only on the tab that shows them. */
   const claimsView: ClaimsView | null = tab === 'billing' ? await claimsFor(user.tenantId, now) : null;
+  /* Is our rate right, and every enquiry priced in the background. Leads tab only. */
+  const rateView: RateView | null = tab === 'leads' ? await rateFor(user.tenantId) : null;
 
   const [allJobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows, chaseRows, noAccessRows, rateCardRows, rateLineRows, hireRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
@@ -349,7 +353,16 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       )}
       {/* Claude recommends the labour rate, beside the rates it would change. */}
       {tab === 'catalogue' && <div className="mt-6"><Recommends topic="labour_rate" back="/jobs?tab=catalogue" /></div>}
-      {tab === 'leads' && <Leads jobs={jobs} manage={manage} now={now} />}
+      {tab === 'leads' && (
+        <>
+          <Leads jobs={jobs} manage={manage} now={now} />
+          {/*
+            Design 19's rate question, below the leads themselves. Below because the leads are what
+            somebody came here for; the rate question is what they should leave thinking about.
+          */}
+          {rateView && <div className="mt-10"><RatePanel view={rateView} /></div>}
+        </>
+      )}
       {tab === 'stock' && <Stock orders={orderRows} jobs={jobs} manage={manage} today={today} levels={stockRows} items={items} />}
       {tab === 'billing' && (
         <>

@@ -1630,6 +1630,19 @@ export const jobs = pgTable('jobs', {
   noCertificateBecause: text('no_certificate_because'),
   /** When the quote actually went out. What speed-to-quote is measured from `createdAt` against. */
   quotedAt: text('quoted_at'),
+  /*
+    ── When a quote was lost, and why ────────────────────────────────────────────────────────────
+
+    Added with Design 19's "is our rate right?". SPEC recorded when a job was WON and had nowhere to
+    record that one was lost — so the win rate, which is half of the rate question, could not be
+    computed at all. A business cannot ask whether it is too dear using only the jobs it won.
+
+    `lostBecause` is the business's own words and is never required: a quote nobody followed up is
+    lost for a reason nobody knows, and forcing a reason would get "price" typed into every one of
+    them, which would make the field worse than empty.
+  */
+  lostAt: text('lost_at'),
+  lostBecause: text('lost_because'),
   createdBy: text('created_by').notNull(),
   createdAt: text('created_at').notNull(),
   /** When it entered the stage it is in. */

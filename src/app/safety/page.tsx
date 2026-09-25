@@ -11,6 +11,8 @@ import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
 import { getCurrentUser, canManage } from '@/lib/auth';
 import { heldPreStarts } from '@/lib/prestart-data';
+import { WellbeingPanel } from './wellbeing-panel';
+import type { Wellbeing } from '@/lib/on-call';
 import { clearPreStart } from './actions';
 import { rates, ratesLine, ENOUGH_HOURS } from '@/lib/trifr';
 import { getScope } from '@/lib/scope';
@@ -81,6 +83,18 @@ export default async function Safety({ searchParams }: { searchParams: Promise<R
     tech their fault is on this screen, and this is that screen.
   */
   const held = manage ? await heldPreStarts(user.tenantId) : [];
+  /*
+    Design 19's MONTHLY CHECK-IN, which is a different thing from the wellbeing reports below.
+
+    A report is one person raising something privately with the top of the business. The check-in is
+    a whole-business question asked once a month whose results are never per person and never per
+    team small enough to identify somebody.
+
+    No check-in has run yet — nothing stores one — so this is null rather than a fabricated month.
+    An invented wellbeing score is the worst number in this product to invent, because people
+    answered the real one on a promise.
+  */
+  const checkIn: Wellbeing | null = null;
   const data = await loadSafety(user, scope);
   const now = new Date();
   const nameOf = (r: ReportRow) => (r.anonymous ? 'Anonymous' : data.nameOfUser(r.reportedBy) ?? 'Somebody');
@@ -453,6 +467,13 @@ export default async function Safety({ searchParams }: { searchParams: Promise<R
               </ul>
             </section>
           )}
+
+          {/*
+            Design 19's monthly check-in. Above the zero-harm numbers deliberately: psychosocial
+            safety is a duty under the same Act as the physical ones, and putting it underneath them
+            is how it stays the one nobody has assigned.
+          */}
+          <WellbeingPanel month={checkIn} />
 
           <section aria-label="Zero harm status" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map(s => (
