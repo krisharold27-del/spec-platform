@@ -105,12 +105,12 @@ export function ProblemBox() {
     <section className="card mx-auto my-14 max-w-2xl">
 
       {stage === 'read' && result && (
-        <div>
+        <div className="bloom">
           <h2 className="font-serif text-2xl text-ink">What&rsquo;s really going on</h2>
 
           {/* The causal chain, as letters. Colour is the score everywhere in SPEC, so the letters
               carry the meaning here too, and a half-strength one is the reading being careful. */}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="bloom-letters mt-3 flex flex-wrap items-center gap-2">
             {result.letters.map(l => (
               <span
                 key={l.letter}
