@@ -8,6 +8,9 @@ import { LIGHT_COLOUR, light, pillTone } from '@/lib/today';
 import { PILLARS } from '@/lib/scoring';
 import { addAction, completeAction, addDecision, toggleAttendee, logMeeting } from './actions';
 import { Problems } from '@/components/problems';
+import { MakeItSimple } from '@/components/make-it-simple';
+import { getScope } from '@/lib/scope';
+import { mayReadAutomationReview, type ReviewLevel } from '@/lib/automation';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +27,10 @@ export default async function WeeklyMeeting() {
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const data = await getMeeting(user);
+  const scope = await getScope(user);
+  const myLevel = scope.roles.find(r => r.id === scope.myRoleId)?.level as ReviewLevel | undefined;
+  const mayReadAutomation = mayReadAutomationReview(myLevel);
+  const owners = data.roster.map(r => r.person).filter((p): p is string => !!p);
 
   const when = new Date(`${data.weekOf}T00:00:00Z`)
     .toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
@@ -50,6 +57,10 @@ export default async function WeeklyMeeting() {
       headline="Twenty minutes, three items, written down."
       subtitle="The agenda is written from your numbers, so nobody arrives wondering what it is about — and what was decided is still here next week."
     >
+      {/* Make it simple goes first — Kris: the first item discussed, every week. */}
+      <div className="mb-6">
+        <MakeItSimple tenantId={user.tenantId} owners={owners} mayReadAutomation={mayReadAutomation} />
+      </div>
       <div className="grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="grid gap-6">
           <section className="card">

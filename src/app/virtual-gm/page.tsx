@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { after } from 'next/server';
+import { ensureReport } from '@/lib/make-it-simple-data';
 import { redirect } from 'next/navigation';
 import { Shell } from '@/components/ui';
 import { Dial, PowerBreakdown, monthWords } from '@/components/power-meter';
@@ -69,6 +71,8 @@ export default async function VirtualGm({
     viewerPowerMeter({ tenantId: user.tenantId, visible: scope.visible, register }),
     ledgerConnections(user.tenantId).then(ledgerPanel),
   ]);
+  // Make it simple: written after the page has gone, the day before the meeting. Nobody waits on it.
+  after(() => ensureReport(user.tenantId).catch(() => {}));
   const { reading, period, stale } = power;
   const top = isTopOfChart(scope);
 

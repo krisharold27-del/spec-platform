@@ -40,7 +40,9 @@ export interface Missing {
 /** What a Yes carries out. Every action is SPEC's own, named in full, and re-checked before it runs. */
 export type Action =
   | { type: 'set_labour_rate'; rateId: string; chargeCents: number }
-  | { type: 'start_switch'; area: string };
+  | { type: 'start_switch'; area: string }
+  /** Accepted in the meeting: the fix becomes an action with an owner, tracked in next week's report. */
+  | { type: 'meeting_action'; key: string; text: string };
 
 interface Base {
   topic: string;

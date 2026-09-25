@@ -45,9 +45,13 @@ export async function decide(formData: FormData) {
     : rec.kind === 'missing' ? rec.interest?.action : undefined;
   if (!action) refuseTo(back, 'There is nothing to do on this one.');
 
+  // A fix accepted in the meeting needs somebody to own it. An action with no owner is not an action.
+  const owner = String(formData.get('owner') ?? '').trim().slice(0, 80);
+  if (action.type === 'meeting_action' && !owner) refuseTo(back, 'Name who owns it, then say yes.');
+
   let outcome: 'done' | 'failed' = 'done';
   try {
-    await carryOut(user.tenantId, user.name, action);
+    await carryOut(user.tenantId, user.name, action, { owner });
   } catch {
     outcome = 'failed';
   }

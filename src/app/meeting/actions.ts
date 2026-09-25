@@ -7,6 +7,7 @@ import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
 import { assertWritable } from '@/lib/plan';
 import { actionsOf, decisionsOf, attendeesOf, mondayOf } from '@/lib/meeting';
+import { isMeetingDay, isMeetingTime } from '@/lib/make-it-simple';
 
 /**
  * Writing to this week's meeting.
@@ -100,4 +101,19 @@ export async function logMeeting(formData: FormData) {
   await db.update(schema.meetings).set({ minutes }).where(eq(schema.meetings.id, row.id));
   revalidatePath('/meeting');
   revalidatePath('/my-page');
+}
+
+/**
+ * When the weekly meeting sits — asked once, on this page, when the Make it simple report first
+ * needs it. Any leader who runs the meeting may set it.
+ */
+export async function setMeetingSchedule(formData: FormData) {
+  const user = await writer();
+  const day = Number(formData.get('day'));
+  const time = String(formData.get('time') ?? '').trim();
+  if (!isMeetingDay(day)) return;
+  await db.update(schema.tenants)
+    .set({ meetingDay: day, meetingTime: isMeetingTime(time) ? time : null })
+    .where(eq(schema.tenants.id, user.tenantId));
+  revalidatePath('/meeting');
 }

@@ -314,7 +314,8 @@ declare
 begin
   foreach t in array array['sectors', 'quote_chases', 'shutdowns', 'job_scopes', 'no_access_visits',
                    'rate_cards', 'rate_card_lines', 'plant_hires', 'leavers',
-                   'decisions', 'recommendation_words', 'system_switches', 'switch_friction']
+                   'decisions', 'recommendation_words', 'system_switches', 'switch_friction',
+                   'simple_reports']
   loop
     continue when to_regclass(t) is null;
     execute format('alter table %I enable row level security', t);

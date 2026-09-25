@@ -66,6 +66,13 @@ export const tenants = pgTable('tenants', {
   certificateTerritory: text('certificate_territory'),
   certificateWithinDays: integer('certificate_within_days'),
   /**
+   * When the weekly COGS meeting sits — 1 (Monday) to 7 (Sunday), and "07:30" in the business's own
+   * time. Null until somebody says, and asked once on /meeting. The Make it simple report is ready
+   * the day before it (lib/make-it-simple); with no day set it runs weekly from Monday.
+   */
+  meetingDay: integer('meeting_day'),
+  meetingTime: text('meeting_time'),
+  /**
    * What one no-access costs this business in hours — travel there, travel on, and the hole in the
    * run that nothing fills at two hours' notice. Null until somebody says, and SPEC never guesses:
    * a made-up cost is a business making decisions on arithmetic somebody else did in their head.
@@ -2673,3 +2680,24 @@ export const switchFriction = pgTable('switch_friction', {
   reportedBy: text('reported_by').notNull(),
   createdAt: text('created_at').notNull(),
 }, t => [index('switch_friction_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * The weekly Make it simple report — one per business per meeting, kept as written.
+ *
+ * Kris, 25 September: every week, before the COGS meeting, what got simpler, the top three things
+ * still complicated (each a Claude recommends fix), what is ready to switch, and any friction logged
+ * against the Simple Guarantee. A report is a snapshot: the figures it went into the meeting with are
+ * the ones it keeps, which is also how next week's report can say what moved.
+ */
+export const simpleReports = pgTable('simple_reports', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** The meeting it is for — its date, or the Monday of its week when no day is set. */
+  meetingDate: text('meeting_date').notNull(),
+  /** JSON — `SimpleReport` in lib/make-it-simple. */
+  body: text('body').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('simple_reports_tenant').on(t.tenantId),
+  uniqueIndex('simple_reports_meeting').on(t.tenantId, t.meetingDate),
+]).enableRLS();

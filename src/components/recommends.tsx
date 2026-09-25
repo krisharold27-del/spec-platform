@@ -30,10 +30,12 @@ interface CardProps {
   back: string;
   /** A line above the headline — "Did you know…". */
   lead?: string;
+  /** Who can own an action — for a fix accepted in the meeting. */
+  owners?: string[];
   children?: React.ReactNode;
 }
 
-export async function RecommendCard({ rec, tenantId, back, lead, children }: CardProps) {
+export async function RecommendCard({ rec, tenantId, back, lead, owners = [], children }: CardProps) {
   const [last, words] = await Promise.all([lastAnswer(tenantId, rec.topic), wordsFor(tenantId, rec)]);
   // Claude words it after the page has gone, so nobody waits on it. Next visit shows the wording.
   if (!words) after(() => wordInBackground(tenantId, rec));
@@ -43,12 +45,22 @@ export async function RecommendCard({ rec, tenantId, back, lead, children }: Car
   const recentlyDone = last && last.answer === 'yes' && last.outcome === 'done'
     && Date.now() - Date.parse(last.decidedAt) < DONE_SHOWN_DAYS * 86_400_000;
 
+  const needsOwner = rec.kind === 'recommend' && rec.action.type === 'meeting_action';
   const Answer = ({ answer, label, primary }: { answer: 'yes' | 'not_yet'; label: string; primary?: boolean }) => (
-    <form action={decide}>
+    <form action={decide} className="flex flex-wrap items-center gap-y-2">
       <input type="hidden" name="topic" value={rec.topic} />
       <input type="hidden" name="fingerprint" value={fp} />
       <input type="hidden" name="answer" value={answer} />
       <input type="hidden" name="back" value={back} />
+      {needsOwner && answer === 'yes' && (
+        owners.length ? (
+          <select name="owner" required aria-label="Who owns it" className="mr-2 rounded-lg border border-ink/20 bg-surface px-3 py-2 text-sm">
+            {owners.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        ) : (
+          <input name="owner" required maxLength={80} placeholder="Who owns it" aria-label="Who owns it" className="mr-2 rounded-lg border border-ink/20 bg-surface px-3 py-2 text-sm" />
+        )
+      )}
       <SubmitButton className={primary ? 'btn-primary px-4 py-2 text-sm' : 'btn-secondary px-4 py-2 text-sm'}>{label}</SubmitButton>
     </form>
   );

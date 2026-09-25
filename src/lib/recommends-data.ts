@@ -126,7 +126,11 @@ export async function relevantAreas(tenantId: string): Promise<SwitchArea[]> {
 /** Any topic's recommendation, by name. The one place the list of topics lives. */
 export async function recommendationFor(tenantId: string, topic: string): Promise<Recommendation | null> {
   if (topic === LABOUR_TOPIC) return labourRateRecommendation(tenantId);
-  if (topic.startsWith('switch:')) {
+  if (topic.startsWith('simple:')) {
+    const { simpleRecommendation } = await import('./make-it-simple-data');
+    return simpleRecommendation(tenantId, topic.slice('simple:'.length));
+  }
+    if (topic.startsWith('switch:')) {
     const area = areaOf(topic.slice('switch:'.length));
     return area ? (await switchReading(tenantId, area)).rec : null;
   }
@@ -172,10 +176,18 @@ export async function logDecision(opts: {
  * Carry out an action — only ever one a recommendation named, re-derived on the server.
  *
  * `set_labour_rate` changes the charge on the business's own rate, and nothing else. `start_switch`
- * creates the plan; for accounting that is Shadow, which changes nothing anywhere.
+ * creates the plan; for accounting that is Shadow, which changes nothing anywhere. `meeting_action`
+ * puts the fix on this week's meeting with the owner the room named.
  */
-export async function carryOut(tenantId: string, userName: string, action: Action): Promise<void> {
+export async function carryOut(tenantId: string, userName: string, action: Action, opts: { owner?: string } = {}): Promise<void> {
   const at = new Date().toISOString();
+  if (action.type === 'meeting_action') {
+    const owner = (opts.owner ?? '').trim();
+    if (!owner) throw new Error('An action needs an owner.');
+    const { addMeetingAction } = await import('./make-it-simple-data');
+    await addMeetingAction(tenantId, action.text, owner, `simple:${action.key}`);
+    return;
+  }
   if (action.type === 'set_labour_rate') {
     await db.update(schema.labourRates)
       .set({ chargeCents: action.chargeCents })

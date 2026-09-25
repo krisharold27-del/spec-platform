@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { after } from 'next/server';
+import { ensureReport } from '@/lib/make-it-simple-data';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { redirect } from 'next/navigation';
@@ -146,6 +148,8 @@ export default async function MyPage({
     so the two can never disagree.
   */
   // The same call the Virtual GM makes, so the two dials can never disagree — see viewerPowerMeter.
+  // Make it simple: written after the page has gone, the day before the meeting. Nobody waits on it.
+  after(() => ensureReport(user.tenantId).catch(() => {}));
   const power = await viewerPowerMeter({ tenantId: user.tenantId, visible: scope.visible, register });
   // Manages somebody: their scope reaches past their own role. The same population the design gives
   // the number to, worked out from the chart rather than from a flag anybody sets.
