@@ -61,12 +61,19 @@ export async function POST(request: Request) {
       if (tenantId) {
         const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
         const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null;
-        await db.update(schema.tenants).set({
+        const updated = await db.update(schema.tenants).set({
           plan: 'basic',
           stripeCustomerId: customerId ?? undefined,
           stripeSubscriptionId: subscriptionId ?? undefined,
-        }).where(eq(schema.tenants.id, tenantId));
-        await openFirstPeriod(tenantId);
+        }).where(eq(schema.tenants.id, tenantId)).returning({ id: schema.tenants.id });
+        /*
+          Only for a business that exists here. A checkout started from another environment (a
+          developer's machine on the same Stripe account) names a tenant this database has never
+          had; opening a period for it failed on the tenant reference, the webhook answered 500,
+          and Stripe retried it for days. Found in the live error log by the site check on
+          25 September. Nothing to do for a stranger, so it is acknowledged and left alone.
+        */
+        if (updated.length) await openFirstPeriod(tenantId);
       }
       break;
     }
