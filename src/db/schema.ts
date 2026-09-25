@@ -79,6 +79,47 @@ export const tenants = pgTable('tenants', {
    */
   noAccessHours: text('no_access_hours'),
   cashBufferCents: integer('cash_buffer_cents'),
+  /*
+    ── The financial system underneath, and what the shields are measured against ────────────────
+
+    `financeSource` is 'angus' or 'connector', and it is a SETTING rather than an integration.
+    Angus Shield is SPEC's own financial system on this same database, so turning it on changes
+    where figures are read from and nothing else — see the rule at the top of lib/angus: no
+    connector code may ever be reused as the Angus Shield path.
+
+    `angusAnswer` is 'switch' or 'stay'. 'stay' is a real answer that stops SPEC asking, which is
+    what "never forced" has to mean if it means anything.
+
+    The three shield settings belong to the business and SPEC will not invent any of them. Weeks of
+    cover needs the weekly running cost; a margin means nothing without a benchmark to hold it to.
+    Null in any of them means the shield reports the figure and says it has nothing to judge it by —
+    the honest answer, and the one lib/certificates set the precedent for.
+  */
+  financeSource: text('finance_source').notNull().default('connector'),
+  angusAnswer: text('angus_answer'),
+  angusAnsweredAt: text('angus_answered_at'),
+  bufferWeeks: real('buffer_weeks'),
+  weeklyCostCents: integer('weekly_cost_cents'),
+  benchmarkMarginPct: real('benchmark_margin_pct'),
+  taxSetAsideCents: integer('tax_set_aside_cents'),
+  /*
+    ── The owner is away ─────────────────────────────────────────────────────────────────────────
+
+    While `awayUntil` is set, every alert and lever goes to the deputy. One thing still reaches the
+    owner and it is somebody getting hurt — ONLY_INJURY_REACHES_YOU in lib/gm-home. Away with no
+    deputy named is a real and visible state: the alerts keep coming to the owner and the screen
+    says so, because a switch that silently does nothing is worse than a switch that is off.
+  */
+  awayUntil: text('away_until'),
+  deputyKey: text('deputy_key'),
+  deputyName: text('deputy_name'),
+  /**
+   * Whether this business lets SPEC use its data, anonymised, for industry benchmarks.
+   *
+   * Default OFF, and it stays off until somebody deliberately turns it on. The business owns its
+   * data either way; names, customers and prices are never shared at all.
+   */
+  benchmarksOptIn: boolean('benchmarks_opt_in').notNull().default(false),
   /**
    * basic | advanced — decided by one question to the leader: "Do you want the power of AI?"
    *
@@ -2041,6 +2082,26 @@ export const payRuns = pgTable('pay_runs', {
   exportedAt: text('exported_at'),
   /** Where it went: `export` (a file for the business's payroll system) or `angus_shield`. */
   sentTo: text('sent_to'),
+  /*
+    ── Design 19: the seven checks, and who may approve ──────────────────────────────────────────
+
+    The award check above was the first of what are now seven, and Kris's rule is that a pay run
+    cannot be approved until every one of them passes. `approvedAt` is therefore the one field in
+    SPEC that a server action guards absolutely rather than gently: see readRun in lib/pay-run,
+    where a check that never ran counts exactly as one that failed.
+
+    Why this blocks when the rest of SPEC asks: an underpaid apprentice did not choose anything,
+    will very often not know, and the error compounds every fortnight until somebody audits it.
+    There is no version of that where "we asked and they clicked yes" is an answer.
+
+    `cycle` and `payDate` exist because a business may run weekly, fortnightly or monthly. The
+    fromDate/toDate above are unchanged, so a weekly business's rows read exactly as they did.
+  */
+  cycle: text('cycle').notNull().default('weekly'),
+  payDate: text('pay_date'),
+  approvedAt: text('approved_at'),
+  /** The seat that may approve is the Head of Commercial; this records who actually did. */
+  approvedBy: text('approved_by'),
   createdAt: text('created_at').notNull(),
 }, t => [
   index('pay_runs_tenant').on(t.tenantId),
@@ -2750,3 +2811,123 @@ export const ledgerUploads = pgTable('ledger_uploads', {
   uploadedBy: text('uploaded_by').notNull(),
   createdAt: text('created_at').notNull(),
 }, t => [index('ledger_uploads_tenant').on(t.tenantId, t.createdAt)]).enableRLS();
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * Design 19 — adoption, the money reviews, the pay run, and the prompts people confirmed
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Which of the nine areas of the owner's job are running in siteVIP, and what the rest run in.
+ *
+ * A row per area the business has said something about. No row means not running here — the absence
+ * is the default rather than something that has to be written, so a business that has never opened
+ * the setting reads correctly on day one.
+ *
+ * Pay never appears here in any meaningful way: it is always on (see AREAS in lib/adoption), and the
+ * tile ignores any row that says otherwise. That is deliberate belt-and-braces — an earlier version
+ * of the design had Pay staged, and the note is still in the design file for somebody to read.
+ */
+export const adoptionAreas = pgTable('adoption_areas', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** One of AREAS in lib/adoption. */
+  areaKey: text('area_key').notNull(),
+  runningHere: boolean('running_here').notNull().default(false),
+  /** What it runs in instead, in the business's own words: "Simpro", "HubSpot". */
+  elsewhere: text('elsewhere'),
+  /** Whether that system is connected, so this area still feeds the Power Meter. */
+  connected: boolean('connected').notNull().default(false),
+  turnedOnAt: text('turned_on_at'),
+  updatedAt: text('updated_at').notNull(),
+}, t => [uniqueIndex('adoption_areas_one').on(t.tenantId, t.areaKey)]).enableRLS();
+
+/**
+ * One of the eight financial reviews, for one period, with SPEC's written finding.
+ *
+ * `finding` is nullable and null is a real state: a review SPEC could not write. The screen says
+ * that out loud rather than printing "no issues found", because a report that could not be produced
+ * and a clean bill of health are different things and a business betting its tax position on one
+ * must not have them confused.
+ *
+ * Signing is what turns a document into a decision with a date on it, and only signed reviews go
+ * into the board pack.
+ */
+export const financeReviews = pgTable('finance_reviews', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** One of REVIEWS in lib/angus. */
+  reviewKey: text('review_key').notNull(),
+  /** The period it covers, as the first day of it. */
+  periodStart: text('period_start').notNull(),
+  finding: text('finding'),
+  /** Where the figures came from when it was written: 'angus' or the connector's name. */
+  fromSource: text('from_source'),
+  signedAt: text('signed_at'),
+  signedBy: text('signed_by'),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  uniqueIndex('finance_reviews_one').on(t.tenantId, t.reviewKey, t.periodStart),
+  index('finance_reviews_tenant').on(t.tenantId, t.periodStart),
+]).enableRLS();
+
+/** One check against one pay run. Absent means NOT RUN, which blocks approval exactly as a failure does. */
+export const payRunChecks = pgTable('pay_run_checks', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  payRunId: text('pay_run_id').notNull(),
+  /** One of CHECKS in lib/pay-run. */
+  checkKey: text('check_key').notNull(),
+  /** 'passed' or 'failed'. There is no stored 'not_run' — that is what a missing row means. */
+  state: text('state').notNull(),
+  says: text('says').notNull(),
+  /** Who it is about, where it is about one person. */
+  who: text('who'),
+  ranAt: text('ran_at').notNull(),
+}, t => [
+  uniqueIndex('pay_run_checks_one').on(t.payRunId, t.checkKey),
+  index('pay_run_checks_tenant').on(t.tenantId),
+]).enableRLS();
+
+/**
+ * A rate that is set by law, changes, and differs by award and by year.
+ *
+ * `value` with no `source` does not count as set — see isSet in lib/pay-run. That is not
+ * bureaucracy: it is what lets a business answer "where did this rate come from" eighteen months
+ * later, which is the question an audit actually asks. A rate SPEC invented and applied to
+ * somebody's pay would be worse than no rate, because it looks like it was checked.
+ */
+export const legalRates = pgTable('legal_rates', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  rateKey: text('rate_key').notNull(),
+  label: text('label').notNull(),
+  value: real('value'),
+  unit: text('unit').notNull().default('percent'),
+  source: text('source'),
+  checkedAt: text('checked_at'),
+  /** A change SPEC has seen and the business has not yet accepted. Never applied silently. */
+  pendingTo: real('pending_to'),
+  pendingFrom: text('pending_from'),
+  pendingSource: text('pending_source'),
+  updatedAt: text('updated_at').notNull(),
+}, t => [uniqueIndex('legal_rates_one').on(t.tenantId, t.rateKey)]).enableRLS();
+
+/**
+ * Somebody pressed "Yes, it's right" on a gentle prompt.
+ *
+ * The whole safety net of lib/gentle. One confirmed fourteen-hour day is a Tuesday; five in a
+ * fortnight is something the business needs to know about, and it surfaces as a conversation rather
+ * than as a blocked timesheet at six o'clock on site.
+ */
+export const gentleConfirmations = pgTable('gentle_confirmations', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** One of GentleKey in lib/gentle. */
+  promptKey: text('prompt_key').notNull(),
+  who: text('who').notNull(),
+  /** What they confirmed, so the leader reading it later does not have to go and find out. */
+  what: text('what').notNull(),
+  /** Where it happened, so it can be opened. */
+  about: text('about'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('gentle_confirmations_tenant').on(t.tenantId, t.createdAt)]).enableRLS();

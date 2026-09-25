@@ -323,3 +323,25 @@ begin
     execute format('create policy tenant_isolation on %I for all using (tenant_id = auth_tenant_id()) with check (tenant_id = auth_tenant_id())', t);
   end loop;
 end $$;
+
+-- Design 19: adoption, the money reviews, the pay run's seven checks, the rates payroll depends on,
+-- and what people confirmed when SPEC asked "hang on a second, is this correct?".
+--
+-- Five of these hold things a business would never want another business to see, and two of them
+-- hold the most sensitive rows in SPEC: pay_run_checks names individual people against payroll
+-- faults, and gentle_confirmations is a record of moments somebody was asked whether they had made
+-- a mistake. Same loop, same policy, and `tests/rls-coverage.test.ts` derives its list from
+-- schema.ts, so a sixth table added next week cannot slip past this quietly.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['adoption_areas', 'finance_reviews', 'pay_run_checks',
+                   'legal_rates', 'gentle_confirmations']
+  loop
+    continue when to_regclass(t) is null;
+    execute format('alter table %I enable row level security', t);
+    execute format('drop policy if exists tenant_isolation on %I', t);
+    execute format('create policy tenant_isolation on %I for all using (tenant_id = auth_tenant_id()) with check (tenant_id = auth_tenant_id())', t);
+  end loop;
+end $$;

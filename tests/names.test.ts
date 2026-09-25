@@ -50,6 +50,19 @@ const NOT_PAGES: Record<string, string> = {
     another's. See lib/customer-page.
   */
   'SPEC Customer Page': 'per job, at /customer/[token] — the link is the key, so there is no bare address',
+  /*
+    Design 19, 25 September. Three screens whose design names are descriptions rather than
+    addresses — nobody would ever guess /sitevip-angus-shield, and a product that ships addresses
+    like that is one naming its pages after its own org chart.
+
+    "Angus Shield" is what the financial system is CALLED; what the owner is looking for is their
+    money, and the design's own nine tiles call the tile Money. So the screen is /money, and Angus
+    Shield is named on it. The GM home is the Virtual GM screen that already exists — one home
+    rather than a second one beside it. The questions page is /questions.
+  */
+  'siteVIP Angus Shield': 'at /money — what the owner looks for is their money; Angus Shield is what sits underneath it',
+  'siteVIP GM': 'the Virtual GM home, at /virtual-gm — one home, not a second beside it',
+  'siteVIP Questions': 'at /questions',
 };
 
 /**

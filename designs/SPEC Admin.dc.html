@@ -180,8 +180,28 @@
         </section>
 
         <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px,3vw,36px);">
-          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Data and records</h2>
-          <div style="display: grid; gap: 12px; margin-top: 20px;">
+          <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Your data is yours</h2>
+          <div style="display: grid; gap: 8px; margin-top: 14px;">
+            <div style="background: var(--color-bg); border-radius: 18px; padding: 14px 18px; display: grid; gap: 4px;">
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15.5px;">Two-step sign-in for everyone</span>
+              <span style="font-size: 13.5px; line-height: 21px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">A code to the phone as well as the password, for every person. Owners, managers and anyone who touches pay can't switch it off.</span>
+            </div>
+            <div style="background: var(--color-bg); border-radius: 18px; padding: 14px 18px; display: grid; gap: 6px;">
+              <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15.5px;">Who sees the money</span>
+              <sc-for list="{{ moneyWho }}" as="mw" hint-placeholder-count="6">
+                <span style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 13.5px; line-height: 20px;"><strong>{{ mw.who }}</strong><span style="color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ mw.sees }}</span></span>
+              </sc-for>
+            </div>
+          </div>
+          <p style="font-size: 14.5px; line-height: 23px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 78%, transparent);">JBI Electrical owns everything in SPEC. Take all of it, any time, in one click. Stored in Australia, with encrypted backups overseas.</p>
+          <div style="display: grid; gap: 12px; margin-top: 18px;">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; background: var(--color-bg); border-radius: 18px; padding: 16px 18px;">
+              <span style="display: grid; gap: 4px; flex: 1 1 220px; min-width: 0;">
+                <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15.5px; line-height: 22px;">Help improve industry benchmarks</span>
+                <span style="font-size: 13.5px; line-height: 21px; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ benchLine }}</span>
+              </span>
+              <button type="button" onClick="{{ toggleBench }}" style="{{ benchStyle }}">{{ benchLabel }}</button>
+            </div>
             <sc-for list="{{ data }}" as="dt" hint-placeholder-count="4">
               <div style="display: grid; gap: 4px; background: var(--color-bg); border-radius: 18px; padding: 16px 18px;">
                 <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 15.5px; line-height: 22px;">{{ dt.what }}</span>
@@ -190,9 +210,10 @@
             </sc-for>
           </div>
           <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;">
-            <button type="button" class="btn btn-ghost" style="flex: none; white-space: nowrap;">Export everything</button>
+            <button type="button" onClick="{{ exportAll }}" disabled="{{ notOwner }}" class="btn btn-primary" style="flex: none; white-space: nowrap;">{{ exportLabel }}</button>
             <button type="button" class="btn btn-ghost" style="flex: none; white-space: nowrap;">Audit log</button>
           </div>
+          <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ exportNote }}</p>
         </section>
 
         <section style="background: var(--color-accent-100); border-radius: var(--radius-lg); padding: clamp(24px,3vw,36px);">
@@ -290,7 +311,7 @@ const LOG = [
 ];
 
 class Component extends DCLogic {
-  state = { level: 'manager', overrides: {}, settings: { s1: 0, s2: 0, s3: 0, s4: 0, s5: 0, s6: 0 }, notifSettings: { n1: 0, n2: 1 }, users: USERS, inviteEmail: '' };
+  state = { level: 'manager', overrides: {}, settings: { s1: 0, s2: 0, s3: 0, s4: 0, s5: 0, s6: 0 }, notifSettings: { n1: 0, n2: 1 }, users: USERS, inviteEmail: '', bench: false, exported: false };
 
   renderVals() {
     const level = this.state.level;
@@ -304,7 +325,17 @@ class Component extends DCLogic {
     };
     const onCount = PERMS.filter(p => stateFor(p) === 'on').length;
 
+    const isOwner = level === 'manager';
     return {
+      moneyWho: [['Owner', 'Everything'], ['GM', 'Everything except the owner\u2019s pay'], ['Head of Commercial', 'All money and pay'], ['Managers', 'Their team\u2019s jobs and costs'], ['Supervisors', 'Their jobs\u2019 hours and materials'], ['Techs', 'Their own pay only']].map(([who, sees]) => ({ who, sees })),
+      benchLine: this.state.bench ? 'On. Your numbers help set benchmarks like "a switchboard takes 7 hours". Names, customers and prices are never shared.' : 'Off. Turn it on to add your numbers, anonymised, to benchmarks like "a switchboard takes 7 hours". Nothing is shared unless you do.',
+      benchLabel: this.state.bench ? 'On' : 'Off',
+      benchStyle: 'cursor:pointer;border:0;border-radius:999px;padding:8px 18px;min-width:70px;font-family:var(--font-body);font-size:13.5px;font-weight:700;' + (this.state.bench ? 'background:' + GREEN + ';color:#fff;' : 'background:#fff;color:var(--color-text);box-shadow:var(--shadow-sm);'),
+      toggleBench: () => this.setState(s => ({ bench: !s.bench })),
+      notOwner: !isOwner,
+      exportLabel: this.state.exported ? 'Export ready · emailed to you' : 'Export everything',
+      exportAll: () => this.setState({ exported: true }),
+      exportNote: isOwner ? 'Only the owner can export everything. Jobs, customers, people, pay, safety, compliance, money and every document, as spreadsheets and PDFs.' : 'Only the owner can export everything.',
       ownerChip: chip(GREEN),
       ownerLabel: 'You are the owner · Kristopher Harold, GM',
 
