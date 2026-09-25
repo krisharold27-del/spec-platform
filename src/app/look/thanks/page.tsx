@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Footer } from '@/components/ui';
 import { SpecMark } from '@/components/spec-mark';
-import { endLook } from '@/lib/look';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,12 +11,10 @@ export const dynamic = 'force-dynamic';
  * somebody who might come back, and might tell somebody else — and a product whose whole argument
  * is that it tells a business the truth cannot start the relationship by being sticky.
  *
- * The look-around key is dropped here, so their browser stops holding a business they have finished
- * with. The way back in is one press, and the door is genuinely open.
+ * The look-around key is dropped on the way here, by /look/leave — a page may not change cookies
+ * while it renders. The way back in is one press, and the door is genuinely open.
  */
 export default async function Thanks() {
-  await endLook();
-
   return (
     <main className="min-h-screen bg-surface">
       <div className="mx-auto max-w-xl px-6 py-24">

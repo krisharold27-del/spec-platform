@@ -832,6 +832,14 @@ export function screensOf(w: Workflow): string[] {
   return [...seen];
 }
 
+/**
+ * Screens that only exist behind a link somebody is sent — the customer's own page and the
+ * worker's join page each need a token, so the bare address is a 404. The map still names them,
+ * because that is where the step happens; it just must not offer them as something to press.
+ */
+export const SENT_LINK_SCREENS: readonly string[] = ['/customer', '/join'];
+export const isSentLinkScreen = (where: string): boolean => SENT_LINK_SCREENS.includes(where);
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * Outsimple them — the rule with teeth
  * ───────────────────────────────────────────────────────────────────────────── */

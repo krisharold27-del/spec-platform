@@ -47,7 +47,7 @@ export default async function Decide() {
           </Link>
 
           <Link
-            href="/look/thanks"
+            href="/look/leave"
             className="rounded-lg border border-ink/15 px-6 py-4 text-ink hover:border-ink/30"
           >
             <span className="block text-base font-medium">Not for me</span>
