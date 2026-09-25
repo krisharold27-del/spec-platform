@@ -57,6 +57,8 @@ import {
 } from '@/lib/purchasing';
 import { ClaimsPanel } from './claims-panel';
 import { RatePanel } from './rate-panel';
+import { AheadPanel } from './ahead-panel';
+import { aheadFor, type AheadView } from '@/lib/schedule-ahead-data';
 import { Round3Panel } from './round3-panel';
 import { GentlePrompt } from '@/components/gentle-prompt';
 import { rateFor, type RateView } from '@/lib/our-rate-data';
@@ -197,6 +199,8 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const claimsView: ClaimsView | null = tab === 'billing' ? await claimsFor(user.tenantId, now) : null;
   /* Is our rate right, and every enquiry priced in the background. Leads tab only. */
   const rateView: RateView | null = tab === 'leads' ? await rateFor(user.tenantId) : null;
+  /* The month ahead — proposals, holes, and what could not be placed. Schedule tab only. */
+  const ahead: AheadView | null = tab === 'schedule' ? await aheadFor(user.tenantId, now) : null;
 
   const [allJobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows, chaseRows, noAccessRows, rateCardRows, rateLineRows, hireRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
@@ -345,7 +349,15 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
         <Quotes jobs={jobs} quotes={quotes} openId={one(sp.quote)} items={items} kits={kits} rates={rates} manage={manage} tenantId={user.tenantId} tabHref={tabHref} />
       )}
       {tab === 'schedule' && (
-        <Schedule jobs={jobs} crew={crew} week={one(sp.week)} book={one(sp.book)} manage={manage} today={today} tenantId={user.tenantId} tabHref={tabHref} />
+        <>
+          <Schedule jobs={jobs} crew={crew} week={one(sp.week)} book={one(sp.book)} manage={manage} today={today} tenantId={user.tenantId} tabHref={tabHref} />
+          {/*
+            The month ahead, under the week. Under because the week is what somebody came here to
+            work on; the month is what they should leave knowing — particularly the quiet stretch in
+            week three, which a week-at-a-time schedule cannot show them until it is next week.
+          */}
+          {ahead && <div className="mt-10"><AheadPanel view={ahead} /></div>}
+        </>
       )}
       {tab === 'time' && (
         <Timesheets jobs={jobs} crew={crew} week={one(sp.week)} manage={manage} today={today} tenantId={user.tenantId} tabHref={tabHref} />

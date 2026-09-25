@@ -1643,6 +1643,15 @@ export const jobs = pgTable('jobs', {
   */
   lostAt: text('lost_at'),
   lostBecause: text('lost_because'),
+  /**
+   * How many days of work this job is, when somebody has said.
+   *
+   * Set at quote or takeoff, and overridable any time. Null is the common case and it is handled
+   * rather than defaulted: the month-ahead plan falls back to the median of finished jobs of the
+   * same kind — the business's own history — and where there is no history it leaves the job out
+   * and names it. Assuming a day would make every plan wrong in the same direction, quietly.
+   */
+  estimatedDays: real('estimated_days'),
   createdBy: text('created_by').notNull(),
   createdAt: text('created_at').notNull(),
   /** When it entered the stage it is in. */
