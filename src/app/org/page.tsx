@@ -27,6 +27,8 @@ import { Cascade } from '@/components/cascade';
 import { cascadeFor } from '@/lib/cascade-data';
 import { goalsFor } from '@/lib/goals-data';
 import { goalsAnswered } from '@/lib/goals';
+import { ChainPanel } from './chain-panel';
+import { chainFor } from '@/lib/chain-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,9 +57,12 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   const asked = String(sp.asked ?? '').slice(0, 200);
   const moved = String(sp.moved ?? '').slice(0, 400);
   const cascadeRead = String(sp.cascade ?? '');
+  /* Design 19: pick a duty and the chart shows only the seats that carry part of it. */
+  const duty = String(sp.duty ?? '') || null;
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
+  const chain = await chainFor(user.tenantId, duty);
   const scope = await getScope(user);
   const period = await currentPeriod(tenant.id);
   const manage = canManage(user.access);
@@ -571,6 +576,16 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
       </p>
       <Problems screen="org" heading="What the chart changes" />
 
+      {/*
+        Chain of responsibility. Below the chart rather than beside it, because picking a duty
+        changes what the chart above is showing — a control that changes something has to sit where
+        the thing it changes is already in view.
+      */}
+      <ChainPanel
+        reading={chain.reading}
+        chosen={chain.chosen}
+        hrefFor={key => (key ? `/org?duty=${key}#chain` : '/org#chain')}
+      />
     </Shell>
   );
 }

@@ -15,7 +15,9 @@ import { whyNot, insteadGoTo } from '@/lib/sight';
 import { seatFor } from '@/lib/seat-of';
 import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
-import { chooseSource, answerSwitch, signReview } from './actions';
+import { chooseSource, answerSwitch, signReview, sendClaim } from './actions';
+import { OwedPanel } from './owed-panel';
+import { owedFor } from '@/lib/owed-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +51,7 @@ export default async function Money({
   const seat = await seatFor(user);
   const view = await angusFor(user);
   const tenant = (await getTenantById(user.tenantId))!;
+  const owed = await owedFor(user.tenantId);
 
   if (!view.canAct) {
     return (
@@ -181,6 +184,11 @@ export default async function Money({
           )}
         </section>
       )}
+
+      {/* ── Money you're owed, debtors, and the card ────────────────────────────────────────── */}
+      <div className="mt-12">
+        <OwedPanel view={owed} send={sendClaim} />
+      </div>
 
       {/* ── Payroll ─────────────────────────────────────────────────────────────────────────── */}
       <section className="mt-10" data-money-payroll>

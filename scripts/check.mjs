@@ -464,6 +464,7 @@ const JOURNEYS = [
   ['prestart', 'no pre-start, no jobs on the phone — and nobody clears their own fault', 'prestart-journey'],
   ['payrun', 'no approve button until all seven checks pass, and leave nobody else may name', 'payrun-journey'],
   ['claims', 'the payment-schedule window that expires quietly, and project-only steps', 'claims-journey'],
+  ['chain', 'the duty with a hole in it, and a figure SPEC will not invent', 'chain-journey'],
   ['noaccess', 'a crew locked out being counted from the doorstep', 'no-access-journey'],
   ['leaks', 'agreed rates, plant still on hire, and somebody\u2019s last day', 'leaks-journey'],
   ['setup', 'setting a whole business up in one sitting, with an HR admin', 'setup-journey'],

@@ -3118,3 +3118,106 @@ export const retentions = pgTable('retentions', {
   uniqueIndex('retentions_job').on(t.tenantId, t.jobId),
   index('retentions_tenant').on(t.tenantId),
 ]).enableRLS();
+
+/**
+ * A claim the business is entitled to, that SPEC found and the accountant lodges.
+ *
+ * `basis` is always written — it is what SPEC contributes, and it is the thing worth taking to an
+ * accountant: "diesel in 9 utes and 2 generators, Jul to Sep" is checkable. `amountCents` is null
+ * unless the business has supplied a rate AND a source for it, because a rate SPEC invented, times
+ * a real litre count, produces a completely believable figure that is wrong and ends up on a BAS.
+ */
+export const taxClaims = pgTable('tax_claims', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** One of CLAIMS in lib/owed. */
+  claimKey: text('claim_key').notNull(),
+  /** The quarter or year it covers, as its first day. */
+  periodStart: text('period_start').notNull(),
+  /** What SPEC saw, in the business's own facts. */
+  basis: text('basis').notNull(),
+  amountCents: integer('amount_cents'),
+  /** Where the rate came from. Required whenever amountCents is set — see isSet in lib/pay-run. */
+  rateSource: text('rate_source'),
+  sentAt: text('sent_at'),
+  sentTo: text('sent_to'),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  uniqueIndex('tax_claims_one').on(t.tenantId, t.claimKey, t.periodStart),
+  index('tax_claims_tenant').on(t.tenantId, t.periodStart),
+]).enableRLS();
+
+/**
+ * What each role may spend on an Angus Card in a month.
+ *
+ * Nothing goes out without one: a card with no limit is a signed blank cheque. SPEC cannot issue a
+ * card at all yet — that needs a card-issuing partner — and this is the policy the programme will
+ * run on when there is one. See CARD_NOT_ISSUED in lib/angus-card.
+ */
+export const cardLimits = pgTable('card_limits', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** One of CARD_ROLES in lib/angus-card. Apprentices are deliberately not among them. */
+  role: text('role').notNull(),
+  monthlyCents: integer('monthly_cents'),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  uniqueIndex('card_limits_one').on(t.tenantId, t.role),
+  index('card_limits_tenant').on(t.tenantId),
+]).enableRLS();
+
+/**
+ * One spend on a card.
+ *
+ * `jobId` null with `toOverhead` false is UNCODED, and it is the worst state here — a cost that
+ * reaches neither a job's margin nor overhead makes the business's numbers quietly wrong rather
+ * than visibly incomplete.
+ *
+ * A missing receipt reminds the person's LEADER and never pauses the card. A card that stops
+ * working on site means somebody buying the part on their own money and claiming it back, which is
+ * the thing the card existed to stop.
+ */
+export const cardSpends = pgTable('card_spends', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  personKey: text('person_key').notNull(),
+  personName: text('person_name').notNull(),
+  /** Who is reminded when a receipt does not appear. Never the cardholder. */
+  leaderName: text('leader_name'),
+  merchant: text('merchant').notNull(),
+  cents: integer('cents').notNull().default(0),
+  spentAt: text('spent_at').notNull(),
+  jobId: text('job_id'),
+  /** True when somebody deliberately put it to overhead, rather than simply not coding it. */
+  toOverhead: boolean('to_overhead').notNull().default(false),
+  receiptAt: text('receipt_at'),
+  /** Set when the card refused it: alcohol, gambling or a cash withdrawal. */
+  blockedAs: text('blocked_as'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('card_spends_tenant').on(t.tenantId, t.spentAt)]).enableRLS();
+
+/**
+ * One link in one obligation's chain of responsibility.
+ *
+ * Drawn on the org chart, because a register lists duties and only the chart shows their SHAPE —
+ * that seven people carry part of working at heights and the one in the middle is vacant. A missing
+ * link looks exactly like a full register until somebody draws it.
+ *
+ * The seat carries the duty, not the person: when the seat empties, the duty rises to the link
+ * above, who is carrying it right now whether they know it or not.
+ */
+export const chainLinks = pgTable('chain_links', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** One of OBLIGATIONS in lib/chain. */
+  obligation: text('obligation').notNull(),
+  /** One of LINKS in lib/chain. */
+  link: text('link').notNull(),
+  /** What this link has to do for this duty, in the business's own words. */
+  duty: text('duty').notNull(),
+  roleId: text('role_id'),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  uniqueIndex('chain_links_one').on(t.tenantId, t.obligation, t.link),
+  index('chain_links_tenant').on(t.tenantId),
+]).enableRLS();

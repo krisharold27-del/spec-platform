@@ -9,6 +9,8 @@ import { refuseTo } from '@/lib/refuse';
 import { seatFor } from '@/lib/seat-of';
 import { maySeeMoney } from '@/lib/sight';
 import { REVIEWS } from '@/lib/angus';
+import { CLAIMS } from '@/lib/owed';
+import { sendToAccountant } from '@/lib/owed-data';
 
 /**
  * Money — every write on the Angus Shield screen.
@@ -113,5 +115,39 @@ export async function signReview(fd: FormData) {
 
   revalidatePath(SCREEN);
   revalidatePath('/board');
+  redirect(SCREEN);
+}
+
+/**
+ * Send a claim to the accountant.
+ *
+ * Records who it went to and when, which is the only thing this needs to do — the accountant is a
+ * person the business already deals with, and SPEC has no mailbox for them. Pretending to have
+ * emailed it would be the false-feed failure in a new place; what this does is mark it as handed
+ * over so nobody sends it twice and so the screen stops asking.
+ */
+export async function sendClaim(fd: FormData) {
+  const user = await leader();
+  const claimKey = String(fd.get('claimKey') ?? '').slice(0, 40);
+  if (!CLAIMS.some(c => c.key === claimKey)) redirect(SCREEN);
+
+  const [row] = await db.select()
+    .from(schema.taxClaims)
+    .where(and(
+      eq(schema.taxClaims.tenantId, user.tenantId),
+      eq(schema.taxClaims.claimKey, claimKey),
+    ))
+    .orderBy(desc(schema.taxClaims.periodStart))
+    .limit(1);
+  if (!row || row.sentAt) redirect(SCREEN);
+
+  await sendToAccountant({
+    tenantId: user.tenantId,
+    claimKey,
+    periodStart: row.periodStart,
+    to: String(fd.get('to') ?? '').trim().slice(0, 100) || 'your accountant',
+  });
+
+  revalidatePath(SCREEN);
   redirect(SCREEN);
 }
