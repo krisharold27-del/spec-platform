@@ -49,7 +49,7 @@ import {
   addTool,
   logCallback, setReviewLink, askForReview, recordQuoteChase, addScope, setSupervisor,
   setCertificateSetup, issueCertificate, lodgeCertificate, excuseCertificate,
-  addRateCard, addRateLine, putOnHire, offHire,
+  addRateCard, addRateLine, putOnHire, offHire, confirmGently,
 } from './actions';
 
 import {
@@ -57,6 +57,8 @@ import {
 } from '@/lib/purchasing';
 import { ClaimsPanel } from './claims-panel';
 import { RatePanel } from './rate-panel';
+import { Round3Panel } from './round3-panel';
+import { GentlePrompt } from '@/components/gentle-prompt';
 import { rateFor, type RateView } from '@/lib/our-rate-data';
 import { FILTERS, isFilter, matches, mix, typeOf, type Filter } from '@/lib/job-type';
 import { claimsFor, type ClaimsView } from '@/lib/claims-data';
@@ -408,7 +410,41 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
         <KeepWorkComing jobs={jobs} chases={chaseRows} tenders={tenderRows} manage={manage}
           business={tenantRow?.name ?? 'us'} now={now} />
       )}
-      {tab === 'tools' && <Tools rows={toolRows} crew={crew} manage={manage} today={today} />}
+      {tab === 'tools' && (
+        <>
+          <Tools rows={toolRows} crew={crew} manage={manage} today={today} />
+          {/*
+            Design 19's Round 3: complaints, disputes, work orders and what the utes cost. Here
+            because they are all things arriving from outside that somebody has to decide about,
+            and because Tools is already where the utes are.
+          */}
+          <div className="mt-10">
+            <Round3Panel
+              /*
+                Complaints are real: a client complaint IS a callback, which SPEC already holds.
+                Building a separate complaints store would mean a business counting the same return
+                trip twice and reconciling them by hand.
+
+                Tolls, fines and work orders have no store yet — nothing feeds them — so those lists
+                are genuinely empty and the panel says so. The policy beside each is what is being
+                built now; the feed is what comes next.
+              */
+              complaints={callbackRows.map(c => ({
+                from: jobs.find(j => j.id === c.jobId)?.client ?? 'A client',
+                what: c.what,
+                at: c.createdAt,
+                ownerName: c.who || null,
+                dueAt: null,
+                updates: [],
+                closedAt: c.status === 'closed' ? c.closedAt : null,
+              }))}
+              events={[]}
+              orders={[]}
+              matched={() => null}
+            />
+          </div>
+        </>
+      )}
       {tab === 'tenders' && <Tenders rows={tenderRows} manage={manage} today={today} />}
       {tab === 'takeoff' && <Takeoff kits={kits} items={itemRows} manage={manage} />}
       {tab === 'howlong' && <HowLong jobs={costed} quotes={quotes} />}
@@ -878,8 +914,34 @@ async function Quotes({ jobs, quotes, openId, items, kits, rates, manage, tenant
         const job = jobOf(open.jobId);
         const lines = linesOf(open.id);
         const t = priceQuote(lines, open.markupPct);
+        /*
+          Design 19's gentle prompt: a quote priced under what the work costs to do.
+
+          Asked, never blocked. It happens on purpose more often than anybody outside a trade
+          expects — a job taken at cost to keep a good client, or to get onto a site. Blocking it
+          would mean the quote goes out of SPEC instead, and then nothing knows what was promised.
+        */
+        const underCost = t.exGstCents > 0 && t.exGstCents < t.costCents;
         return (
           <>
+            {underCost && (
+              <div className="mb-4" data-quote-under-cost>
+                <GentlePrompt
+                  what="under_cost"
+                  facts={{
+                    price: `$${Math.round(t.exGstCents / 100).toLocaleString('en-AU')}`,
+                    cost: `$${Math.round(t.costCents / 100).toLocaleString('en-AU')}`,
+                  }}
+                  confirm={confirmGently}
+                  hidden={{
+                    what: `${open.ref} priced under cost`,
+                    about: open.ref,
+                    back: tabHref('quotes', { quote: open.id }),
+                  }}
+                  check={tabHref('quotes', { quote: open.id })}
+                />
+              </div>
+            )}
             <QuoteBuilder
               key={open.id + open.updatedAt}
               quoteId={open.id}

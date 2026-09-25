@@ -36,6 +36,9 @@ import { payRunFor, type PayRunView } from '@/lib/pay-run-data';
 import { approvePayRun, approveLeave, declineLeave } from './actions';
 import { LeavePanel } from './leave-panel';
 import { OnCallPanel } from './on-call-panel';
+import { PatternsPanel } from './patterns-panel';
+import { patternsFor } from '@/lib/gentle-data';
+import type { Pattern } from '@/lib/gentle';
 import { onCallFor, type OnCallView } from '@/lib/on-call-data';
 import { requestsFor, type SafeRequest } from '@/lib/leave-data';
 import { StaffListTab } from './staff-list';
@@ -347,6 +350,7 @@ export default async function People({ searchParams }: { searchParams: Promise<R
     ? await requestsFor(user.tenantId, manage ? 'approver' : 'anyone')
     : [];
   const onCall: OnCallView | null = tab === 'pay' ? await onCallFor(user.tenantId, now) : null;
+  const confirmPatterns: Pattern[] = tab === 'pay' ? await patternsFor(user.tenantId) : [];
 
   const contracts: ContractRow[] = [];
   const exits: ExitRow[] = [];
@@ -488,6 +492,8 @@ export default async function People({ searchParams }: { searchParams: Promise<R
             <OnCallPanel weeks={onCall.weeks} keyRoles={onCall.keyRoles} week={onCall.week} />
           </section>
         )}
+        <div className="mt-6" />
+        <PatternsPanel patterns={confirmPatterns} />
         <div className="mt-6" />
         <PayTab
           signed={personRecords.filter(r => r.kind === 'contract')}
