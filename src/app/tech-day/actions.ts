@@ -1,5 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
@@ -8,6 +9,13 @@ import { assertWritable } from '@/lib/plan';
 import { head } from '@vercel/blob';
 import { isDayRecord, recordLabel, validClock, dayNear, daysAround, officeMinutes } from '@/lib/tech-day';
 import { ownsPath } from '@/lib/photos';
+import { savePreStart } from '@/lib/prestart-data';
+import {
+  CHECKS as PRE_START_CHECKS, emptyPreStart, isComplete as isPreStartComplete,
+  needsNote as preStartNeedsNote, type PreStart,
+} from '@/lib/prestart';
+
+type PreStartMarks = PreStart['marks'];
 
 /**
  * Start and Finish on the phone, written to the office's timesheets (23 September).
@@ -268,4 +276,62 @@ export async function couldNotGetIn(formData: FormData): Promise<Recorded> {
   revalidatePath('/tech-day');
   revalidatePath('/jobs');
   return { ok: true, says: `Recorded, and ${job.ref} is back on the list to rebook. No charge to the customer for today.` };
+}
+
+/**
+ * The pre-start, submitted from the phone.
+ *
+ * Two things this does that are easy to leave out.
+ *
+ * It refuses a fault with no words. "Not OK" on its own tells a supervisor that something is wrong
+ * with a ute somewhere and nothing else, so they ring — and the next person learns that marking a
+ * fault means a phone call, and marks OK. One sentence is nearly always enough for the supervisor
+ * to answer without ringing at all.
+ *
+ * And it tells the supervisor IMMEDIATELY rather than putting it in a list somebody opens later.
+ * The whole value of holding the jobs is that it is over in a couple of minutes; a notification
+ * that waits for somebody to check a screen turns a two-minute hold into a morning.
+ */
+export async function submitPreStart(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return redirect('/signin');
+  await assertWritable(user.tenantId);
+
+  const day = String(formData.get('day') ?? '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) redirect('/tech-day');
+
+  const marks: PreStartMarks = {};
+  for (const c of PRE_START_CHECKS) {
+    const v = String(formData.get(c.key) ?? '');
+    if (v === 'ok' || v === 'not_ok') marks[c.key] = v;
+  }
+  const note = String(formData.get('note') ?? '').trim().slice(0, 500);
+
+  const candidate = {
+    ...emptyPreStart(day, user.name ?? ''),
+    marks, note, doneAt: new Date().toISOString(),
+  };
+
+  /* Every box has to be answered, and a fault has to say what it is. */
+  if (!isPreStartComplete(candidate) || preStartNeedsNote(candidate)) {
+    redirect('/tech-day');
+  }
+
+  await savePreStart({
+    tenantId: user.tenantId,
+    personKey: `user:${user.id}`,
+    personName: user.name ?? '',
+    day, marks, note,
+  });
+
+  /*
+    Nothing is "sent". SPEC has no push path, and writing one here that quietly did nothing would be
+    worse than none — the tech would wait for an answer that was never going to come. The fault is
+    on the record, the jobs are held by it, and it is on the supervisor's screen at /safety, which
+    is what the phone tells the person in as many words.
+  */
+
+  revalidatePath('/tech-day');
+  revalidatePath('/safety');
+  redirect('/tech-day');
 }

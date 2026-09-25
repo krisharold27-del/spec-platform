@@ -461,6 +461,7 @@ const JOURNEYS = [
   ['crews', 'splitting a job and somebody carrying the whole of it', 'crews-journey'],
   ['certificate', 'the document that proves the work was lawful living on the job', 'certificate-journey'],
   ['money', 'the GM home, and Angus Shield turning on as a setting rather than an integration', 'money-journey'],
+  ['prestart', 'no pre-start, no jobs on the phone — and nobody clears their own fault', 'prestart-journey'],
   ['noaccess', 'a crew locked out being counted from the doorstep', 'no-access-journey'],
   ['leaks', 'agreed rates, plant still on hire, and somebody\u2019s last day', 'leaks-journey'],
   ['setup', 'setting a whole business up in one sitting, with an HR admin', 'setup-journey'],

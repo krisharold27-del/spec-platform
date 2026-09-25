@@ -120,6 +120,23 @@ export const tenants = pgTable('tenants', {
    * data either way; names, customers and prices are never shared at all.
    */
   benchmarksOptIn: boolean('benchmarks_opt_in').notNull().default(false),
+  /*
+    ── Security of Payment, the business's own ───────────────────────────────────────────────────
+
+    Eight states, eight Acts, different required wording, different time for a client to respond,
+    different consequences when they do not, and all of it changes. Exactly the shape of the
+    certificate settings above, with money attached: a business that lets a real statutory window
+    lapse while watching one SPEC invented has been actively harmed by the thing it trusted.
+
+    Every one of these is null until somebody sets it, and null means SPEC tracks the claim, says it
+    is outstanding, and refuses to say it is late. See lib/claims — a test fails the build if a day
+    count ever appears in that file.
+  */
+  sopaTerritory: text('sopa_territory'),
+  sopaActName: text('sopa_act_name'),
+  sopaScheduleWithinDays: integer('sopa_schedule_within_days'),
+  sopaPayWithinDays: integer('sopa_pay_within_days'),
+  sopaRequiredWording: text('sopa_required_wording'),
   /**
    * basic | advanced — decided by one question to the leader: "Do you want the power of AI?"
    *
@@ -584,6 +601,15 @@ export const staff = pgTable('staff', {
    * induction itself becomes a conversation rather than a signature hunt.
    */
   inductionReadAt: text('induction_read_at'),
+  /**
+   * Whether this person drives a company vehicle, which is who has to do a pre-start.
+   *
+   * Not "is a tech". An office person taking a ute to pick up materials is driving a company
+   * vehicle; a sparkie in their own car on a day at the yard is not. Getting this wrong in either
+   * direction is bad — one makes people do a check that does not apply to them until they stop
+   * reading it, the other lets somebody drive out on tyres nobody looked at.
+   */
+  drivesCompanyVehicle: boolean('drives_company_vehicle').notNull().default(false),
   /**
    * The link this person opens on their phone to finish their own record.
    *
@@ -2139,6 +2165,21 @@ export const jobBills = pgTable('job_bills', {
   agreedAt: text('agreed_at'),
   sentAt: text('sent_at'),
   paidAt: text('paid_at'),
+  /*
+    ── Design 19: a progress claim under Security of Payment ─────────────────────────────────────
+
+    `servedAt` is not the same as `sentAt` and the difference is the whole point: the statutory
+    clock runs from the day the client HAS the claim, in the way their Act says it must be served.
+    A claim emailed and a claim served can be the same act or different ones depending on the state,
+    which is why it is its own date rather than an assumption about the first.
+
+    `scheduledCents` is what the client said they would pay, which is very often not what was
+    claimed — and the difference between the two is what an adjudication would be about.
+  */
+  claimNumber: integer('claim_number'),
+  servedAt: text('served_at'),
+  scheduledAt: text('scheduled_at'),
+  scheduledCents: integer('scheduled_cents'),
   /** How many of the 7, 14 and 30-day reminders have gone, so the same one never goes twice. */
   remindersSent: integer('reminders_sent').notNull().default(0),
   lastReminderAt: text('last_reminder_at'),
@@ -2961,4 +3002,113 @@ export const powerSnapshots = pgTable('power_snapshots', {
 }, t => [
   uniqueIndex('power_snapshots_week').on(t.tenantId, t.weekStart),
   index('power_snapshots_tenant').on(t.tenantId, t.weekStart),
+]).enableRLS();
+
+
+/**
+ * One person's pre-start, for one day.
+ *
+ * The gate the day opens through: not done means no jobs on the phone, and any "not OK" holds them
+ * until a supervisor clears it. See lib/prestart for why it is the JOBS that lock rather than the
+ * phone or the clock — a person stranded on site with no way to tell anybody, or working unpaid
+ * while they sort it out, are both worse outcomes than the one being prevented.
+ *
+ * `clearedAt` does not erase the fault. A supervisor saying the day may go ahead is a decision with
+ * a name on it, and the fault stays on the record underneath it.
+ */
+export const preStarts = pgTable('pre_starts', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** The day it is for. One per person per day. */
+  day: text('day').notNull(),
+  personKey: text('person_key').notNull(),
+  personName: text('person_name').notNull(),
+  /** JSON: `Partial<Record<CheckKey, 'ok' | 'not_ok'>>` from lib/prestart. */
+  marks: text('marks').notNull().default('{}'),
+  /** What is wrong, when something is. A fault with no words is not a report. */
+  note: text('note').notNull().default(''),
+  doneAt: text('done_at'),
+  clearedAt: text('cleared_at'),
+  clearedBy: text('cleared_by'),
+}, t => [
+  uniqueIndex('pre_starts_day').on(t.tenantId, t.personKey, t.day),
+  index('pre_starts_tenant').on(t.tenantId, t.day),
+]).enableRLS();
+
+/**
+ * What somebody has in the bank, per kind of leave.
+ *
+ * Hours rather than days, because a nine-day fortnight makes "days" a number two people can
+ * disagree about while both being right. Accrued by the pay run, which is the only thing that
+ * should ever move it.
+ */
+export const leaveBalances = pgTable('leave_balances', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  personKey: text('person_key').notNull(),
+  /** One of KINDS in lib/leave. */
+  kind: text('kind').notNull(),
+  hours: real('hours').notNull().default(0),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  uniqueIndex('leave_balances_one').on(t.tenantId, t.personKey, t.kind),
+  index('leave_balances_tenant').on(t.tenantId),
+]).enableRLS();
+
+/**
+ * A request for time off.
+ *
+ * `overrideBy` is the deliberate manager decision that let it through past the balance, and the
+ * owner is told when it is set. Leave in advance is a normal thing a good employer does; what it
+ * must never be is accidental.
+ *
+ * `kind` is the field to be careful with. Family and domestic violence leave shows as "Leave" to
+ * anybody who is not the person, their approver or payroll — somebody taking it is often hiding
+ * from a person who may know where they work, and a roster that names it has published that. The
+ * rule lives in `labelFor` in lib/leave, and every screen showing leave must go through it.
+ */
+export const leaveRequests = pgTable('leave_requests', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  personKey: text('person_key').notNull(),
+  personName: text('person_name').notNull(),
+  kind: text('kind').notNull(),
+  fromDate: text('from_date').notNull(),
+  toDate: text('to_date').notNull(),
+  hours: real('hours').notNull(),
+  /** Only ever read by the person, their approver and payroll. */
+  reason: text('reason').notNull().default(''),
+  /** asked | approved | declined */
+  state: text('state').notNull().default('asked'),
+  decidedBy: text('decided_by'),
+  decidedAt: text('decided_at'),
+  /** Set when a manager deliberately allowed it past the balance. */
+  overrideBy: text('override_by'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('leave_requests_tenant').on(t.tenantId, t.fromDate)]).enableRLS();
+
+/**
+ * Retention held out of a job, and when it comes back.
+ *
+ * The single most commonly forgotten money in the trade: five per cent of a job, held for a year,
+ * against a job everybody stopped thinking about eleven months ago. Nothing clever about finding
+ * it — the whole value is that somebody is counting.
+ *
+ * `defectsEndAt` is null until the contract says, and null means SPEC cannot tell the business when
+ * to ask. It says that rather than picking a date.
+ */
+export const retentions = pgTable('retentions', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  jobId: text('job_id').notNull(),
+  heldCents: integer('held_cents').notNull().default(0),
+  /** What has to happen before it comes back, in the contract's own words. */
+  releaseTerms: text('release_terms').notNull().default(''),
+  defectsEndAt: text('defects_end_at'),
+  requestedAt: text('requested_at'),
+  releasedAt: text('released_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  uniqueIndex('retentions_job').on(t.tenantId, t.jobId),
+  index('retentions_tenant').on(t.tenantId),
 ]).enableRLS();

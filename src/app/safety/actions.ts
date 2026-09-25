@@ -12,6 +12,7 @@ import {
   isReportKind, isSeverity, isCheckKind, looksNotifiable, stateCode, canSeeReport, anonymise,
 } from '@/lib/safety';
 import { ownerFor, viewerFor } from '@/lib/safety-data';
+import { clearHeld } from '@/lib/prestart-data';
 
 /**
  * Safety — every write on `/safety`.
@@ -305,4 +306,38 @@ export async function addTicket(formData: FormData) {
   });
   revalidatePath(SCREEN);
   revalidatePath('/people');
+}
+
+/**
+ * A supervisor clears a held pre-start.
+ *
+ * Manager-only, checked on the server: the person whose jobs are held could otherwise clear their
+ * own, which would make the whole gate a formality. That is the one way this feature can fail
+ * silently — everything still looks right, and nothing is being checked.
+ *
+ * The clearance does not erase the fault. It is a decision with a name and a time on it, sitting on
+ * top of a record that still says the tyre was down to the wear bars.
+ */
+export async function clearPreStart(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+  if (!canManage(user.access)) refuseTo(SCREEN, 'manage');
+
+  const personKey = String(formData.get('personKey') ?? '').slice(0, 100);
+  const day = String(formData.get('day') ?? '').slice(0, 10);
+  if (!personKey || !/^\d{4}-\d{2}-\d{2}$/.test(day)) redirect(SCREEN);
+
+  /*
+    Nobody clears their own. A fault a person found on their own ute is exactly the one they are
+    most tempted to wave through when they are late, and the whole value of the second pair of eyes
+    is that they belong to somebody else.
+  */
+  if (personKey === `user:${user.id}`) refuseTo(SCREEN, 'own');
+
+  await clearHeld({ tenantId: user.tenantId, personKey, day, by: user.name ?? 'A supervisor' });
+
+  revalidatePath(SCREEN);
+  revalidatePath('/tech-day');
+  redirect(SCREEN);
 }

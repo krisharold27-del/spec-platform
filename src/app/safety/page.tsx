@@ -10,6 +10,8 @@ import { SafetyReportBox } from '@/components/safety-report-box';
 import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
 import { getCurrentUser, canManage } from '@/lib/auth';
+import { heldPreStarts } from '@/lib/prestart-data';
+import { clearPreStart } from './actions';
 import { rates, ratesLine, ENOUGH_HOURS } from '@/lib/trifr';
 import { getScope } from '@/lib/scope';
 import { LIGHT_COLOUR, pillTone } from '@/lib/today';
@@ -73,6 +75,12 @@ export default async function Safety({ searchParams }: { searchParams: Promise<R
 
   const scope = await getScope(user);
   const manage = canManage(user.access);
+  /*
+    Pre-starts somebody has marked a fault on this morning. Read here rather than pushed, because
+    SPEC has no way to push a message to a phone and will not pretend it has — the phone tells the
+    tech their fault is on this screen, and this is that screen.
+  */
+  const held = manage ? await heldPreStarts(user.tenantId) : [];
   const data = await loadSafety(user, scope);
   const now = new Date();
   const nameOf = (r: ReportRow) => (r.anonymous ? 'Anonymous' : data.nameOfUser(r.reportedBy) ?? 'Somebody');
@@ -419,6 +427,32 @@ export default async function Safety({ searchParams }: { searchParams: Promise<R
               </div>
             )}
           </section>
+
+          {/* ── Pre-starts waiting on a supervisor ──────────────────────────────────────── */}
+          {manage && held.length > 0 && (
+            <section className="card p-6 sm:p-8" data-prestart-held-list>
+              <h2 className="font-serif text-2xl text-ink">Pre-starts waiting on you</h2>
+              <p className="mt-1 max-w-3xl text-sm text-ink-light">
+                Their jobs are held until somebody clears it. Usually the answer is “take the other
+                ute” and it is over in a minute — the hold is only there so nobody drives out on it.
+              </p>
+              <ul className="mt-4 grid gap-3">
+                {held.map(h => (
+                  <li key={h.personKey} className="card-inset grid gap-2" data-prestart-held-row={h.personKey}>
+                    <span className="font-serif text-lg text-ink">{h.personName}</span>
+                    <span className="text-sm text-ink">{h.says}</span>
+                    <form action={clearPreStart}>
+                      <input type="hidden" name="personKey" value={h.personKey} />
+                      <input type="hidden" name="day" value={h.day} />
+                      <button className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white">
+                        Clear it — they can go
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <section aria-label="Zero harm status" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map(s => (
