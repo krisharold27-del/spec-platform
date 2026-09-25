@@ -42,12 +42,20 @@ export type Action =
   | { type: 'set_labour_rate'; rateId: string; chargeCents: number }
   | { type: 'start_switch'; area: string }
   /** Accepted in the meeting: the fix becomes an action with an owner, tracked in next week's report. */
-  | { type: 'meeting_action'; key: string; text: string };
+  | { type: 'meeting_action'; key: string; text: string }
+  /** Approve the week's timesheet entries SPEC listed as approvable — never one held back. */
+  | { type: 'approve_timesheets'; week: string };
 
 interface Base {
   topic: string;
   headline: string;
   facts: Fact[];
+  /**
+   * When Not yet asks again. `days` (the default) re-checks after RECHECK_DAYS. `on_change` waits
+   * until the recommendation itself changes — used for offers to switch to SPEC's own products, where
+   * Kris's rule is that Not yet is always respected and nothing nags (see lib/switch).
+   */
+  recheck?: 'days' | 'on_change';
 }
 
 export type Recommendation =
@@ -97,6 +105,7 @@ export function cardState(rec: Recommendation, last: Answered | null, now: Date 
   const same = last && last.fingerprint === fingerprint(rec);
   if (same && last.answer === 'yes' && last.outcome === 'done') return 'done';
   if (same && last.answer === 'not_yet') {
+    if (rec.recheck === 'on_change') return 'waiting';
     const waited = (now.getTime() - Date.parse(last.decidedAt)) / 86_400_000;
     if (waited < RECHECK_DAYS) return 'waiting';
   }
@@ -104,7 +113,8 @@ export function cardState(rec: Recommendation, last: Answered | null, now: Date 
 }
 
 /** When Not yet will ask again, said plainly. */
-export function recheckLine(decidedAt: string): string {
+export function recheckLine(decidedAt: string, recheck: Recommendation['recheck'] = 'days'): string {
+  if (recheck === 'on_change') return 'You said not yet. SPEC won’t raise it again unless something changes.';
   const at = new Date(Date.parse(decidedAt) + RECHECK_DAYS * 86_400_000);
   return `Not yet — SPEC will check again on ${at.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' })}, or sooner if the numbers change.`;
 }

@@ -229,7 +229,7 @@ export interface AdminJob {
 }
 
 export const ADMIN_DEPARTMENT: AdminJob[] = [
-  { key: 'payroll', label: 'Payroll', does: 'Every pay run built from the phone’s timesheets and checked against the award before it goes.', href: '/people?mode=pay', switchArea: 'payroll' },
+  { key: 'payroll', label: 'Payroll', does: 'Who worked, on which job, where and when — reconciled, approved and sent to your payroll system. Tax, super and payslips stay with your payroll system.', href: '/jobs?tab=time', switchArea: 'payroll' },
   { key: 'invoicing', label: 'Invoicing and debtors', does: 'Invoiced on sign-off, chased at 7, 14 and 30 days, never the same reminder twice.', href: '/jobs?tab=billing' },
   { key: 'bills', label: 'Bills', does: 'Supplier bills matched to their orders; a bill over its order waits until somebody says why.', href: '/jobs?tab=stock', switchArea: 'accounting' },
   { key: 'compliance', label: 'Compliance paperwork', does: 'Licences, insurance, certificates and audits in one place, warned 60 days before anything lapses.', href: '/compliance' },

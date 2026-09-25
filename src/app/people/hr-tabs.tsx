@@ -7,7 +7,7 @@ import {
 } from '@/lib/hr';
 import {
   parseSteps, nextStep, processComplete, stalled, contractLine, inForce,
-  CONTRACT_LABEL, isContractState, parseRows, parseIssues, totalHours, mayExport, payRunLine,
+  CONTRACT_LABEL, isContractState, parseRows, totalHours, payRunLine,
 } from '@/lib/hr-records';
 import { SubmitButton } from '@/components/submit-button';
 import {
@@ -15,7 +15,7 @@ import {
   type Claim,
 } from '@/lib/apprentice-funding';
 import {
-  openRecord, sendContract, signContract, takeStep, runPayCheck, exportPayRun,
+  openRecord, sendContract, signContract, takeStep,
 } from './actions';
 
 /**
@@ -234,7 +234,7 @@ export function PayTab({ contracts, payWeek, inRoles, accountingConnected, exits
   people: string[];
   run: {
     id: string; fromDate: string; toDate: string; rows: string; issues: string;
-    checkedAt: string | null; exportedAt: string | null;
+    checkedAt: string | null; exportedAt: string | null; sentTo?: string | null;
   } | null;
   manage: boolean;
   /** Apprentice incentive and rebate claims — see lib/apprentice-funding. */
@@ -382,68 +382,26 @@ export function PayTab({ contracts, payWeek, inRoles, accountingConnected, exits
         </Empty>
       </Group>
 
+      {/*
+        Kris, 25 September: payroll is split. SiteVIP's half is the basics — timesheet, reconcile,
+        approve, send — and all four happen on Jobs › Time, where the hours are. The processing (tax,
+        super, payslips) is the business's own payroll system, or Angus Shield if it switches.
+      */}
       <Group
-        title="Payroll export"
-        blurb="Hours come from SPEC timesheets, leave from People. One step sends the pay run to your accounting system."
+        title="Payroll"
+        blurb="SiteVIP does the basics: who worked, on which job, where and when — reconciled, approved and sent to your payroll system. Your payroll system works out tax, super and payslips."
         feeds={FEEDS.payroll}
-        action={{ label: accountingConnected ? 'See connections' : 'Connect your accounting system', href: '/connections' }}
+        action={{ label: 'Timesheets, approve and send', href: '/jobs?tab=time' }}
       >
-        {run ? (() => {
-          const rows = parseRows(run.rows);
-          const issues = parseIssues(run.issues);
-          return (
-            <div className="mt-2 rounded-2xl bg-cream px-4 py-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="font-semibold text-ink">Pay run · {run.fromDate} to {run.toDate}</span>
-                <Pill light={run.exportedAt ? 'green' : run.checkedAt ? 'amber' : 'pending'}>
-                  {payRunLine(run, issues)}
-                </Pill>
-              </div>
-              <p className="mt-1 text-sm text-ink-light">
-                {rows.length} {rows.length === 1 ? 'person' : 'people'} · {totalHours(rows)} hours, from the timesheets SPEC already holds.
-              </p>
-              {issues.length > 0 && (
-                <ul className="mt-2 grid gap-1 text-sm">
-                  {issues.map(i => (
-                    <li key={`${i.check}-${i.who}`} className="text-ink">
-                      <b>{i.who}</b> · {i.check} — {i.says}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {manage && (
-                <div className="mt-3 flex flex-wrap gap-2 border-t border-cream-border pt-3">
-                  <form action={runPayCheck}>
-                    <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Check it again</SubmitButton>
-                  </form>
-                  {mayExport(run) && (
-                    <form action={exportPayRun}>
-                      <input type="hidden" name="id" value={run.id} />
-                      <SubmitButton className="btn-secondary px-4 py-1.5 text-sm">Send to the accounting system</SubmitButton>
-                    </form>
-                  )}
-                </div>
-              )}
-            </div>
-        );
-        })() : (
-          <>
-            <Row title={`Pay run · ${payWeek.from} to ${payWeek.to}`} sub={`${inRoles} ${inRoles === 1 ? 'person' : 'people'} in roles · not checked yet`}>
-              <Pill light="pending">Not checked</Pill>
-            </Row>
-            {manage && (
-              <form action={runPayCheck} className="mt-3">
-                <SubmitButton className="btn-secondary px-5 py-2">Check this week against the award</SubmitButton>
-              </form>
-            )}
-          </>
+        {run ? (
+          <Row title={`Last week sent · ${run.fromDate} to ${run.toDate}`} sub={`${totalHours(parseRows(run.rows))} approved hours`}>
+            <Pill light={run.exportedAt ? 'green' : 'pending'}>{payRunLine(run)}</Pill>
+          </Row>
+        ) : (
+          <Row title={`Pay week · ${payWeek.from} to ${payWeek.to}`} sub={`${inRoles} ${inRoles === 1 ? 'person' : 'people'} in roles`}>
+            <Pill light="pending">Not sent yet</Pill>
+          </Row>
         )}
-        <Empty>
-          Checked before it goes, never after — a check that runs afterwards finds underpayments
-          already made. {accountingConnected
-            ? 'Your accounting system is connected, so the export has somewhere to go.'
-            : 'No accounting system is connected yet, so the run is checked here and sent when one is.'}
-        </Empty>
       </Group>
 
       <Group

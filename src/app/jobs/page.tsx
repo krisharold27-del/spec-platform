@@ -41,7 +41,7 @@ import {
 } from '@/lib/jobs';
 import {
   addEnquiry, advanceJob, recordMaterials, startQuote, saveQuote, addItem, loadPriceFile, retireItem,
-  addRate, addKit, bookCrew, unbookCrew, recordTime, approveWeek,
+  addRate, addKit, bookCrew, unbookCrew, recordTime, adjustTime,
   raiseOrder, recordBill, acceptBill, orderArrived,
   raiseBill, agreeVariation, sendBill, sendReminder, markPaid, releaseRetention,
   addRecurring, recordDone, bookRecurring, setSource, markQuoted, setStock, orderTheShortfall, setKitPack,
@@ -70,6 +70,8 @@ import {
 } from '@/lib/stock';
 import { packState, parseChecklist, vanList } from '@/lib/prebuild';
 import { Recommends, SwitchCards } from '@/components/recommends';
+import { weekFor, payRunFor, angusConnected } from '@/lib/timesheets-data';
+import { ALLOWANCES, parseAllowances, allowanceLabel, approveTopic, maySend as maySendWeek, destinationFor, sentLine } from '@/lib/timesheets';
 
 export const dynamic = 'force-dynamic';
 
@@ -1118,64 +1120,69 @@ async function Timesheets({ jobs, crew, week, manage, today, tenantId, tabHref }
   jobs: JobRow[]; crew: CrewMember[]; week: string; manage: boolean; today: string; tenantId: string;
   tabHref: (k: string, e?: Record<string, string>) => string;
 }) {
+  /*
+    SiteVIP's half of payroll, in four steps on one screen — timesheet, reconcile, approve, send.
+    Kris, 25 September: the basics only (who, which job, where, when, breaks, travel, allowances);
+    SiteVIP never works out tax, super or payslips. See lib/timesheets.
+
+    The week shown for booking is Monday to Friday; a pay week is Monday to Sunday, so reconcile,
+    approve and send read all seven days.
+  */
   const days = workWeek(/^\d{4}-\d{2}-\d{2}$/.test(week) ? week : today);
   const monday = days[0];
   const keys = crew.map(c => c.key);
-  const entries = keys.length
-    ? await db.select().from(schema.timesheetEntries)
-        .where(and(
-          eq(schema.timesheetEntries.tenantId, tenantId),
-          inArray(schema.timesheetEntries.day, days),
-          inArray(schema.timesheetEntries.personKey, keys),
-        ))
-    : [];
-  const waitingCount = entries.filter(e => !e.approvedAt && e.finishedAt).length;
+  const [mine, business, run, connected] = await Promise.all([
+    weekFor(tenantId, monday, keys),
+    weekFor(tenantId, monday),
+    payRunFor(tenantId, monday),
+    angusConnected(tenantId),
+  ]);
+  const entries = mine.entries;
   const live = jobs.filter(j => !['paid'].includes(j.stage));
+  const send = maySendWeek(business.entries, run?.exportedAt ?? null);
+  const to = destinationFor(connected);
+  const flagged = new Set(mine.flags.flatMap(f => f.entryIds));
+  const toAdjust = entries.filter(e => !e.approvedAt && flagged.has(e.id));
+  const refOf = (id: string | null) => (id ? jobs.find(j => j.id === id)?.ref ?? 'a job' : 'no job');
+  const back = `/jobs?tab=time&week=${monday}`;
 
   return (
     <section className="card">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="max-w-[60ch]">
-          <h2 className="font-serif text-xl text-ink">Timesheets · {days[0] === workWeek(today)[0] ? 'this week' : weekLabel(monday).toLowerCase()}</h2>
-          <p className="mt-2 text-sm text-ink-light">
-            Built from Start and Finish on the phone — or typed in here. Nobody fills in a sheet. Hours on a
-            job land on its costs straight away; approving them is your sign-off before payroll.
-          </p>
-          <p className="mt-2 flex gap-3 text-sm">
-            <Link href={tabHref('time', { week: shiftWeek(monday, -1) })} className="text-rust-700 hover:underline">← Last week</Link>
-            <Link href={tabHref('time', { week: shiftWeek(monday, 1) })} className="text-rust-700 hover:underline">Next week →</Link>
-          </p>
-        </div>
-        {manage && (
-          <form action={approveWeek}>
-            <input type="hidden" name="week" value={monday} />
-            {waitingCount
-              ? <SubmitButton className="btn-secondary" pending="Approving…">Approve all</SubmitButton>
-              : <span className="btn-secondary inline-block cursor-default opacity-70">{entries.length ? 'All approved ✓' : 'Nothing to approve'}</span>}
-          </form>
-        )}
+      <div className="max-w-[64ch]">
+        <h2 className="font-serif text-xl text-ink">Timesheets · {days[0] === workWeek(today)[0] ? 'this week' : weekLabel(monday).toLowerCase()}</h2>
+        <p className="mt-2 text-sm text-ink-light">
+          Who worked, on which job, where and when — from Start and Finish on the phone, or typed in here.
+          Reconcile it, approve it, and send it to your payroll system. SiteVIP never works out tax, super
+          or payslips; your payroll system does that.
+        </p>
+        <p className="mt-2 flex gap-3 text-sm">
+          <Link href={tabHref('time', { week: shiftWeek(monday, -1) })} className="text-rust-700 hover:underline">← Last week</Link>
+          <Link href={tabHref('time', { week: shiftWeek(monday, 1) })} className="text-rust-700 hover:underline">Next week →</Link>
+        </p>
       </div>
 
+      {/* ── 1 · The timesheet ─────────────────────────────────────────────────────────────── */}
       {!crew.length ? (
         <p className="mt-4 text-sm text-ink-light">
           Nobody on your part of the chart yet — put people in their roles on the org chart and their time shows here.
         </p>
       ) : (
-        <div className="mt-4 grid gap-2">
+        <div className="mt-4 grid gap-2" data-timesheet>
           {crew.map(c => {
-            const mine = entries.filter(e => e.personKey === c.key && e.finishedAt);
-            const b = billable(mine);
-            const refs = [...new Set(mine.map(e => (e.jobId ? jobs.find(j => j.id === e.jobId)?.ref : null) ?? 'Yard only'))];
-            const waiting = mine.some(e => !e.approvedAt);
+            const theirs = entries.filter(e => e.personKey === c.key && e.finishedAt);
+            const b = billable(theirs.map(e => ({ minutes: e.minutes, billable: Boolean(e.jobId) })));
+            const refs = [...new Set(theirs.map(e => refOf(e.jobId)).map(r => (r === 'no job' ? 'Yard only' : r)))];
+            const waiting = theirs.some(e => !e.approvedAt);
+            const tags = [...new Set(theirs.flatMap(e => parseAllowances(e.allowances)))];
             return (
               <div key={c.key} className="grid grid-cols-[minmax(150px,1.4fr)_repeat(3,minmax(80px,1fr))_auto] items-center gap-3 rounded-2xl bg-cream px-4 py-3 text-sm">
                 <span className="grid gap-0.5"><strong>{c.name}</strong><span className="text-xs text-ink-light">{c.roleTitle}</span></span>
-                <span>{mine.length ? `${b.hours} h` : '—'}</span>
+                <span>{theirs.length ? `${b.hours} h` : '—'}</span>
                 <span style={b.light === 'pending' ? undefined : { color: pillTone(b.light).color }}>
-                  <span className={b.light === 'pending' ? 'text-ink-light' : ''}>{mine.length ? `${pctLabel(b.share)} billable` : 'No time yet'}</span>
+                  <span className={b.light === 'pending' ? 'text-ink-light' : ''}>{theirs.length ? `${pctLabel(b.share)} billable` : 'No time yet'}</span>
                 </span>
-                <span className="text-xs text-ink-light">{refs.join(', ') || '—'}</span>
-                {mine.length ? <Pill light={waiting ? 'pending' : 'green'}>{waiting ? 'Waiting' : 'Approved'}</Pill> : <span />}
+                <span className="text-xs text-ink-light">{refs.join(', ') || '—'}{tags.length ? ` · ${tags.map(allowanceLabel).join(', ')}` : ''}</span>
+                {theirs.length ? <Pill light={waiting ? 'pending' : 'green'}>{waiting ? 'Waiting' : 'Approved'}</Pill> : <span />}
               </div>
             );
           })}
@@ -1187,7 +1194,7 @@ async function Timesheets({ jobs, crew, week, manage, today, tenantId, tabHref }
       </p>
 
       {manage && crew.length > 0 && (
-        <form action={recordTime} className="mt-5 grid gap-2 sm:grid-cols-[1.2fr_1.2fr_auto_auto_auto_auto]">
+        <form action={recordTime} className="mt-5 grid gap-2 sm:grid-cols-[1.2fr_1.2fr_auto_auto_auto]" data-record-time>
           <input type="hidden" name="week" value={monday} />
           <select className="input" name="person" aria-label="Who" defaultValue="" required>
             <option value="">Who?</option>
@@ -1200,9 +1207,97 @@ async function Timesheets({ jobs, crew, week, manage, today, tenantId, tabHref }
           <input className="input" type="date" name="day" required defaultValue={days.includes(today) ? today : monday} aria-label="Day" />
           <input className="input" type="time" name="start" required aria-label="Start" />
           <input className="input" type="time" name="finish" required aria-label="Finish" />
+          <input className="input" type="number" name="breakMinutes" min={0} max={600} placeholder="Break (min)" aria-label="Break in minutes" />
+          <input className="input" type="number" name="travelMinutes" min={0} max={600} placeholder="Travel (min)" aria-label="Travel in minutes" />
+          <span className="flex flex-wrap items-center gap-3 text-sm">
+            {ALLOWANCES.map(a => (
+              <label key={a.key} className="flex items-center gap-1.5"><input type="checkbox" name="allowance" value={a.key} /> {a.label}</label>
+            ))}
+          </span>
           <SubmitButton className="btn-secondary shrink-0" pending="Adding…">Add time</SubmitButton>
         </form>
       )}
+
+      {/* ── 2 · Reconcile ─────────────────────────────────────────────────────────────────── */}
+      {entries.length > 0 && (
+        <div className="mt-8" data-reconcile>
+          <h3 className="font-serif text-lg text-ink">Reconcile</h3>
+          {mine.flags.length ? (
+            <ul className="mt-2 grid gap-1.5 text-sm">
+              {mine.flags.map((f, i) => (
+                <li key={i} className="flex flex-wrap items-baseline gap-2" data-flag={f.kind}>
+                  {/* Never red (the contract's words, and rule 9): held back is amber, worth a look is grey. */}
+                  <Pill light={f.blocking ? 'amber' : 'pending'}>{f.blocking ? 'Held back' : 'Is this correct?'}</Pill>
+                  <span><b>{f.who}</b>{f.day ? ` · ${f.day}` : ''} — {f.says}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-sm text-ink">Every entry matches a booking, has its break and sits inside an ordinary week.</p>
+          )}
+          {manage && toAdjust.length > 0 && (
+            <div className="mt-3 grid gap-2">
+              {toAdjust.map(e => (
+                <details key={e.id} className="rounded-xl bg-cream px-4 py-2.5 text-sm" data-adjust={e.id}>
+                  <summary className="cursor-pointer">Adjust {e.personName} · {e.day} · {refOf(e.jobId)} · {e.startedAt}–{e.finishedAt ?? 'running'}</summary>
+                  <form action={adjustTime} className="mt-2 flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="entryId" value={e.id} />
+                    <input type="hidden" name="week" value={monday} />
+                    <input className="input w-28" type="time" name="start" defaultValue={e.startedAt} aria-label="Start" />
+                    <input className="input w-28" type="time" name="finish" defaultValue={e.finishedAt ?? ''} required aria-label="Finish" />
+                    <input className="input w-28" type="number" name="breakMinutes" min={0} defaultValue={e.breakMinutes} aria-label="Break in minutes" />
+                    <input className="input w-28" type="number" name="travelMinutes" min={0} defaultValue={e.travelMinutes} aria-label="Travel in minutes" />
+                    {ALLOWANCES.map(a => (
+                      <label key={a.key} className="flex items-center gap-1.5">
+                        <input type="checkbox" name="allowance" value={a.key} defaultChecked={parseAllowances(e.allowances).includes(a.key)} /> {a.label}
+                      </label>
+                    ))}
+                    <SubmitButton className="btn-secondary px-3 py-1.5 text-xs">Save</SubmitButton>
+                  </form>
+                </details>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── 3 · Approve — the same Claude recommends step as everywhere else ──────────────── */}
+      {manage && crew.length > 0 && (
+        <div className="mt-8" data-approve>
+          <h3 className="mb-2 font-serif text-lg text-ink">Approve</h3>
+          <Recommends topic={approveTopic(monday)} back={back} />
+        </div>
+      )}
+
+      {/* ── 4 · Send ──────────────────────────────────────────────────────────────────────── */}
+      {manage && (
+        <div className="mt-8" data-send={to}>
+          <h3 className="font-serif text-lg text-ink">Send for processing</h3>
+          <p className="mt-1 text-sm text-ink-light">
+            {run?.exportedAt
+              ? sentLine(run.sentTo, run.exportedAt)
+              : to === 'angus_shield'
+                ? 'Connected to Angus Shield: approved hours go to its pay run as you approve them. No export step.'
+                : 'The approved week goes to your payroll system as a file it imports: person, date, job, site, start, finish, break, travel, paid hours and allowances.'}
+          </p>
+          {send.ok && to === 'export' ? (
+            <form action="/jobs/timesheet-export" method="post" className="mt-2">
+              <input type="hidden" name="week" value={monday} />
+              <button type="submit" className="btn-primary px-4 py-2 text-sm">
+                Send to your payroll system
+              </button>
+            </form>
+          ) : (
+            !run?.exportedAt && to === 'export' && <p className="mt-1 text-sm text-ink">{send.why}</p>
+          )}
+          {run?.exportedAt && run.sentTo !== 'angus_shield' && (
+            <a href={`/jobs/timesheet-export?week=${monday}`} className="mt-2 inline-block text-sm text-rust-700 hover:underline">Download the file again</a>
+          )}
+        </div>
+      )}
+
+      {/* Did you know — Angus Shield for the processing side. Never instead of the path above. */}
+      {manage && <div className="mt-8"><SwitchCards areas={['payroll']} back={back} /></div>}
     </section>
   );
 }

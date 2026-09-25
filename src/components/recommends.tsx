@@ -7,7 +7,7 @@ import { cardState, fingerprint, recheckLine, type Recommendation } from '@/lib/
 import {
   recommendationFor, lastAnswer, wordsFor, wordInBackground, relevantAreas, switchReading, businessCounts,
 } from '@/lib/recommends-data';
-import { didYouKnow, GUARANTEE, DAY_ONE, SHADOW_LINES, SHADOW_OFFER, type SwitchAreaKey } from '@/lib/switch';
+import { didYouKnow, ownPath, GUARANTEE, DAY_ONE, SHADOW_LINES, SHADOW_OFFER, type SwitchAreaKey } from '@/lib/switch';
 
 /**
  * Claude recommends — the card every decision SPEC helps with is drawn on.
@@ -64,6 +64,20 @@ export async function RecommendCard({ rec, tenantId, back, lead, owners = [], ch
       <SubmitButton className={primary ? 'btn-primary px-4 py-2 text-sm' : 'btn-secondary px-4 py-2 text-sm'}>{label}</SubmitButton>
     </form>
   );
+
+  /*
+    Not yet is respected: the card folds to one quiet line, with the way back if they change their
+    mind. No lead, no numbers, no guarantee — nothing that reads as asking again.
+  */
+  if (state === 'waiting' && last) {
+    const again = rec.kind === 'recommend' ? rec.yes : rec.kind === 'missing' ? rec.interest?.yes : undefined;
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cream px-3.5 py-2 text-sm" data-recommends={rec.topic} data-recommends-state="waiting">
+        <span className="text-ink-light">{rec.headline} {recheckLine(last.decidedAt, rec.recheck)}</span>
+        {again && <Answer answer="yes" label={again} />}
+      </div>
+    );
+  }
 
   return (
     <article className="card grid gap-2" data-recommends={rec.topic} data-recommends-state={state}>
@@ -123,9 +137,9 @@ export async function RecommendCard({ rec, tenantId, back, lead, owners = [], ch
       {state === 'missing' && rec.kind === 'missing' && rec.interest && (
         <div className="mt-1 flex flex-wrap gap-2">
           <Answer answer="yes" label={rec.interest.yes} primary />
+          <Answer answer="not_yet" label="Not yet" />
         </div>
       )}
-      {state === 'waiting' && last && <p className="text-sm text-ink-light" data-recommends-waiting>{recheckLine(last.decidedAt)}</p>}
       {state === 'done' && <p className="text-sm text-ink" data-recommends-done>Done. SPEC did it and logged the decision with the numbers above.</p>}
       {rec.kind === 'hold' && rec.link && (
         <Link href={rec.link.href} className="text-sm text-rust-700 hover:underline">{rec.link.label} &rarr;</Link>
@@ -146,7 +160,7 @@ async function viewer() {
 export async function Recommends({ topic, back }: { topic: string; back: string }) {
   const user = await viewer();
   if (!user) return null;
-  const rec = await recommendationFor(user.tenantId, topic);
+  const rec = await recommendationFor(user.tenantId, topic, user);
   if (!rec) return null;
   return <RecommendCard rec={rec} tenantId={user.tenantId} back={back} />;
 }
@@ -173,6 +187,7 @@ export async function SwitchCards({ areas, back }: { areas: readonly SwitchAreaK
               <span className="font-semibold text-ink">{SHADOW_LINES.join(' ')}</span>
             </div>
           )}
+          <p className="text-xs text-ink-light" data-own-path>{ownPath(r.area)}</p>
           <p className="text-xs text-ink-light" data-guarantee>{GUARANTEE} {DAY_ONE}</p>
         </RecommendCard>
       ))}

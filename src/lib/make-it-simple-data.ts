@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull, lt } from 'drizzle-orm';
+import { and, desc, eq, gte, isNotNull, isNull, lt } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '../db';
 import { actionsOf, mondayOf, weeksBetween } from './meeting';
@@ -38,8 +38,8 @@ export async function signalsFor(tenantId: string, now: Date = new Date()): Prom
       .from(schema.jobBills).where(and(eq(schema.jobBills.tenantId, tenantId), eq(schema.jobBills.state, 'sent'))),
     db.select({ costCents: schema.callbacks.costCents }).from(schema.callbacks)
       .where(and(eq(schema.callbacks.tenantId, tenantId), eq(schema.callbacks.status, 'open'))),
-    db.select({ issues: schema.payRuns.issues }).from(schema.payRuns)
-      .where(and(eq(schema.payRuns.tenantId, tenantId), isNull(schema.payRuns.exportedAt))),
+    db.select({ fromDate: schema.payRuns.fromDate, exportedAt: schema.payRuns.exportedAt }).from(schema.payRuns)
+      .where(eq(schema.payRuns.tenantId, tenantId)),
     db.select({ createdAt: schema.jobs.createdAt }).from(schema.jobs)
       .where(and(eq(schema.jobs.tenantId, tenantId), eq(schema.jobs.stage, 'enquiry'))),
     db.select({ date: schema.meetings.date, actions: schema.meetings.actions, type: schema.meetings.type })
@@ -48,9 +48,21 @@ export async function signalsFor(tenantId: string, now: Date = new Date()): Prom
 
   const overdue = bills.filter(b => b.kind === 'invoice' && b.sentAt && daysBetween(b.sentAt, now) > 30);
   const stale = jobs.filter(j => daysBetween(j.createdAt, now) > 2);
-  const withIssues = runs.filter(r => {
-    try { return (JSON.parse(r.issues) as unknown[]).length > 0; } catch { return false; }
-  });
+  /*
+    Finished pay weeks (Monday to Sunday) in the last four with approved hours and no run sent. The
+    timesheet query above is only the unapproved ones, so the approved days are read here.
+  */
+  const thisMonday = mondayOf(now.toISOString());
+  const fourWeeksAgo = new Date(Date.parse(`${thisMonday}T00:00:00Z`) - 28 * DAY).toISOString().slice(0, 10);
+  const approvedDays = await db.select({ day: schema.timesheetEntries.day }).from(schema.timesheetEntries)
+    .where(and(
+      eq(schema.timesheetEntries.tenantId, tenantId),
+      gte(schema.timesheetEntries.day, fourWeeksAgo),
+      lt(schema.timesheetEntries.day, thisMonday),
+      isNotNull(schema.timesheetEntries.approvedAt),
+    ));
+  const sentWeeks = new Set(runs.filter(r => r.exportedAt).map(r => r.fromDate));
+  const unsent = new Set(approvedDays.map(d => mondayOf(d.day)).filter(m => !sentWeeks.has(m)));
   const today = now.toISOString().slice(0, 10);
   const carried = meetings.filter(m => m.type === 'sog')
     .flatMap(m => actionsOf({ id: '', date: m.date, minutes: null, actions: m.actions, attendees: null, decisions: null })
@@ -64,7 +76,7 @@ export async function signalsFor(tenantId: string, now: Date = new Date()): Prom
     carriedActions: carried.length,
     openCallbacks: callbacks.length,
     callbackCostCents: callbacks.reduce((n, c) => n + c.costCents, 0),
-    payRunsWithIssues: withIssues.length,
+    unsentWeeks: unsent.size,
     staleEnquiries: stale.length,
     oldestEnquiryDays: stale.length ? Math.max(...stale.map(j => daysBetween(j.createdAt, now))) : 0,
   };

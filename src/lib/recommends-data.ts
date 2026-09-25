@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, isNotNull } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '../db';
+import type { CurrentUser } from './auth';
 import { CLAUDE_MODEL, anthropicHeaders } from './claude';
 import { coverageFor, connectionsFor } from './coverage-data';
 import { ledgerConnections } from './virtual-gm-data';
@@ -36,10 +37,10 @@ export async function businessCounts(tenantId: string): Promise<BusinessCounts> 
     db.select({ id: schema.crmOrganisations.id }).from(schema.crmOrganisations).where(eq(schema.crmOrganisations.tenantId, tenantId)),
     db.select({ id: schema.catalogueItems.id }).from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, tenantId)),
     db.select({ id: schema.jobs.id }).from(schema.jobs).where(eq(schema.jobs.tenantId, tenantId)),
-    db.select({ id: schema.timesheetEntries.id }).from(schema.timesheetEntries)
+    db.select({ id: schema.timesheetEntries.id, approvedAt: schema.timesheetEntries.approvedAt }).from(schema.timesheetEntries)
       .where(and(eq(schema.timesheetEntries.tenantId, tenantId), gte(schema.timesheetEntries.day, daysAgo(30)))),
     db.select({ id: schema.payRuns.id }).from(schema.payRuns)
-      .where(and(eq(schema.payRuns.tenantId, tenantId), isNotNull(schema.payRuns.checkedAt))),
+      .where(and(eq(schema.payRuns.tenantId, tenantId), isNotNull(schema.payRuns.exportedAt))),
     ledgerConnections(tenantId),
   ]);
   return {
@@ -51,7 +52,8 @@ export async function businessCounts(tenantId: string): Promise<BusinessCounts> 
     catalogue: catalogue.length,
     jobs: jobs.length,
     timesheets30: sheets.length,
-    payRunsChecked: runs.length,
+    timesheetsApproved30: sheets.filter(s => s.approvedAt).length,
+    payRunsSent: runs.length,
     ledgerLinked: ledger.some(l => l.linked && l.orgName !== null && l.status !== 'broken'),
   };
 }
@@ -124,7 +126,13 @@ export async function relevantAreas(tenantId: string): Promise<SwitchArea[]> {
 }
 
 /** Any topic's recommendation, by name. The one place the list of topics lives. */
-export async function recommendationFor(tenantId: string, topic: string): Promise<Recommendation | null> {
+export async function recommendationFor(tenantId: string, topic: string, user?: CurrentUser): Promise<Recommendation | null> {
+  if (topic.startsWith('timesheets:')) {
+    // Scoped to the viewer's own crew, so it cannot be answered without knowing who is asking.
+    if (!user || user.tenantId !== tenantId) return null;
+    const { approveRecommendation } = await import('./timesheets-data');
+    return approveRecommendation(user, topic.slice('timesheets:'.length));
+  }
   if (topic === LABOUR_TOPIC) return labourRateRecommendation(tenantId);
   if (topic.startsWith('simple:')) {
     const { simpleRecommendation } = await import('./make-it-simple-data');
@@ -179,8 +187,14 @@ export async function logDecision(opts: {
  * creates the plan; for accounting that is Shadow, which changes nothing anywhere. `meeting_action`
  * puts the fix on this week's meeting with the owner the room named.
  */
-export async function carryOut(tenantId: string, userName: string, action: Action, opts: { owner?: string } = {}): Promise<void> {
+export async function carryOut(tenantId: string, userName: string, action: Action, opts: { owner?: string; user?: CurrentUser } = {}): Promise<void> {
   const at = new Date().toISOString();
+  if (action.type === 'approve_timesheets') {
+    if (!opts.user) throw new Error('Approving needs the person approving.');
+    const { approveCrewWeek } = await import('./timesheets-data');
+    await approveCrewWeek(opts.user, action.week);
+    return;
+  }
   if (action.type === 'meeting_action') {
     const owner = (opts.owner ?? '').trim();
     if (!owner) throw new Error('An action needs an owner.');

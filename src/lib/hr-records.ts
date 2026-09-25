@@ -207,16 +207,10 @@ export const CHECKS = AWARD_CHECKS;
  * correct and correctly paid, and blocking on it would teach people to stop recording overtime.
  * What must not happen is a run going out that nobody looked at.
  */
-export function mayExport(run: { checkedAt: string | null; exportedAt: string | null }): boolean {
-  return Boolean(run.checkedAt) && !run.exportedAt;
-}
 
-export function payRunLine(
-  run: { checkedAt: string | null; exportedAt: string | null },
-  issues: readonly AwardIssue[],
-): string {
-  if (run.exportedAt) return `Sent to the accounting system ${run.exportedAt.slice(0, 10)}`;
-  if (!run.checkedAt) return 'Not checked against the award yet — check it before it goes.';
-  if (issues.length === 0) return 'Checked. Nobody under the award.';
-  return `Checked. ${issues.length} ${issues.length === 1 ? 'thing needs' : 'things need'} an answer before it goes.`;
+export function payRunLine(run: { exportedAt: string | null; sentTo?: string | null }): string {
+  if (!run.exportedAt) return 'Not sent yet';
+  return run.sentTo === 'angus_shield'
+    ? `In Angus Shield’s pay run ${run.exportedAt.slice(0, 10)}`
+    : `Sent to your payroll system ${run.exportedAt.slice(0, 10)}`;
 }

@@ -1683,6 +1683,15 @@ export const timesheetEntries = pgTable('timesheet_entries', {
   finishedAt: text('finished_at'),
   minutes: integer('minutes').notNull().default(0),
   billable: boolean('billable').notNull().default(true),
+  /**
+   * The basics payroll needs from the job system, and nothing more (Kris, 25 September: SiteVIP's
+   * payroll job is who worked, on which job, where and when). `minutes` is the paid time — start to
+   * finish less the break. Travel to and from site is its own figure; allowances are tags from
+   * ALLOWANCES in lib/timesheets, comma-separated. SiteVIP never works out a rate, tax or super.
+   */
+  breakMinutes: integer('break_minutes').notNull().default(0),
+  travelMinutes: integer('travel_minutes').notNull().default(0),
+  allowances: text('allowances').notNull().default(''),
   /** phone | typed */
   source: text('source').notNull().default('phone'),
   approvedBy: text('approved_by'),
@@ -2028,8 +2037,10 @@ export const payRuns = pgTable('pay_runs', {
   issues: text('issues').notNull().default('[]'),
   checkedAt: text('checked_at'),
   checkedBy: text('checked_by'),
-  /** Set when the rows went to the accounting system. Never set while an issue is open. */
+  /** Set when the approved timesheet was sent on for processing. */
   exportedAt: text('exported_at'),
+  /** Where it went: `export` (a file for the business's payroll system) or `angus_shield`. */
+  sentTo: text('sent_to'),
   createdAt: text('created_at').notNull(),
 }, t => [
   index('pay_runs_tenant').on(t.tenantId),

@@ -12,7 +12,7 @@ const routeExists = (href: string) =>
 
 const BUSY: Signals = {
   timesheetsWaiting: 18, oldestTimesheetDays: 9, overdueInvoices: 3, overdueCents: 1_240_000, carriedActions: 2,
-  openCallbacks: 4, callbackCostCents: 86_000, payRunsWithIssues: 0, staleEnquiries: 5, oldestEnquiryDays: 6,
+  openCallbacks: 4, callbackCostCents: 86_000, unsentWeeks: 0, staleEnquiries: 5, oldestEnquiryDays: 6,
 };
 
 const input = (over: Partial<ReportInput> = {}): ReportInput => ({

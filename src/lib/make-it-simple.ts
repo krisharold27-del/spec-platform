@@ -35,8 +35,8 @@ export interface Signals {
   /** Callbacks still open, and what going back has cost. */
   openCallbacks: number;
   callbackCostCents: number;
-  /** Pay runs with an award issue still open, not yet sent. */
-  payRunsWithIssues: number;
+  /** Finished weeks, in the last four, with approved timesheets not yet sent for processing. */
+  unsentWeeks: number;
   /** Enquiries waiting more than two days for a price, and the oldest one's age. */
   staleEnquiries: number;
   oldestEnquiryDays: number;
@@ -44,7 +44,7 @@ export interface Signals {
 
 export const NO_SIGNALS: Signals = {
   timesheetsWaiting: 0, oldestTimesheetDays: 0, overdueInvoices: 0, overdueCents: 0, carriedActions: 0,
-  openCallbacks: 0, callbackCostCents: 0, payRunsWithIssues: 0, staleEnquiries: 0, oldestEnquiryDays: 0,
+  openCallbacks: 0, callbackCostCents: 0, unsentWeeks: 0, staleEnquiries: 0, oldestEnquiryDays: 0,
 };
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -73,12 +73,12 @@ export const FRICTIONS: Friction[] = [
     facts: s => [{ label: 'Invoices over 30 days', value: String(s.overdueInvoices) }, { label: 'Outstanding on them', value: dollars(s.overdueCents) }],
   },
   {
-    key: 'payruns', kind: 'Errors', priority: 5, href: '/people?mode=pay',
-    count: s => s.payRunsWithIssues,
-    headline: s => `${plural(s.payRunsWithIssues, 'pay run has', 'pay runs have')} award issues still open.`,
-    reason: 'A pay run with an open award check cannot go out, and fixing pay after it has gone is the expensive way.',
-    fix: 'Clear the open award issues before the next pay run',
-    facts: s => [{ label: 'Pay runs with an open issue', value: String(s.payRunsWithIssues) }],
+    key: 'unsent', kind: 'Delays', priority: 5, href: '/jobs?tab=time',
+    count: s => s.unsentWeeks,
+    headline: s => `${plural(s.unsentWeeks, 'week', 'weeks')} of approved timesheets not sent to payroll yet.`,
+    reason: 'Approved hours that have not gone to payroll are hours somebody will be chasing on payday.',
+    fix: 'Send each approved week to payroll as soon as it is approved',
+    facts: s => [{ label: 'Approved weeks not sent', value: String(s.unsentWeeks) }],
   },
   {
     key: 'callbacks', kind: 'Errors', priority: 4, href: '/jobs?tab=rework',

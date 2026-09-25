@@ -24,11 +24,11 @@ const HOURS = (total: number, billable: number) => ({ total: total * 60, billabl
 
 const FULL: BusinessCounts = {
   staff: 14, staffWithStart: 14, staffWithContact: 14, staffInducted: 14, customers: 40, catalogue: 120,
-  jobs: 30, timesheets30: 200, payRunsChecked: 4, ledgerLinked: true,
+  jobs: 30, timesheets30: 200, timesheetsApproved30: 180, payRunsSent: 4, ledgerLinked: true,
 };
 const EMPTY: BusinessCounts = {
   staff: 0, staffWithStart: 0, staffWithContact: 0, staffInducted: 0, customers: 0, catalogue: 0,
-  jobs: 0, timesheets30: 0, payRunsChecked: 0, ledgerLinked: false,
+  jobs: 0, timesheets30: 0, timesheetsApproved30: 0, payRunsSent: 0, ledgerLinked: false,
 };
 
 describe('Claude recommends — the engine', () => {
@@ -186,9 +186,9 @@ describe('Switch when ready', () => {
     expect(missingIds).toEqual(['rates', 'cycles', 'balances']);
     const rec = switchAdvice(payroll, null, checks);
     expect(rec.kind).toBe('missing');
-    expect(rec.headline).toBe(`We’ll tell you when ${ANGUS_SHIELD.name} is ready to run your payroll.`);
+    expect(rec.headline).toBe(`We’ll tell you when ${ANGUS_SHIELD.name} is ready to run your payroll processing.`);
     if (rec.kind !== 'missing') return;
-    expect(rec.missing.map(m => m.what).join(' ')).toMatch(/pay rates.*pay cycles.*leave balances/is);
+    expect(rec.missing.map(m => m.what).join(' ')).toMatch(/pay rate.*pay cycles.*leave balances/is);
     expect(rec.interest?.yes).toBe('I want this');
   });
 
@@ -277,7 +277,7 @@ describe('Switch when ready', () => {
   it('only says SPEC CAN when it can, and never says coming soon anywhere', () => {
     expect(didYouKnow(people)).toBe('Did you know SPEC can run your HR? Switching won’t cause any problems — we check everything first.');
     expect(didYouKnow(payroll)).not.toMatch(/SPEC can run/);
-    expect(didYouKnow(payroll)).toContain('is being built to run your payroll');
+    expect(didYouKnow(payroll)).toContain('is being built to process your pay — tax, super and payslips');
     const src = ['src/lib/switch.ts', 'src/components/recommends.tsx', 'src/app/switch/page.tsx']
       .map(f => readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*(\/\/|\*).*$/gm, '')).join('\n');
     expect(src).not.toMatch(/coming soon/i);
@@ -305,7 +305,7 @@ describe('Yes carries out only what was recommended', () => {
   const src = readFileSync('src/app/recommends/actions.ts', 'utf8');
 
   it('works the recommendation out again on the server and refuses a stale one', () => {
-    expect(src).toContain('recommendationFor(user.tenantId, topic)');
+    expect(src).toContain('recommendationFor(user.tenantId, topic, user)');
     expect(src).toMatch(/fingerprint\(rec\) !== shown/);
     expect(src).toContain('logDecision(');
   });

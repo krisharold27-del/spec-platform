@@ -29,7 +29,7 @@ export async function decide(formData: FormData) {
   const back = safe(String(formData.get('back') ?? '/virtual-gm'));
   if (answer !== 'yes' && answer !== 'not_yet') refuseTo(back, 'That answer was not one SPEC offered.');
 
-  const rec = await recommendationFor(user.tenantId, topic);
+  const rec = await recommendationFor(user.tenantId, topic, user);
   if (!rec) refuseTo(back, 'SPEC has no recommendation by that name.');
   if (fingerprint(rec) !== shown) {
     refuseTo(back, 'The numbers changed since that was shown. Here is the recommendation as it stands now.');
@@ -51,7 +51,7 @@ export async function decide(formData: FormData) {
 
   let outcome: 'done' | 'failed' = 'done';
   try {
-    await carryOut(user.tenantId, user.name, action, { owner });
+    await carryOut(user.tenantId, user.name, action, { owner, user });
   } catch {
     outcome = 'failed';
   }

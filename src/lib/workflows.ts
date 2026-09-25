@@ -511,8 +511,8 @@ export const WORKFLOWS: Workflow[] = [
     'Approved hours, costed to jobs, ready for the pay run.', 'operations', ['productivity', 'gross_profit'], [
     { does: 'Hours come from Start and Finish on the phone.', by: 'field', where: '/tech-day' },
     { does: 'They cost to the job as they arrive.', by: 'spec', where: '/jobs?tab=time' },
-    { does: 'Approved before the run.', by: 'office', where: '/jobs?tab=time' },
-    { does: 'Checked against award rates and allowances BEFORE the run goes, not after.', by: 'spec', where: '/people?mode=pay' },
+    { does: 'Reconciled: clashes, gaps, unbooked time and long days flagged before anybody approves.', by: 'spec', where: '/jobs?tab=time' },
+    { does: 'Approved — only what nothing is holding back.', by: 'office', where: '/jobs?tab=time' },
   ]),
 
   W('people', 'leave', 'Somebody wants time off',
@@ -716,12 +716,16 @@ export const WORKFLOWS: Workflow[] = [
     { does: 'The buffer is the business’s own number, not one SPEC invented.', by: 'office', where: '/jobs?tab=cash' },
   ]),
 
-  W('money', 'payroll-run', 'Run the pay',
-    'The pay period ends.',
-    'Paid right, with the check done before the run rather than after.', 'commercial', ['regulatory', 'budget_miss'], [
-    { does: 'Approved hours.', by: 'office', where: '/jobs?tab=time' },
-    { does: 'Checked against award rates, levels and allowances BEFORE it goes.', by: 'spec', where: '/people?mode=pay' },
-    { does: 'What the check found is kept as written.', by: 'spec', where: '/people?mode=pay' },
+  /*
+    Kris, 25 September: payroll is split. SiteVIP hands over the approved basics; the business's own
+    payroll system (or Angus Shield, if it switches) works out tax, super and payslips.
+  */
+  W('money', 'payroll-run', 'Hand the week to payroll',
+    'The pay week is approved.',
+    'The approved timesheet is with the payroll system, or in Angus Shield’s pay run.', 'commercial', ['regulatory', 'budget_miss'], [
+    { does: 'Only once every entry in the week is approved.', by: 'spec', where: '/jobs?tab=time' },
+    { does: 'One tap: a file for your payroll system, or straight into Angus Shield if you have switched.', by: 'office', where: '/jobs?tab=time' },
+    { does: 'What went, and when, is kept with the week.', by: 'spec', where: '/jobs?tab=time' },
   ]),
 
   W('money', 'reviews-ask', 'Ask for a review',

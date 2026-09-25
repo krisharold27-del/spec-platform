@@ -57,7 +57,7 @@ const keysOf = (caps: { key: string }[], except: string[] = []) =>
 
 export const SWITCH_AREAS: SwitchArea[] = [
   { key: 'accounting', noun: 'accounting', product: 'angus', category: 'financials', capabilities: [], sideBySide: true, home: '/virtual-gm' },
-  { key: 'payroll', noun: 'payroll', product: 'angus', category: 'payroll', capabilities: [], sideBySide: true, home: '/people?mode=pay' },
+  { key: 'payroll', noun: 'payroll processing', product: 'angus', category: 'payroll', capabilities: [], sideBySide: true, home: '/jobs?tab=time' },
   { key: 'jobs', noun: 'jobs and quoting', product: 'spec', category: 'job_management', capabilities: keysOf(capabilitiesIn('jobs'), ['customers']), sideBySide: true, home: '/jobs' },
   { key: 'crm', noun: 'customers and sales', product: 'spec', category: 'crm', capabilities: ['customers'], sideBySide: false, home: '/crm' },
   { key: 'people', noun: 'HR', product: 'spec', category: 'payroll', capabilities: keysOf(capabilitiesIn('hr'), ['payroll']), sideBySide: false, home: '/people' },
@@ -111,7 +111,10 @@ export interface BusinessCounts {
   jobs: number;
   /** Timesheet entries in the last 30 days. */
   timesheets30: number;
-  payRunsChecked: number;
+  /** Timesheet entries approved in the last 30 days. */
+  timesheetsApproved30: number;
+  /** Weeks of approved timesheets sent on for processing. */
+  payRunsSent: number;
   /** The accounting system linked, and which books chosen — so SPEC can read them. */
   ledgerLinked: boolean;
 }
@@ -168,10 +171,16 @@ export function checksFor(a: SwitchArea, c: BusinessCounts): Check[] {
         onChart(c),
         everyone(c.staffWithStart, c.staff, 'have a start date', '/people', 'start', 'Everybody has a start date'),
         { id: 'hours', label: 'Hours come in from the phone', href: '/jobs?tab=time', met: c.timesheets30 > 0, found: c.timesheets30 ? `${n(c.timesheets30, 'timesheet entry', 'timesheet entries')} in the last 30 days` : 'None in the last 30 days' },
-        { id: 'payrun', label: 'A pay run has been checked in SPEC', href: '/people?mode=pay', met: c.payRunsChecked > 0, found: c.payRunsChecked ? n(c.payRunsChecked, 'pay run') + ' checked' : 'None yet' },
-        { id: 'rates', label: 'Pay rates for each person', met: false, found: 'SPEC does not hold pay rates yet' },
-        { id: 'cycles', label: 'Pay cycles', met: false, found: 'SPEC does not hold pay cycles yet' },
-        { id: 'balances', label: 'Leave balances', met: false, found: 'SPEC does not hold leave balances yet' },
+        { id: 'approved', label: 'Timesheets are reconciled and approved', href: '/jobs?tab=time', met: c.timesheetsApproved30 > 0, found: c.timesheetsApproved30 ? `${n(c.timesheetsApproved30, 'entry', 'entries')} approved in the last 30 days` : 'None approved in the last 30 days' },
+        { id: 'sent', label: 'An approved week has been sent on for processing', href: '/jobs?tab=time', met: c.payRunsSent > 0, found: c.payRunsSent ? n(c.payRunsSent, 'week') + ' sent' : 'None yet' },
+        /*
+          The processing side. SiteVIP never holds pay rates, pay cycles or leave balances — Kris,
+          25 September: SiteVIP's payroll job is the basics only. Angus Shield would take them from
+          the business's current payroll system when it switches; until it can, they are missing.
+        */
+        { id: 'rates', label: `${ANGUS_SHIELD.name} holds each person’s pay rate`, met: false, found: `Not yet — ${ANGUS_SHIELD.name} is not reading your payroll system` },
+        { id: 'cycles', label: `${ANGUS_SHIELD.name} knows your pay cycles`, met: false, found: 'Not yet' },
+        { id: 'balances', label: `${ANGUS_SHIELD.name} holds leave balances`, met: false, found: 'Not yet' },
       ];
     case 'jobs':
       return [
@@ -208,11 +217,33 @@ export const confirmed = (a: SwitchArea, checks: readonly Check[]): boolean =>
 
 /** The calm line at the top of the card. Only says SPEC CAN when the check says it can. */
 export function didYouKnow(a: SwitchArea): string {
+  if (a.key === 'payroll') {
+    return productReady(a)
+      ? `Did you know ${ANGUS_SHIELD.name} can process your pay — tax, super and payslips — straight from the timesheets you approve here? No export step. Switching won’t cause any problems — we check everything first.`
+      : `Did you know ${ANGUS_SHIELD.name}, SPEC’s own, is being built to process your pay — tax, super and payslips — straight from the timesheets you approve here? When it’s ready, approved timesheets flow into its pay run with no export step.`;
+  }
   if (productReady(a)) {
     return `Did you know SPEC can run your ${a.noun}? Switching won’t cause any problems — we check everything first.`;
   }
   return `Did you know ${ANGUS_SHIELD.name}, SPEC’s own, is being built to run your ${a.noun}? When it’s ready, switching won’t cause any problems — we check everything first.`;
 }
+
+/**
+ * The business's own system, always a full path — Kris, 25 September: *"they must always be free to
+ * do what they want"*. Said on every card, beside the offer, so choosing Angus Shield or SPEC is a
+ * choice and never the only way anything works.
+ */
+export function ownPath(a: SwitchArea): string {
+  switch (a.key) {
+    case 'payroll': return 'Keeping your own payroll system works just as well: approved timesheets export in one tap from Jobs › Time.';
+    case 'accounting': return 'Keeping your own accounting system works just as well: SPEC reads it and holds nothing back.';
+    default: return `Keeping your own ${SYSTEM_WORDS[a.key]} works just as well: it stays connected and everything in SPEC works either way.`;
+  }
+}
+
+const SYSTEM_WORDS: Record<SwitchAreaKey, string> = {
+  accounting: 'accounting system', payroll: 'payroll system', jobs: 'job system', crm: 'CRM', people: 'HR system', safety: 'safety system',
+};
 
 /** Kris's promise, on every card. */
 export const GUARANTEE = 'The Simple Guarantee: if switching isn’t easy, that month is free.';
@@ -288,7 +319,7 @@ export function switchAdvice(a: SwitchArea, row: SwitchRow | null, checks: reado
 
   if (missing.length) {
     return {
-      kind: 'missing', topic, facts, missing, interest,
+      kind: 'missing', topic, facts, missing, interest, recheck: 'on_change',
       headline: productReady(a)
         ? `Nearly ready to switch your ${a.noun}. ${missing.length === 1 ? 'One thing' : `${missing.length} things`} to sort first.`
         : `We’ll tell you when ${product} is ready to run your ${a.noun}.`,
@@ -297,7 +328,7 @@ export function switchAdvice(a: SwitchArea, row: SwitchRow | null, checks: reado
 
   const met = checks.map(c => c.found.toLowerCase()).join(', ');
   return {
-    kind: 'recommend', topic, facts,
+    kind: 'recommend', topic, facts, recheck: 'on_change',
     headline: `You’re ready to switch your ${a.noun} to ${product}.`,
     reason: `Everything checks out: ${met}. ${DAY_ONE}`,
     action: interest.action,
