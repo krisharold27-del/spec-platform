@@ -69,13 +69,39 @@ check('THE PAID QUESTION IS ASKED FIRST', /Are you being paid for going back/i.t
 check('  and the rule is spelled out', /more work on the same job/i.test(first));
 
 const log = async ({ paid, ref, cause, hours }) => {
+  const [{ n: before }] = await sql`select count(*)::int as n from callbacks where tenant_id = ${tenant.id}`;
   await page.goto(`${BASE}/jobs?tab=rework`, { waitUntil: 'networkidle' });
   await page.check(`input[name="paid"][value="${paid}"]`);
   await page.selectOption('select[name="jobId"]', { label: `${ref} · Switchboard` });
   if (cause) await page.selectOption('select[name="cause"]', { value: cause });
   await page.fill('input[name="hours"]', String(hours));
   await Promise.all([page.waitForLoadState('networkidle'), page.locator('form button:has-text("Log it")').click()]);
-  await page.waitForTimeout(900);
+  /*
+    ── Wait for the WRITE, not for a number of milliseconds ──────────────────────────────────────
+
+    A fixed 900ms here was the third check in this suite to pass alone and fail inside the full
+    gate. The first attempt at a fix waited for the address instead — which is worse on the unpaid
+    path, because it stays on the same tab and the wait returns instantly while the write is still
+    in flight. That produced a callback costed at a labour rate inserted AFTER it was submitted.
+
+    So it waits for the row. A journey that waits for its own evidence cannot be raced, and the
+    database is the only place that evidence actually is.
+  */
+  const want = paid === 'yes' ? before : before + 1;
+  for (let i = 0; i < 60; i++) {
+    const [{ n }] = await sql`select count(*)::int as n from callbacks where tenant_id = ${tenant.id}`;
+    if (n === want) break;
+    await new Promise(r => setTimeout(r, 250));
+  }
+  if (paid === 'yes') {
+    await page.waitForURL(u => u.searchParams.get('tab') === 'pipeline', { timeout: 15_000 }).catch(() => {});
+  } else {
+    /*
+      Read the page AFTER the row exists. Polling the database proves the write landed and says
+      nothing about what the screen is showing — and the screen is what the next checks read.
+    */
+    await page.goto(`${BASE}/jobs?tab=rework`, { waitUntil: 'networkidle' });
+  }
 };
 
 await log({ paid: 'no', ref: 'J-FREE', cause: 'workmanship', hours: 2 });

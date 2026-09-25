@@ -8,6 +8,9 @@ import { OrgCanvas } from '@/components/org-canvas';
 import { getCurrentUser, canManage } from '@/lib/auth';
 import { getTenantById, getScorecard, PILLARS } from '@/lib/queries';
 import { seatBadges, seatKindFor, MIN_KPIS, cadence } from '@/lib/chart-seats';
+import { readLink, linkLine, nextMove, LINK_ASKS, STAGES } from '@/lib/ioc';
+import { LIGHT_INK } from '@/lib/today';
+import { seatsFor } from '@/lib/ioc-data';
 import { currentPeriod } from '@/lib/period';
 import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
@@ -226,7 +229,24 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
       ? 'Your account can see this chart but not change it. An administrator can give you edit access from Admin.'
       : 'You are not in a role on this chart yet, so SPEC cannot tell which part of it is yours — that is why nothing here will save. Put yourself in a role from People, then come back.';
 
-  const journey = stages(roles, detached, averages);
+  /*
+    ── LINK, answered properly ───────────────────────────────────────────────────────────────────
+
+    Kris, 25 September: "the IOC - intelligent org chart - is the foundation for the system being
+    great - the first stage of the plan is LINK - who does what and are they capable and is the
+    business achieving success".
+
+    `stages` above asks one thing of Link: is every role attached to the chart. That is a fair
+    question and it is not Kris's — a chart where every box is joined up and half the seats are
+    empty, or held by somebody whose licence lapsed in March, is not a linked business. The three
+    questions were all answerable already; the answers lived on Training, on Compliance and on
+    Clear to Work, so a leader had to visit three screens to learn whether the person in a seat
+    could hold it.
+  */
+  const link = readLink(await seatsFor(user, scope));
+  /* One answer: the stage reads the same reading the three questions do. */
+  const journey = stages(roles, detached, averages, 0.9,
+    { linked: link.linked, seats: link.seats, says: linkLine(link) });
 
   return (
     <Shell
@@ -246,6 +266,47 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
         drew a 4px rule across the top of a white card, which is a status table pretending to be a
         picture. The tint IS the status; nothing has to be read to get it.
       */}
+      {/*
+        The three questions, above the three stages — because they are what Link MEANS, and a stage
+        somebody cannot act on is a label. Each one says what it costs to leave unanswered, and the
+        business gets ONE next move rather than a list: a leader with forty seats does not need
+        forty instructions, they need the next one.
+      */}
+      <section className="mb-4 rounded-2xl bg-surface p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="font-serif text-[22px] leading-none text-ink">Link</h2>
+          <span className="text-[13px] text-ink-light">{STAGES[0].is}</span>
+        </div>
+        <p className="mt-3 text-[15px] leading-[23px] text-ink">{linkLine(link)}</p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {LINK_ASKS.map(a => {
+            const done = link.answered[a.key] === link.seats && link.seats > 0;
+            return (
+              <div key={a.key} className="rounded-[18px] p-4"
+                style={{ background: done ? 'rgba(79,122,63,0.12)' : '#f0e2cb' }}>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[15px] font-semibold text-ink">{a.question}</span>
+                  <span className="shrink-0 text-[13px] text-ink-light">
+                    {link.answered[a.key]} / {link.seats}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-[13px] leading-[19px] text-ink/80">
+                  {done ? a.good : a.bad}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {nextMove(link) && (
+          <p className="mt-4 rounded-[16px] px-4 py-3 text-[14px] leading-[21px]"
+            style={{ background: LIGHT_COLOUR.amber, color: LIGHT_INK.amber }}>
+            <strong>Next:</strong> {nextMove(link)}
+          </p>
+        )}
+      </section>
+
       <section className="grid gap-4 sm:grid-cols-3">
         {journey.map(s => (
           <div

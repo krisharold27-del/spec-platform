@@ -78,14 +78,26 @@ await openBoard('Rate Board');
 body = await text();
 
 check('opening it shows the working, not just the answer', body.includes('Base hourly cost') && body.includes('Effective sell rate'));
-check('each input says which system it came from', body.includes('Simpro') && body.includes('Xero'));
+/*
+  ── Category, never vendor ──────────────────────────────────────────────────────────────────────
+
+  These three checks used to pin 'Simpro', 'Xero' and a real customer's staff names, because that
+  is what the example data said. It was changed on 25 September — public pages stopped naming a
+  customer's people and naming accounting products by brand — and these checks then failed the
+  product for obeying one of its own rules: no vendor name in the UI, connectors by category.
+
+  So they now assert what actually has to be true: every input NAMES ITS SOURCE, and every step on
+  a plan HAS AN OWNER. Which source and which owner is example data, and example data changes.
+*/
+check('each input says which system it came from', body.includes('Job system') && body.includes('Accounting system'));
+check('  and names no vendor, because the UI never does', !/\bSimpro\b|\bXero\b|\bMYOB\b/i.test(body), body.slice(0, 160));
 check('and the decision it turned on', body.includes('$115/hr') && body.includes('$105/hr'));
 check(
   'it names the feeds that are not running rather than going quiet',
   /not connected and working/i.test(body),
   body.split('\n').find(l => /live/i.test(l)) ?? '',
 );
-check('the discussion sits next to the numbers', body.includes('Discussion') && body.includes('Xero actuals confirm'));
+check('the discussion sits next to the numbers', body.includes('Discussion') && /the job system and the accounts/i.test(body));
 // Case-insensitive: it is a label-caps heading, and innerText reports what is RENDERED.
 check('and it says who is in the room, honestly', /editing now/i.test(body));
 
@@ -121,7 +133,7 @@ await page.setViewportSize({ width: 1280, height: 1200 });
 await page.goto(`${BASE}/mirrors`, { waitUntil: 'networkidle' });
 await openBoard('King of the Mountain');
 body = await text();
-check('a plan shows who owns each step', body.includes('Permitting') && body.includes('Anthony'));
+check('a plan shows who owns each step', /permitting/i.test(body) && /Jo Barnes|Chris Nguyen|Sam Lee/.test(body), body.slice(0, 200));
 check('and where each one has got to, without scoring it', /Stuck|Being done now|Not started/.test(body));
 /*
   ── Scoped to the plan, because the rule is about the plan ──────────────────────────────────────

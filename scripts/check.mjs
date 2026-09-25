@@ -55,6 +55,11 @@ function step(name, what, fn) {
     process.stdout.write(`\r  ✓ ${what}${note ? ` — ${note}` : ''}\n`);
     results.push({ name, state: 'pass' });
   } catch (error) {
+    if (error.stoodDown) {
+      process.stdout.write(`\r  – ${what} — ${String(error.message).split('\n')[0].slice(0, 160)}\n`);
+      results.push({ name, state: 'skip' });
+      return;
+    }
     /*
       ── Say enough to diagnose it, and keep the whole thing ──────────────────────────────────────
 
@@ -517,9 +522,47 @@ if (!serving) {
     }
 
     step(id, what, () => {
-      if (/FAIL|check\(s\) failed/.test(out)) throw new Error(out.split('\n').filter(l => l.startsWith('FAIL')).join(' '));
-      const n = (out.match(/^ok /gm) ?? []).length;
-      return n ? `${n} checks` : null;
+      /*
+        ── The blank ✗, explained at last ────────────────────────────────────────────────────────
+
+        This threw `new Error(<the FAIL lines>)` — and when a journey died for any reason OTHER than
+        a check failing, there were no FAIL lines, so it threw an EMPTY error. That is the mystery
+        blank failure three sessions have now chased: the goals journey, the setup journey and the
+        crews journey each reported a line with nothing on it, passed when run alone, and left
+        nobody any way to find out why.
+
+        Widening `step`'s reporting last time did not help, because this throws first and hands it
+        nothing. So: the FAIL lines when there are any, and the whole output when there are not —
+        a journey that exits non-zero always says something now, even if all it can say is that it
+        stopped.
+      */
+      const failed = out.split('\n').filter(l => l.trim().startsWith('FAIL'));
+      if (failed.length > 0) throw new Error(failed.join(' '));
+
+      const ran = (out.match(/^\s*ok /gm) ?? []).length;
+      /*
+        No FAIL lines and no ok lines means it never got going — the journey exited before its first
+        check. Every journey here prints at least one `ok` when it reaches the product at all.
+      */
+      if (ran === 0) {
+        /*
+          A journey that SAYS it skipped has not failed.
+
+          Two of them stand down on purpose when the run has nothing to test against — the cockpit
+          allowlist with no ADMIN_EMAILS, the Xero link with no credentials — and they print why and
+          stop. The rule above caught them as crashes the moment it was written, which is the same
+          cry-wolf fault it was written to fix, one step along: a check that calls a deliberate
+          stand-down a failure teaches people to ignore the red.
+        */
+        if (/\bskip(ped|ping)?\b|was not exercised|being throttled|protecting itself/i.test(out)) {
+          throw Object.assign(new Error(out.trim().slice(0, 300)), { stoodDown: true });
+        }
+        throw new Error(
+          `the journey stopped before its first check and said: ${out.trim().slice(0, 500) || '(nothing at all)'}`,
+        );
+      }
+      if (/check\(s\) failed|\d+ FAILED/.test(out)) throw new Error(out.trim().slice(0, 500));
+      return `${ran} checks`;
     });
   }
 }

@@ -64,11 +64,21 @@ check('SPLITTING IS ON THE SAME SCREEN AS CREWING', /Crews on J-BIG/.test(start)
   start.slice(0, 260).replace(/\n/g, ' '));
 check('  and one crew on one job needs nobody over it', !/nobody over the whole/i.test(start));
 
+/*
+  ── Wait for the thing, not for a number of milliseconds ────────────────────────────────────────
+
+  This used a fixed 900ms after the press, and passed alone every time while failing inside the
+  full run — the classic shape of a timing-sensitive check. Under a gate that has already driven
+  thirty journeys, a revalidate that normally lands in 200ms does not always land in 900.
+
+  So it waits for the scope to APPEAR. A check that waits for its own evidence cannot be raced, and
+  it fails honestly (with a timeout naming what never showed up) when the product really is broken.
+*/
 const split = async (name) => {
   await page.fill('input[name="name"]', name);
   await Promise.all([page.waitForLoadState('networkidle'),
     page.locator('form:has(input[name="name"]) button:has-text("Split it")').click()]);
-  await page.waitForTimeout(900);
+  await page.locator(`li:has-text("${name}")`).first().waitFor({ timeout: 15_000 }).catch(() => {});
 };
 
 await split('Switchboard');
@@ -91,7 +101,7 @@ if (opts.length > 1) {
   await page.selectOption('select[name="supervisorName"]', { index: 1 });
   await Promise.all([page.waitForLoadState('networkidle'),
     page.locator('form:has(select[name="supervisorName"]) button').click()]);
-  await page.waitForTimeout(900);
+  await page.locator('text=/2 scopes,/').first().waitFor({ timeout: 15_000 }).catch(() => {});
   const [held] = await sql`select supervisor_name, supervisor_key from jobs where id = ${jobId}`;
   check('ONE NAME IS RECORDED OVER THE WHOLE JOB', Boolean(held?.supervisor_name), JSON.stringify(held));
   const after = await page.evaluate(() => document.body.innerText);
