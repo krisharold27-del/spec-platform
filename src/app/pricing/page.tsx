@@ -50,6 +50,7 @@ export default function Pricing() {
           <p className="mt-3 max-w-[58ch] text-base leading-relaxed text-ink-light">
             {VIRTUAL_GM.ladder}
           </p>
+          <p className="mt-3 max-w-[58ch] text-base leading-relaxed text-ink-light">{VIRTUAL_GM.both}</p>
           {/* The comparison moved up here when the consulting price came off the card below. It is
               the argument for the whole ladder, not for one box, and it reads better before a price
               than beside one. */}

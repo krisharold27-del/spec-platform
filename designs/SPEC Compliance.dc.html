@@ -126,6 +126,8 @@ const AREAS = [
     R('i1', 'JBI public liability, $20m', 'Renews 30 Nov', 'Current', GREEN, '', ''),
     R('i2', 'JBI workers\u2019 comp', 'icare · renews 30 Jun', 'Current', GREEN, '', ''),
     R('i3', 'Summit Scaffolding · workers\u2019 comp', 'Subcontractor · expired 20 Sep', 'Can\u2019t be booked', RED, 'Chase Mick', 'Text sent · booking blocked'),
+    R('i5', 'Tolls · September', '$412 across 9 utes · each toll charged to the job the ute was on', 'On the jobs', GREEN, '', ''),
+    R('i6', 'Speeding fine · Ute 04 · 12 Sep, 7:48am', 'Hemi Walker was driving', 'Hemi to nominate', AMBER, 'Send Hemi the nomination', 'Sent to Hemi to sign'),
     R('i4', 'Ute 14 · registration', 'Due 12 Oct', '18 days left', AMBER, 'Pay the rego', 'Paid · in Xero'),
   ] },
   { key: 'certs', label: 'Certificates', title: 'Certificates of compliance', feeds: 'Compliance · Audit pass rate', blurb: 'Filled in from the job at sign-off, with the test results from the phone. Sent to the customer and lodged on time.', rows: [
@@ -143,6 +145,12 @@ const AREAS = [
     R('k1', 'Nadia Cole · employment contract', 'Sent 19 Sep', 'Waiting on signature', AMBER, 'Send a reminder', 'Reminder sent'),
     R('k2', 'Award check · pay run 14 to 20 Sep', '38 people · levels, rates and allowances', 'No one under award', GREEN, '', ''),
     R('k3', 'Northern Trenching · subcontract', 'Onboarding', 'Not signed', RED, 'Send the subcontract', 'Sent to Josh to sign'),
+  ] },
+  { key: 'subbies', label: 'Subbies & the ATO', title: 'Subcontractors and the ATO', feeds: 'Compliance \u00b7 Regulatory breaches', blurb: 'Every subbie is checked once at onboarding against the ATO\u2019s contractor tests. No valid ABN, no payment. SPEC builds the TPAR from every subbie payment each July, and your accountant lodges it by 28 August.', rows: [
+    R('s1', 'TPAR 2025\u201326', '4 subbies \u00b7 $186,400 paid \u00b7 built from pay records', 'Ready for the accountant', GREEN, 'Send to the accountant', 'Sent to Priya Menon, CPA'),
+    R('s2', 'Northern Trenching \u00b7 Josh Lee', 'ABN not valid on the ABN Lookup', 'Payment blocked', RED, 'Ask Josh for his ABN', 'Text sent \u00b7 payment held'),
+    R('s3', 'Bright Spark Electrical \u00b7 Aaron Kim', 'Onboarding check: paid by the hour, our tools, only works for us', 'Looks like an employee', AMBER, 'Offer Aaron a job', 'Role drafted \u00b7 in Recruitment'),
+    R('s4', 'Summit Scaffolding, Coastal Data & Comms', 'Own business, own gear, paid for the result', 'Contractor', GREEN, '', ''),
   ] },
   { key: 'breaches', label: 'Breaches & actions', title: 'Breaches and corrective actions', feeds: 'Compliance · Zero regulatory breaches', blurb: 'Zero breaches is the standard. Anything that goes wrong gets an owner, a date and a fix, and goes to the weekly meeting until it\u2019s closed.', rows: [
     R('b1', 'Regulatory breaches this year', 'None recorded', 'Zero', GREEN, '', ''),

@@ -180,6 +180,8 @@ export interface Action {
   due: string | null;
   done: boolean;
   pillar: Pillar | null;
+  /** Where it came from when SPEC raised it — `simple:invoices` for a Make it simple fix. */
+  source?: string;
 }
 
 export interface Decision {

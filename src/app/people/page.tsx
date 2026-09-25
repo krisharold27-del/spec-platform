@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OrgChartDoor } from '@/components/org-chart-door';
 import { redirect } from 'next/navigation';
 import { OwnSystemLine } from '@/components/own-system-line';
 import { ownSystemFor } from '@/lib/coverage-data';
@@ -37,6 +38,7 @@ import { LeaversTab } from './leavers-tab';
 import { seatKindFor } from '@/lib/chart-seats';
 import { planStateFor } from '@/lib/plan';
 import type { Person, SeatKind } from '@/lib/onboarding';
+import { SwitchCards } from '@/components/recommends';
 
 export const dynamic = 'force-dynamic';
 
@@ -378,6 +380,7 @@ export default async function People({ searchParams }: { searchParams: Promise<R
       subtitle={hiring ? 'The roles you need filled, and who is in front of you.' : 'Who is where, who is clear to work, and what each of them is measured on.'}
     >
       <Refused reason={cannot} />
+      <OrgChartDoor className="mb-6" />
       {/*
         The two lines the design carries above this page and the product did not.
 
@@ -397,6 +400,12 @@ export default async function People({ searchParams }: { searchParams: Promise<R
           system. For a people business, this is the system.
         </p>
       </section>
+
+      {/* Switch when ready — payroll where pay is run, HR here. Only shown when it applies. */}
+      <div className="mb-6 grid gap-3">
+        {mode === 'pay' && <SwitchCards areas={['payroll']} back="/people?mode=pay" />}
+        <SwitchCards areas={['people']} back="/people" />
+      </div>
 
       <div className="flex flex-wrap gap-2">
         {HR_TABS.map(t => (

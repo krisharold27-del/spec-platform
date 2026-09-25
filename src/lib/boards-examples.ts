@@ -23,17 +23,24 @@ import type { Feed, Row, Step, Headline } from './boards-live';
  * of, each pointed at the system it came from, landing on $105. The disagreement is then with the
  * actuals rather than with whoever set the rate — which is the difference between a decision and a
  * row, and it is the whole reason a board is not a spreadsheet in somebody's downloads folder.
+ *
+ * ── Only the look-around's own invented people, and no vendors ──────────────────────────────────
+ *
+ * Anybody can open a look-around without an account, so this is public. It used to name real
+ * people from a real customer's chart and two accounting products by brand; the site check on
+ * 25 September found both. Every name here is one of the invented team `app/look/route.ts` puts on
+ * the chart, systems are named by category, and `tests/look-examples.test.ts` holds it there.
  */
 
 const rateFeeds: Feed[] = [
-  { system: 'Simpro', what: 'job cost feed' },
-  { system: 'Xero', what: 'actuals feed' },
+  { system: 'Job system', what: 'job cost feed' },
+  { system: 'Accounting system', what: 'actuals feed' },
 ];
 
 const rateRows: Row[] = [
-  { label: 'Base hourly cost', source: 'Simpro', value: '$61.20' },
-  { label: 'On-costs / super', source: 'Xero', value: '$18.40' },
-  { label: 'Overheads allocation', source: 'Simpro', value: '$14.10' },
+  { label: 'Base hourly cost', source: 'Job system', value: '$61.20' },
+  { label: 'On-costs / super', source: 'Accounting system', value: '$18.40' },
+  { label: 'Overheads allocation', source: 'Job system', value: '$14.10' },
   { label: 'Margin target', source: 'Board pack', value: '11.3%' },
   { label: 'Effective sell rate', source: 'Validated', value: '$105.00' },
 ];
@@ -45,10 +52,10 @@ const rateHeadline: Headline = {
 };
 
 const mountainSteps: Step[] = [
-  { text: 'Standardise the mounting kit list across every install', owner: 'Anthony', state: 'doing' },
-  { text: 'Fix the permitting bottleneck — apply at contract signing, not install week', owner: 'Anthony', state: 'blocked' },
-  { text: 'Train installers on the new inverter model', owner: 'Jordan', state: 'blocked' },
-  { text: 'Weekly stock check against the job schedule', owner: 'Kris', state: 'todo' },
+  { text: 'Standardise the mounting kit list across every install', owner: 'Jo Barnes', state: 'doing' },
+  { text: 'Fix the permitting bottleneck — apply at contract signing, not install week', owner: 'Jo Barnes', state: 'blocked' },
+  { text: 'Train installers on the new inverter model', owner: 'Chris Nguyen', state: 'blocked' },
+  { text: 'Weekly stock check against the job schedule', owner: 'Sam Lee', state: 'todo' },
 ];
 
 /** Only ever called for a look-around tenant. See the note above. */
@@ -71,7 +78,7 @@ export async function addExampleBoards(tenantId: string): Promise<void> {
         right, and `tests/mirror-rules.test.ts` holds this file to it.
       */
       title: 'Rate Board',
-      summary: 'Labour sell rate, built from Simpro and Xero actuals: $115 → $105.',
+      summary: 'Labour sell rate, built from the job system and the accounts: $115 → $105.',
       kind: 'live',
       /*
         Stored false, and the page works it out anyway.
@@ -87,7 +94,7 @@ export async function addExampleBoards(tenantId: string): Promise<void> {
       rows: JSON.stringify(rateRows),
       steps: '[]',
       headline: JSON.stringify(rateHeadline),
-      createdBy: 'Kris',
+      createdBy: 'Sam Lee',
       createdAt: yesterday,
       updatedAt: now,
     },
@@ -102,7 +109,7 @@ export async function addExampleBoards(tenantId: string): Promise<void> {
       rows: '[]',
       steps: JSON.stringify(mountainSteps),
       headline: null,
-      createdBy: 'Anthony',
+      createdBy: 'Jo Barnes',
       createdAt: yesterday,
       updatedAt: yesterday,
     },
@@ -110,15 +117,15 @@ export async function addExampleBoards(tenantId: string): Promise<void> {
 
   await db.insert(schema.boardComments).values([
     {
-      id: randomUUID(), tenantId, boardId: rateId, authorName: 'Jordan',
-      text: 'Xero actuals confirm we can hold $105 through Q3.', createdAt: yesterday,
+      id: randomUUID(), tenantId, boardId: rateId, authorName: 'Chris Nguyen',
+      text: 'The accounts confirm we can hold $105 through Q3.', createdAt: yesterday,
     },
     {
-      id: randomUUID(), tenantId, boardId: rateId, authorName: 'Kris',
+      id: randomUUID(), tenantId, boardId: rateId, authorName: 'Sam Lee',
       text: 'This is the one — market-validated, not a guess.', createdAt: now,
     },
     {
-      id: randomUUID(), tenantId, boardId: mountainId, authorName: 'Anthony',
+      id: randomUUID(), tenantId, boardId: mountainId, authorName: 'Jo Barnes',
       text: 'Permitting step is the bottleneck — moved it up.', createdAt: yesterday,
     },
   ]);

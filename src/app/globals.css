@@ -173,3 +173,28 @@ body { @apply bg-white font-sans text-ink antialiased; }
 @media (hover: none) {
   .menu-key { opacity: 1 !important; }
 }
+
+/*
+ * The bloom-out: when the problem box answers, the reading opens outward piece by piece — the
+ * letters first, then what is wrong, then the fix in its order, then the question. Each child of
+ * `.bloom` grows from a little smaller and fades in, a beat after the one before it. Nobody who has
+ * asked for less motion gets any of it.
+ */
+@keyframes bloom-out {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bloom > * { animation: bloom-out 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  .bloom > *:nth-child(2) { animation-delay: 120ms; }
+  .bloom > *:nth-child(3) { animation-delay: 240ms; }
+  .bloom > *:nth-child(4) { animation-delay: 360ms; }
+  .bloom > *:nth-child(5) { animation-delay: 480ms; }
+  .bloom > *:nth-child(6) { animation-delay: 600ms; }
+  .bloom > *:nth-child(n+7) { animation-delay: 720ms; }
+  .bloom-letters > * { animation: bloom-out 360ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  .bloom-letters > *:nth-child(2) { animation-delay: 90ms; }
+  .bloom-letters > *:nth-child(3) { animation-delay: 180ms; }
+  .bloom-letters > *:nth-child(4) { animation-delay: 270ms; }
+  .bloom-letters > *:nth-child(n+5) { animation-delay: 360ms; }
+}

@@ -3,6 +3,15 @@
 You are building the SPEC platform for SPEC Business Solutions. **Read this file first in every
 session, then read `docs/BUILD_SPEC.md`.**
 
+## Core components — read `docs/CORE-COMPONENTS.md`
+
+**Never remove or hide a core component. Every new feature must be reachable from the menu or a
+clearly linked page.** The org chart, My Page, Virtual GM + Virtual Admin, Financials, Jobs, CRM,
+People, Safety, Compliance, Board/COGS meeting, the Make it simple report, Setup and Connections are
+each in the main menu, the org chart second. `tests/core-components.test.ts` and
+`scripts/core-components-journey.mjs` fail the build if one goes missing or errors. (Kris, 25
+September, after he could not find the org chart.)
+
 ## The mantra: OUTSIMPLE THEM
 
 **Every screen, every step, every decision is judged against it. If SimPro takes fifteen screens,
@@ -63,6 +72,12 @@ biggest piece, and the one SimPro gets most wrong.
 3. **`DECISIONS.md`** — the running record of corrections.
 4. `docs/SPEC_Master_Requirements.md`, `docs/SPEC_Platform_Build_Plan.md` — **historical.** Written
    6 September 2026. Useful context, **superseded wherever they conflict with BUILD_SPEC.md.**
+5. **`docs/ANGUS_SHIELD_SITEVIP_CONTRACT.md`** — **every SiteVIP session follows it for anything that
+   touches Angus Shield** (the connection, what flows each way, events, security, words, errors,
+   versioning, tests). It is the single source of truth both products build to; an identical copy
+   lives in the angus-shield repo. Change it only in both repos on the same day, version bumped.
+   Separate products, seamless together: "SiteVIP powered by SPEC" and "Angus Shield powered by
+   SPEC", both made by SPEC Business Solutions.
 
 The specification is maintained as a set of published artifacts; `docs/BUILD_SPEC.md` is their
 distillation into buildable form. **Do not re-derive rules from the older docs.**

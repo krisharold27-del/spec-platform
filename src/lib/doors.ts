@@ -53,7 +53,7 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
     {
       title: 'The rhythm',
       doors: [
-        { href: '/meeting', label: 'This week', note: 'The weekly meeting, and what came out of it.' },
+        { href: '/meeting', label: 'COGS meeting', note: 'The weekly meeting, opening with the Make it simple report.' },
         { href: '/scoring', label: 'The month', note: 'Mark the month, and close it when it is done.' },
         { href: '/inbox', label: 'Approvals', note: 'What is waiting on a decision from you.' },
       ],
@@ -82,6 +82,8 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
     {
       title: 'The numbers',
       doors: [
+        { href: '/virtual-gm', label: 'Virtual GM + Virtual Admin', note: 'The whole business on one screen — the GM thinking and the admin department.' },
+        { href: '/financials', label: 'Financials', note: 'Cash, profit, GST, wages, who owes you and who you owe — and payroll.' },
         { href: '/me', label: 'My scorecard', note: 'Your own four pillars, with the working shown.' },
         { href: '/summary', label: 'Executive summary', note: 'The whole business this month, on one screen.' },
         { href: '/curve', label: 'Your J curve', note: 'What SPEC has cost and returned, measured.' },
@@ -184,7 +186,10 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
  * Built from `doors()` rather than written out again, so a route that is renamed cannot leave the
  * bar pointing at nothing while the directory quietly stays right.
  */
-export const NAV_HREFS = ['/my-page', '/jobs', '/crm', '/people', '/safety', '/compliance', '/board', '/setup', '/connections', '/my-page#everywhere'] as const;
+export const NAV_HREFS = [
+  '/my-page', '/org', '/virtual-gm', '/jobs', '/crm', '/people', '/financials', '/safety', '/compliance', '/board', '/meeting',
+  '/setup', '/connections', '/pages',
+] as const;
 
 export function navDoors(f: DoorsFor): Door[] {
   const all = allDoors(f);
@@ -212,6 +217,18 @@ export function navDoors(f: DoorsFor): Door[] {
       being reachable from somewhere a person would look.
     */
     { href: '/my-page', label: 'My page', note: 'Your day, and everything else opens from it.' },
+    /*
+      ── The core components, 25 September ─────────────────────────────────────────────────────────
+
+      Kris could not find the org chart. It is THE key component of SiteVIP — everything hangs off
+      it — and the September shortening had tucked it "under People", which in practice meant
+      nothing in the bar and nothing on the pages he opens led to it. Findability beats a short bar:
+      every component in docs/CORE-COMPONENTS.md now has its own item, the org chart second, and
+      `tests/core-components.test.ts` fails the build if one ever leaves.
+    */
+    find('/org') ?? { href: '/org', label: 'Org chart', note: 'Who does what, and who reports to whom.' },
+    /* Its own short label: the directory calls it "Virtual GM + Virtual Admin", too long for a tab. */
+    { href: '/virtual-gm', label: 'Virtual GM', note: 'The whole business on one screen — the GM thinking and the admin department.' },
     find('/jobs') ?? { href: '/jobs', label: 'Jobs', note: 'Quote it, win it, book the crew, do the job, invoice it.' },
     /*
       CRM, and Clients folded into it. The design: "CRM opens Jobs on the Customers tab." Ours is
@@ -221,6 +238,13 @@ export function navDoors(f: DoorsFor): Door[] {
     find('/crm') ?? { href: '/crm', label: 'CRM', note: 'Deals, the clients behind them, and everyone at them.' },
     /* People, with the chart and the training under it — they are all the same question. */
     find('/people') ?? { href: '/people', label: 'People', note: 'Who you have, the chart they sit in, what they are trained on, who you need.' },
+    /*
+      Financials, right after People — Kris, 25 September: he could not see the money. It sat inside
+      the Virtual GM, two screens down, and the bar had nothing for it. Money is the thing a trade
+      business owner checks most, so it is a key area, and the ceiling moves from ten to eleven for
+      it rather than something else being pushed off.
+    */
+    find('/financials') ?? { href: '/financials', label: 'Financials', note: 'Cash, profit, GST, wages, who owes you and who you owe — and payroll.' },
     find('/safety') ?? { href: '/safety', label: 'Safety', note: 'Report it, fix it, prove it.' },
     { href: '/compliance', label: 'Compliance', note: 'Licences, insurance, certificates, audits, contracts — and nothing lapsed.' },
     /*
@@ -229,6 +253,8 @@ export function navDoors(f: DoorsFor): Door[] {
       a board pack is a record of a month that finished.
     */
     { href: '/board', label: 'Board', note: 'The pack, the month being scored, and the mirrors behind it.' },
+    /* The weekly COGS meeting — and the Make it simple report, which is its first item. */
+    { href: '/meeting', label: 'COGS meeting', note: 'The weekly meeting, opening with the Make it simple report.' },
 
     /* ── The three on the right: setting it up, not running it ──────────────────────────────── */
     { href: '/setup', label: 'Setup', note: 'Roles, KPIs, pricing and the things still to do.' },
@@ -238,7 +264,7 @@ export function navDoors(f: DoorsFor): Door[] {
       far more than ten screens and always will. The complete grouped directory is at the foot of My
       Page — this is the door to it, so nothing is ever only reachable by knowing it is there.
     */
-    { href: '/my-page#everywhere', label: 'All pages', note: 'Every screen in SPEC, grouped.' },
+    { href: '/pages', label: 'All pages', note: 'Every screen in SPEC, grouped.' },
   ];
 }
 

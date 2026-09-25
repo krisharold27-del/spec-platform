@@ -9,6 +9,8 @@ import { QUOTE_CHASE } from '@/lib/growth';
 import { isTerritory } from '@/lib/certificates';
 import { assertWritable } from '@/lib/plan';
 import { crewFor, createJob } from '@/lib/jobs-data';
+import { approveCrewWeek } from '@/lib/timesheets-data';
+import { paidMinutes, isAllowance } from '@/lib/timesheets';
 import { nextOrderRef, match } from '@/lib/purchasing';
 import { isBillKind, claimMaths, maySend, DEFAULT_RETENTION } from '@/lib/billing-job';
 import { isRecurKind, nextDue } from '@/lib/recurring';
@@ -423,8 +425,9 @@ export async function recordTime(formData: FormData) {
   const day = str(formData, 'day', 10);
   const start = str(formData, 'start', 5);
   const finish = str(formData, 'finish', 5);
-  const minutes = minutesBetween(start, finish);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || minutes === null) back('time', { week }, 'A day, a start and a finish after it, please.');
+  const basics = timesheetBasics(formData);
+  const minutes = paidMinutes(start, finish, basics.breakMinutes);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || minutes === null) back('time', { week }, 'A day, a start and a finish after it, with any break shorter than the day, please.');
 
   const crew = await crewFor(user);
   const person = crew.find(c => c.key === str(formData, 'person'));
@@ -434,38 +437,67 @@ export async function recordTime(formData: FormData) {
 
   await db.insert(schema.timesheetEntries).values({
     id: randomUUID(), tenantId: user.tenantId, personKey: person.key, personName: person.name,
-    jobId: job?.id ?? null, day, startedAt: start, finishedAt: finish, minutes,
+    jobId: job?.id ?? null, day, startedAt: start, finishedAt: finish, minutes, ...basics,
     billable: Boolean(job), source: 'typed', createdAt: now(),
   });
   revalidatePath('/jobs');
   back('time', { week });
 }
 
-/** Approve every waiting entry in the week, for the people this leader can see. */
-export async function approveWeek(formData: FormData) {
+/**
+ * Break, travel and allowance tags from a form — the basics payroll needs from the job system, and
+ * nothing that is a rate. Anything unrecognised is dropped rather than stored.
+ */
+function timesheetBasics(formData: FormData) {
+  const mins = (k: string) => {
+    const n = Number(str(formData, k, 4) || '0');
+    return Number.isFinite(n) && n >= 0 && n < 24 * 60 ? Math.round(n) : 0;
+  };
+  return {
+    breakMinutes: mins('breakMinutes'),
+    travelMinutes: mins('travelMinutes'),
+    allowances: formData.getAll('allowance').map(String).filter(isAllowance).join(','),
+  };
+}
+
+/**
+ * Reconcile: put an entry right before it is approved — times, break, travel, allowances. Only while
+ * it is waiting; an approved entry is somebody's sign-off, and only for people this leader can see.
+ */
+export async function adjustTime(formData: FormData) {
   const user = await writer();
   const week = str(formData, 'week', 10);
-  const days = workWeek(week);
-  if (!days.length) back('time');
+  const [entry] = await db.select().from(schema.timesheetEntries)
+    .where(and(eq(schema.timesheetEntries.id, str(formData, 'entryId')), eq(schema.timesheetEntries.tenantId, user.tenantId)));
+  if (!entry) back('time', { week }, 'That entry is not in this business.');
+  if (entry.approvedAt) back('time', { week }, 'That entry is already approved.');
   const crew = await crewFor(user);
-  const keys = crew.map(c => c.key);
-  if (keys.length) {
-    const waiting = await db.select().from(schema.timesheetEntries)
-      .where(and(
-        eq(schema.timesheetEntries.tenantId, user.tenantId),
-        inArray(schema.timesheetEntries.day, days),
-        inArray(schema.timesheetEntries.personKey, keys),
-      ));
-    const ids = waiting.filter(e => !e.approvedAt && e.finishedAt).map(e => e.id);
-    if (ids.length) {
-      await db.update(schema.timesheetEntries).set({ approvedBy: user.name, approvedAt: now() })
-        .where(and(eq(schema.timesheetEntries.tenantId, user.tenantId), inArray(schema.timesheetEntries.id, ids)));
-    }
-  }
+  if (!crew.some(c => c.key === entry.personKey)) back('time', { week }, 'That person is not in your part of the chart.');
+  const start = str(formData, 'start', 5) || entry.startedAt;
+  const finish = str(formData, 'finish', 5) || entry.finishedAt || '';
+  const basics = timesheetBasics(formData);
+  const minutes = paidMinutes(start, finish, basics.breakMinutes);
+  if (minutes === null) back('time', { week }, 'A finish after the start, with any break shorter than the day, please.');
+  await db.update(schema.timesheetEntries)
+    .set({ startedAt: start, finishedAt: finish, minutes, ...basics })
+    .where(and(eq(schema.timesheetEntries.id, entry.id), eq(schema.timesheetEntries.tenantId, user.tenantId)));
   revalidatePath('/jobs');
   back('time', { week });
 }
 
+/**
+ * Approve the week for the people this leader can see — Monday to Sunday, so Saturday's overtime is
+ * not left behind — and never an entry a clash or unfinished time is holding back. The same step the
+ * Claude recommends card carries out.
+ */
+export async function approveWeek(formData: FormData) {
+  const user = await writer();
+  const week = str(formData, 'week', 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(week)) back('time');
+  await approveCrewWeek(user, week);
+  revalidatePath('/jobs');
+  back('time', { week });
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════════════════════════
  * Buying materials, and checking the bill against the order

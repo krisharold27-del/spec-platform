@@ -525,3 +525,8 @@ jobs:
           # are built byte by byte here and chosen with the button, including a scan with no text
           # in it at all.
           journey chart-import-journey.mjs
+
+          # The core components. Kris, 25 September, could not find the org chart — it worked at
+          # /org and nothing led to it. docs/CORE-COMPONENTS.md lists what must always be findable;
+          # this presses each one's menu item as a new business and fails if it is missing or errors.
+          journey core-components-journey.mjs

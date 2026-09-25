@@ -15,8 +15,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { isCheckKind, mayBook } from '@/lib/subbies';
 import { isSeatKind } from '@/lib/onboarding';
-import { draftContract, mayTake, lastPayWeek, FAIR_PROCESS } from '@/lib/hr';
-import { isRecordKind, parseSteps, checkHours, mayExport } from '@/lib/hr-records';
+import { draftContract, mayTake, FAIR_PROCESS } from '@/lib/hr';
+import { isRecordKind, parseSteps } from '@/lib/hr-records';
 import type { Pillar } from '@/lib/scoring';
 import { directoryPerson, mayEditContact, staffOfUser } from '@/lib/directory-data';
 import { contactField, isoDay } from '@/lib/directory';
@@ -395,72 +395,6 @@ export async function takeStep(form: FormData) {
     state: row.stepsDone + 1 >= FAIR_PROCESS.length ? 'closed' : 'open',
     updatedAt: stamp(),
   }).where(eq(schema.peopleRecords.id, id));
-  refreshPeople();
-}
-
-/**
- * Open the pay run for the week just finished, from the hours SPEC already holds, and check it.
- *
- * Before it goes, never after. A check that runs afterwards finds underpayments that have already
- * been made, which is a different and more expensive problem.
- */
-export async function runPayCheck() {
-  const user = await manager();
-  const { from, to } = lastPayWeek(new Date());
-
-  const entries = await db.select().from(schema.timesheetEntries)
-    .where(eq(schema.timesheetEntries.tenantId, user.tenantId));
-  const week = entries.filter(e => e.day >= from && e.day <= to);
-
-  const byPerson = new Map<string, { minutes: number; jobs: Set<string> }>();
-  for (const e of week) {
-    const who = e.personName || 'Unnamed';
-    const seen = byPerson.get(who) ?? { minutes: 0, jobs: new Set<string>() };
-    seen.minutes += e.minutes;
-    if (e.jobId) seen.jobs.add(e.jobId);
-    byPerson.set(who, seen);
-  }
-  const rows = [...byPerson].map(([who, v]) => ({ who, minutes: v.minutes, jobs: v.jobs.size }));
-  const issues = checkHours(rows);
-
-  const now = stamp();
-  const [existing] = await db.select().from(schema.payRuns)
-    .where(and(eq(schema.payRuns.tenantId, user.tenantId), eq(schema.payRuns.fromDate, from)));
-
-  if (existing) {
-    await db.update(schema.payRuns).set({
-      rows: JSON.stringify(rows), issues: JSON.stringify(issues),
-      checkedAt: now, checkedBy: user.id,
-    }).where(eq(schema.payRuns.id, existing.id));
-  } else {
-    await db.insert(schema.payRuns).values({
-      id: randomUUID(), tenantId: user.tenantId, fromDate: from, toDate: to,
-      rows: JSON.stringify(rows), issues: JSON.stringify(issues),
-      checkedAt: now, checkedBy: user.id, createdAt: now,
-    });
-  }
-  refreshPeople();
-}
-
-/**
- * Send the run to the accounting system.
- *
- * Refused until somebody has run the check. Not until there are no issues — a long week is often
- * correct and correctly paid, and blocking on that would teach people to stop recording overtime.
- * What must not happen is a run going out that nobody looked at.
- */
-export async function exportPayRun(form: FormData) {
-  const user = await manager();
-  const id = txt(form, 'id', 64);
-  const [run] = await db.select().from(schema.payRuns)
-    .where(and(eq(schema.payRuns.id, id), eq(schema.payRuns.tenantId, user.tenantId)));
-  if (!run) return;
-
-  if (!mayExport(run)) {
-    refuseTo('/people', 'Check it against the award before it goes. A check that runs afterwards finds underpayments already made.');
-  }
-  await db.update(schema.payRuns).set({ exportedAt: stamp() })
-    .where(eq(schema.payRuns.id, id));
   refreshPeople();
 }
 

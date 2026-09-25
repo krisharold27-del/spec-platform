@@ -79,7 +79,8 @@ check('and proposes nothing before being asked',
 // than no reading at all.
 await press('button:has-text("Read the chart")');
 body = await text();
-check('A COMPLETE CHART GETS NOTHING INVENTED FOR IT', body.includes('Nothing new'));
+check('A COMPLETE CHART GETS NOTHING INVENTED FOR IT', body.includes('Nothing new'),
+  body.slice(Math.max(0, body.indexOf('Read the chart')), body.indexOf('Read the chart') + 400));
 check('and it reads as a result rather than a broken button',
   /Every stream has an owner/.test(body));
 

@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import { OrgChartDoor } from '@/components/org-chart-door';
+import { after } from 'next/server';
+import { ensureReport } from '@/lib/make-it-simple-data';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { redirect } from 'next/navigation';
@@ -10,7 +13,6 @@ import { WhereYouSit, NobodyBelow, MyWeek, AskBar, WhoAndWhen } from '@/componen
 import { rhythm, rhythmLine } from '@/lib/rhythm';
 import { myMail } from '@/lib/mail';
 import { registerFor } from '@/lib/register-data';
-import { snapScore } from '@/lib/register';
 import { currentLook } from '@/lib/look';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById, PILLARS } from '@/lib/queries';
@@ -24,8 +26,7 @@ import { ROLE_STEPS, roleKindOf, stepsFor, nextStep, progressLine } from '@/lib/
 import type { Pillar, RoleScore } from '@/lib/scoring';
 import { Problems } from '@/components/problems';
 import { PowerMeter, PowerBreakdown } from '@/components/power-meter';
-import { powerMeterFor } from '@/lib/power-meter-data';
-import { coverageFor } from '@/lib/coverage-data';
+import { viewerPowerMeter } from '@/lib/power-meter-data';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { startHere } from '@/lib/start-here';
 
@@ -66,6 +67,7 @@ export default async function MyPage({
   if (!data.period) {
     return (
       <Shell title={`Good morning, ${firstName}.`} subtitle={`${today} · your page`}>
+        <OrgChartDoor className="mb-4 max-w-2xl" />
         <div className="callout max-w-2xl">
           <div className="font-serif text-lg text-ink">Your day fills in as soon as a role has its KPIs</div>
           <p className="mt-1 text-sm text-ink-light">
@@ -147,13 +149,10 @@ export default async function MyPage({
     meter and be the 25th data point"*. Computed from the same register read the page draws below,
     so the two can never disagree.
   */
-  const power = await powerMeterFor({
-    tenantId: user.tenantId,
-    visible: scope.visible,
-    snap: snapScore(register),
-    // Each measure's source follows who runs it — "from your safety system" once chosen on Coverage.
-    choices: await coverageFor(user.tenantId),
-  });
+  // The same call the Virtual GM makes, so the two dials can never disagree — see viewerPowerMeter.
+  // Make it simple: written after the page has gone, the day before the meeting. Nobody waits on it.
+  after(() => ensureReport(user.tenantId).catch(() => {}));
+  const power = await viewerPowerMeter({ tenantId: user.tenantId, visible: scope.visible, register });
   // Manages somebody: their scope reaches past their own role. The same population the design gives
   // the number to, worked out from the chart rather than from a flag anybody sets.
   const runsAnything = scope.visible.size > 1;
@@ -233,6 +232,29 @@ export default async function MyPage({
           hrefFor={meterHref}
         />
       </div>
+
+      {/* The org chart — THE key component, one press from the page everybody opens first. */}
+      <OrgChartDoor className="mt-4" />
+
+      {/*
+        The door to the Virtual GM — the whole business on one screen. A door from here rather than a
+        tab on the bar, and only for the people the percentage is for: it is the same reading, opened up.
+      */}
+      {runsAnything && (
+        <div className="mt-2 flex justify-end">
+          <Link href="/virtual-gm" className="text-sm text-rust-700 hover:underline" data-door-virtual-gm>
+            Open the Virtual GM + Virtual Admin &rarr;
+          </Link>
+        </div>
+      )}
+      {/* The money, one tap from where the day starts — for anybody who manages. */}
+      {data.canManage && (
+        <div className="mt-1 flex justify-end">
+          <Link href="/financials" className="text-sm text-rust-700 hover:underline" data-door-financials>
+            See the money: Financials &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* Full width, above the pillars — `grid-column: 1 / -1; order: -1` in the design. */}
       <PowerBreakdown
@@ -801,8 +823,8 @@ export default async function MyPage({
       <section id="everywhere" className="mt-12 scroll-mt-20 border-t border-ink/10 pt-8">
         <h2 className="font-serif text-xl text-ink">Everywhere else in SPEC</h2>
         <p className="mt-1 max-w-2xl text-sm text-ink-light">
-          There is no menu. Everything opens from here, and the mark at the top of any screen brings
-          you back.
+          Every page in SPEC. The menu at the top holds the ones you use most, and All pages opens this
+          list on its own.
         </p>
 
         {/*

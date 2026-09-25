@@ -21,6 +21,7 @@ import {
   addDeal, moveDeal, markWon, markLost, reopenDeal, updateDeal, addNote, addActivity, toggleActivity,
   addOrganisation, addPerson, saveStage, addStage, removeStage,
 } from './actions';
+import { SwitchCards } from '@/components/recommends';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,6 +82,7 @@ export default async function Crm({ searchParams }: { searchParams: Promise<Reco
       subtitle="Who you are talking to, what it is worth, and the next thing to do. Won, it becomes a job."
     >
       <Refused reason={cannot} />
+      <div className="mb-6"><SwitchCards areas={['crm']} back="/crm" /></div>
 
       {/* Worked out on every read from the deals below, never stored. */}
       <section aria-label="Forecast" className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

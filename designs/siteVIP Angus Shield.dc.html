@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: #ffffff; }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+</style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); }</style>
+</helmet>
+<div style="font-family: var(--font-body); color: var(--color-text); background: #fff; min-height: 100vh;">
+
+  <nav style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 22px clamp(20px,5vw,72px); max-width: 1200px; margin: 0 auto; box-sizing: border-box;">
+    <span style="display: flex; align-items: baseline; gap: 10px;">
+      <span style="font-family: var(--font-heading); font-size: 28px; line-height: 1;">site<span style="color: #4f7a3f;">VIP</span></span>
+      <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">JBI Electrical</span>
+    </span>
+    <span style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px;">
+      <a href="siteVIP GM.dc.html">Virtual GM</a>
+      <a href="#" style="color: var(--color-text); font-weight: 700;">Angus Shield</a>
+      <a href="SPEC My Page.dc.html">My page</a>
+      <a href="SPEC Jobs.dc.html">Jobs</a>
+      <a href="SPEC Board Pack.dc.html">Board</a>
+    </span>
+  </nav>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 80px; box-sizing: border-box; display: grid; gap: clamp(20px,3vw,28px);">
+
+    <header style="display: grid; gap: 12px; padding-top: 8px;">
+      <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700);">Angus Shield · built by SPEC</span>
+      <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(32px,4.4vw,52px); line-height: 1.08; margin: 0; max-width: 18ch;">Know the business is safe. Every week.</h1>
+      <p style="font-size: 16px; line-height: 26px; margin: 0; max-width: 60ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">The money reviews a good GM does, done here, from the numbers in your financial system. Answers the question every owner asks: am I going to be OK?</p>
+    </header>
+
+    <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(18px,2.5vw,24px); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;">
+      <div style="display: grid; gap: 4px; flex: 1 1 320px; min-width: 0;">
+        <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Numbers from</span>
+        <strong style="font-size: 17px;">{{ srcTitle }}</strong>
+        <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ srcLine }}</span>
+      </div>
+      <div style="display: flex; gap: 6px; background: var(--color-bg); border-radius: 999px; padding: 4px;">
+        <sc-for list="{{ sources }}" as="so" hint-placeholder-count="2">
+          <button type="button" onClick="{{ so.pick }}" style="{{ so.style }}">{{ so.label }}</button>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 12px;">
+      <sc-for list="{{ shields }}" as="sh" hint-placeholder-count="4">
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px 20px; display: grid; gap: 8px; align-content: start;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ sh.label }}</span>
+            <span style="{{ sh.chip }}">{{ sh.state }}</span>
+          </div>
+          <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1;">{{ sh.value }}</span>
+          <span style="font-size: 13.5px; line-height: 20px;">{{ sh.read }}</span>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 0;">This month's financial reviews</h2>
+        <span style="font-size: 13.5px; font-weight: 600; white-space: nowrap;">{{ reviewCount }}</span>
+      </div>
+      <p style="font-size: 14px; line-height: 22px; margin: 8px 0 16px; max-width: 70ch; color: color-mix(in srgb, var(--color-text) 72%, transparent);">SPEC prepares each review and writes what it found. The owner reads it, asks anything, and signs it off. Signed reviews go into the Board pack.</p>
+      <div style="display: grid; gap: 8px;">
+        <sc-for list="{{ reviews }}" as="rv" hint-placeholder-count="8">
+          <div style="padding: 14px 16px; border-radius: 18px; background: var(--color-bg); display: grid; gap: 8px;">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px;">
+              <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 240px;">
+                <strong style="font-size: 15px;">{{ rv.name }}</strong>
+                <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">{{ rv.when }}</span>
+              </span>
+              <span style="{{ rv.chip }}">{{ rv.state }}</span>
+              <sc-if value="{{ rv.open }}" hint-placeholder-val="{{ true }}">
+                <button type="button" onClick="{{ rv.sign }}" class="btn btn-primary" style="flex: none; white-space: nowrap;">Sign off</button>
+              </sc-if>
+              <sc-if value="{{ rv.done }}" hint-placeholder-val="{{ false }}">
+                <span style="{{ rv.doneChip }}">Signed · in the Board pack</span>
+              </sc-if>
+            </div>
+            <span style="font-size: 14px; line-height: 21px;"><strong>SPEC found:</strong> {{ rv.found }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-wrap: wrap; gap: 12px;">
+      <div style="flex: 1 1 320px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,26px); display: grid; gap: 8px; align-content: start;">
+        <strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px;">Bank-ready pack</strong>
+        <span style="font-size: 14px; line-height: 21px; color: color-mix(in srgb, var(--color-text) 75%, transparent);">P&amp;L, balance sheet, 13-week cash flow, aged debtors and work in progress, as one PDF, from the numbers in your financial system.</span>
+        <button type="button" onClick="{{ bankGo }}" class="btn btn-primary" style="justify-self: start; white-space: nowrap;">{{ bankLabel }}</button>
+      </div>
+      <div style="flex: 1 1 320px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,26px); display: grid; gap: 8px; align-content: start;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px;"><strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px;">What the business is worth</strong><span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Estimate · updated each quarter</span></div>
+        <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px;">$2.1m to $2.6m</span>
+        <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">About 3 to 3.5 times this year's profit, typical for an electrical contractor this size. A broker or accountant sets the real price.</span>
+        <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin-top: 4px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">What would raise it</span>
+        <sc-for list="{{ valueLevers }}" as="vl" hint-placeholder-count="3">
+          <span style="display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; line-height: 20px;"><span>{{ vl.what }}</span><strong style="white-space: nowrap; color: #3d5c31;">{{ vl.gain }}</strong></span>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-label="Money you're owed" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 0;">Money you're owed</h2>
+        <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; color: #3d5c31;">{{ owedTotal }}</span>
+      </div>
+      <p style="font-size: 14px; line-height: 22px; margin: 8px 0 16px; max-width: 70ch; color: color-mix(in srgb, var(--color-text) 72%, transparent);">Every time the business spends money or does something that earns a credit, SPEC notices. It works out the claim and sends it to your accountant to lodge.</p>
+      <div style="display: grid; gap: 8px;">
+        <sc-for list="{{ owed }}" as="ow" hint-placeholder-count="9">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 12px 16px; border-radius: 16px; background: var(--color-bg);">
+            <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 280px;"><strong style="font-size: 14.5px;">{{ ow.what }}</strong><span style="font-size: 12.5px; line-height: 18px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ow.from }}</span></span>
+            <strong style="font-size: 15px; white-space: nowrap;">{{ ow.amount }}</strong>
+            <sc-if value="{{ ow.open }}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{ ow.send }}" class="btn btn-secondary" style="flex: none; white-space: nowrap;">Send to the accountant</button>
+            </sc-if>
+            <sc-if value="{{ ow.done }}" hint-placeholder-val="{{ false }}">
+              <span style="{{ ow.doneChip }}">{{ ow.doneLabel }}</span>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px;">
+        <div style="flex: 1 1 260px; min-width: 0; padding: 14px 16px; border-radius: 16px; background: var(--color-bg); display: grid; gap: 4px;">
+          <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Payroll tax · NSW</span>
+          <strong style="font-size: 15px;">$2.41m of wages · threshold $1.2m</strong>
+          <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">Over the threshold, so payroll tax applies. Apprentice wages are exempt and already taken out.</span>
+        </div>
+        <div style="flex: 1 1 260px; min-width: 0; padding: 14px 16px; border-radius: 16px; background: var(--color-bg); display: grid; gap: 4px;">
+          <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Chasing what customers owe</span>
+          <strong style="font-size: 15px;">Nothing over 45 days. Nothing near 90.</strong>
+          <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">SPEC reminds at 7, 14, 30 and 45 days. After 45, the owner gets a call to make. Bean There is at 38 days.</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="Angus Card" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 0;">Angus Card: no more paper receipts</h2>
+        <span style="font-size: 13.5px; font-weight: 600;">{{ cardSummary }}</span>
+      </div>
+      <p style="font-size: 14px; line-height: 22px; margin: 8px 0 16px; max-width: 70ch; color: color-mix(in srgb, var(--color-text) 72%, transparent);">A company card on each person's phone. Every spend picks a job, the receipt is photographed on the spot, and it lands in the books and the BAS with nothing to type. Limits are set per role. Alcohol, gambling and cash withdrawals are blocked.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+        <div style="flex: 1 1 260px; min-width: 0; display: grid; gap: 8px;">
+          <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Limits by role</span>
+          <sc-for list="{{ cardRoles }}" as="cr" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--color-bg); font-size: 14px;"><span>{{ cr.role }} <span style="color: color-mix(in srgb, var(--color-text) 60%, transparent);">· {{ cr.people }}</span></span><strong>{{ cr.limit }}</strong></div>
+          </sc-for>
+        </div>
+        <div style="flex: 2 1 380px; min-width: 0; display: grid; gap: 8px;">
+          <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">This week's spend</span>
+          <sc-for list="{{ cardSpends }}" as="cs" hint-placeholder-count="5">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 10px 14px; border-radius: 14px; background: var(--color-bg);">
+              <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 220px;"><strong style="font-size: 14px;">{{ cs.who }} · {{ cs.where }} · {{ cs.amount }}</strong><span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ cs.job }}</span></span>
+              <span style="{{ cs.chip }}">{{ cs.state }}</span>
+              <sc-if value="{{ cs.canRemind }}" hint-placeholder-val="{{ false }}">
+                <button type="button" onClick="{{ cs.remind }}" class="btn btn-secondary" style="flex: none; white-space: nowrap;">{{ cs.remindLabel }}</button>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; border-radius: var(--radius-lg); padding: clamp(20px,3vw,28px); background: {{ ctaBg }};">
+      <div style="display: grid; gap: 4px; flex: 1 1 360px; min-width: 0;">
+        <strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px;">{{ ctaTitle }}</strong>
+        <span style="font-size: 14px; line-height: 22px;">{{ ctaLine }}</span>
+      </div>
+      <sc-if value="{{ ctaOpen }}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{ ctaGo }}" class="btn btn-primary" style="font-size: 16px; padding: 14px 24px; white-space: nowrap; flex: none;">Switch to Angus Shield</button>
+      </sc-if>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26';
+const chip = t => 'display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;white-space:nowrap;background:color-mix(in srgb, ' + t + ' 14%, transparent);color:' + t + ';';
+const REVIEWS = [
+  ['pl', 'Profit and loss against budget', 'Monthly · due 3 Oct', 'Revenue $412,000, 3% over budget. Gross profit 39% against the 40% benchmark, pulled down by J-4402 Northside running over hours. Net profit 8.1% against your 10% goal.', AMBER],
+  ['cash', 'Cash, the next 13 weeks', 'Weekly · every Monday', 'Lowest point is week 12 at $75,000, under your $80,000 buffer. Claiming Harbourview\u2019s $22,300 and collecting Bean There\u2019s $15,620 fixes it.', AMBER],
+  ['debtors', 'Who owes us', 'Weekly · every Monday', '$96,400 owed across 6 invoices. One is over 30 days: Bean There, $15,620, at 38 days. Reminder sent Monday; call Marco today.', AMBER],
+  ['creditors', 'What we owe', 'Weekly · every Monday', '$58,200 due in 30 days to suppliers and subbies. All inside terms. Middy\u2019s early-payment discount is worth $420 if paid by Friday.', GREEN],
+  ['jobs', 'Profit by job', 'Monthly · due 3 Oct', '27 of 31 jobs at or above 38% margin. Northside (18%) and two small callbacks are the drag. Switchboard upgrades make the most per hour.', AMBER],
+  ['labour', 'Labour cost and billable hours', 'Monthly · due 3 Oct', 'Labour is 41% of revenue. Billable hours 85% against 86%. Six unallocated hours last week were Casey\u2019s, now on J-4417.', GREEN],
+  ['tax', 'Tax and super set aside', 'Monthly · due 3 Oct', 'GST $31,800, PAYG $18,400 and super $22,100 are owed. $72,300 is set aside, so all three are covered for the October BAS.', GREEN],
+  ['wip', 'Work in progress', 'Monthly · due 3 Oct', '$22,300 of work done and not yet billed on Harbourview. Everything else is billed in line with the work.', AMBER],
+];
+class Component extends DCLogic {
+  state = { src: 'xero', signed: {}, reminded: {} };
+  renderVals() {
+    const s = this.state;
+    const angus = s.src === 'angus';
+    const signed = REVIEWS.filter(r => s.signed[r[0]]).length;
+    const pill = on => 'cursor:pointer;border:0;border-radius:999px;padding:9px 16px;font-family:var(--font-body);font-size:13.5px;font-weight:600;white-space:nowrap;' + (on ? 'background:var(--color-text);color:#fff;' : 'background:transparent;color:var(--color-text);');
+    const SP = [
+      ['c1', 'Tom Reyes', 'Rexel Botany', '$184.20', 'J-4402 Northside · materials', 'ok'],
+      ['c2', 'Hemi Walker', 'Ampol Mascot', '$96.50', 'J-4417 Harbourview · fuel', 'ok'],
+      ['c3', 'Jai Fenton', 'Bunnings Alexandria', '$42.80', 'J-4431 Metro Freight · fixings', 'late'],
+      ['c4', 'Amrit Kaur', 'Officeworks', '$63.00', 'Office · admin', 'ok'],
+      ['c5', 'Sione Tui', 'Bottle shop, Botany', '$38.00', 'Blocked at the till: alcohol', 'blocked'],
+    ];
+    const rm = this.state.reminded;
+    const cardVals = {
+      cardSummary: '12 cards · 1 receipt missing',
+      cardRoles: [['Owner and managers', '4 people', '$5,000 a month'], ['Supervisors', '4 people', '$2,000 a month'], ['Technicians', '16 people', '$500 a month'], ['Office', '4 people', '$300 a month']].map(([role, people, limit]) => ({ role, people, limit })),
+      cardSpends: SP.map(([id, who, where, amount, job, st]) => ({
+        who, where, amount, job,
+        state: st === 'ok' ? 'Receipt in · on the job' : st === 'late' ? 'No receipt · 26 h' : 'Blocked',
+        chip: chip(st === 'ok' ? GREEN : st === 'late' ? AMBER : RED),
+        canRemind: st === 'late',
+        remindLabel: rm[id] ? 'Tom reminded' : 'Remind Tom',
+        remind: () => this.setState(s => ({ reminded: { ...s.reminded, [id]: true } })),
+      })),
+    };
+    return {
+      ...(() => {
+        const OW = [
+          ['o1', 'Fuel tax credits', 'Diesel in 9 utes and 2 generators, Jul to Sep · from Angus Card fuel spend', 3180],
+          ['o2', 'GST credits', 'Every purchase this quarter, receipts matched', 31640],
+          ['o3', 'Instant asset write-off', 'Hilti TE 30, Fluke 1587 and a trailer, bought this year', 9420],
+          ['o4', 'Tools, PPE and training', '38 people · boots, glasses, harnesses, first aid course', 6250],
+          ['o5', 'Apprentice incentives', 'Sione Tui claim 2 opens 4 Oct', 1500],
+          ['o6', 'Solar rebates (STCs)', '3 solar installs this quarter · 186 certificates', 7250],
+          ['o7', 'Payroll tax apprentice exemption', 'Wages for 7 apprentices, taken off this year\u2019s return', 14700],
+          ['o8', 'Workers\u2019 comp premium', 'Estimated wages were $180,000 higher than actual', 4860],
+          ['o9', 'R&D and industry grants', 'NSW Energy Savings Scheme: 2 LED jobs may qualify · checking', 0],
+        ];
+        const sent = this.state.sentOwed || {};
+        const m = n => '$' + Math.round(n).toLocaleString('en-AU');
+        return {
+          owedTotal: m(OW.reduce((a, o) => a + o[3], 0)) + ' this year',
+          owed: OW.map(([id, what, from, amt]) => ({
+            what, from, amount: amt ? m(amt) : 'Checking',
+            open: !sent[id] && amt > 0, done: !!sent[id], doneChip: chip(GREEN), doneLabel: 'With the accountant',
+            send: () => this.setState(s => ({ sentOwed: { ...(s.sentOwed || {}), [id]: true } })),
+          })),
+        };
+      })(),
+      bankLabel: this.state.bank ? 'Pack ready · emailed to you' : 'Build the pack',
+      bankGo: () => this.setState({ bank: true }),
+      valueLevers: [['Recurring revenue from 11% to 25%', '+$300k'], ['Net profit from 8% to 10%', '+$250k'], ['Less reliance on the owner: backups for every key role', '+$150k']].map(([what, gain]) => ({ what, gain })),
+      ...cardVals,
+      sources: [['xero', 'Xero, connected'], ['angus', 'Angus Shield, direct']].map(([k, label]) => ({ label, pick: () => this.setState({ src: k }), style: pill(s.src === k) })),
+      srcTitle: angus ? 'Angus Shield, directly' : 'Xero, read every morning at 6am',
+      srcLine: angus ? 'Built by SPEC on the same data as your jobs and pay runs. Live to the minute, nothing to sync.' : 'Invoices, bills, bank feeds and payroll postings come across daily. Your accountant keeps working in Xero. Works the same with MYOB or QuickBooks.',
+      shields: [
+        { label: 'Cash buffer', value: '$142,000', state: 'Watch week 12', chip: chip(AMBER), read: 'Covers 5.2 weeks of costs. The buffer is $80,000.' },
+        { label: 'Tax covered', value: '100%', state: 'Covered', chip: chip(GREEN), read: 'GST, PAYG and super for October are set aside.' },
+        { label: 'Margin', value: '39%', state: '1 point under', chip: chip(AMBER), read: 'Gross profit against the 40% electrical benchmark.' },
+        { label: 'Money owed to us', value: '$96,400', state: '1 overdue', chip: chip(AMBER), read: 'One invoice over 30 days. Average 24 days to be paid.' },
+      ],
+      reviewCount: signed + ' of ' + REVIEWS.length + ' signed off',
+      reviews: REVIEWS.map(([id, name, when, found, t]) => ({
+        name, when, found, state: t === GREEN ? 'All good' : 'Needs a look', chip: chip(t),
+        open: !s.signed[id], done: !!s.signed[id], doneChip: chip(GREEN),
+        sign: () => this.setState(st => ({ signed: { ...st.signed, [id]: true } })),
+      })),
+      ctaBg: angus ? 'color-mix(in srgb, ' + GREEN + ' 10%, transparent)' : 'var(--color-bg)',
+      ctaTitle: angus ? 'You\u2019re on Angus Shield.' : 'Every review here works on Xero today.',
+      ctaLine: angus ? 'Your jobs, pay and money are in one system, so these reviews are live to the minute. Xero stays read-only for 12 months for your accountant.' : 'Switch to Angus Shield when you\u2019re ready and they become live to the minute, with nothing to connect. Six months of your data is already here.',
+      ctaOpen: !angus,
+      ctaGo: () => this.setState({ src: 'angus' }),
+    };
+  }
+}
+</script>
+</body>
+</html>

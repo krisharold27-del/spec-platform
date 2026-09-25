@@ -9,7 +9,9 @@ import { DETACH_SAID } from '@/lib/detach-stripe';
 import { SETTABLE_PLANS, PLAN_MEANING, type SettablePlan } from '@/lib/plan';
 import { PACKAGES, PACKAGE_KEYS, packageOf, packagePrice } from '@/lib/pricing';
 import { SubmitButton } from '@/components/submit-button';
-import { setPlan, setPackage, removeBusiness, detachStripe } from './actions';
+import { setPlan, setPackage, removeBusiness, detachStripe, retryGuarantee } from './actions';
+import { creditLabel, monthName } from '@/lib/guarantee';
+import { summariseClaims, FRICTION_KINDS, areaOf } from '@/lib/switch';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +45,21 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
   const rows = tenants
     .map(t => ({ tenant: t, contact: contactFor(t.id) }))
     .sort((a, b) => b.tenant.startDate.localeCompare(a.tenant.startDate));
+  /*
+    The Simple Guarantee — "if switching isn't easy, that month is free". A claim is billing data: the
+    business, the month, the area. The business's own note is never selected here; the kind is a
+    fixed-list choice, counted across every business so SPEC can fix what goes wrong.
+  */
+  const friction = await db.select({
+    tenantId: schema.switchFriction.tenantId, month: schema.switchFriction.month,
+    area: schema.switchFriction.area, kind: schema.switchFriction.kind, at: schema.switchFriction.createdAt,
+  }).from(schema.switchFriction);
+  const guarantee = summariseClaims(friction);
+  /* What each claim actually took off the bill — applied by SPEC the moment it was made (lib/guarantee). */
+  const credits = await db.select().from(schema.guaranteeCredits);
+  const creditFor = (tenantId: string, month: string) => credits.find(c => c.tenantId === tenantId && c.month === month);
+  const nameOf = (tenantId: string) => tenants.find(t => t.id === tenantId)?.name ?? 'A business no longer here';
+
   const programRequests = rows.filter(r => r.tenant.programRequestedAt)
     .sort((a, b) => (b.tenant.programRequestedAt ?? '').localeCompare(a.tenant.programRequestedAt ?? ''));
 
@@ -69,6 +86,37 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {guarantee.claims.length > 0 && (
+          <section className="mt-6" data-guarantee-claims>
+            <h2 className="label-caps">Simple Guarantee — months SPEC has taken off the bill</h2>
+            <ul className="mt-2 divide-y rounded-lg border bg-surface text-sm">
+              {guarantee.claims.map(c => {
+                const credit = creditFor(c.tenantId, c.month);
+                return (
+                  <li key={`${c.tenantId}:${c.month}`} className="flex flex-wrap items-center justify-between gap-2 p-3" data-guarantee-credit={credit?.status ?? 'none'}>
+                    <span><b>{nameOf(c.tenantId)}</b> <span className="text-ink-light">· {monthName(c.month)} · {areaOf(c.area)?.noun ?? c.area} · claimed {c.at.slice(0, 10)}</span></span>
+                    {credit?.status === 'applied' && (
+                      <span className="text-ink">Credited {creditLabel(credit.amount, credit.currency)} <span className="text-ink-light">· {credit.stripeTransactionId}</span></span>
+                    )}
+                    {credit?.status === 'free' && <span className="text-ink-light">Nothing to credit — not paying yet</span>}
+                    {(!credit || credit.status === 'failed' || credit.status === 'pending') && (
+                      <form action={retryGuarantee} className="flex items-center gap-2">
+                        <span className="text-rust-700">Not credited{credit?.error ? ` — ${credit.error}` : ''}</span>
+                        <input type="hidden" name="tenantId" value={c.tenantId} />
+                        <input type="hidden" name="month" value={c.month} />
+                        <SubmitButton className="btn-secondary px-3 py-1 text-xs">Try again</SubmitButton>
+                      </form>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-2 text-xs text-ink-light">
+              What was not easy, across every business: {FRICTION_KINDS.map(k => `${k.label} ${guarantee.kinds[k.key] ?? 0}`).join(' · ')}.
+            </p>
           </section>
         )}
 

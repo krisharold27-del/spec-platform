@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   WORKFLOWS, FAMILIES, byStream, ownedBy, tally, tallyLine, gaps, tooFar,
-  stateOf, doneForYou, effortLine, movesLine, screensOf, peopleIn,
+  stateOf, doneForYou, effortLine, movesLine, screensOf, isSentLinkScreen, peopleIn,
   type Workflow, type Actor,
 } from '@/lib/workflows';
 import { STREAMS, ABOVE, WHAT_THEY_SHARE } from '@/lib/streams';
@@ -101,7 +101,11 @@ function WorkflowCard({ w }: { w: Workflow }) {
         {!partial && auto > 0 && of > 0 && <span className="sr-only">{auto} of {of} automatic</span>}
         {screensOf(w).length > 0 && (
           <span className="flex flex-wrap gap-1.5">
-            {screensOf(w).map(href => (
+            {screensOf(w).map(href => isSentLinkScreen(href) ? (
+              <span key={href} className="rounded-full bg-surface px-2 py-0.5 text-[12px] text-ink-light" title="Opened from the link they are sent">
+                {href} (their link)
+              </span>
+            ) : (
               <Link key={href} href={href} className="rounded-full bg-surface px-2 py-0.5 text-[12px] text-rust-700 hover:underline">
                 {href}
               </Link>

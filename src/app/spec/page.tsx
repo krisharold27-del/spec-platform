@@ -127,7 +127,7 @@ export default async function Landing() {
           payroll without taking our word for anything. Everything below it is the evidence.
         */}
         <section
-          aria-label="Virtual GM"
+          aria-label="Virtual GM and Virtual Admin"
           className="flex flex-col items-center justify-center gap-3 px-5 pb-[clamp(64px,9vh,112px)]"
         >
           <span className="label-caps text-rust-700">{VIRTUAL_GM.kicker}</span>
@@ -136,6 +136,7 @@ export default async function Landing() {
           <p className="m-0 max-w-[20ch] text-center font-serif text-[clamp(28px,4vw,48px)] leading-tight text-ink">
             {VIRTUAL_GM.headline}
           </p>
+          <p className="m-0 max-w-[52ch] text-center text-base leading-relaxed text-ink-light">{VIRTUAL_GM.both}</p>
         </section>
 
       </div>

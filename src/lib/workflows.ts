@@ -511,8 +511,8 @@ export const WORKFLOWS: Workflow[] = [
     'Approved hours, costed to jobs, ready for the pay run.', 'operations', ['productivity', 'gross_profit'], [
     { does: 'Hours come from Start and Finish on the phone.', by: 'field', where: '/tech-day' },
     { does: 'They cost to the job as they arrive.', by: 'spec', where: '/jobs?tab=time' },
-    { does: 'Approved before the run.', by: 'office', where: '/jobs?tab=time' },
-    { does: 'Checked against award rates and allowances BEFORE the run goes, not after.', by: 'spec', where: '/people?mode=pay' },
+    { does: 'Reconciled: clashes, gaps, unbooked time and long days flagged before anybody approves.', by: 'spec', where: '/jobs?tab=time' },
+    { does: 'Approved — only what nothing is holding back.', by: 'office', where: '/jobs?tab=time' },
   ]),
 
   W('people', 'leave', 'Somebody wants time off',
@@ -716,12 +716,16 @@ export const WORKFLOWS: Workflow[] = [
     { does: 'The buffer is the business’s own number, not one SPEC invented.', by: 'office', where: '/jobs?tab=cash' },
   ]),
 
-  W('money', 'payroll-run', 'Run the pay',
-    'The pay period ends.',
-    'Paid right, with the check done before the run rather than after.', 'commercial', ['regulatory', 'budget_miss'], [
-    { does: 'Approved hours.', by: 'office', where: '/jobs?tab=time' },
-    { does: 'Checked against award rates, levels and allowances BEFORE it goes.', by: 'spec', where: '/people?mode=pay' },
-    { does: 'What the check found is kept as written.', by: 'spec', where: '/people?mode=pay' },
+  /*
+    Kris, 25 September: payroll is split. SiteVIP hands over the approved basics; the business's own
+    payroll system (or Angus Shield, if it switches) works out tax, super and payslips.
+  */
+  W('money', 'payroll-run', 'Hand the week to payroll',
+    'The pay week is approved.',
+    'The approved timesheet is with the payroll system, or in Angus Shield’s pay run.', 'commercial', ['regulatory', 'budget_miss'], [
+    { does: 'Only once every entry in the week is approved.', by: 'spec', where: '/jobs?tab=time' },
+    { does: 'One tap: a file for your payroll system, or straight into Angus Shield if you have switched.', by: 'office', where: '/jobs?tab=time' },
+    { does: 'What went, and when, is kept with the week.', by: 'spec', where: '/jobs?tab=time' },
   ]),
 
   W('money', 'reviews-ask', 'Ask for a review',
@@ -769,7 +773,7 @@ export const WORKFLOWS: Workflow[] = [
   ]),
 
   W('run', 'connect-system', 'Connect the system you already run',
-    'A business arriving with simPRO, or a CRM, or a payroll system.',
+    'A business arriving with a job management system, a CRM or a payroll system.',
     'Its data is inside SPEC, as SPEC’s own rows.', 'whole', ['productivity'], [
     { does: 'Connect it by category — never by vendor.', by: 'office', where: '/connections' },
     { does: 'It writes rows SPEC owns, on a schedule. No screen reads it live.', by: 'spec', where: '/jobs?tab=pipeline' },
@@ -831,6 +835,14 @@ export function screensOf(w: Workflow): string[] {
   for (const s of w.steps) if (s.where) seen.add(s.where);
   return [...seen];
 }
+
+/**
+ * Screens that only exist behind a link somebody is sent — the customer's own page and the
+ * worker's join page each need a token, so the bare address is a 404. The map still names them,
+ * because that is where the step happens; it just must not offer them as something to press.
+ */
+export const SENT_LINK_SCREENS: readonly string[] = ['/customer', '/join'];
+export const isSentLinkScreen = (where: string): boolean => SENT_LINK_SCREENS.includes(where);
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Outsimple them — the rule with teeth

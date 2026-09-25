@@ -462,7 +462,7 @@ export const HELP: HelpGroup[] = [
         go: { href: '/setup', label: 'Setting up' },
       },
       {
-        ask: 'Do I have to connect Xero and Simpro?',
+        ask: 'Do I have to connect my accounting or job system?',
         also: ['connections', 'integrations', 'simpro', 'xero', 'do i need'],
         say:
           'No. SPEC works entirely on numbers people type in, and that is a complete way to run it. Connecting systems '

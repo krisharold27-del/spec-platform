@@ -69,6 +69,27 @@
       <span style="display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 16px; font-size: 13px; background: color-mix(in srgb, #4f7a3f 14%, transparent); color: #3d5c31;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #4f7a3f;"></span>Simpro linked · jobs, sites, crews and vehicles</span>
     </header>
 
+    <section aria-label="How is everyone going" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(18px,2.5vw,24px); margin-bottom: clamp(16px,2vw,20px); display: grid; gap: 10px;">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+        <strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px;">How is everyone going?</strong>
+        <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Monthly · anonymous · whole business only</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 10px;">
+        <div style="background: var(--color-bg); border-radius: 16px; padding: 12px 14px;"><span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">September</span><p style="font-family: var(--font-heading); font-size: 26px; margin: 4px 0 0;">7.4 / 10</p></div>
+        <div style="background: var(--color-bg); border-radius: 16px; padding: 12px 14px;"><span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">August</span><p style="font-family: var(--font-heading); font-size: 26px; margin: 4px 0 0;">7.1 / 10</p></div>
+        <div style="background: var(--color-bg); border-radius: 16px; padding: 12px 14px;"><span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Answered</span><p style="font-family: var(--font-heading); font-size: 26px; margin: 4px 0 0;">31 of 38</p></div>
+      </div>
+      <span style="font-size: 13.5px; line-height: 21px;">Most said: workload is steadier. Two said the Northside job felt rushed. No one can see who said what.</span>
+    </section>
+
+    <section aria-label="WorkSafe is here" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(18px,2.5vw,24px); margin-bottom: clamp(20px,3vw,28px);">
+      <span style="display: grid; gap: 4px; flex: 1 1 320px; min-width: 0;">
+        <strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 20px;">WorkSafe on site?</strong>
+        <span style="font-size: 14px; line-height: 21px;">{{ wsLine }}</span>
+      </span>
+      <button type="button" onClick="{{ wsGo }}" class="btn btn-primary" style="flex: none; white-space: nowrap; font-size: 16px; padding: 14px 24px;">{{ wsLabel }}</button>
+    </section>
+
     <div style="display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: clamp(20px,3vw,28px);">
       <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
         <button type="button" onClick="{{ t.select }}" style="{{ t.style }}">{{ t.label }}<span style="{{ t.countStyle }}">{{ t.count }}</span></button>
@@ -264,7 +285,14 @@ class Component extends DCLogic {
     };
 
     const sentTone = sent && sent.notifiable ? RED : GREEN;
+    const ws = this.state.ws;
+    const wsVals = {
+      wsLine: ws ? 'Harbourview Apartments: SWMS, inductions, licences, pre-starts, incidents and the chain of responsibility, on one screen and as a PDF. Kris and Sam have been told.' : 'One tap puts everything for the site on one screen and in a PDF, and tells the owner and the safety lead.',
+      wsLabel: ws ? 'Site pack ready' : 'WorkSafe is here',
+      wsGo: () => this.setState({ ws: true }),
+    };
     return {
+      ...wsVals,
       tabs: TABS.map(t => {
         const on = t.key === tab;
         const n = countFor(t.key);

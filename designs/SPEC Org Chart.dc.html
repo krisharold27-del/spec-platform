@@ -174,12 +174,30 @@
           <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ summaryLine }}</span>
         </div>
 
+        <div style="display: grid; gap: 10px; padding: 14px 16px; margin-bottom: 16px; border-radius: 18px; background: var(--color-bg);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px;">
+            <strong style="font-size: 15px;">Chain of responsibility</strong>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ corLine }}</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <sc-for list="{{ corChips }}" as="cc" hint-placeholder-count="9">
+              <button type="button" onClick="{{ cc.pick }}" style="{{ cc.style }}">{{ cc.label }}</button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ corBroken }}" hint-placeholder-val="{{ false }}">
+            <span style="font-size: 13.5px; line-height: 20px; color: #7d2c1c;">{{ corBrokenLine }}</span>
+          </sc-if>
+        </div>
+
         <div style="{{ canvasInner }}">
           <sc-for list="{{ lines }}" as="l" hint-placeholder-count="6">
             <div style="{{ l.style }}"></div>
           </sc-for>
           <sc-for list="{{ cards }}" as="c" hint-placeholder-count="7">
             <div draggable="true" onClick="{{ c.select }}" onDoubleClick="{{ c.openScorecard }}" onContextMenu="{{ c.contextMenu }}" onDragStart="{{ c.dragStart }}" onDragEnd="{{ c.dragEnd }}" onDragOver="{{ c.dragOver }}" onDragLeave="{{ c.dragLeave }}" onDrop="{{ c.drop }}" title="{{ c.doubleClickHint }}" style="{{ c.style }}">
+              <sc-if value="{{ c.hasCor }}" hint-placeholder-val="{{ false }}">
+                <span style="{{ c.corStyle }}">{{ c.corLabel }}</span>
+              </sc-if>
               <sc-if value="{{ c.isTeamNode }}" hint-placeholder-val="{{ false }}">
                 <p style="{{ c.titleStyle }}">{{ c.title }}</p>
                 <span style="display: block; font-size: 12px; margin-top: 4px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ c.poolCountLine }}</span>
@@ -468,6 +486,19 @@ const PILLARS = [
   { key: 'c', name: 'Compliance', kpi1: 'Tickets current', kpi2: 'Checks logged' },
 ];
 
+const L = (id, role, broken) => ({ id, role, broken: !!broken });
+const COR = [
+  { key: 'vehicles', label: 'Vehicles and loads', links: [L('n1', 'Accountable'), L('n2', 'Owns fleet'), L('n5', 'Checks pre-starts'), L('team-n5-tech', 'Daily pre-start'), L('team-n5-sub', 'Own vehicles')] },
+  { key: 'fatigue', label: 'Fatigue and hours', links: [L('n1', 'Accountable'), L('n2', 'Sets limits'), L('n6', 'Rosters within limits'), L('n5', 'Watches the crew'), L('team-n5-tech', 'Reports tiredness')] },
+  { key: 'heights', label: 'Working at heights', links: [L('n4', 'Owns the SWMS'), L('n5', 'Checks on site'), L('team-n5-tech', 'Follows the SWMS'), L('team-n5-sub', 'Scaffold sign-off')] },
+  { key: 'isolation', label: 'Electrical isolation', links: [L('n4', 'Owns the procedure'), L('n5', 'Verifies isolation'), L('team-n5-tech', 'Lock out, tag out'), L('team-n5-appr', 'Never alone')] },
+  { key: 'asbestos', label: 'Asbestos', links: [L('n4', 'Owns the register'), L('n3', 'Flags it at quote'), L('n5', 'Stops work if found'), L('team-n5-tech', 'Test before drilling')] },
+  { key: 'confined', label: 'Confined spaces', links: [L('n4', 'Owns the permit'), L('n5', 'Issues the permit'), L('team-n5-tech', 'Works to the permit')] },
+  { key: 'subbie', label: 'Subbie safety', links: [L('n4', 'Checks their SWMS'), L('n2', 'Engages them'), L('n5', 'Inducts on site'), L('team-n5-sub', 'Own safety system'), L('team-n2-sub', 'Own safety system')] },
+  { key: 'induct', label: 'Site inductions', links: [L('n4', 'Owns the induction'), L('n5', 'Inducts everyone'), L('team-n5-tech', 'Completes it'), L('team-n5-appr', 'Completes it'), L('team-n5-sub', 'Completes it')] },
+  { key: 'psych', label: 'Psychosocial wellbeing', links: [L('n1', 'Accountable'), L('n4', 'Owns the plan'), L('n2', 'Checks in monthly'), L('n5', 'Checks in weekly'), L('team-n5-appr', 'Buddy system')] },
+];
+
 const SEED = [
   { id: 'n1', parent: null, root: true, title: 'Managing Director', person: 'Kris Harold', s: 94, p: 88, e: 91, c: 100, aceStreak: 4, certified: true },
   { id: 'n2', parent: 'n1', title: 'Operations Manager', person: 'Jordan Cole', s: 92, p: 85, e: 89, c: 100, aceStreak: 0, certified: true },
@@ -550,7 +581,7 @@ const KPI_EXAMPLES_FRONTLINE = {
 };
 
 class Component extends DCLogic {
-  state = { nodes: SEED.map(n => ({ ...n, pool: n.pool || [] })), selectedId: 'n2', viewAsId: 'n2', collapsedIds: {}, dragId: null, dropId: null, dragKind: null, seq: 8, menu: null, importOpen: false, importText: '', poolPanelId: null, poolDraft: '', teamLayerId: null, editingKey: null, editingDraft: '', isAdmin: false, isCertified: false, kpiPromptKey: null, kpiPromptDraft: '', kpiPromptExamples: null, importStatus: 'Or drag the roles in by hand.', fileStatus: 'Nothing uploaded yet.', connected: {}, predicted: sectorPack().predicted.map(p => ({ ...p })), showCascade: true, pack: sectorPack() };
+  state = { cor: '', nodes: SEED.map(n => ({ ...n, pool: n.pool || [] })), selectedId: 'n2', viewAsId: 'n2', collapsedIds: {}, dragId: null, dropId: null, dragKind: null, seq: 8, menu: null, importOpen: false, importText: '', poolPanelId: null, poolDraft: '', teamLayerId: null, editingKey: null, editingDraft: '', isAdmin: false, isCertified: false, kpiPromptKey: null, kpiPromptDraft: '', kpiPromptExamples: null, importStatus: 'Or drag the roles in by hand.', fileStatus: 'Nothing uploaded yet.', connected: {}, predicted: sectorPack().predicted.map(p => ({ ...p })), showCascade: true, pack: sectorPack() };
 
   approvePredicted(id) {
     const p = this.state.predicted.find(x => x.id === id);
@@ -861,15 +892,37 @@ class Component extends DCLogic {
     walk(root, 0, 0);
 
     const maxDepth = placed.reduce((m, p) => Math.max(m, p.depth), 0);
+    const cor = COR.find(o => o.key === this.state.cor);
     const cards = placed.map(p => {
       const d = this.decorate(p.node, p.depth);
+      const link = cor && cor.links.find(l => l.id === p.node.id);
+      const broken = link && (link.broken || (!p.node.person && !p.node.isTeamNode));
+      const corTone = broken ? '#a63b26' : '#4f7a3f';
       return {
         ...d,
-        style: 'position:absolute;left:' + (p.centre - p.w / 2) + 'px;top:' + p.y + 'px;width:' + p.w + 'px;height:' + p.h + 'px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;' + d.style,
+        hasCor: !!link,
+        corLabel: link ? (broken ? 'No owner · ' : '') + link.role : '',
+        corStyle: 'position:absolute;left:50%;top:-12px;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:' + corTone + ';color:#fff;z-index:2;',
+        style: 'position:absolute;left:' + (p.centre - p.w / 2) + 'px;top:' + p.y + 'px;width:' + p.w + 'px;height:' + p.h + 'px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;' + d.style
+          + (cor ? (link ? 'box-shadow:0 0 0 3px ' + corTone + ';' : 'opacity:0.35;') : ''),
       };
     });
+    const brokenLinks = cor ? cor.links.filter(l => { const n = this.state.nodes.find(x => x.id === l.id); return l.broken || (n && !n.person && !n.isTeamNode); }) : [];
 
     return {
+      corLine: cor ? cor.label + ': ' + cor.links.length + ' links, from the owner down.' : 'Every obligation traces up a clear chain with named owners. Pick one to see it on the chart.',
+      corChips: [{ key: '', label: 'Off' }, ...COR].map(o => ({
+        label: o.label,
+        pick: () => this.setState({ cor: o.key }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:7px 14px;font-family:var(--font-body);font-size:13px;font-weight:600;white-space:nowrap;' + ((this.state.cor || '') === o.key ? 'background:var(--color-text);color:#fff;' : 'background:#fff;color:var(--color-text);box-shadow:var(--shadow-sm);'),
+      })),
+      corBroken: brokenLinks.length > 0,
+      corBrokenLine: (() => {
+        if (!brokenLinks.length) return '';
+        const names = brokenLinks.map(l => { const n = this.state.nodes.find(x => x.id === l.id); return n ? n.title : l.role; });
+        const list = names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0];
+        return (names.length > 1 ? 'Broken links: ' : 'Broken link: ') + list + (names.length > 1 ? ' have' : ' has') + ' no named owner. Kris Harold has been told, and it\u2019s on Monday\u2019s weekly meeting.';
+      })(),
       cards,
       lines,
       canvasInner: 'position:relative;width:' + Math.max(reserved.get(root.id), 680) + 'px;height:' + (rowTop[maxDepth] + height(maxDepth) + 10) + 'px;margin:0 auto;',

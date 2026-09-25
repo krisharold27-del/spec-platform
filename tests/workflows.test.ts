@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import {
   WORKFLOWS, FAMILIES, FamilyKey, placeOf, placesFor, peopleIn, tooFar, gaps,
   stateOf, tally, unreachable, movesNothing, movedBy, screensOf, doneForYou,
-  ownedBy, byStream, emptyStreams,
+  ownedBy, byStream, emptyStreams, isSentLinkScreen,
 } from '../src/lib/workflows';
 import { STREAMS, STREAM_KEYS, type Owner } from '../src/lib/streams';
 import { FRAMEWORK } from '../src/lib/power-meter';
@@ -34,6 +34,21 @@ function routeExists(place: string): boolean {
 }
 
 describe('the workflow map points at screens that exist', () => {
+  it('every screen it offers as a link opens without a token — the rest are named, not linked', () => {
+    // /customer and /join only exist behind a token, so linking the bare address was a 404 on a
+    // public page. The site check on 25 September found both.
+    const dead: string[] = [];
+    for (const w of WORKFLOWS) {
+      for (const href of screensOf(w)) {
+        if (isSentLinkScreen(href)) continue;
+        if (!existsSync(join(APP, ...placeOf(href).split('/').filter(Boolean), 'page.tsx'))) dead.push(`${w.id}: ${href}`);
+      }
+    }
+    expect(dead).toEqual([]);
+    expect(isSentLinkScreen('/customer')).toBe(true);
+    expect(isSentLinkScreen('/join')).toBe(true);
+  });
+
   it('every step happens somewhere real', () => {
     const broken: string[] = [];
     for (const w of WORKFLOWS) {
@@ -276,5 +291,11 @@ describe('every workflow belongs to one stream', () => {
       expect(t.total).toBe(ws.length);
       expect(t.steps).toBe(ws.reduce((n, w) => n + w.steps.length, 0));
     }
+  });
+});
+
+describe('the public workflow map names no vendor', () => {
+  it('describes the systems a business arrives with by category', () => {
+    expect(JSON.stringify(WORKFLOWS)).not.toMatch(/xero|myob|quickbooks|simpro|servicem8|aroflo/i);
   });
 });

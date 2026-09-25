@@ -66,12 +66,60 @@ export const tenants = pgTable('tenants', {
   certificateTerritory: text('certificate_territory'),
   certificateWithinDays: integer('certificate_within_days'),
   /**
+   * When the weekly COGS meeting sits — 1 (Monday) to 7 (Sunday), and "07:30" in the business's own
+   * time. Null until somebody says, and asked once on /meeting. The Make it simple report is ready
+   * the day before it (lib/make-it-simple); with no day set it runs weekly from Monday.
+   */
+  meetingDay: integer('meeting_day'),
+  meetingTime: text('meeting_time'),
+  /**
    * What one no-access costs this business in hours — travel there, travel on, and the hole in the
    * run that nothing fills at two hours' notice. Null until somebody says, and SPEC never guesses:
    * a made-up cost is a business making decisions on arithmetic somebody else did in their head.
    */
   noAccessHours: text('no_access_hours'),
   cashBufferCents: integer('cash_buffer_cents'),
+  /*
+    ── The financial system underneath, and what the shields are measured against ────────────────
+
+    `financeSource` is 'angus' or 'connector', and it is a SETTING rather than an integration.
+    Angus Shield is SPEC's own financial system on this same database, so turning it on changes
+    where figures are read from and nothing else — see the rule at the top of lib/angus: no
+    connector code may ever be reused as the Angus Shield path.
+
+    `angusAnswer` is 'switch' or 'stay'. 'stay' is a real answer that stops SPEC asking, which is
+    what "never forced" has to mean if it means anything.
+
+    The three shield settings belong to the business and SPEC will not invent any of them. Weeks of
+    cover needs the weekly running cost; a margin means nothing without a benchmark to hold it to.
+    Null in any of them means the shield reports the figure and says it has nothing to judge it by —
+    the honest answer, and the one lib/certificates set the precedent for.
+  */
+  financeSource: text('finance_source').notNull().default('connector'),
+  angusAnswer: text('angus_answer'),
+  angusAnsweredAt: text('angus_answered_at'),
+  bufferWeeks: real('buffer_weeks'),
+  weeklyCostCents: integer('weekly_cost_cents'),
+  benchmarkMarginPct: real('benchmark_margin_pct'),
+  taxSetAsideCents: integer('tax_set_aside_cents'),
+  /*
+    ── The owner is away ─────────────────────────────────────────────────────────────────────────
+
+    While `awayUntil` is set, every alert and lever goes to the deputy. One thing still reaches the
+    owner and it is somebody getting hurt — ONLY_INJURY_REACHES_YOU in lib/gm-home. Away with no
+    deputy named is a real and visible state: the alerts keep coming to the owner and the screen
+    says so, because a switch that silently does nothing is worse than a switch that is off.
+  */
+  awayUntil: text('away_until'),
+  deputyKey: text('deputy_key'),
+  deputyName: text('deputy_name'),
+  /**
+   * Whether this business lets SPEC use its data, anonymised, for industry benchmarks.
+   *
+   * Default OFF, and it stays off until somebody deliberately turns it on. The business owns its
+   * data either way; names, customers and prices are never shared at all.
+   */
+  benchmarksOptIn: boolean('benchmarks_opt_in').notNull().default(false),
   /**
    * basic | advanced — decided by one question to the leader: "Do you want the power of AI?"
    *
@@ -1676,6 +1724,15 @@ export const timesheetEntries = pgTable('timesheet_entries', {
   finishedAt: text('finished_at'),
   minutes: integer('minutes').notNull().default(0),
   billable: boolean('billable').notNull().default(true),
+  /**
+   * The basics payroll needs from the job system, and nothing more (Kris, 25 September: SiteVIP's
+   * payroll job is who worked, on which job, where and when). `minutes` is the paid time — start to
+   * finish less the break. Travel to and from site is its own figure; allowances are tags from
+   * ALLOWANCES in lib/timesheets, comma-separated. SiteVIP never works out a rate, tax or super.
+   */
+  breakMinutes: integer('break_minutes').notNull().default(0),
+  travelMinutes: integer('travel_minutes').notNull().default(0),
+  allowances: text('allowances').notNull().default(''),
   /** phone | typed */
   source: text('source').notNull().default('phone'),
   approvedBy: text('approved_by'),
@@ -2021,8 +2078,30 @@ export const payRuns = pgTable('pay_runs', {
   issues: text('issues').notNull().default('[]'),
   checkedAt: text('checked_at'),
   checkedBy: text('checked_by'),
-  /** Set when the rows went to the accounting system. Never set while an issue is open. */
+  /** Set when the approved timesheet was sent on for processing. */
   exportedAt: text('exported_at'),
+  /** Where it went: `export` (a file for the business's payroll system) or `angus_shield`. */
+  sentTo: text('sent_to'),
+  /*
+    ── Design 19: the seven checks, and who may approve ──────────────────────────────────────────
+
+    The award check above was the first of what are now seven, and Kris's rule is that a pay run
+    cannot be approved until every one of them passes. `approvedAt` is therefore the one field in
+    SPEC that a server action guards absolutely rather than gently: see readRun in lib/pay-run,
+    where a check that never ran counts exactly as one that failed.
+
+    Why this blocks when the rest of SPEC asks: an underpaid apprentice did not choose anything,
+    will very often not know, and the error compounds every fortnight until somebody audits it.
+    There is no version of that where "we asked and they clicked yes" is an answer.
+
+    `cycle` and `payDate` exist because a business may run weekly, fortnightly or monthly. The
+    fromDate/toDate above are unchanged, so a weekly business's rows read exactly as they did.
+  */
+  cycle: text('cycle').notNull().default('weekly'),
+  payDate: text('pay_date'),
+  approvedAt: text('approved_at'),
+  /** The seat that may approve is the Head of Commercial; this records who actually did. */
+  approvedBy: text('approved_by'),
   createdAt: text('created_at').notNull(),
 }, t => [
   index('pay_runs_tenant').on(t.tenantId),
@@ -2568,3 +2647,287 @@ export const leavers = pgTable('leavers', {
   done: text('done').notNull().default(''),
   createdAt: text('created_at').notNull(),
 }, t => [index('leavers_tenant').on(t.tenantId)]).enableRLS();
+
+/* ══ Claude recommends, and Switch when ready ══════════════════════════════════════════════════════
+ *
+ * Kris, 25 September: every decision SPEC helps with runs the same three steps — a recommendation
+ * with the numbers behind it, "Ready to do this?", and on Yes SPEC does it and logs it. The figures
+ * are always SPEC's own arithmetic (lib/labour-rate-advice, lib/switch); Claude only puts them into
+ * words. No AI path writes anything: the write happens on a person's Yes, and it is the action the
+ * recommendation named, re-checked on the server first. See lib/recommends.
+ */
+
+/**
+ * Every answer to a recommendation — append-only, the record of what was decided on what data.
+ *
+ * `facts` is the numbers as they were shown, kept as written: "what did we know when we did it" is
+ * the question that gets asked later, and recomputing it would answer a different one.
+ */
+export const decisions = pgTable('decisions', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** `labour_rate`, `switch:payroll`, … — see TOPICS in lib/recommends-data. */
+  topic: text('topic').notNull(),
+  /** yes | not_yet */
+  answer: text('answer').notNull(),
+  /** The recommendation answered — the topic and the exact action it named. */
+  fingerprint: text('fingerprint').notNull(),
+  headline: text('headline').notNull(),
+  /** JSON `[{ label, value, note? }]`, as shown. */
+  facts: text('facts').notNull().default('[]'),
+  /** JSON of the action a Yes carried out. Null for Not yet. */
+  action: text('action'),
+  /** done | failed — what happened when SPEC did it. Null for Not yet. */
+  outcome: text('outcome'),
+  decidedBy: text('decided_by').notNull(),
+  decidedAt: text('decided_at').notNull(),
+}, t => [
+  index('decisions_tenant').on(t.tenantId),
+  index('decisions_topic').on(t.tenantId, t.topic),
+]).enableRLS();
+
+/**
+ * Claude's wording of a recommendation, kept so it is written once rather than on every page load.
+ *
+ * Keyed on `wordsKey` — a hash of the headline, reason and every figure — so wording written for
+ * last week's numbers is never shown beside this week's.
+ */
+export const recommendationWords = pgTable('recommendation_words', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  topic: text('topic').notNull(),
+  wordsKey: text('words_key').notNull(),
+  text: text('text').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('recommendation_words_tenant').on(t.tenantId),
+  uniqueIndex('recommendation_words_key').on(t.tenantId, t.topic, t.wordsKey),
+]).enableRLS();
+
+/**
+ * Where a business stands on switching one area to SPEC. One row per area, created on "I want this".
+ *
+ * Day one changes nothing: a business with no row runs exactly what it ran before. `previous` holds
+ * the Coverage choices the switch replaced, so Undo puts back precisely what was there.
+ */
+export const systemSwitches = pgTable('system_switches', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** accounting | payroll | jobs | crm | people | safety — SWITCH_AREAS in lib/switch. */
+  area: text('area').notNull(),
+  /** requested | side_by_side | spec. `side_by_side` is Shadow for accounting. */
+  state: text('state').notNull().default('requested'),
+  requestedBy: text('requested_by').notNull(),
+  requestedAt: text('requested_at').notNull(),
+  sideBySideAt: text('side_by_side_at'),
+  /**
+   * When the owner said "I'm ready to switch". Half of what unlocks the switch — the other half is
+   * SPEC's own check that it matches what the business runs now (lib/switch, `confirmed`).
+   */
+  ownerReadyAt: text('owner_ready_at'),
+  switchedAt: text('switched_at'),
+  switchedBy: text('switched_by'),
+  /** JSON `{ capability: 'own' }` — the Coverage rows the switch cleared. */
+  previous: text('previous').notNull().default('{}'),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  index('system_switches_tenant').on(t.tenantId),
+  uniqueIndex('system_switches_area').on(t.tenantId, t.area),
+]).enableRLS();
+
+/**
+ * Something about a switch that was not easy — and the Simple Guarantee claim it makes.
+ *
+ * `kind` is from a fixed list, so SPEC can count what goes wrong across every business without
+ * reading a word any business wrote. `note` is the business's own words and stays inside it.
+ * `month` is the month the guarantee covers; one claim per business per month.
+ */
+export const switchFriction = pgTable('switch_friction', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  area: text('area').notNull(),
+  kind: text('kind').notNull(),
+  note: text('note'),
+  month: text('month').notNull(),
+  reportedBy: text('reported_by').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [index('switch_friction_tenant').on(t.tenantId)]).enableRLS();
+
+/**
+ * The Simple Guarantee, paid — one row per business per month, claimed before Stripe is asked, so a
+ * month can never be credited twice. See lib/guarantee. `amount` is in the currency's smallest unit;
+ * `status` is pending · applied · free (nothing to take off) · failed (tried again next time).
+ */
+export const guaranteeCredits = pgTable('guarantee_credits', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  month: text('month').notNull(),
+  status: text('status').notNull().default('pending'),
+  amount: integer('amount').notNull().default(0),
+  currency: text('currency'),
+  stripeTransactionId: text('stripe_transaction_id'),
+  error: text('error'),
+  reportedBy: text('reported_by').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [uniqueIndex('guarantee_credits_tenant_month').on(t.tenantId, t.month)]).enableRLS();
+
+/**
+ * The weekly Make it simple report — one per business per meeting, kept as written.
+ *
+ * Kris, 25 September: every week, before the COGS meeting, what got simpler, the top three things
+ * still complicated (each a Claude recommends fix), what is ready to switch, and any friction logged
+ * against the Simple Guarantee. A report is a snapshot: the figures it went into the meeting with are
+ * the ones it keeps, which is also how next week's report can say what moved.
+ */
+export const simpleReports = pgTable('simple_reports', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** The meeting it is for — its date, or the Monday of its week when no day is set. */
+  meetingDate: text('meeting_date').notNull(),
+  /** JSON — `SimpleReport` in lib/make-it-simple. */
+  body: text('body').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('simple_reports_tenant').on(t.tenantId),
+  uniqueIndex('simple_reports_meeting').on(t.tenantId, t.meetingDate),
+]).enableRLS();
+
+/**
+ * Figures read from a report the business exported from its own accounting system — Xero or MYOB,
+ * saved as CSV — for /financials when nothing is connected. Manual is a complete mode: this is how a
+ * business with no connection still sees its money.
+ *
+ * Only the figures are kept, never the file: cash, profit this month and last, GST, wages, who owes
+ * the business and who it owes (`Figures` in lib/financials, as JSON, in cents). Each upload is its
+ * own row; the newest is what the page reads.
+ */
+export const ledgerUploads = pgTable('ledger_uploads', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  fileName: text('file_name').notNull(),
+  /** JSON — `Figures` in lib/financials. */
+  figures: text('figures').notNull(),
+  uploadedBy: text('uploaded_by').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [index('ledger_uploads_tenant').on(t.tenantId, t.createdAt)]).enableRLS();
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * Design 19 — adoption, the money reviews, the pay run, and the prompts people confirmed
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Which of the nine areas of the owner's job are running in siteVIP, and what the rest run in.
+ *
+ * A row per area the business has said something about. No row means not running here — the absence
+ * is the default rather than something that has to be written, so a business that has never opened
+ * the setting reads correctly on day one.
+ *
+ * Pay never appears here in any meaningful way: it is always on (see AREAS in lib/adoption), and the
+ * tile ignores any row that says otherwise. That is deliberate belt-and-braces — an earlier version
+ * of the design had Pay staged, and the note is still in the design file for somebody to read.
+ */
+export const adoptionAreas = pgTable('adoption_areas', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** One of AREAS in lib/adoption. */
+  areaKey: text('area_key').notNull(),
+  runningHere: boolean('running_here').notNull().default(false),
+  /** What it runs in instead, in the business's own words: "Simpro", "HubSpot". */
+  elsewhere: text('elsewhere'),
+  /** Whether that system is connected, so this area still feeds the Power Meter. */
+  connected: boolean('connected').notNull().default(false),
+  turnedOnAt: text('turned_on_at'),
+  updatedAt: text('updated_at').notNull(),
+}, t => [uniqueIndex('adoption_areas_one').on(t.tenantId, t.areaKey)]).enableRLS();
+
+/**
+ * One of the eight financial reviews, for one period, with SPEC's written finding.
+ *
+ * `finding` is nullable and null is a real state: a review SPEC could not write. The screen says
+ * that out loud rather than printing "no issues found", because a report that could not be produced
+ * and a clean bill of health are different things and a business betting its tax position on one
+ * must not have them confused.
+ *
+ * Signing is what turns a document into a decision with a date on it, and only signed reviews go
+ * into the board pack.
+ */
+export const financeReviews = pgTable('finance_reviews', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** One of REVIEWS in lib/angus. */
+  reviewKey: text('review_key').notNull(),
+  /** The period it covers, as the first day of it. */
+  periodStart: text('period_start').notNull(),
+  finding: text('finding'),
+  /** Where the figures came from when it was written: 'angus' or the connector's name. */
+  fromSource: text('from_source'),
+  signedAt: text('signed_at'),
+  signedBy: text('signed_by'),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  uniqueIndex('finance_reviews_one').on(t.tenantId, t.reviewKey, t.periodStart),
+  index('finance_reviews_tenant').on(t.tenantId, t.periodStart),
+]).enableRLS();
+
+/** One check against one pay run. Absent means NOT RUN, which blocks approval exactly as a failure does. */
+export const payRunChecks = pgTable('pay_run_checks', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  payRunId: text('pay_run_id').notNull(),
+  /** One of CHECKS in lib/pay-run. */
+  checkKey: text('check_key').notNull(),
+  /** 'passed' or 'failed'. There is no stored 'not_run' — that is what a missing row means. */
+  state: text('state').notNull(),
+  says: text('says').notNull(),
+  /** Who it is about, where it is about one person. */
+  who: text('who'),
+  ranAt: text('ran_at').notNull(),
+}, t => [
+  uniqueIndex('pay_run_checks_one').on(t.payRunId, t.checkKey),
+  index('pay_run_checks_tenant').on(t.tenantId),
+]).enableRLS();
+
+/**
+ * A rate that is set by law, changes, and differs by award and by year.
+ *
+ * `value` with no `source` does not count as set — see isSet in lib/pay-run. That is not
+ * bureaucracy: it is what lets a business answer "where did this rate come from" eighteen months
+ * later, which is the question an audit actually asks. A rate SPEC invented and applied to
+ * somebody's pay would be worse than no rate, because it looks like it was checked.
+ */
+export const legalRates = pgTable('legal_rates', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  rateKey: text('rate_key').notNull(),
+  label: text('label').notNull(),
+  value: real('value'),
+  unit: text('unit').notNull().default('percent'),
+  source: text('source'),
+  checkedAt: text('checked_at'),
+  /** A change SPEC has seen and the business has not yet accepted. Never applied silently. */
+  pendingTo: real('pending_to'),
+  pendingFrom: text('pending_from'),
+  pendingSource: text('pending_source'),
+  updatedAt: text('updated_at').notNull(),
+}, t => [uniqueIndex('legal_rates_one').on(t.tenantId, t.rateKey)]).enableRLS();
+
+/**
+ * Somebody pressed "Yes, it's right" on a gentle prompt.
+ *
+ * The whole safety net of lib/gentle. One confirmed fourteen-hour day is a Tuesday; five in a
+ * fortnight is something the business needs to know about, and it surfaces as a conversation rather
+ * than as a blocked timesheet at six o'clock on site.
+ */
+export const gentleConfirmations = pgTable('gentle_confirmations', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** One of GentleKey in lib/gentle. */
+  promptKey: text('prompt_key').notNull(),
+  who: text('who').notNull(),
+  /** What they confirmed, so the leader reading it later does not have to go and find out. */
+  what: text('what').notNull(),
+  /** Where it happened, so it can be opened. */
+  about: text('about'),
+  createdAt: text('created_at').notNull(),
+}, t => [index('gentle_confirmations_tenant').on(t.tenantId, t.createdAt)]).enableRLS();

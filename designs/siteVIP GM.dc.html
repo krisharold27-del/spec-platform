@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: #ffffff; }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+</style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); }</style>
+</helmet>
+<div style="font-family: var(--font-body); color: var(--color-text); background: #fff; min-height: 100vh;">
+
+  <nav style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 22px clamp(20px,5vw,72px); max-width: 1200px; margin: 0 auto; box-sizing: border-box;">
+    <span style="display: flex; align-items: baseline; gap: 10px;">
+      <span style="font-family: var(--font-heading); font-size: 28px; line-height: 1;">site<span style="color: #4f7a3f;">VIP</span></span>
+      <span style="display: flex; gap: 4px; background: var(--color-bg); border-radius: 999px; padding: 3px;">
+        <sc-for list="{{ bizOpts }}" as="bz" hint-placeholder-count="3">
+          <button type="button" onClick="{{ bz.pick }}" style="{{ bz.style }}">{{ bz.label }}</button>
+        </sc-for>
+      </span>
+    </span>
+    <span style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px;">
+      <a href="#" style="color: var(--color-text); font-weight: 700;">Virtual GM</a>
+      <a href="siteVIP Angus Shield.dc.html">Angus Shield</a>
+      <a href="SPEC My Page.dc.html">My page</a>
+      <a href="SPEC Jobs.dc.html">Jobs</a>
+      <a href="SPEC Board Pack.dc.html">Board</a>
+    </span>
+  </nav>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px,5vw,72px) 80px; box-sizing: border-box; display: grid; gap: clamp(20px,3vw,28px);">
+
+    <sc-if value="{{ isAll }}" hint-placeholder-val="{{ false }}">
+      <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px;">
+        <sc-for list="{{ bizCards }}" as="bc" hint-placeholder-count="2">
+          <button type="button" onClick="{{ bc.open }}" style="all: unset; cursor: pointer; display: grid; gap: 6px; padding: 18px 20px; border-radius: var(--radius-lg); background: var(--color-surface, #fff); box-shadow: var(--shadow-sm);">
+            <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;"><strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 19px;">{{ bc.name }}</strong><span style="font-family: var(--font-heading); font-size: 28px; color: {{ bc.tone }};">{{ bc.power }}</span></span>
+            <span style="font-size: 13.5px; line-height: 20px;">{{ bc.line }}</span>
+          </button>
+        </sc-for>
+      </section>
+    </sc-if>
+
+    <section style="display: flex; flex-wrap: wrap; gap: 12px;">
+      <div style="flex: 2 1 380px; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-radius: var(--radius-lg); background: {{ awayBg }};">
+        <span style="display: grid; gap: 3px; flex: 1 1 260px; min-width: 0;">
+          <strong style="font-size: 15.5px;">{{ awayTitle }}</strong>
+          <span style="font-size: 13.5px; line-height: 20px;">{{ awayLine }}</span>
+        </span>
+        <button type="button" onClick="{{ toggleAway }}" class="btn btn-secondary" style="flex: none; white-space: nowrap;">{{ awayLabel }}</button>
+      </div>
+      <div style="flex: 1 1 240px; min-width: 0; display: grid; gap: 3px; padding: 16px 20px; border-radius: var(--radius-lg); background: var(--color-surface, #fff); box-shadow: var(--shadow-sm);">
+        <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 62%, transparent);">siteVIP saved you in September</span>
+        <strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px;">{{ savedHours }} · {{ savedDollars }}</strong>
+        <span style="font-size: 12.5px; line-height: 18px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ savedLine }}</span>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-wrap: wrap; align-items: center; gap: clamp(24px,4vw,48px); background: var(--color-surface, #fff); border-radius: 32px; box-shadow: var(--shadow-md); padding: clamp(24px,4vw,44px);">
+      <div style="position: relative; width: 200px; height: 200px; flex: none;">
+        <svg viewBox="0 0 100 100" width="200" height="200" role="img" aria-label="Business Power Meter">
+          <circle cx="50" cy="50" r="42" fill="none" stroke="#f4ede1" stroke-width="10"></circle>
+          <circle cx="50" cy="50" r="42" fill="none" stroke="{{ meterTone }}" stroke-width="10" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="{{ meterOffset }}" transform="rotate(-90 50 50)"></circle>
+        </svg>
+        <div style="position: absolute; inset: 0; display: grid; place-content: center; text-align: center;">
+          <span style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 48px; line-height: 1;">{{ meterNow }}</span>
+          <span style="font-size: 12.5px; margin-top: 4px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Business Power</span>
+        </div>
+      </div>
+      <div style="flex: 1 1 320px; min-width: 0; display: grid; gap: 10px;">
+        <span style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700);">Has the power meter got better?</span>
+        <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,46px); line-height: 1.1; margin: 0;">{{ verdict }}</h1>
+        <p style="font-size: 16px; line-height: 25px; margin: 0; max-width: 56ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">{{ verdictLine }}</p>
+        <p style="font-size: 13.5px; margin: 0; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Read live from jobs, timesheets, safety, people and {{ finSource }}. Updated 7:02am.</p>
+      </div>
+    </section>
+
+    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px;">
+      <sc-for list="{{ questions }}" as="q" hint-placeholder-count="4">
+        <div style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px 20px; display: grid; gap: 8px; align-content: start;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ q.pillar }}</span>
+            <span style="{{ q.chip }}">{{ q.answer }}</span>
+          </div>
+          <strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 18px; line-height: 1.3;">{{ q.question }}</strong>
+          <span style="font-size: 14px; line-height: 21px;">{{ q.read }}</span>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
+      <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">The levers to pull this week</h2>
+      <div style="display: grid; gap: 8px; margin-top: 14px;">
+        <sc-for list="{{ levers }}" as="lv" hint-placeholder-count="3">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 12px 16px; border-radius: 16px; background: var(--color-bg);">
+            <span style="display: grid; gap: 3px; min-width: 0; flex: 1 1 300px;">
+              <strong style="font-size: 14.5px;">{{ lv.title }}</strong>
+              <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 70%, transparent);">{{ lv.why }}</span>
+            </span>
+            <span style="font-size: 13px; font-weight: 700; color: #3d5c31;">{{ lv.gain }}</span>
+            <sc-if value="{{ lv.open }}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{ lv.act }}" class="btn btn-primary">{{ lv.action }}</button>
+            </sc-if>
+            <sc-if value="{{ lv.done }}" hint-placeholder-val="{{ false }}">
+              <span style="{{ lv.doneChip }}">{{ lv.doneLabel }}</span>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-label="Everything the business needs" style="display: grid; gap: 12px;">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Everything the business needs. One login.</h2>
+        <span style="font-size: 13px; font-weight: 600;">{{ adoptLine }}</span>
+      </div>
+      <p style="font-size: 14px; line-height: 22px; margin: 0; max-width: 72ch; color: color-mix(in srgb, var(--color-text) 72%, transparent);">Start with what you want. Anything you keep in another system still feeds the meter. Turn on more when you're ready, and SPEC moves it across for you.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px;">
+        <sc-for list="{{ tiles }}" as="tl" hint-placeholder-count="9">
+          <div style="{{ tl.style }}">
+            <span style="display: flex; justify-content: space-between; align-items: center; gap: 8px;"><strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 17px;">{{ tl.name }}</strong><span style="{{ tl.dot }}"></span></span>
+            <span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ tl.covers }}</span>
+            <span style="font-size: 13.5px; line-height: 20px; font-weight: 600;">{{ tl.today }}</span>
+            <sc-if value="{{ tl.on }}" hint-placeholder-val="{{ true }}">
+              <a href="{{ tl.href }}" style="font-size: 13px;">Open →</a>
+            </sc-if>
+            <sc-if value="{{ tl.off }}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ tl.turnOn }}" class="btn btn-secondary" style="justify-self: start;">{{ tl.turnLabel }}</button>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-label="Your financial system" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+        <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 24px; line-height: 1.2; margin: 0;">Your financial system</h2>
+        <span style="{{ finChip }}">{{ finState }}</span>
+      </div>
+      <p style="font-size: 15px; line-height: 24px; margin: 10px 0 0; max-width: 66ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Keep the accounting system you use now. siteVIP reads it every day behind your one login. When you're ready, Angus Shield is one click away. It's SPEC's own financial system, so there's nothing to connect, map or set up.</p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px;">
+        <div style="{{ xeroCard }}">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;"><strong style="font-size: 17px;">Xero</strong><span style="font-size: 12.5px; font-weight: 700; color: {{ xeroTone }};">{{ xeroLabel }}</span></div>
+          <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 72%, transparent);">{{ xeroLine }}</span>
+        </div>
+        <div style="{{ angusCard }}">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;"><span style="display: grid; gap: 2px;"><strong style="font-size: 17px;">Angus Shield</strong><span style="font-size: 12px; font-weight: 700; color: var(--color-accent-700);">Built by SPEC · same login</span></span><span style="font-size: 12.5px; font-weight: 700; color: {{ angusTone }};">{{ angusLabel }}</span></div>
+          <span style="font-size: 13.5px; line-height: 20px; color: color-mix(in srgb, var(--color-text) 72%, transparent);">{{ angusLine }}</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 18px; padding: 16px 18px; border-radius: 18px; background: var(--color-bg); display: grid; gap: 10px;">
+        <strong style="font-size: 14.5px;">How pay flows</strong>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px;">
+          <span style="padding: 8px 14px; border-radius: 999px; background: #fff; box-shadow: var(--shadow-sm);">Timesheets on the phone</span><span aria-hidden="true">→</span>
+          <span style="padding: 8px 14px; border-radius: 999px; background: #fff; box-shadow: var(--shadow-sm);">{{ payRunner }}</span><span aria-hidden="true">→</span>
+          <span style="padding: 8px 14px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 2px #4f7a3f;">{{ payTo }}</span>
+        </div>
+        <span style="font-size: 13.5px; line-height: 21px; color: color-mix(in srgb, var(--color-text) 72%, transparent);">{{ payLine }}</span>
+      </div>
+
+      <sc-if value="{{ showReady }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top: 18px; padding: 16px 18px; border-radius: 18px; background: var(--color-bg); display: grid; gap: 10px;">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 14.5px;"><strong>{{ readyTitle }}</strong><span>{{ readyCount }}</span></div>
+          <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px;">
+            <sc-for list="{{ months }}" as="mo" hint-placeholder-count="6">
+              <span style="display: grid; gap: 4px; justify-items: center;"><span style="{{ mo.bar }}"></span><span style="font-size: 11.5px; font-weight: 600;">{{ mo.label }}</span></span>
+            </sc-for>
+          </div>
+          <span style="font-size: 13.5px; line-height: 21px; color: color-mix(in srgb, var(--color-text) 72%, transparent);">{{ readyLine }}</span>
+        </div>
+      </sc-if>
+
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px;">
+        <sc-if value="{{ canSwitch }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ switchOver }}" class="btn btn-primary" style="font-size: 16px; padding: 14px 24px;">Switch to Angus Shield</button>
+          <button type="button" onClick="{{ stay }}" class="btn btn-ghost">Stay on Xero for now</button>
+        </sc-if>
+        <sc-if value="{{ switched }}" hint-placeholder-val="{{ false }}">
+          <span style="{{ doneChip }}">On Angus Shield since today · Xero kept read-only for 12 months</span>
+        </sc-if>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px;">
+        <span style="font-size: 12.5px; color: color-mix(in srgb, var(--color-text) 60%, transparent); align-self: center;">Preview:</span>
+        <sc-for list="{{ demo }}" as="dm" hint-placeholder-count="3">
+          <button type="button" onClick="{{ dm.go }}" style="{{ dm.style }}">{{ dm.label }}</button>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26';
+const chip = t => 'display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;white-space:nowrap;background:color-mix(in srgb, ' + t + ' 14%, transparent);color:' + t + ';';
+const MONTHS = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
+class Component extends DCLogic {
+  state = { months: 6, switched: false, stayed: false, done: {}, adopted: {} };
+  renderVals() {
+    const s = this.state;
+    const d = s.done;
+    const gain = (d.l1 ? 4 : 0) + (d.l2 ? 3 : 0) + (d.l3 ? 2 : 0);
+    const now = 82 + gain;
+    const tone = now >= 85 ? GREEN : now >= 60 ? AMBER : RED;
+    const ready = s.months >= 6;
+    const fin = s.switched ? 'Angus Shield' : 'Xero';
+    const card = on => 'flex:1 1 260px;min-width:0;display:grid;gap:6px;padding:16px 18px;border-radius:18px;' + (on ? 'background:#fff;box-shadow:0 0 0 2px ' + GREEN + ';' : 'background:var(--color-bg);');
+    const L = [
+      { id: 'l1', title: 'J-4402 Northside is 6 hours over', why: 'Ask Tom why before the job closes, and price the extra as a variation.', gain: '+4 power', action: 'Ask Tom', doneLabel: 'Tom asked · answer by 3pm' },
+      { id: 'l2', title: 'Two quotes are past 2 days', why: 'Harris Strata and Coastal Dental. Promises made, not yet kept.', gain: '+3 power', action: 'Send both', doneLabel: 'Both sent' },
+      { id: 'l3', title: 'Casey\u2019s supervisor has no training plan', why: 'Jai stepped up in July. Show him the supervisor path.', gain: '+2 power', action: 'Start Jai\u2019s plan', doneLabel: 'Plan started' },
+    ];
+    return {
+      meterNow: String(now),
+      meterTone: tone,
+      meterOffset: String(Math.round(264 * (1 - now / 100))),
+      verdict: gain ? 'Yes. Up ' + (3 + gain) + ' since last week.' : 'Yes. Up 3 since last week.',
+      verdictLine: now >= 85 ? 'The business is in good shape. Keep the levers pulled.' : 'No safety or people issues. Earnings is the drag: one job running over hours and two quotes late.',
+      finSource: fin,
+      ...(() => {
+        const biz = s.biz || 'jbi', away = !!s.away;
+        const pill = on => 'cursor:pointer;border:0;border-radius:999px;padding:6px 12px;font-family:var(--font-body);font-size:13px;font-weight:600;white-space:nowrap;' + (on ? 'background:var(--color-text);color:#fff;' : 'background:transparent;color:var(--color-text);');
+        return {
+          bizOpts: [['jbi', 'JBI Electrical'], ['jbs', 'JBI Solar'], ['all', 'Both']].map(([k, label]) => ({ label, pick: () => this.setState({ biz: k }), style: pill(biz === k) })),
+          isAll: biz === 'all',
+          bizCards: [['jbi', 'JBI Electrical', String(now), tone, '38 people · earnings the drag this week'], ['jbs', 'JBI Solar', '91', GREEN, '6 people · all four questions green']].map(([k, name, power, t, line]) => ({ name, power, tone: t, line, open: () => this.setState({ biz: k }) })),
+          awayBg: away ? 'color-mix(in srgb, ' + AMBER + ' 12%, transparent)' : 'var(--color-bg)',
+          awayTitle: away ? 'You\u2019re away. Jordan Cole, GM, has the alerts.' : 'Going away or off sick?',
+          awayLine: away ? 'Only one thing reaches you: if anyone is hurt. Everything else goes to Jordan, and it\u2019s all waiting here when you\u2019re back.' : 'Turn this on and every alert goes to your GM, Jordan Cole. Only an injury still reaches you.',
+          awayLabel: away ? 'I\u2019m back' : 'I\u2019m away',
+          toggleAway: () => this.setState(st => ({ away: !st.away })),
+          savedHours: '31 hours',
+          savedDollars: '$6,840',
+          savedLine: 'Quotes priced for you, timesheets, payroll, receipts, reminders and reports. Dollars include margin kept by quoting the right hours.',
+        };
+      })(),
+      ...(() => {
+        const T = [
+          ['board', 'Board', 'Monthly report, scores, sign-off', 'Month locks 30 Sep', GREEN, 'SPEC Board Pack.dc.html', ''],
+          ['people', 'People', 'Org chart, hiring, onboarding, training, reviews', d.l3 ? 'Nothing needs you' : '1 training plan to start', d.l3 ? GREEN : AMBER, 'SPEC People.dc.html', ''],
+          ['safety', 'Safety', 'Incidents, hazards, SWMS, toolbox talks, vehicles', 'Nothing needs you', GREEN, 'SPEC Safety.dc.html', 'Safety Minder'],
+          ['compliance', 'Compliance', 'Licences, insurance, certificates, audits', '1 licence to renew', AMBER, 'SPEC Compliance.dc.html', ''],
+          ['win', 'Win the work', 'Leads, tenders, takeoff, quotes, customers', d.l2 ? 'Nothing needs you' : '2 quotes past 2 days', d.l2 ? GREEN : AMBER, 'SPEC Jobs.dc.html?tab=leads', 'HubSpot'],
+          ['do', 'Do the work', 'Jobs, schedule, timesheets, materials, tools', d.l1 ? 'Nothing needs you' : '1 job running over hours', d.l1 ? GREEN : AMBER, 'SPEC Jobs.dc.html?tab=pipeline', 'Simpro'],
+          ['paid', 'Get paid', 'Invoices, claims, work in progress, cash flow', 'Nothing needs you', GREEN, 'SPEC Jobs.dc.html?tab=wip', 'Simpro'],
+          ['pay', 'Pay', 'Timesheets to payroll, award, leave, super, STP', 'Pay run ready to approve', AMBER, 'SPEC People.dc.html', ''],
+          ['money', 'Money', 'Financial reviews, cash, tax, BAS', '3 reviews need a look', AMBER, 'siteVIP Angus Shield.dc.html', ''],
+        ];
+        const ad = s.adopted;
+        const on = T.filter(t => !t[6] || ad[t[0]] || (t[0] === 'money' && s.switched));
+        return {
+          adoptLine: on.length + ' of ' + T.length + ' running in siteVIP',
+          tiles: T.map(([key, name, covers, today, t, href, other]) => {
+            const isOn = !other || !!ad[key] || (key === 'money' && s.switched);
+            return {
+              name, covers, href, on: isOn, off: !isOn,
+              today: isOn ? today : 'In ' + other + ' · siteVIP reads it',
+              turnLabel: key === 'money' ? 'Move to Angus Shield' : 'Run it in siteVIP',
+              turnOn: () => key === 'money' ? this.setState({ switched: true, months: 6 }) : this.setState(st => ({ adopted: { ...st.adopted, [key]: true } })),
+              dot: 'width:12px;height:12px;border-radius:50%;flex:none;background:' + (isOn ? t : 'color-mix(in srgb, var(--color-text) 30%, transparent)') + ';',
+              style: 'display:grid;gap:6px;align-content:start;padding:16px 18px;border-radius:20px;' + (isOn ? 'background:var(--color-surface, #fff);box-shadow:var(--shadow-sm);' : 'background:var(--color-bg);'),
+            };
+          }),
+        };
+      })(),
+      payTo: s.switched ? 'Angus Shield books it' : 'Xero books it',
+      payToShort: s.switched ? 'Angus Shield' : 'Xero',
+      payRunner: 'siteVIP runs payroll: award, leave, super, allowances',
+      payLine: 'Payroll starts in siteVIP, because the hours, the award and the people are already here, and ends in your financial system. Each approved pay run posts wages, PAYG and super to ' + (s.switched ? 'Angus Shield' : 'Xero') + ', and Single Touch Payroll goes to the ATO.',
+      questions: [
+        { pillar: 'Safety', question: 'Do we have safety issues?', answer: 'No', chip: chip(GREEN), read: 'No incidents in 41 days. Every link in the chain of responsibility has a named owner.' },
+        { pillar: 'People', question: 'Do we have people issues?', answer: 'No', chip: chip(GREEN), read: 'Everyone clear on their role. One new supervisor still needs a training plan.' },
+        { pillar: 'Earnings', question: 'Do we have earnings issues?', answer: d.l1 ? 'Being fixed' : 'Watch', chip: chip(d.l1 ? GREEN : AMBER), read: 'Gross profit 39% against 40%. One job running over its hours.' },
+        { pillar: 'Compliance', question: 'Do we do what we say?', answer: d.l2 ? 'Yes' : 'Mostly', chip: chip(d.l2 ? GREEN : AMBER), read: d.l2 ? 'Every quote out on time this week.' : 'Two quotes are past the 2 days we promised.' },
+      ],
+      levers: L.map(l => ({ ...l, open: !d[l.id], done: !!d[l.id], doneChip: chip(GREEN), act: () => this.setState(st => ({ done: { ...st.done, [l.id]: true } })) })),
+
+      finState: s.switched ? 'Angus Shield' : ready ? 'Ready to switch' : 'Learning your business',
+      finChip: chip(s.switched || ready ? GREEN : AMBER),
+      xeroCard: card(!s.switched), xeroTone: s.switched ? 'color-mix(in srgb, var(--color-text) 60%, transparent)' : GREEN,
+      xeroLabel: s.switched ? 'Read-only' : 'Connected',
+      xeroLine: s.switched ? 'Kept read-only for 12 months so your accountant can look back.' : 'Invoices, bills and bank feeds read every morning. Pay runs go from siteVIP into Xero. Your accountant keeps working as they do now.',
+      angusCard: card(s.switched), angusTone: s.switched ? GREEN : ready ? GREEN : AMBER,
+      angusLabel: s.switched ? 'Running' : ready ? 'Ready' : 'Off · learning',
+      angusLine: s.switched ? 'Invoicing, bills and BAS, with payroll flowing in from siteVIP each pay run. Nothing to re-key.' : 'SPEC\u2019s own financial system. It builds from the jobs, invoices, bills and pay runs siteVIP already sees, so switching is one click.',
+      showReady: !s.switched,
+      readyTitle: ready ? 'Six months of your data is ready' : 'Building your six months',
+      readyCount: s.months + ' of 6 months',
+      months: MONTHS.map((label, i) => ({ label, bar: 'width:100%;height:10px;border-radius:999px;background:' + (i < s.months ? GREEN : '#fff') + ';' + (i < s.months ? '' : 'box-shadow:inset 0 0 0 1.5px #e0d3be;') })),
+      readyLine: ready
+        ? (s.stayed ? 'No rush. The switch stays here whenever you want it.' : 'Chart of accounts, customers, suppliers, open invoices, six months of pay runs and history are mapped and checked against Xero to the cent. Your accountant gets a login.')
+        : 'Stay on Xero as long as you like. After six months siteVIP has enough of your history to move you across with nothing re-keyed.',
+      canSwitch: ready && !s.switched,
+      switched: s.switched,
+      switchOver: () => this.setState({ switched: true }),
+      stay: () => this.setState({ stayed: true }),
+      doneChip: chip(GREEN),
+      demo: [['Month 2', 2], ['Month 6', 6], ['Switched', 7]].map(([label, n]) => {
+        const on = n === 7 ? s.switched : !s.switched && s.months === n;
+        return { label, go: () => this.setState(n === 7 ? { months: 6, switched: true } : { months: n, switched: false, stayed: false }), style: 'cursor:pointer;border:0;border-radius:999px;padding:7px 12px;font-family:var(--font-body);font-size:12.5px;' + (on ? 'background:var(--color-text);color:#fff;' : 'background:var(--color-bg);color:var(--color-text);') };
+      }),
+    };
+  }
+}
+</script>
+</body>
+</html>

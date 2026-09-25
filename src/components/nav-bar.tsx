@@ -12,7 +12,8 @@ import type { Door } from '@/lib/doors';
  * that needs the browser — a server component cannot know which address is open — so this is the
  * one client piece of the Shell, and it is only a list of links.
  *
- * `/my-page#everywhere` is All pages: it opens My Page at the full grouped directory. It is matched
+ * All pages is `/pages`, the full grouped directory on a page of its own (it used to be
+ * `/my-page#everywhere`). An anchor href is matched
  * on the WHOLE href rather than on the path, or it would light up alongside My page on every visit.
  */
 export function NavBar({ doors }: { doors: Door[] }) {

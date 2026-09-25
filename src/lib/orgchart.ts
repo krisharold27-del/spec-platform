@@ -654,7 +654,24 @@ export interface Stage {
  * set. Grow is performance: all four pillar averages at the standard. They are strictly in order —
  * there is no point chasing a score for a business that has not finished drawing itself.
  */
-export function stages(all: ChartRole[], detached: Detached[], pillarAverages: Record<string, number | null>, threshold = 0.9): Stage[] {
+/**
+ * Link → Flow → Grow.
+ *
+ * ── Link is not "every box is joined up" ─────────────────────────────────────────────────────────
+ *
+ * It was, and that made this the second answer to a question `lib/ioc` already answers. The chart
+ * showed "Every role is linked — MET" directly above three questions saying one seat of four had
+ * somebody capable in it: two copies of one answer, disagreeing, on one screen.
+ *
+ * Kris, 25 September: LINK is *"who does what and are they capable and is the business achieving
+ * success"*. Attachment is a precondition of that, not the whole of it — a chart where every box
+ * is joined and half the seats are empty, or held by somebody whose licence lapsed in March, is
+ * not a linked business.
+ *
+ * So `linked` comes in from the IOC reading and this stops deciding it. Passing nothing keeps the
+ * old behaviour, which is what the tests below the product still exercise.
+ */
+export function stages(all: ChartRole[], detached: Detached[], pillarAverages: Record<string, number | null>, threshold = 0.9, link?: { linked: number; seats: number; says: string }): Stage[] {
   const offCount = detached.reduce((s, d) => s + d.below + 1, 0);
   const scored = all.filter(r => r.scored);
   const withoutKpis = scored.filter(r => !r.hasKpis);
@@ -666,12 +683,16 @@ export function stages(all: ChartRole[], detached: Detached[], pillarAverages: R
     {
       key: 'link',
       title: 'Link',
-      met: offCount === 0 && all.length > 0,
+      /* Attachment is still required — a role off the chart is out of every average — and it is no
+         longer sufficient. The IOC's three questions decide the rest. */
+      met: offCount === 0 && all.length > 0 && (!link || link.linked === link.seats),
       detail: offCount
         ? `${offCount} ${offCount === 1 ? 'role is' : 'roles are'} off the chart and out of every average.`
-        : all.length
-          ? 'Every role is linked.'
-          : 'Nothing drawn yet.',
+        : !all.length
+          ? 'Nothing drawn yet.'
+          : link
+            ? link.says
+            : 'Every role is linked.',
     },
     {
       key: 'flow',

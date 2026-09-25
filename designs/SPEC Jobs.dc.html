@@ -201,6 +201,60 @@
           </section>
         </div>
 
+        <section aria-label="Is our rate right" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: clamp(22px,3vw,32px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Is our rate right?</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Owner, Commercial and estimators</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px; margin-top: 16px;">
+            <sc-for list="{{ rateStats }}" as="rs" hint-placeholder-count="3">
+              <div style="background: var(--color-bg); border-radius: 16px; padding: 14px 16px;">
+                <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ rs.label }}</span>
+                <p style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px; line-height: 1; margin: 8px 0 0;">{{ rs.value }}</p>
+                <p style="font-size: 12.5px; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ rs.note }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top: 14px; padding: 16px 18px; border-radius: 18px; background: color-mix(in srgb, #c67139 10%, transparent); display: grid; gap: 8px;">
+            <strong style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 19px; line-height: 1.3;">Is the market wrong, or are we?</strong>
+            <span style="font-size: 14px; line-height: 22px;">We charge $115 an hour. Quotes win at $105 and lose above $112. If the market is wrong, hold $115 and win on speed and quality. If we are, $105 still clears 38% margin once hours are quoted right.</span>
+            <sc-if value="{{ rateOpen }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <button type="button" onClick="{{ rateHold }}" class="btn btn-secondary">The market is wrong. Hold $115</button>
+                <button type="button" onClick="{{ rateMove }}" class="btn btn-secondary">We are. Test $108 for a month</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ rateDone }}" hint-placeholder-val="{{ false }}">
+              <span style="{{ rateDoneChip }}">{{ rateDoneLabel }}</span>
+            </sc-if>
+          </div>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent); margin: 20px 0 8px;">Win rate and price, joined up</p>
+          <div style="display: grid; gap: 8px;">
+            <sc-for list="{{ rateSignals }}" as="sg" hint-placeholder-count="4">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 12px 16px; border-radius: 16px; background: var(--color-bg);">
+                <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 280px;"><strong style="font-size: 14.5px;">{{ sg.what }}</strong><span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ sg.read }}</span></span>
+                <span style="{{ sg.chip }}">{{ sg.tag }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent); margin: 20px 0 8px;">Priced before anyone asks</p>
+          <div style="display: grid; gap: 8px;">
+            <sc-for list="{{ readyQuotes }}" as="rq" hint-placeholder-count="3">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 12px 16px; border-radius: 16px; background: var(--color-bg);">
+                <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 260px;"><strong style="font-size: 14.5px;">{{ rq.who }}</strong><span style="font-size: 13px; line-height: 19px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ rq.basis }}</span></span>
+                <strong style="font-size: 15px; white-space: nowrap;">{{ rq.price }}</strong>
+                <sc-if value="{{ rq.open }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ rq.send }}" class="btn btn-primary" style="flex: none; white-space: nowrap;">Check and send</button>
+                </sc-if>
+                <sc-if value="{{ rq.done }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ rq.doneChip }}">Sent</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size: 12.5px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">SPEC prices every new lead in the background from your pre-builds and the last 50 jobs of that type. The estimator only checks it.</p>
+        </section>
+
         <section aria-label="Understand the work" style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
           <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
             <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Understand the work</h2>
@@ -396,6 +450,7 @@
 
           <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px;">
             <button type="button" onClick="{{ cd.newEnquiry }}" class="btn btn-primary">{{ cd.newLabel }}</button>
+            <button type="button" onClick="{{ cd.disputeGo }}" class="btn btn-secondary">{{ cd.disputeLabel }}</button>
           </div>
           <p style="font-size: 12.5px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 62%, transparent);">The customer, their sites and their history come with it. Nothing is typed twice.</p>
           <p style="font-size: 13.5px; margin: 8px 0 0;"><a href="SPEC Customer Page.dc.html">See what the customer sees →</a> Book a time, track the tech, approve a variation, pay.</p>
@@ -792,8 +847,8 @@
         </div>
         <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
           <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
-            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Callbacks and rework</h2>
-            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Every callback is tied to the job and the person who did it, so the cause gets fixed, not just the fault.</span>
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Callbacks, complaints and rework</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Every complaint becomes a callback with an owner and a date, and the client gets an update at each step. Each is tied to the job and the person who did it, so the cause gets fixed, not just the fault.</span>
           </div>
           <div style="margin-top: 16px;"><div style="display: grid; gap: 8px;">
             <sc-for list="{{ callbacks }}" as="cb" hint-placeholder-count="4">
@@ -839,8 +894,8 @@
         </div>
         <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
           <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px;">
-            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Tools and equipment</h2>
-            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Who has what, what's due for test and tag or calibration, and what's missing.</span>
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Tools, equipment and utes</h2>
+            <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">Who has what, what's due for test and tag, calibration, service or rego, and what's missing. Utes show where they last clocked on, never live tracking.</span>
           </div>
           <div style="margin-top: 16px;"><div style="display: grid; gap: 8px;">
             <sc-for list="{{ tools }}" as="tl" hint-placeholder-count="4">
@@ -1189,6 +1244,20 @@
       </sc-for>
     </section>
 
+    <section aria-label="Job type" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px;">
+      <div style="display: flex; gap: 6px; background: var(--color-bg); border-radius: 999px; padding: 4px;">
+        <sc-for list="{{ kindOpts }}" as="ko" hint-placeholder-count="3">
+          <button type="button" onClick="{{ ko.pick }}" style="{{ ko.style }}">{{ ko.label }}</button>
+        </sc-for>
+      </div>
+      <span style="font-size: 13.5px; line-height: 20px; flex: 1 1 320px; min-width: 0; color: color-mix(in srgb, var(--color-text) 72%, transparent);">{{ kindLine }}</span>
+      <div style="display: flex; flex-wrap: wrap; gap: 4px; background: var(--color-bg); border-radius: 999px; padding: 4px; flex-basis: 100%;">
+        <sc-for list="{{ sectorOpts }}" as="so" hint-placeholder-count="6">
+          <button type="button" onClick="{{ so.pick }}" style="{{ so.style }}">{{ so.label }}</button>
+        </sc-for>
+      </div>
+    </section>
+
     <section aria-label="Pipeline" style="display: grid; gap: 10px;">
       <sc-for list="{{ columns }}" as="c" hint-placeholder-count="7">
         <div style="display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-start; background: var(--color-bg); border-radius: 20px; padding: 12px 14px;">
@@ -1200,7 +1269,7 @@
             <sc-for list="{{ c.jobs }}" as="j" hint-placeholder-count="2">
             <button type="button" onClick="{{ j.open }}" style="{{ j.cardStyle }}">
               <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                <span style="font-size: 12px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ j.id }}</span>
+                <span style="font-size: 12px; color: color-mix(in srgb, var(--color-text) 60%, transparent);">{{ j.id }} · {{ j.kind }} · {{ j.sector }}</span>
                 <span style="{{ j.flagStyle }}">{{ j.flag }}</span>
               </span>
               <span style="display: block; font-size: 14.5px; font-weight: 700; line-height: 1.3; margin-top: 6px;">{{ j.title }}</span>
@@ -1296,20 +1365,33 @@ const SEED = [
   J('J-4417', 'onsite', 'Harbourview Apartments, Level 3', 'Harbourview Build', 'Pyrmont', 186000, 81400, 52300, ['Tom Reyes', 'Jai Fenton', 'Sione Tui'], ''),
   J('J-4402', 'onsite', 'Northside fit-out', 'Northside Health', 'St Leonards', 64000, 31800, 19200, ['Jai Fenton', 'Hemi Walker'], 'Margin slipping'),
   J('J-4388', 'invoiced', 'Cafe rewire', 'Bean There', 'Newtown', 14200, 5600, 3100, [], '38 days'),
+  J('J-4440', 'won', 'Conveyor motor controls upgrade', 'Hunter Coal', 'Muswellbrook', 68000, 0, 0, [], 'Site induction needed'),
+  J('J-4436', 'scheduled', 'Solar and battery, 100 kW', 'Metro Freight', 'Botany', 124000, 0, 0, ['Jai Fenton', 'Sione Tui'], ''),
   J('J-4379', 'paid', 'Townhouse fit-off', 'Ridge Homes', 'Ryde', 22800, 8900, 5200, [], ''),
 ];
 const CLEAR = { 'Marcus Bly': false };
+const SECTOR_OF = { 'Harbourview Build': 'Commercial', 'Northside Health': 'Commercial', 'Metro Freight': 'Industrial', 'St Clare School': 'Commercial', 'Harris Strata': 'Commercial', 'Coastline Dental': 'Commercial', 'Bean There': 'Commercial', 'Ridge Homes': 'Commercial', 'Priya Shah': 'Residential', 'Hunter Coal': 'Mining' };
+const SOLAR = { 'J-4436': 1 };
+const sectorOf = j => SOLAR[j.id] ? 'Renewable' : (SECTOR_OF[j.client] || 'Commercial');
+const PROJECTS = { 'J-4431': 1, 'J-4417': 1, 'J-4402': 1, 'J-4379': 1, 'E-117': 1 };
+const kindOf = j => PROJECTS[j.id] || j.quote >= 20000 ? 'project' : 'maint';
+const KIND_LINE = {
+  all: 'Maintenance and projects run through the same pipeline. Each gets the steps it needs.',
+  maint: 'Maintenance: small and quick. Book, do, sign off, invoice the same day. Repeat work and contracts come back on their own.',
+  project: 'Projects: bigger and staged. Takeoff or tender, progress claims to the client, variations, retentions and a defects period.',
+};
 const money2 = n => '$' + n.toFixed(2);
 const CUSTOMERS = [
-  { name: 'Harbourview Build', type: 'Builder', since: 2021, contact: 'Leah Morton, Project Manager', phone: '0412 558 301', email: 'leah@harbourviewbuild.com.au', sites: ['Harbourview Apartments, Pyrmont', 'Wharf Rd townhouses, Rozelle'], lifetime: 612000, won: '7 of 9 won', next: ['Claim 4 due 25 Sep', AMBER], timeline: [['Mon', 'Call', 'Leah confirmed Level 4 starts 6 Oct'], ['12 Sep', 'Email', 'Variation V-13 sent for the DB-3 relocation'], ['28 Aug', 'Paid', 'Claim 3 paid, $23,250']] },
-  { name: 'Northside Health', type: 'Health', since: 2023, contact: 'Dr Ravi Menon, Practice Owner', phone: '0400 921 774', email: 'ravi@northsidehealth.com.au', sites: ['Northside fit-out, St Leonards'], lifetime: 148000, won: '3 of 4 won', next: ['Test and tag overdue', RED], timeline: [['Tue', 'Site', 'V-12 signed on site, 6 extra data points'], ['2 Sep', 'Call', 'Asked about after-hours work in the X-ray room']] },
-  { name: 'Metro Freight', type: 'Logistics', since: 2024, contact: 'Gary Holt, Facilities', phone: '0433 180 562', email: 'gholt@metrofreight.com.au', sites: ['Botany warehouse', 'Port Botany depot'], lifetime: 96000, won: '2 of 2 won', next: ['Book the crew for J-4431', AMBER], timeline: [['Fri', 'Won', 'Accepted the warehouse lighting quote online, $42,000'], ['15 Sep', 'Site', 'Walk-through with Gary, 64 high bays']] },
-  { name: 'St Clare School', type: 'Education', since: 2022, contact: 'Anne Lucas, Business Manager', phone: '02 9398 4410', email: 'alucas@stclare.nsw.edu.au', sites: ['Randwick campus'], lifetime: 183000, won: '5 of 6 won', next: ['Plant room works Wed', GREEN], timeline: [['Thu', 'Email', 'Shutdown notice sent for Wednesday'], ['Mar', 'Service', 'Test and tag, 214 items, 6 replaced']] },
-  { name: 'Harris Strata', type: 'Strata', since: 2025, contact: 'Mia Harris, Strata Manager', phone: '0415 662 019', email: 'mia@harrisstrata.com.au', sites: ['48 Victoria Ave, Chatswood', '12 Hotham Pde, Artarmon'], lifetime: 18400, won: '1 of 3 won', next: ['Follow up Q-2291 today', RED], timeline: [['18 Sep', 'Quote', 'Q-2291 switchboard upgrade sent'], ['9 Sep', 'Call', 'Mia wants three options for the committee']] },
-  { name: 'Coastline Dental', type: 'Health', since: 2023, contact: 'Sophie Tran, Practice Manager', phone: '02 9977 3120', email: 'sophie@coastlinedental.com.au', sites: ['Manly clinic'], lifetime: 41000, won: '2 of 2 won', next: ['Reply to the LED refit enquiry', RED], timeline: [['Today', 'Enquiry', 'Office LED refit, 40 fittings'], ['Jul', 'Service', 'Quarterly emergency lighting test passed']] },
-  { name: 'Bean There', type: 'Hospitality', since: 2025, contact: 'Marco Ricci, Owner', phone: '0421 339 870', email: 'marco@beanthere.com.au', sites: ['Newtown cafe'], lifetime: 15620, won: '1 of 1 won', next: ['Invoice at 38 days, call Marco', RED], timeline: [['Mon', 'Reminder', '30-day reminder sent automatically'], ['17 Aug', 'Invoice', 'INV-8821 sent, $15,620']] },
-  { name: 'Ridge Homes', type: 'Builder', since: 2020, contact: 'Paul Ridge, Director', phone: '0418 700 245', email: 'paul@ridgehomes.com.au', sites: ['Ryde townhouses', 'Epping duplex'], lifetime: 388000, won: '11 of 13 won', next: ['Ask about the Epping job', GREEN], timeline: [['9 Sep', 'Paid', 'INV-8834 paid, $25,080'], ['1 Sep', 'Call', 'Paul mentioned an Epping duplex starting November']] },
-  { name: 'Priya Shah', type: 'Residential', since: 2026, contact: 'Priya Shah, Homeowner', phone: '0402 118 553', email: 'priya.shah@example.com', sites: ['Marrickville house'], lifetime: 0, won: 'New customer', next: ['Quote the EV charger', AMBER], timeline: [['Yesterday', 'Enquiry', 'EV charger install, from the web form']] },
+  { name: 'Harbourview Build', type: 'Commercial · builder', since: 2021, contact: 'Leah Morton, Project Manager', phone: '0412 558 301', email: 'leah@harbourviewbuild.com.au', sites: ['Harbourview Apartments, Pyrmont', 'Wharf Rd townhouses, Rozelle'], lifetime: 612000, won: '7 of 9 won', next: ['Claim 4 due 25 Sep', AMBER], timeline: [['Mon', 'Call', 'Leah confirmed Level 4 starts 6 Oct'], ['12 Sep', 'Email', 'Variation V-13 sent for the DB-3 relocation'], ['28 Aug', 'Paid', 'Claim 3 paid, $23,250']] },
+  { name: 'Northside Health', type: 'Commercial · health', since: 2023, contact: 'Dr Ravi Menon, Practice Owner', phone: '0400 921 774', email: 'ravi@northsidehealth.com.au', sites: ['Northside fit-out, St Leonards'], lifetime: 148000, won: '3 of 4 won', next: ['Test and tag overdue', RED], timeline: [['Tue', 'Site', 'V-12 signed on site, 6 extra data points'], ['2 Sep', 'Call', 'Asked about after-hours work in the X-ray room']] },
+  { name: 'Metro Freight', type: 'Industrial · logistics', since: 2024, contact: 'Gary Holt, Facilities', phone: '0433 180 562', email: 'gholt@metrofreight.com.au', sites: ['Botany warehouse', 'Port Botany depot'], lifetime: 96000, won: '2 of 2 won', next: ['Book the crew for J-4431', AMBER], timeline: [['Fri', 'Won', 'Accepted the warehouse lighting quote online, $42,000'], ['15 Sep', 'Site', 'Walk-through with Gary, 64 high bays']] },
+  { name: 'St Clare School', type: 'Commercial · education', since: 2022, contact: 'Anne Lucas, Business Manager', phone: '02 9398 4410', email: 'alucas@stclare.nsw.edu.au', sites: ['Randwick campus'], lifetime: 183000, won: '5 of 6 won', next: ['Plant room works Wed', GREEN], timeline: [['Thu', 'Email', 'Shutdown notice sent for Wednesday'], ['Mar', 'Service', 'Test and tag, 214 items, 6 replaced']] },
+  { name: 'Harris Strata', type: 'Commercial · strata', since: 2025, contact: 'Mia Harris, Strata Manager', phone: '0415 662 019', email: 'mia@harrisstrata.com.au', sites: ['48 Victoria Ave, Chatswood', '12 Hotham Pde, Artarmon'], lifetime: 18400, won: '1 of 3 won', next: ['Follow up Q-2291 today', RED], timeline: [['18 Sep', 'Quote', 'Q-2291 switchboard upgrade sent'], ['9 Sep', 'Call', 'Mia wants three options for the committee']] },
+  { name: 'Coastline Dental', type: 'Commercial · health', since: 2023, contact: 'Sophie Tran, Practice Manager', phone: '02 9977 3120', email: 'sophie@coastlinedental.com.au', sites: ['Manly clinic'], lifetime: 41000, won: '2 of 2 won', next: ['Reply to the LED refit enquiry', RED], timeline: [['Today', 'Enquiry', 'Office LED refit, 40 fittings'], ['Jul', 'Service', 'Quarterly emergency lighting test passed']] },
+  { name: 'Bean There', type: 'Commercial · hospitality', since: 2025, contact: 'Marco Ricci, Owner', phone: '0421 339 870', email: 'marco@beanthere.com.au', sites: ['Newtown cafe'], lifetime: 15620, won: '1 of 1 won', next: ['Invoice at 38 days, call Marco', RED], timeline: [['Mon', 'Reminder', '30-day reminder sent automatically'], ['17 Aug', 'Invoice', 'INV-8821 sent, $15,620']] },
+  { name: 'Ridge Homes', type: 'Commercial · builder', since: 2020, contact: 'Paul Ridge, Director', phone: '0418 700 245', email: 'paul@ridgehomes.com.au', sites: ['Ryde townhouses', 'Epping duplex'], lifetime: 388000, won: '11 of 13 won', next: ['Ask about the Epping job', GREEN], timeline: [['9 Sep', 'Paid', 'INV-8834 paid, $25,080'], ['1 Sep', 'Call', 'Paul mentioned an Epping duplex starting November']] },
+  { name: 'Hunter Coal', type: 'Mining', since: 2024, contact: 'Brett Wallace, Electrical Superintendent', phone: '02 6543 1180', email: 'bwallace@huntercoal.com.au', sites: ['Muswellbrook open cut', 'Coal handling plant'], lifetime: 214000, won: '3 of 4 won', next: ['Book site inductions for J-4440', AMBER], timeline: [['Wed', 'Won', 'Conveyor motor controls upgrade, $68,000'], ['Aug', 'Audit', 'Passed the mine\u2019s contractor safety audit']] },
+  { name: 'Priya Shah', type: 'Residential · EV charger', since: 2026, contact: 'Priya Shah, Homeowner', phone: '0402 118 553', email: 'priya.shah@example.com', sites: ['Marrickville house'], lifetime: 0, won: 'New customer', next: ['Quote the EV charger', AMBER], timeline: [['Yesterday', 'Enquiry', 'EV charger install, from the web form']] },
 ];
 const PB_MARKUP = 0.4, PB_CHARGE = 135, PB_COST = 64;
 const VAN = ['Van pick list', 'Sent to the crew\u2019s phone the day before, so nobody turns up short'];
@@ -1458,9 +1540,25 @@ const REG = {
     ] },
   ],
   billing: [
-    { title: 'Progress claims', blurb: 'For the big jobs: claim by stage or by percentage complete, with retention held and released on the dates in the contract.', rows: [
-      rr('J-4417 Harbourview · claim 4 of 8', '$23,250 · 5% retention held', 'Due 25 Sep', AMBER),
+    { title: 'Progress claims', blurb: 'Every claim to a client is built to the Security of Payment rules: the right wording, dated and served on time. SPEC tracks the client\u2019s deadline to reply with a payment schedule. If they miss it, you\u2019re told straight away and the next step is drafted. Owned by the Head of Commercial.', rows: [
+      rr('J-4417 Harbourview · claim 4 of 8', '$23,250 · SOPA wording checked · served 18 Sep', 'Reply due 2 Oct', AMBER),
+      rr('J-4402 Northside Health · claim 2', '$18,600 · served 1 Sep · no payment schedule by 15 Sep', 'Deadline missed · next step drafted', RED),
       rr('J-4417 Harbourview · claim 3', '$23,250', 'Paid 28 Aug', GREEN),
+    ] },
+    { title: 'Client accounts', blurb: 'When a new client asks for an account, SPEC checks their ABN, their credit history and how they\u2019ve paid other trades, then suggests payment terms and a credit limit. Terms and limits are set per client. Work stops being booked on account once a client is over their limit.', rows: [
+      rr('Apex Construct · new account request', 'ABN active 11 years · pays others in 52 days on average · 2 disputes', 'Suggest 30 days, $20,000 limit', AMBER),
+      rr('Harbourview Build', '30 days · $80,000 limit · using $34,875', 'Within limit', GREEN),
+      rr('Bean There', '14 days · $10,000 limit · $15,620 owing at 38 days', 'Over limit · book on deposit only', RED),
+    ] },
+    { title: 'Retentions', blurb: 'Every retention a client holds on you, and when it should come back.', rows: [
+      rr('Harbourview Build · J-4417', '$11,625 · 5% · half at practical completion, half after 12 months', 'Held', AMBER),
+      rr('Ridge Homes · J-4379 Ryde', '$2,900 · released at the end of defects, 9 Mar 2027', 'Held', AMBER),
+      rr('St Clare School · library refit', '$3,200 · defects ended 12 Sep', 'Due back now', RED),
+    ] },
+    { title: 'Defects and warranty', blurb: 'Every job has a defects period. Callbacks inside it are free and tracked against the job. Product warranties are logged with the serial number. When a defects period ends, SPEC closes it and asks for the retention back.', rows: [
+      rr('J-4379 Ryde townhouses · 12-month defects', 'Ends 9 Mar 2027 · 1 callback, fixed free', 'Open', AMBER),
+      rr('St Clare library refit · 12-month defects', 'Ended 12 Sep · no callbacks', 'Closed · retention requested', GREEN),
+      rr('Priya Shah · EV charger, 5-year product warranty', 'Serial EVC-7K-22814 · to Sep 2031', 'Logged', GREEN),
     ] },
     { title: 'Variations', blurb: 'Extra work the client asked for, priced and signed on site before it\u2019s done, so it\u2019s never argued about at invoice time.', rows: [
       rr('V-12 · J-4402 · extra 6 data points', '$1,860 · signed by client on site', 'Approved', GREEN),
@@ -1640,6 +1738,31 @@ class Component extends DCLogic {
       ...this.careVals(s),
       ...this.matVals(s),
       ...this.uwVals(s),
+      ...(() => {
+        const d = s.rateDone || '', sent = s.rqSent || {};
+        return {
+          rateStats: [
+            { label: 'Our rate', value: '$115', note: 'an hour, electrician' },
+            { label: 'Quotes win at', value: '$105', note: 'median of 38 won quotes' },
+            { label: 'Local published rates', value: '$98\u2013$120', note: '6 competitors, Sydney south' },
+          ],
+          rateOpen: !d, rateDone: !!d, rateDoneChip: chip(GREEN),
+          rateDoneLabel: d === 'hold' ? 'Holding $115 · SPEC checks the win rate again in 30 days' : 'Testing $108 on new quotes · results in 30 days',
+          rateHold: () => this.setState({ rateDone: 'hold' }),
+          rateMove: () => this.setState({ rateDone: 'move' }),
+          rateSignals: [
+            { what: 'Switchboard upgrades', read: 'Won 11 of 12. Probably too cheap: every one came in at 45% margin or more.', tag: 'Maybe too cheap', chip: chip(AMBER) },
+            { what: 'Commercial fit-outs', read: 'Lost 7 of 9. Two were lost on price by under 5%. Hours are over-quoted by about 10%.', tag: 'Costs look high', chip: chip(RED) },
+            { what: 'Small residential call-outs', read: 'Winning mostly the jobs under 30% margin.', tag: 'Winning low-margin work', chip: chip(AMBER) },
+            { what: 'EV chargers', read: 'Lost 4 of the last 5, all to the same competitor at $1,650.', tag: 'Losing one type', chip: chip(RED) },
+          ],
+          readyQuotes: [
+            ['r1', 'Coastline Dental \u00b7 LED refit, 40 fittings', 'Downlight pre-build \u00d7 40 \u00b7 last 50 similar jobs', '$2,680'],
+            ['r2', 'Ridge Homes \u00b7 Epping duplex', 'Takeoff from the plans, 2 units \u00b7 last 12 duplexes', '$38,400'],
+            ['r3', 'Priya Shah \u00b7 EV charger', 'EV pre-build \u00b7 photos read \u00b7 switchboard upgrade added', '$3,678'],
+          ].map(([id, who, basis, price]) => ({ who, basis, price, open: !sent[id], done: !!sent[id], doneChip: chip(GREEN), send: () => this.setState(st => ({ rqSent: { ...(st.rqSent || {}), [id]: true } })) })),
+        };
+      })(),
       ...this.timeVals(s),
       ...this.leadVals(s),
       ...this.inboxVals(s),
@@ -1943,6 +2066,9 @@ class Component extends DCLogic {
         { id: 't1', title: 'Hilti hammer drill TE 30', sub: 'With Tom Reyes\u2019s crew · Ute 09', detail: 'Test and tag was due 20 Sep.', state: 'Overdue', tone: RED, action: 'Book test and tag', doneLabel: 'Booked Monday at the yard' },
         { id: 't2', title: 'Fluke insulation tester 1587', sub: 'With Jai Fenton · Ute 04', detail: 'Calibration due 12 Oct. Needed for every test result on a CCEW.', state: 'Due soon', tone: AMBER, action: 'Book calibration', doneLabel: 'Booked · loan tester arranged' },
         { id: 't3', title: 'Laser level', sub: 'Last with Marcus Bly · 16 Sep', detail: 'Not scanned back into the yard since.', state: 'Missing', tone: RED, action: 'Ask Marcus', doneLabel: 'Text sent to Marcus' },
+        { id: 'u1', title: 'Ute 04 · Toyota HiLux · Hemi Walker', sub: 'Last clock-on: Northside Health, St Leonards, 7:02 today', detail: 'Service due at 90,000 km, now 88,400. Rego current to Mar 2027.', state: 'Service soon', tone: AMBER, action: 'Book the service', doneLabel: 'Booked Sat 8am' },
+        { id: 'u2', title: 'Ute 09 · Isuzu D-Max · Tom Reyes', sub: 'Last clock-on: Harbourview, Pyrmont, 6:48 today', detail: 'Pre-start: all OK. Service and rego current.', state: 'Good', tone: GREEN, action: '', doneLabel: '' },
+        { id: 'u3', title: 'Ute 14 · Ford Ranger · Jai Fenton', sub: 'Last clock-on: Metro Freight, Botany, 7:10 today', detail: 'Rego due 12 Oct.', state: 'Rego due', tone: AMBER, action: 'Pay the rego', doneLabel: 'Paid \u00b7 in Xero' },
         { id: 't4', title: 'Step and platform ladders (14)', sub: 'Across the utes', detail: 'One cracked ladder pulled from Ute 09 after Hemi\u2019s report.', state: '13 in use', tone: GREEN, action: '', doneLabel: '' },
       ].map(row),
       reviewStats: [T('Google rating', '4.9', 'from 212 reviews', GREEN), T('New this month', '14', 'up from 9 in August'), T('Paid jobs reviewed', '38%', 'of customers asked'), T('Replies', 'All', 'every review answered')],
@@ -2054,7 +2180,7 @@ class Component extends DCLogic {
       leadSources: [
         ['Website form', 14, '5 won · $21,400 · replied in 4 min'], ['Google Business Profile', 11, '3 won · $9,800 · 38% margin'], ['Google ads', 7, '1 won · $2,100 · ads cost $1,400'],
         ['hipages & ServiceSeeking', 6, '2 won · $1,900 · small jobs'], ['EstimateOne & Cordell', 4, '1 won · $64,000 · 41% margin'], ['Missed calls', 8, 'All texted back in 1 min · 6 booked'],
-        ['Repeat customers', 9, '7 won · $38,600 · best margin'], ['Referrals', 6, '4 won · $17,200'], ['Emails to staff', 5, 'Found by SPEC · 3 quoted'],
+        ['Repeat customers', 9, '7 won · $38,600 · best margin'], ['Referrals', 6, '4 won · $17,200'], ['Emails to staff', 5, 'Found by SPEC · 3 quoted'], ['Work orders', 7, 'From agents, strata and email · accept in Leads'],
       ].map(([name, count, note]) => ({ name, count: String(count), note })),
       speedLine: '1.4 days to quote · target 2', speedChip: chip(GREEN),
       waiting: [
@@ -2162,6 +2288,8 @@ class Component extends DCLogic {
         noWork: cj.length === 0,
         timeline: [...(s.notes[c.name] || []), ...c.timeline].map(([when, kind, what]) => ({ when, kind, what })),
         newEnquiry, newLabel: 'New enquiry for ' + c.name,
+        disputeLabel: (s.disputed || {})[c.name] ? 'Dispute pack ready · PDF emailed' : 'Dispute pack',
+        disputeGo: () => this.setState(st => ({ disputed: { ...(st.disputed || {}), [c.name]: true } })),
       },
       noteDraft: s.noteDraft,
       setNoteDraft: e => this.setState({ noteDraft: e.target.value }),
@@ -2289,8 +2417,19 @@ class Component extends DCLogic {
         { label: 'Average margin', value: '38%', note: 'Benchmark 40% · electrical', tone: AMBER },
         { label: 'Owed to you', value: money(debt), note: debt ? 'Oldest 38 days · SPEC is chasing' : 'Nothing owed', tone: debt ? RED : GREEN },
       ],
+      kindOpts: [['all', 'All jobs'], ['maint', 'Maintenance'], ['project', 'Projects']].map(([k, label]) => ({
+        label: label + ' · ' + (k === 'all' ? jobs.length : jobs.filter(j => kindOf(j) === k).length),
+        pick: () => this.setState({ kind: k }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:8px 16px;font-family:var(--font-body);font-size:13.5px;font-weight:600;white-space:nowrap;' + ((this.state.kind || 'all') === k ? 'background:var(--color-text);color:#fff;' : 'background:transparent;color:var(--color-text);'),
+      })),
+      kindLine: KIND_LINE[this.state.kind || 'all'],
+      sectorOpts: [['all', 'All sectors'], ['Industrial', 'Industrial'], ['Commercial', 'Commercial'], ['Renewable', 'Renewable'], ['Mining', 'Mining'], ['Residential', 'Residential']].map(([k, label]) => ({
+        label: label + (k === 'all' ? '' : ' · ' + money(jobs.filter(j => sectorOf(j) === k).reduce((a, j) => a + j.quote, 0))),
+        pick: () => this.setState({ sector: k }),
+        style: 'cursor:pointer;border:0;border-radius:999px;padding:8px 14px;font-family:var(--font-body);font-size:13px;font-weight:600;white-space:nowrap;' + ((this.state.sector || 'all') === k ? 'background:var(--color-text);color:#fff;' : 'background:transparent;color:var(--color-text);'),
+      })),
       columns: STAGES.map(st => {
-        const list = jobs.filter(j => j.stage === st.key);
+        const list = jobs.filter(j => j.stage === st.key && ((this.state.kind || 'all') === 'all' || kindOf(j) === this.state.kind) && ((this.state.sector || 'all') === 'all' || sectorOf(j) === this.state.sector));
         return {
           label: st.label,
           total: list.length ? ' · ' + money(list.reduce((a, j) => a + j.quote, 0)) : '',
@@ -2301,6 +2440,8 @@ class Component extends DCLogic {
             const on = j.id === openId;
             return {
               id: j.id, title: j.title, client: j.client,
+              kind: kindOf(j) === 'project' ? 'Project' : 'Maintenance',
+              sector: sectorOf(j),
               value: j.quote ? money(j.quote) : 'To quote',
               marginLabel: m == null ? '' : Math.round(m * 100) + '% margin',
               marginTone: mTone(m),

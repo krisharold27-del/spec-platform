@@ -46,18 +46,33 @@ const text = () => page.textContent('body').then(t => t ?? '');
 // name, and Enter carries it into sign-up so it is never asked for twice.
 await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 let body = await text();
-check('the bare address is siteVIP', /The trades edition of SPEC/.test(body) && /POWERED BY SPEC/.test(body), body.slice(0, 120));
+/*
+  The invariant is the BRANDING, not the tagline.
+
+  This pinned "The trades edition of SPEC", which was the wording on 23 September and is not the
+  wording now — the line under the logo is marketing copy and will be rewritten many times. A check
+  that fails every time somebody improves a sentence is a check that gets deleted, and takes the
+  real guarantee with it. What must stay true is that the bare address is siteVIP and that it says
+  what it is powered by.
+*/
+check('the bare address is siteVIP', /siteVIP/i.test(body) && /POWERED BY SPEC/i.test(body), body.slice(0, 120));
 check('and the SPEC front door is one press away', (await page.locator('a[href="/spec"]').count()) > 0);
-await page.press('input[aria-label="Your business name"]', 'Enter');
-await page.waitForTimeout(400);
-check('Enter on an empty box goes nowhere', new URL(page.url()).pathname === '/', page.url());
-await page.fill('input[aria-label="Your business name"]', `${BUSINESS} Trades`);
-await Promise.all([
-  page.waitForURL('**/signup**', { timeout: 20_000 }).catch(() => {}),
-  page.press('input[aria-label="Your business name"]', 'Enter'),
-]);
-check('ENTER CARRIES THE BUSINESS NAME INTO SIGN-UP',
-  (await page.inputValue('input[name="business"]').catch(() => '')) === `${BUSINESS} Trades`, page.url());
+
+/*
+  ── The business-name box is gone, on purpose ───────────────────────────────────────────────────
+
+  Until 25 September the bare address asked for a business name and carried it into sign-up, and
+  three checks here drove that. The landing was rebuilt and the box went with it: the front door now
+  opens on the problem box, which is what the rest of this journey exercises.
+
+  Written down rather than deleted quietly, because a journey that loses checks in a redesign is a
+  journey that slowly stops proving anything. What was guaranteed — nobody is asked for the same
+  thing twice — is still guaranteed wherever a name IS asked for, and the sign-up journey holds it.
+
+  `src/components/sitevip-landing.tsx` is the old landing and is now unused. It is left for whoever
+  rebuilt this to remove or restore on purpose, rather than deleted from underneath them.
+*/
+check('the front door opens on the problem box', /start with one problem/i.test(body), body.slice(0, 160));
 
 // ── The SPEC door, at /spec ──────────────────────────────────────────────────────────────────────
 await page.goto(`${BASE}/spec`, { waitUntil: 'networkidle' });
