@@ -233,7 +233,15 @@ export function certificateLine(watches: readonly CertWatch[], setup: Certificat
   const owed = watches.filter(w => stillOwed(w.state));
   if (owed.length === 0) return 'Every finished job has its certificate lodged.';
   const late = owed.filter(w => w.state === 'late').length;
-  const written = owed.filter(w => w.state === 'issued').length;
+  /*
+    Counted from whether it was WRITTEN, not from the state label.
+
+    It used to count `state === 'issued'`, which silently dropped every job that was written AND
+    past the window — so the one group in the worst trouble, certificates sitting in a drawer while
+    the clock ran out, was the one group the summary never mentioned. The states are exclusive; the
+    facts underneath them are not.
+  */
+  const written = owed.filter(w => Boolean(w.job.certificateIssuedAt)).length;
   const bits = [`${owed.length} finished ${owed.length === 1 ? 'job has no certificate lodged' : 'jobs have no certificate lodged'}`];
   if (written) bits.push(`${written} written but not sent`);
   if (late) bits.push(`${late} past your own window`);

@@ -20,6 +20,11 @@ import { wipRow, wipStats, wipLine, byWipAttention, wipMoney, WIP_LABEL } from '
 import { runForward, cashStats, cashAdvice, cashLine, cashLabel, DEFAULT_BUFFER_CENTS, type Week } from '@/lib/cashflow';
 import { seatOf, tabsFor, maySeeTab, stripMoney, insteadGoTo } from '@/lib/sight';
 import { crewWatch, crewLine, unheld, WHY_ONE_SUPERVISOR } from '@/lib/crews';
+import { noAccessCount, repeaters } from '@/lib/no-access';
+import {
+  outstanding, certificateLine, isSetUp, TERRITORIES, SUGGESTED_NAME,
+  CONFIRM_THE_NAME, WHY_THE_WINDOW_IS_YOURS, type CertificateSetup, type Territory,
+} from '@/lib/certificates';
 import { seatFor } from '@/lib/seat-of';
 import { reworkStats, reworkLine, reworkMoney, pattern, CAUSES, causeLabel, recoverFrom, REWORK_TARGET, RETURNING_RULE, unpaidRework, carriedLine, carriedCents, RECOVERY_GOES_STALE_DAYS } from '@/lib/rework';
 import { reviewStats, reviewLine, needsReply, isComplaint, thankYou, mayAsk } from '@/lib/reviews';
@@ -41,6 +46,7 @@ import {
   addTender,
   addTool,
   logCallback, setReviewLink, askForReview, recordQuoteChase, addScope, setSupervisor,
+  setCertificateSetup, issueCertificate, lodgeCertificate, excuseCertificate,
 } from './actions';
 
 import {
@@ -116,13 +122,14 @@ const TABS = [
   { key: 'rework', label: 'Callbacks & rework' },
   { key: 'reviews', label: 'Reviews' },
   { key: 'growth', label: 'Keep work coming' },
+  { key: 'certificates', label: 'Certificates' },
 ] as const;
 type Tab = (typeof TABS)[number]['key'];
 
 export const TAB_GROUPS = [
   { key: 'win', label: 'Win the work', tabs: ['growth', 'leads', 'tenders', 'takeoff', 'customers', 'ace', 'quotes', 'prebuilds', 'howlong'] },
   { key: 'do', label: 'Do the work', tabs: ['pipeline', 'jobace', 'schedule', 'time', 'catalogue', 'stock', 'tools'] },
-  { key: 'paid', label: 'Get paid and keep them', tabs: ['billing', 'wip', 'cash', 'service', 'rework', 'reviews'] },
+  { key: 'paid', label: 'Get paid and keep them', tabs: ['billing', 'certificates', 'wip', 'cash', 'service', 'rework', 'reviews'] },
 ] as const;
 
 /** The group a tab belongs to. Do the work when the tab is not one anybody knows — the middle of the day. */
@@ -172,7 +179,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const today = now.toISOString().slice(0, 10);
 
   /* Everything this business has recorded for Jobs, read once and scoped by tenant in the query. */
-  const [allJobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows, chaseRows] = await Promise.all([
+  const [allJobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows, chaseRows, noAccessRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
     db.select().from(schema.quotes).where(eq(schema.quotes.tenantId, user.tenantId)).orderBy(schema.quotes.createdAt),
     db.select().from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, user.tenantId)).orderBy(schema.catalogueItems.name),
@@ -199,6 +206,8 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
     db.select().from(schema.tenders).where(eq(schema.tenders.tenantId, user.tenantId))
       .orderBy(schema.tenders.dueAt),
     db.select().from(schema.quoteChases).where(eq(schema.quoteChases.tenantId, user.tenantId)),
+    db.select().from(schema.noAccessVisits).where(eq(schema.noAccessVisits.tenantId, user.tenantId))
+      .orderBy(schema.noAccessVisits.createdAt),
   ]);
   const crew = await crewFor(user);
 
@@ -208,6 +217,10 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   /* The two things this business sets for itself: where reviews go, and the floor under its cash. */
   const [tenantRow] = await db.select({
     name: schema.tenants.name,
+    certificateName: schema.tenants.certificateName,
+    certificateTerritory: schema.tenants.certificateTerritory,
+    certificateWithinDays: schema.tenants.certificateWithinDays,
+    noAccessHours: schema.tenants.noAccessHours,
     reviewLink: schema.tenants.reviewLink,
     cashBufferCents: schema.tenants.cashBufferCents,
   }).from(schema.tenants).where(eq(schema.tenants.id, user.tenantId));
@@ -327,8 +340,19 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       {tab === 'customers' && <Customers jobs={jobs} tenantId={user.tenantId} />}
       {tab === 'wip' && <WorkInProgress jobs={costed} bills={billRows} manage={manage} tabHref={tabHref} />}
       {tab === 'cash' && <CashFlow tenantId={user.tenantId} bills={billRows} orders={orderRows} today={today} />}
-      {tab === 'rework' && <Rework rows={callbackRows} jobs={jobs} crew={crew} manage={manage} minutes={workedMinutes} />}
+      {tab === 'rework' && (
+        <Rework rows={callbackRows} jobs={jobs} crew={crew} manage={manage} minutes={workedMinutes}
+          noAccessRows={noAccessRows}
+          noAccessHours={tenantRow?.noAccessHours ? Number(tenantRow.noAccessHours) : null} />
+      )}
       {tab === 'reviews' && <Reviews rows={reviewRows} jobs={jobs} manage={manage} link={tenantRow?.reviewLink ?? null} />}
+      {tab === 'certificates' && (
+        <Certificates jobs={jobs} manage={manage} setup={{
+          territory: (tenantRow?.certificateTerritory ?? null) as Territory | null,
+          name: tenantRow?.certificateName ?? null,
+          withinDays: tenantRow?.certificateWithinDays ?? null,
+        }} />
+      )}
       {tab === 'growth' && (
         <KeepWorkComing jobs={jobs} chases={chaseRows} tenders={tenderRows} manage={manage}
           business={tenantRow?.name ?? 'us'} now={now} />
@@ -2405,12 +2429,14 @@ const due = (sentAt: string) => addDays(sentAt.slice(0, 10), 30);
  * with a money fix, it is work that was not done right, and the fix is a checklist or a
  * conversation. See the note at the top of lib/rework.
  */
-function Rework({ rows, jobs, crew, manage, minutes }: {
+function Rework({ rows, jobs, crew, manage, minutes, noAccessRows, noAccessHours }: {
   rows: (typeof schema.callbacks.$inferSelect)[];
   jobs: JobRow[];
   crew: CrewMember[];
   manage: boolean;
   minutes: number;
+  noAccessRows: (typeof schema.noAccessVisits.$inferSelect)[];
+  noAccessHours: number | null;
 }) {
   const refOf = (id: string) => jobs.find(j => j.id === id)?.ref ?? 'Job';
   const calls = rows.map(r => ({
@@ -2428,6 +2454,18 @@ function Rework({ rows, jobs, crew, manage, minutes }: {
     .filter(j => j.stage === 'invoiced' || j.stage === 'paid')
     .reduce((t, j) => t + (j.valueCents ?? 0), 0);
   const unpaid = unpaidRework(calls, billedCents);
+
+  /*
+    No-access sits here rather than in a tab of its own, because it is the same conversation: time
+    paid for that earned nothing. A seventh place to look would mean it is never looked at.
+  */
+  const refFor = (id: string) => jobs.find(j => j.id === id);
+  const visits = noAccessRows.map(r => ({
+    id: r.id, jobId: r.jobId, jobRef: refFor(r.jobId)?.ref ?? 'A job',
+    client: refFor(r.jobId)?.client ?? '', at: r.createdAt, who: r.who, because: r.because,
+  }));
+  const lockedOut = noAccessCount(visits, noAccessHours);
+  const again = repeaters(visits);
 
   return (
     <div className="grid gap-6">
@@ -2487,6 +2525,35 @@ function Rework({ rows, jobs, crew, manage, minutes }: {
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {visits.length > 0 && (
+          <section className="mt-6">
+            <h3 className="font-serif text-lg text-ink">Turned up and could not get in</h3>
+            <p className="mt-1 max-w-[74ch] text-sm text-ink-light">
+              The most common thing that wrecks a day, and the thing almost nobody counts — because
+              counting it used to mean ringing the office. One press on the phone now does it.
+            </p>
+            <p className="mt-2 text-sm font-semibold text-ink">{lockedOut.says}</p>
+
+            {again.length > 0 && (
+              /*
+                The number that changes a decision. The total is a fact about the world; WHICH
+                customers do it repeatedly is a conversation, a deposit, or a different booking
+                arrangement — and it is impossible to have without a count.
+              */
+              <ul className="mt-3 grid gap-2">
+                {again.map(r => (
+                  <li key={r.client} className="rounded-2xl px-4 py-3"
+                    style={{ background: LIGHT_COLOUR.amber }}>
+                    <p className="text-sm" style={{ color: LIGHT_INK.amber }}>
+                      <strong>{r.client}</strong> — {r.says}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         )}
 
@@ -3401,6 +3468,129 @@ function KeepWorkComing({ jobs, chases, tenders, manage, business, now }: {
                 <span className="text-[13px] text-ink-light">
                   {b.says} <span className="text-ink/70">{money(b.worthCents)} of work.</span>
                 </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/**
+ * Certificates of compliance — the one document that proves the work was lawful.
+ *
+ * ── Why this is its own screen ───────────────────────────────────────────────────────────────────
+ *
+ * From the workflow review: a job finishes, the customer signs it off on the phone, the invoice
+ * goes — and the certificate is done somewhere else entirely, on a different system or a pad in the
+ * ute. So the one document that proves the work was lawful is the one document the job does not
+ * hold, and the first time anybody looks for it is the one time it matters.
+ *
+ * Nothing here is clever. It lives on the job, it is asked for when the work is finished, and it is
+ * visibly missing until it is not.
+ *
+ * ── SPEC does not know what yours is called, or when it is due ───────────────────────────────────
+ *
+ * Every state runs its own scheme, under its own name, inside its own window, and they change. So
+ * the business sets both, once, from what its own regulator says — and a business that has not set
+ * a window is told the certificate is outstanding and explicitly NOT told whether it is late. See
+ * lib/certificates: there is not a day count in the file and a test fails the build if one appears.
+ */
+function Certificates({ jobs, setup, manage }: {
+  jobs: JobRow[];
+  setup: CertificateSetup;
+  manage: boolean;
+}) {
+  const certifiable = jobs.map(j => ({
+    id: j.id, ref: j.ref, stage: j.stage,
+    noCertificateBecause: j.noCertificateBecause,
+    certificateRef: j.certificateRef,
+    certificateIssuedAt: j.certificateIssuedAt,
+    certificateLodgedAt: j.certificateLodgedAt,
+    doneAt: j.stageAt,
+  }));
+  const owed = outstanding(certifiable, setup);
+  const what = setup.name?.trim() || 'Certificate of compliance';
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">Certificates of compliance</h2>
+        <p className="mt-1 max-w-[74ch] text-sm text-ink-light">
+          The one document that proves the work was lawful, held against the job that needed it —
+          because an insurance claim, a fire, a regulator or a builder&rsquo;s audit is the only time
+          anybody goes looking, and a pad in the ute is not where it will be.
+        </p>
+        <p className="mt-3 text-sm font-semibold text-ink">{certificateLine(owed, setup)}</p>
+      </section>
+
+      {manage && (
+        <section className="card">
+          <h3 className="font-serif text-lg text-ink">What yours is called, and how long you have</h3>
+          <p className="mt-1 max-w-[74ch] text-sm text-ink-light">{WHY_THE_WINDOW_IS_YOURS}</p>
+          <form action={setCertificateSetup} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1.4fr_1fr_auto]">
+            <select className="input" name="territory" defaultValue={setup.territory ?? ''} aria-label="Where you mainly work">
+              <option value="">Where you work…</option>
+              {TERRITORIES.map(t => <option key={t.code} value={t.code}>{t.name}</option>)}
+            </select>
+            <input className="input" name="name" defaultValue={setup.name ?? ''}
+              placeholder={setup.territory ? SUGGESTED_NAME[setup.territory] : 'What yours is called'}
+              aria-label="What your certificate is called" />
+            <input className="input" name="withinDays" inputMode="numeric"
+              defaultValue={setup.withinDays ?? ''} placeholder="Days to lodge"
+              aria-label="Days you have to lodge it" />
+            <SubmitButton className="btn-secondary shrink-0" pending="Saving…">Save</SubmitButton>
+          </form>
+          <p className="mt-2 max-w-[74ch] text-xs text-ink-light">{CONFIRM_THE_NAME}</p>
+        </section>
+      )}
+
+      <section className="card">
+        <h3 className="font-serif text-lg text-ink">Still owed</h3>
+        {owed.length === 0 ? (
+          <p className="mt-2 text-sm text-ink-light">
+            {isSetUp(setup)
+              ? 'Every finished job has its certificate lodged.'
+              : 'Nothing to show until SPEC knows what yours is called.'}
+          </p>
+        ) : (
+          <ul className="mt-3 grid gap-2">
+            {owed.map(w => (
+              <li key={w.job.id} className="rounded-2xl bg-cream p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm text-ink">{w.job.ref}</span>
+                  <span className="text-[13px]"
+                    style={{ color: w.state === 'late' ? LIGHT_INK.red : LIGHT_INK.amber }}>
+                    {w.says}
+                  </span>
+                </div>
+                {manage && (
+                  <div className="mt-3 flex flex-wrap items-end gap-2">
+                    {!w.job.certificateIssuedAt ? (
+                      <form action={issueCertificate} className="flex flex-wrap items-end gap-2">
+                        <input type="hidden" name="jobId" value={w.job.id} />
+                        <input className="input" name="ref" placeholder={`${what} number`} aria-label="Certificate number" />
+                        <SubmitButton className="btn-secondary shrink-0 text-sm" pending="…">Written</SubmitButton>
+                      </form>
+                    ) : (
+                      /*
+                        Two presses on purpose. Written and lodged are different states, and the gap
+                        between them is where businesses fall — the customer has their copy,
+                        everybody believes it is done, and the body that had to receive it never did.
+                      */
+                      <form action={lodgeCertificate}>
+                        <input type="hidden" name="jobId" value={w.job.id} />
+                        <SubmitButton className="btn-primary shrink-0 text-sm" pending="…">Lodged</SubmitButton>
+                      </form>
+                    )}
+                    <form action={excuseCertificate} className="flex flex-wrap items-end gap-2">
+                      <input type="hidden" name="jobId" value={w.job.id} />
+                      <input className="input" name="why" placeholder="Or say why it needs none" aria-label="Why no certificate" />
+                      <SubmitButton className="btn-secondary shrink-0 text-sm" pending="…">Not needed</SubmitButton>
+                    </form>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

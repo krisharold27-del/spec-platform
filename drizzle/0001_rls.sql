@@ -312,7 +312,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['sectors', 'quote_chases', 'shutdowns', 'job_scopes']
+  foreach t in array array['sectors', 'quote_chases', 'shutdowns', 'job_scopes', 'no_access_visits']
   loop
     continue when to_regclass(t) is null;
     execute format('alter table %I enable row level security', t);

@@ -219,3 +219,53 @@ export async function attachPhoto(input: {
   revalidatePath('/jobs');
   return { ok: true, says: 'Photo saved to the job.' };
 }
+
+/**
+ * Turned up and could not get in. One press.
+ *
+ * ── Why this takes no arguments worth speaking of ────────────────────────────────────────────────
+ *
+ * The person pressing it is standing in a driveway with a phone in one hand. Anything with a
+ * decision in it does not get pressed — and a record only made on quiet days is worse than none,
+ * because the number it produces says quiet days have the most no-access.
+ *
+ * So the press records the fact, and the reason is offered afterwards and never required. The job
+ * goes back to `won` so it returns to the list waiting to be booked: a job left `scheduled` for a
+ * day nobody worked is a job that looks done from the office.
+ */
+export async function couldNotGetIn(formData: FormData): Promise<Recorded> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, says: 'Sign in first.' };
+  await assertWritable(user.tenantId);
+
+  const jobId = String(formData.get('jobId') ?? '').slice(0, 64);
+  const [job] = await db.select({ id: schema.jobs.id, ref: schema.jobs.ref, stage: schema.jobs.stage })
+    .from(schema.jobs)
+    .where(and(eq(schema.jobs.id, jobId), eq(schema.jobs.tenantId, user.tenantId)));
+  if (!job) return { ok: false, says: 'That job is not on your day.' };
+
+  const at = new Date().toISOString();
+  await db.insert(schema.noAccessVisits).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    jobId: job.id,
+    who: user.name ?? user.email ?? 'Somebody',
+    because: String(formData.get('because') ?? '').trim().slice(0, 200) || null,
+    /*
+      The customer is told as part of the same press. Telling them later is what turns a wasted
+      visit into an argument about whether anybody came.
+    */
+    toldAt: at,
+    createdAt: at,
+  });
+
+  /* Back to waiting-to-be-booked. A job left scheduled for a day nobody worked looks done. */
+  if (job.stage === 'scheduled') {
+    await db.update(schema.jobs).set({ stage: 'won', stageAt: at })
+      .where(eq(schema.jobs.id, job.id));
+  }
+
+  revalidatePath('/tech-day');
+  revalidatePath('/jobs');
+  return { ok: true, says: `Recorded, and ${job.ref} is back on the list to rebook. No charge to the customer for today.` };
+}

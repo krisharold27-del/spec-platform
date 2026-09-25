@@ -53,6 +53,24 @@ export const tenants = pgTable('tenants', {
    * business, and the default in lib/cashflow is a starting point rather than an opinion.
    */
   reviewLink: text('review_link'),
+  /*
+    ── What the certificate is called here, and how long there is to lodge it ────────────────────
+
+    The business's own answers, because every state runs its own scheme under its own name inside
+    its own window and they change. `certificateWithinDays` is null until somebody sets it, and null
+    is a REAL state: SPEC then tracks the certificate as outstanding and refuses to say whether it
+    is late. A deadline SPEC invented would be worse than no deadline — a business lodging to a
+    made-up window has been actively misled by the thing it trusted to keep it right.
+  */
+  certificateName: text('certificate_name'),
+  certificateTerritory: text('certificate_territory'),
+  certificateWithinDays: integer('certificate_within_days'),
+  /**
+   * What one no-access costs this business in hours — travel there, travel on, and the hole in the
+   * run that nothing fills at two hours' notice. Null until somebody says, and SPEC never guesses:
+   * a made-up cost is a business making decisions on arithmetic somebody else did in their head.
+   */
+  noAccessHours: text('no_access_hours'),
   cashBufferCents: integer('cash_buffer_cents'),
   /**
    * basic | advanced — decided by one question to the leader: "Do you want the power of AI?"
@@ -1492,6 +1510,22 @@ export const jobs = pgTable('jobs', {
    */
   supervisorKey: text('supervisor_key'),
   supervisorName: text('supervisor_name'),
+  /*
+    ── The one document that proves the work was lawful ──────────────────────────────────────────
+
+    Held against the job, because that is the only place it is ever looked for: an insurance claim,
+    a fire, a regulator, a builder's audit, or a sale of the business where four years of them have
+    to be produced at once. Done on a pad in the ute, it is the one document the job does not have.
+
+    Three fields rather than one flag, because written and LODGED are different states and the gap
+    between them is where businesses fall: the customer has their copy, everybody believes it is
+    done, and the body that had to receive it never did. See lib/certificates.
+  */
+  certificateRef: text('certificate_ref'),
+  certificateIssuedAt: text('certificate_issued_at'),
+  certificateLodgedAt: text('certificate_lodged_at'),
+  /** Set when the business says this job does not need one, and why. Never a silent skip. */
+  noCertificateBecause: text('no_certificate_because'),
   /** When the quote actually went out. What speed-to-quote is measured from `createdAt` against. */
   quotedAt: text('quoted_at'),
   createdBy: text('created_by').notNull(),
@@ -2425,4 +2459,29 @@ export const jobScopes = pgTable('job_scopes', {
 }, t => [
   index('job_scopes_tenant').on(t.tenantId),
   index('job_scopes_job').on(t.tenantId, t.jobId),
+]).enableRLS();
+
+
+/**
+ * A crew turned up and could not get in.
+ *
+ * The most common thing that wrecks a day, and the thing almost no trade business counts — because
+ * counting it has always meant a call to the office and a note somebody types up later, so it
+ * disappears into the day instead. One press on the phone writes this row. See lib/no-access.
+ *
+ * `because` is nullable on purpose and is asked AFTER the fact is recorded: the reason is the part
+ * that stops it being pressed, and a record only made on quiet days is worse than none.
+ */
+export const noAccessVisits = pgTable('no_access_visits', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  jobId: text('job_id').notNull(),
+  who: text('who').notNull(),
+  because: text('because'),
+  /** Whether the customer was told, which is the half that stops it being an argument later. */
+  toldAt: text('told_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('no_access_tenant').on(t.tenantId),
+  index('no_access_job').on(t.tenantId, t.jobId),
 ]).enableRLS();

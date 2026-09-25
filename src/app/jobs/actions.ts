@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
 import { QUOTE_CHASE } from '@/lib/growth';
+import { isTerritory } from '@/lib/certificates';
 import { assertWritable } from '@/lib/plan';
 import { crewFor, createJob } from '@/lib/jobs-data';
 import { nextOrderRef, match } from '@/lib/purchasing';
@@ -1193,4 +1194,77 @@ export async function setSupervisor(form: FormData) {
     supervisorKey: who ? who.toLowerCase().replace(/\s+/g, '-').slice(0, 64) : null,
   }).where(eq(schema.jobs.id, jobId));
   back('schedule', { book: jobId });
+}
+
+/* ── The certificate that proves the work was lawful ─────────────────────────────────────────── */
+
+/**
+ * What the business calls its certificate, where it works, and how long it has to lodge one.
+ *
+ * Set once. The window is the business's own, from their own regulator — SPEC has none of its own
+ * and says so rather than inventing one.
+ */
+export async function setCertificateSetup(form: FormData) {
+  const user = await writer();
+  const territory = str(form, 'territory', 8);
+  const days = String(form.get('withinDays') ?? '').trim();
+
+  await db.update(schema.tenants).set({
+    certificateName: str(form, 'name', 120) || null,
+    certificateTerritory: isTerritory(territory) ? territory : null,
+    /* Blank means nobody has said, which is different from zero and must stay different. */
+    certificateWithinDays: days === '' ? null : Math.max(0, Math.min(365, Number(days) || 0)),
+  }).where(eq(schema.tenants.id, user.tenantId));
+  back('certificates');
+}
+
+/** Written. Not the same as lodged, which is the whole reason these are two presses. */
+export async function issueCertificate(form: FormData) {
+  const user = await writer();
+  const job = await ownJob(user.tenantId, str(form, 'jobId', 64));
+  if (!job) back('certificates', {}, 'That job is not in this business.');
+
+  await db.update(schema.jobs).set({
+    certificateRef: str(form, 'ref', 60) || null,
+    certificateIssuedAt: now(),
+  }).where(eq(schema.jobs.id, job.id));
+  back('certificates');
+}
+
+/**
+ * Lodged with whoever has to receive it.
+ *
+ * The press that actually finishes it. A business that only ever reaches "issued" has a customer
+ * holding a certificate and a regulator who never got one, which is the failure this screen exists
+ * to make visible.
+ */
+export async function lodgeCertificate(form: FormData) {
+  const user = await writer();
+  const job = await ownJob(user.tenantId, str(form, 'jobId', 64));
+  if (!job) back('certificates', {}, 'That job is not in this business.');
+  if (!job.certificateIssuedAt) back('certificates', {}, 'Write it before you lodge it.');
+
+  await db.update(schema.jobs).set({ certificateLodgedAt: now() })
+    .where(eq(schema.jobs.id, job.id));
+  back('certificates');
+}
+
+/**
+ * This job does not need one — and why.
+ *
+ * A reason rather than a tick. Plenty of finished jobs genuinely need no certificate, and a business
+ * that can silently skip them has a register that means nothing; one that has to say why has a
+ * register somebody can audit.
+ */
+export async function excuseCertificate(form: FormData) {
+  const user = await writer();
+  const job = await ownJob(user.tenantId, str(form, 'jobId', 64));
+  if (!job) back('certificates', {}, 'That job is not in this business.');
+
+  const why = str(form, 'why', 200);
+  if (!why) back('certificates', {}, 'Say why this one does not need a certificate.');
+
+  await db.update(schema.jobs).set({ noCertificateBecause: why })
+    .where(eq(schema.jobs.id, job.id));
+  back('certificates');
 }

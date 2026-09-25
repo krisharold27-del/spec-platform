@@ -454,6 +454,8 @@ const JOURNEYS = [
   ['sight', 'a subbie and a team member never reaching the money', 'sight-journey'],
   ['rework', 'going back paid being a job, and going back free being rework', 'rework-journey'],
   ['crews', 'splitting a job and somebody carrying the whole of it', 'crews-journey'],
+  ['certificate', 'the document that proves the work was lawful living on the job', 'certificate-journey'],
+  ['noaccess', 'a crew locked out being counted from the doorstep', 'no-access-journey'],
   ['setup', 'setting a whole business up in one sitting, with an HR admin', 'setup-journey'],
   ['join', 'a tradie doing their own half on their phone, with no account', 'join-journey'],
   /*

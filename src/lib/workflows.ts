@@ -336,8 +336,9 @@ export const WORKFLOWS: Workflow[] = [
     'The crew is on the doorstep and cannot get in.',
     'The visit is recorded, the customer is told, and it is rebooked.', 'operations', ['productivity'], [
     { does: 'The tradie is standing there now and needs one button.', by: 'field', where: '/tech-day' },
-    nowhere('field', 'Record a no-access, tell the customer, and rebook it — in one press, from the doorstep.',
-      'Today it is a phone call to the office and a note. A no-access costs an hour of a crew and is the single most common thing that wrecks a day, and SPEC does not count them — so nobody can see which customers do it repeatedly.'),
+    { does: 'One press. It records the visit, tells the customer there is no charge, and puts the job back on the list to rebook.', by: 'field', where: '/tech-day' },
+    { does: 'The reason is offered afterwards and never required — the reason is the part that stops it being pressed.', by: 'field', where: '/tech-day' },
+    { does: 'Customers who do it more than once are named, ranked by how often rather than how recently.', by: 'spec', where: '/jobs?tab=rework' },
   ]),
 
   W('do', 'multi-crew', 'Two crews on one job',
@@ -652,8 +653,8 @@ export const WORKFLOWS: Workflow[] = [
     'Electrical work that is finished.',
     'The certificate issued to the customer and lodged where the state requires.', 'operations', ['regulatory', 'contract_breach', 'audit'], [
     { does: 'The job is signed off on site.', by: 'field', where: '/tech-day' },
-    nowhere('field', 'Issue the certificate of compliance for the state the job is in, and keep a copy against the job.',
-      'This is legally required on electrical work and differs by state. It is currently done outside SPEC, so the one document that proves the work was lawful is the one document the job does not hold.'),
+    { does: 'Write it, with its number, against the job it proves. Written and LODGED are two presses, because the gap between them is where businesses fall.', by: 'office', where: '/jobs?tab=certificates' },
+    { does: 'Every finished job without one is named. What yours is called and how long you have are your own — SPEC tracks it as outstanding and refuses to say it is late when nobody has told it your window.', by: 'spec', where: '/jobs?tab=certificates' },
   ]),
 
   W('safe', 'insurances', 'Keep the business’s own insurances current',

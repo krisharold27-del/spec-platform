@@ -10,6 +10,7 @@ import { mayUpload, pathFor, photoPromise } from '@/lib/photos';
 import { TAKE5, mayStart, concerns, needsNote, take5Line, type Take5 } from '@/lib/take5';
 import { REPORT_KINDS } from '@/lib/safety';
 import { sendReport } from '@/app/safety/actions';
+import { couldNotGetIn } from '@/app/tech-day/actions';
 import { SubmitButton } from '@/components/submit-button';
 import {
   MARK_TOOLS, markLabel, markText, maySave, onPlan, savedLine, SAVED_TO, OFFLINE_LINE,
@@ -291,6 +292,22 @@ export function TechDayPhone({ userId, name, firstName, clear, booked = [], open
             ) : (
               <KeptHere>{take5Line(take5)}</KeptHere>
             )}
+
+            {/*
+              ── Above the Take 5, not below it ────────────────────────────────────────────────
+
+              This was first put beside the job, with everything else that happens while working,
+              and driving it found the fault: the Take 5 comes first and nothing below it is
+              reachable until it is done. **You cannot do a Take 5 for a site you could not get
+              into.** Somebody standing at a locked gate has not started the day and never will on
+              this job, so the one thing they need is the one thing the gate was hiding.
+
+              It shows for every job booked today rather than for a selected one, because choosing
+              a job is itself a decision, and this has to be pressable before anybody has made any.
+            */}
+            {bookedOn(booked, day).map(b => (
+              <CouldNotGetIn key={b.jobId} jobId={b.jobId} jobRef={b.ref || b.title} />
+            ))}
 
             {officeNote && <KeptHere>{officeNote}</KeptHere>}
             <KeptHere>
@@ -1168,6 +1185,80 @@ function Take5Panel({ onDone }: { onDone: (t: Take5) => void }) {
  * `sendReport` every other report uses — there is no second safety register and no phone-only
  * shortcut that lands somewhere different, which is how a business ends up with two sets of numbers.
  */
+/**
+ * Turned up and could not get in.
+ *
+ * ── One press, and the reason afterwards ─────────────────────────────────────────────────────────
+ *
+ * The most common thing that wrecks a day, and the thing almost no trade business counts — because
+ * counting it has meant ringing the office and somebody typing a note later, so it disappears into
+ * the day instead.
+ *
+ * The press comes first and asks nothing. The reason is offered after the fact is already recorded,
+ * and it is never required: the reason is the part that stops it being pressed, and a record only
+ * made on quiet days produces a number saying quiet days have the most no-access.
+ *
+ * It sits beside the job rather than inside the six steps, for the same reason marking up the plan
+ * does — it is not part of doing the work, it is what happens instead of doing the work.
+ */
+function CouldNotGetIn({ jobId, jobRef }: { jobId: string; jobRef: string }) {
+  const [said, setSaid] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+
+  if (said) {
+    return (
+      <div className="grid gap-2.5 rounded-[20px] bg-white p-4 shadow-sm">
+        <strong className="text-[15px]">{said}</strong>
+        {asking ? (
+          <form
+            action={async fd => {
+              await couldNotGetIn(fd);
+              setAsking(false);
+            }}
+            className="grid gap-2"
+          >
+            <input type="hidden" name="jobId" value={jobId} />
+            <input
+              name="because"
+              placeholder="Nobody home? No key? Dog?"
+              aria-label="Why you could not get in"
+              className="min-h-[48px] w-full rounded-[14px] border border-ink/15 bg-cream px-4 text-[16px]"
+            />
+            <SubmitButton className="btn-secondary min-h-[48px] text-[15px]" pending="…">
+              Add it
+            </SubmitButton>
+          </form>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAsking(true)}
+            className="min-h-[44px] text-left text-[14px] text-rust underline"
+          >
+            Say why, if you want to
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <form
+      action={async fd => {
+        const r = await couldNotGetIn(fd);
+        setSaid(r.says);
+      }}
+    >
+      <input type="hidden" name="jobId" value={jobId} />
+      <SubmitButton
+        className="min-h-[48px] w-full rounded-full border-2 border-ink/20 px-4 text-[15px] font-bold text-ink"
+        pending="…"
+      >
+        Could not get in — {jobRef}
+      </SubmitButton>
+    </form>
+  );
+}
+
 function SomethingWrong({ jobRef }: { jobRef: string }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState('hazard');
