@@ -13,6 +13,7 @@ import { viewerPowerMeter } from '@/lib/power-meter-data';
 import { scopeLabel } from '@/lib/power-meter';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { levers, leversLine, coverageGrid, ledgerPanel, ANGUS_SHIELD, ADMIN_DEPARTMENT } from '@/lib/virtual-gm-overview';
+import { FinancialSystemPanel } from '@/components/financial-system';
 import { VIRTUAL_GM } from '@/lib/virtual-gm';
 import { Recommends, SwitchCards } from '@/components/recommends';
 import { Refused } from '@/components/refused';
@@ -87,7 +88,10 @@ export default async function VirtualGm({
 
   return (
     <Shell title="Virtual GM + Virtual Admin" headline={`${tenant.name}: the GM and the admin department, run virtually.`}>
-      <Link href="/my-page" className="text-sm text-rust-700 hover:underline">&larr; My Page</Link>
+      <div className="flex flex-wrap justify-between gap-2 text-sm">
+        <Link href="/my-page" className="text-rust-700 hover:underline">&larr; My Page</Link>
+        <Link href="/financials" className="text-rust-700 hover:underline" data-door-financials-top>Financials &rarr;</Link>
+      </div>
       <Refused reason={refusedReason(arrival)} />
       <p className="mt-2 max-w-3xl text-sm text-ink-light" data-vgm-both>{VIRTUAL_GM.both}</p>
 
@@ -195,22 +199,13 @@ export default async function VirtualGm({
         <SwitchCards areas={['payroll']} back="/virtual-gm" />
       </section>
 
-      {/* ── Your financial system ────────────────────────────────────────────────────────────── */}
-      <section className="mt-10 card" data-vgm-ledger={ledger.state}>
-        <h2 className="font-serif text-2xl text-ink">Your financial system</h2>
-        <p className="mt-2 text-sm text-ink">{ledger.says}</p>
-        <Link href={ledger.href} className="btn-secondary mt-3 inline-block px-3 py-1.5 text-xs">{ledger.action}</Link>
-        <div className="mt-5 border-t border-rust-200 pt-4" data-vgm-angus>
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <span className="font-serif text-base text-ink">{ANGUS_SHIELD.name}</span>
-            <span className="pill pill-pending">{ANGUS_SHIELD.switchable ? 'Ready to switch' : 'Not switchable yet'}</span>
-          </div>
-          <p className="mt-1 text-sm text-ink-light">{ANGUS_SHIELD.line}</p>
-        </div>
-        <div className="mt-4">
-          <SwitchCards areas={['accounting']} back="/virtual-gm" />
-        </div>
-      </section>
+      {/* ── Your financial system — the same panel /financials draws ──────────────────────────── */}
+      <div className="mt-10">
+        <FinancialSystemPanel ledger={ledger} back="/virtual-gm" />
+        <Link href="/financials" className="mt-3 inline-block text-sm text-rust-700 hover:underline" data-door-financials>
+          See the money: Financials &rarr;
+        </Link>
+      </div>
 
       {/* ── Switch when ready: the other areas this business runs somewhere else ─────────────── */}
       <section className="mt-10 grid gap-3" data-vgm-switch>

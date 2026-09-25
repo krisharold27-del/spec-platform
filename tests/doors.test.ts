@@ -119,7 +119,8 @@ describe('the navigation bar', () => {
       Ten is the ceiling this test defends. The next thing that wants a tab should take somebody
       else's rather than making it eleven — that is exactly how it got to fourteen.
     */
-    expect(navDoors(f)).toHaveLength(10);
+    // Eleven since 25 September: Financials, which Kris asked for by name after People.
+    expect(navDoors(f)).toHaveLength(11);
     expect(navDoors(f).length).toBeLessThan(allDoors(f).length);
   });
 
@@ -175,7 +176,7 @@ describe('the navigation bar', () => {
       it were the design's.
     */
     expect(labels).toEqual([
-      'My page', 'Jobs', 'CRM', 'People', 'Safety', 'Compliance', 'Board',
+      'My page', 'Jobs', 'CRM', 'People', 'Financials', 'Safety', 'Compliance', 'Board',
       'Setup', 'Connections', 'All pages',
     ]);
   });

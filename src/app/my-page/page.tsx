@@ -242,6 +242,14 @@ export default async function MyPage({
           </Link>
         </div>
       )}
+      {/* The money, one tap from where the day starts — for anybody who manages. */}
+      {data.canManage && (
+        <div className="mt-1 flex justify-end">
+          <Link href="/financials" className="text-sm text-rust-700 hover:underline" data-door-financials>
+            See the money: Financials &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* Full width, above the pillars — `grid-column: 1 / -1; order: -1` in the design. */}
       <PowerBreakdown

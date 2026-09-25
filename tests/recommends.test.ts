@@ -342,7 +342,9 @@ describe('Virtual GM + Virtual Admin', () => {
   it('uses the same Claude recommends and Switch when ready cards as everywhere else', () => {
     expect(page).toContain('<Recommends topic="labour_rate"');
     expect(page).toContain("<SwitchCards areas={['payroll']}");
-    expect(page).toContain("<SwitchCards areas={['accounting']}");
+    // The accounting card lives in the financial-system panel, shared with /financials.
+    expect(page).toContain('<FinancialSystemPanel');
+    expect(readFileSync('src/components/financial-system.tsx', 'utf8')).toContain("<SwitchCards areas={['accounting']}");
   });
 
   it('and the cards turn up wherever their area does', () => {

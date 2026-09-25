@@ -2712,3 +2712,22 @@ export const simpleReports = pgTable('simple_reports', {
   index('simple_reports_tenant').on(t.tenantId),
   uniqueIndex('simple_reports_meeting').on(t.tenantId, t.meetingDate),
 ]).enableRLS();
+
+/**
+ * Figures read from a report the business exported from its own accounting system — Xero or MYOB,
+ * saved as CSV — for /financials when nothing is connected. Manual is a complete mode: this is how a
+ * business with no connection still sees its money.
+ *
+ * Only the figures are kept, never the file: cash, profit this month and last, GST, wages, who owes
+ * the business and who it owes (`Figures` in lib/financials, as JSON, in cents). Each upload is its
+ * own row; the newest is what the page reads.
+ */
+export const ledgerUploads = pgTable('ledger_uploads', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  fileName: text('file_name').notNull(),
+  /** JSON — `Figures` in lib/financials. */
+  figures: text('figures').notNull(),
+  uploadedBy: text('uploaded_by').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [index('ledger_uploads_tenant').on(t.tenantId, t.createdAt)]).enableRLS();

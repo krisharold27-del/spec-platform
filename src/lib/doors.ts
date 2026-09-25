@@ -82,6 +82,7 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
     {
       title: 'The numbers',
       doors: [
+        { href: '/financials', label: 'Financials', note: 'Cash, profit, GST, wages, who owes you and who you owe — and payroll.' },
         { href: '/me', label: 'My scorecard', note: 'Your own four pillars, with the working shown.' },
         { href: '/summary', label: 'Executive summary', note: 'The whole business this month, on one screen.' },
         { href: '/curve', label: 'Your J curve', note: 'What SPEC has cost and returned, measured.' },
@@ -184,7 +185,7 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
  * Built from `doors()` rather than written out again, so a route that is renamed cannot leave the
  * bar pointing at nothing while the directory quietly stays right.
  */
-export const NAV_HREFS = ['/my-page', '/jobs', '/crm', '/people', '/safety', '/compliance', '/board', '/setup', '/connections', '/my-page#everywhere'] as const;
+export const NAV_HREFS = ['/my-page', '/jobs', '/crm', '/people', '/financials', '/safety', '/compliance', '/board', '/setup', '/connections', '/my-page#everywhere'] as const;
 
 export function navDoors(f: DoorsFor): Door[] {
   const all = allDoors(f);
@@ -221,6 +222,13 @@ export function navDoors(f: DoorsFor): Door[] {
     find('/crm') ?? { href: '/crm', label: 'CRM', note: 'Deals, the clients behind them, and everyone at them.' },
     /* People, with the chart and the training under it — they are all the same question. */
     find('/people') ?? { href: '/people', label: 'People', note: 'Who you have, the chart they sit in, what they are trained on, who you need.' },
+    /*
+      Financials, right after People — Kris, 25 September: he could not see the money. It sat inside
+      the Virtual GM, two screens down, and the bar had nothing for it. Money is the thing a trade
+      business owner checks most, so it is a key area, and the ceiling moves from ten to eleven for
+      it rather than something else being pushed off.
+    */
+    find('/financials') ?? { href: '/financials', label: 'Financials', note: 'Cash, profit, GST, wages, who owes you and who you owe — and payroll.' },
     find('/safety') ?? { href: '/safety', label: 'Safety', note: 'Report it, fix it, prove it.' },
     { href: '/compliance', label: 'Compliance', note: 'Licences, insurance, certificates, audits, contracts — and nothing lapsed.' },
     /*
