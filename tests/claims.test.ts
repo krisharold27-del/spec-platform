@@ -183,7 +183,7 @@ describe('retention', () => {
 describe('defects', () => {
   const defect = (over: Partial<Defect> = {}): Defect => ({
     id: 'd1', jobId: 'j1', jobRef: 'J-4402', what: 'Emergency light not discharging',
-    raisedAt: '2026-08-20', freeToUs: true, closedAt: null, productSerial: null,
+    raisedAt: '2026-08-20', freeToUs: true, closed: false, closedAt: null, productSerial: null,
     ...over,
   });
 
@@ -195,7 +195,16 @@ describe('defects', () => {
   });
 
   it('is quiet once they are closed', () => {
-    expect(defectsLine([defect({ closedAt: '2026-09-01' })])).toContain('all closed out');
+    expect(defectsLine([defect({ closed: true, closedAt: '2026-09-01' })])).toContain('all closed out');
+  });
+
+  it('counts a defect closed before SPEC kept dates as closed', () => {
+    /*
+      Reading "closed" off the date meant a defect closed with no date recorded read as still open —
+      and an open defect is what stops a retention being asked for. Knowing something happened and
+      not knowing when is a normal state.
+    */
+    expect(openDefects([defect({ closed: true, closedAt: null })])).toHaveLength(0);
   });
 });
 
@@ -208,7 +217,7 @@ describe('closing a job out', () => {
   it('does not ask for the money with defects still open', () => {
     const said = closingOut(r, [{
       id: 'd1', jobId: 'j1', jobRef: 'J-4402', what: 'x', raisedAt: '2026-08-01',
-      freeToUs: true, closedAt: null, productSerial: null,
+      freeToUs: true, closed: false, closedAt: null, productSerial: null,
     }], AT)!;
     expect(said).toContain('invites a reason to say no');
   });

@@ -275,13 +275,22 @@ export interface Defect {
   raisedAt: string;
   /** Inside the defects period, so it is free — and tracked, which is the point. */
   freeToUs: boolean;
+  /**
+   * Whether it is closed, which is a different fact from WHEN.
+   *
+   * Two fields rather than one nullable date, learnt the hard way: reading "closed" off the date
+   * means a defect closed before anybody recorded a date reads as still open, and an open defect is
+   * what stops a retention being asked for. Knowing something happened and not knowing when is a
+   * normal state and it has to be representable.
+   */
+  closed: boolean;
   closedAt: string | null;
   /** A product that failed, with the serial that makes a warranty claim possible. */
   productSerial: string | null;
 }
 
 export const openDefects = (list: readonly Defect[]): Defect[] =>
-  list.filter(d => !d.closedAt);
+  list.filter(d => !d.closed);
 
 /**
  * A defect inside the period is free work, and it still costs.

@@ -55,6 +55,9 @@ import {
 import {
   match, isLate, byAttention, purchasingStats, purchasingLine, orderStateLabel, type OrderRow,
 } from '@/lib/purchasing';
+import { ClaimsPanel } from './claims-panel';
+import { FILTERS, isFilter, matches, mix, typeOf, type Filter } from '@/lib/job-type';
+import { claimsFor, type ClaimsView } from '@/lib/claims-data';
 import {
   moneyStats, moneyLine, moneyLabel, chase, maySend, billKindLabel,
   BILL_KINDS, BILL_STATE_LABEL, isBillState,
@@ -186,6 +189,9 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const today = now.toISOString().slice(0, 10);
 
   /* Everything this business has recorded for Jobs, read once and scoped by tenant in the query. */
+  /* Claims, retentions and defects — read only on the tab that shows them. */
+  const claimsView: ClaimsView | null = tab === 'billing' ? await claimsFor(user.tenantId, now) : null;
+
   const [allJobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows, chaseRows, noAccessRows, rateCardRows, rateLineRows, hireRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
     db.select().from(schema.quotes).where(eq(schema.quotes.tenantId, user.tenantId)).orderBy(schema.quotes.createdAt),
@@ -327,7 +333,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       <OwnSystemLine line={own.line} connected={own.connected} />
 
       {tab === 'pipeline' && (
-        <Pipeline jobs={costed} openId={one(sp.job)} crew={crew} quotes={quotes} manage={manage} now={now} tabHref={tabHref} hasRate={!!standard} />
+        <Pipeline jobs={costed} openId={one(sp.job)} crew={crew} quotes={quotes} manage={manage} now={now} tabHref={tabHref} hasRate={!!standard} kind={isFilter(one(sp.kind)) ? one(sp.kind) as Filter : 'all'} />
       )}
       {tab === 'quotes' && (
         <Quotes jobs={jobs} quotes={quotes} openId={one(sp.quote)} items={items} kits={kits} rates={rates} manage={manage} tenantId={user.tenantId} tabHref={tabHref} />
@@ -345,7 +351,22 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       {tab === 'catalogue' && <div className="mt-6"><Recommends topic="labour_rate" back="/jobs?tab=catalogue" /></div>}
       {tab === 'leads' && <Leads jobs={jobs} manage={manage} now={now} />}
       {tab === 'stock' && <Stock orders={orderRows} jobs={jobs} manage={manage} today={today} levels={stockRows} items={items} />}
-      {tab === 'billing' && <Billing bills={billRows} jobs={jobs} manage={manage} now={now} />}
+      {tab === 'billing' && (
+        <>
+          <Billing bills={billRows} jobs={jobs} manage={manage} now={now} />
+          {/*
+            Design 19's claims, retentions and defects. Below the invoices because most businesses
+            invoice far more often than they claim — but the part that NEEDS somebody is at the top
+            of the panel itself, since a missed payment-schedule window is the most expensive thing
+            on this screen and it expires quietly.
+          */}
+          {claimsView && (
+            <div className="mt-10">
+              <ClaimsPanel view={claimsView} />
+            </div>
+          )}
+        </>
+      )}
       {tab === 'service' && <Recurring rows={recurRows} manage={manage} today={today} />}
       {tab === 'prebuilds' && (
         <Catalogue items={itemRows} kits={kits} kitRows={kitRows} rates={rates} q={one(sp.q)} skipped={one(sp.skipped)} rises={one(sp.rises)} rose={one(sp.rose)} manage={manage} today={today} only="kits" />
@@ -412,10 +433,23 @@ function flagFor(j: Costed, booked: boolean, now: Date): { text: string; light: 
   return null;
 }
 
-async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasRate }: {
+async function Pipeline({ jobs: allOfThem, openId, crew, quotes, manage, now, tabHref, hasRate, kind }: {
   jobs: Costed[]; openId: string; crew: CrewMember[]; quotes: (typeof schema.quotes.$inferSelect)[];
   manage: boolean; now: Date; tabHref: (k: string, e?: Record<string, string>) => string; hasRate: boolean;
+  kind: Filter;
 }) {
+  /*
+    Design 19: every job is maintenance or project, and the pipeline switches between them.
+
+    Filtered before anything else is worked out, so the counts, the stats and the board all agree
+    with the switch. Deriving them from the full list and filtering only the cards is how a board
+    ends up saying "12 jobs" above nine of them.
+
+    The type is read from `workKind`, which SPEC already holds — a second field would let a job be
+    maintenance on this screen and a project on the billing one.
+  */
+  const jobs = allOfThem.filter(j => matches(j, kind));
+  const theMix = mix(allOfThem);
   const jobIds = jobs.map(j => j.id);
   const bookings = jobIds.length
     ? await db.select().from(schema.scheduleBookings)
@@ -470,6 +504,29 @@ async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasR
 
   return (
     <div>
+      {/* ── All / Maintenance / Projects ──────────────────────────────────────────────────── */}
+      <section className="mb-5" data-pipeline-kind>
+        <div className="flex flex-wrap items-center gap-2">
+          {FILTERS.map(f => (
+            <Link
+              key={f.key}
+              href={tabHref('pipeline', f.key === 'all' ? {} : { kind: f.key })}
+              className={`rounded-full px-4 py-2 text-sm font-semibold ${f.key === kind ? 'bg-ink text-white' : 'border border-sand-300 text-ink'}`}
+              data-pipeline-filter={f.key}
+              aria-current={f.key === kind ? 'true' : undefined}
+            >
+              {f.label}
+            </Link>
+          ))}
+        </div>
+        {/*
+          Split, because the two numbers mean different things to an owner: maintenance on the books
+          lands this month, and project money comes in as the work does. One combined figure reads
+          as cash that is coming and is not.
+        */}
+        <p className="mt-2 text-sm text-ink-light" data-pipeline-mix>{theMix.says}</p>
+      </section>
+
       <section aria-label="This month" className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map(s => (
           <div key={s.label} className="card">
@@ -511,7 +568,18 @@ async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasR
                       className={`block rounded-2xl bg-surface px-4 py-3.5 shadow-sm ${j.id === openId ? 'ring-2 ring-rust' : ''}`}
                     >
                       <span className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-ink-light">{j.ref}</span>
+                        <span className="text-xs text-ink-light">
+                          {j.ref}
+                          {/*
+                            The type, on the card. Design 19: "each card shows its type." It decides
+                            which steps the job has — claims, variations, retention and defects only
+                            exist on a project — so a card that does not say is a card somebody has
+                            to open to find out what kind of job they are looking at.
+                          */}
+                          <span className="ml-1.5" data-job-type={typeOf(j.workKind)}>
+                            · {typeOf(j.workKind) === 'project' ? 'Project' : 'Maintenance'}
+                          </span>
+                        </span>
                         {flag && <Pill light={flag.light}>{flag.text}</Pill>}
                       </span>
                       <span className="mt-1.5 block text-sm font-bold leading-snug text-ink">{j.title}</span>

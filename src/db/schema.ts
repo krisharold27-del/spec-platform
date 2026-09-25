@@ -2358,6 +2358,16 @@ export const callbacks = pgTable('callbacks', {
   recoveredCents: integer('recovered_cents').notNull().default(0),
   /** open | closed */
   status: text('status').notNull().default('open'),
+  /**
+   * When it was actually closed out.
+   *
+   * Added with Design 19's defects work. The status alone said whether it was closed and never
+   * when, and the first version of the defects view reached for `createdAt` instead — which is
+   * inventing a date, and the date a defect was closed is exactly what gets argued about when a
+   * retention is being released. Null for rows closed before this existed: SPEC says it does not
+   * know rather than making one up.
+   */
+  closedAt: text('closed_at'),
   createdAt: text('created_at').notNull(),
 }, t => [
   index('callbacks_tenant').on(t.tenantId),
