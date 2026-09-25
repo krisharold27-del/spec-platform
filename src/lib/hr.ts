@@ -19,7 +19,7 @@ import { light, type Light, LIGHT_LABEL } from './today';
 
 /* ── The tabs ─────────────────────────────────────────────────────────────────────────────────── */
 
-export type HrTab = 'have' | 'setup' | 'staff' | 'conduct' | 'pay' | 'subbies' | 'leavers' | 'hiring';
+export type HrTab = 'chart' | 'have' | 'setup' | 'staff' | 'conduct' | 'pay' | 'subbies' | 'leavers' | 'hiring';
 
 /**
  * The tabs, in the design's order — HR, Reviews & conduct, Pay & exits, Recruitment — with the
@@ -28,12 +28,25 @@ export type HrTab = 'have' | 'setup' | 'staff' | 'conduct' | 'pay' | 'subbies' |
  * `mode` is the URL's word for each; `hiring` predates the other two and is kept so an existing
  * link to `/people?mode=hiring` still lands where it did.
  */
-export const HR_TABS: { tab: HrTab; mode: string | null; label: string }[] = [
+export const HR_TABS: { tab: HrTab; mode: string | null; label: string; to?: string }[] = [
   { tab: 'have', mode: null, label: 'Who you have' },
   /*
     The whole business on one list (23 September) — see lib/directory. Second, beside "Who you have",
     because it is the same question asked of everybody rather than of the viewer's own line.
   */
+  /*
+    ── The org chart, first, under People ────────────────────────────────────────────────────────
+
+    Kris, 25 September: *"MUST BE UNDER THE PEOPLE TAB"*, after looking for it and not finding it.
+
+    It is not a mode of this screen — it is `/org`, its own full screen with the canvas and the
+    scorecard beside it — so this row carries a LINK OUT rather than a tab that renders nothing.
+    `hrefOf` handles it: a tab with no mode but a `to` goes there.
+
+    First rather than last because it is the thing People is built around. Every other tab on this
+    screen answers a question about somebody in a seat, and the chart is where the seats are.
+  */
+  { tab: 'chart', mode: null, to: '/org', label: 'Org chart' },
   { tab: 'staff', mode: 'staff', label: 'Staff list' },
   /*
     Setting everybody up — the list a business works down once, with its HR admin, before anybody
@@ -67,8 +80,10 @@ export const tabOf = (mode: string | undefined | null): HrTab =>
   HR_TABS.find(t => t.mode !== null && t.mode === mode)?.tab ?? 'have';
 
 export const hrefOf = (tab: HrTab): string => {
-  const mode = HR_TABS.find(t => t.tab === tab)?.mode;
-  return mode ? `/people?mode=${mode}` : '/people';
+  const row = HR_TABS.find(t => t.tab === tab);
+  /* A tab that is really a door to another screen — the org chart is its own page. */
+  if (row?.to) return row.to;
+  return row?.mode ? `/people?mode=${row.mode}` : '/people';
 };
 
 /**

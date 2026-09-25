@@ -16,9 +16,15 @@ describe('the People tabs', () => {
       addition stays a decision somebody made and not a thing that happened.
     */
     expect(HR_TABS.map(t => t.label)).toEqual([
-      'Who you have', 'Staff list', 'Set everybody up', 'Reviews & conduct', 'Pay & exits',
-      'Subcontractors', 'When somebody leaves', 'Who you need',
+      'Who you have', 'Org chart', 'Staff list', 'Set everybody up', 'Reviews & conduct',
+      'Pay & exits', 'Subcontractors', 'When somebody leaves', 'Who you need',
     ]);
+    /*
+      The org chart is a door out, not a mode of this screen: it is `/org`, its own full page with
+      the canvas and the scorecard beside it. Kris, 25 September, having gone looking for it:
+      "MUST BE UNDER THE PEOPLE TAB".
+    */
+    expect(hrefOf('chart')).toBe('/org');
     expect(tabOf('leavers')).toBe('leavers');
     expect(tabOf('staff')).toBe('staff');
     expect(hrefOf('staff')).toBe('/people?mode=staff');
