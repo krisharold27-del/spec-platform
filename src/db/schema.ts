@@ -2693,6 +2693,25 @@ export const switchFriction = pgTable('switch_friction', {
 }, t => [index('switch_friction_tenant').on(t.tenantId)]).enableRLS();
 
 /**
+ * The Simple Guarantee, paid — one row per business per month, claimed before Stripe is asked, so a
+ * month can never be credited twice. See lib/guarantee. `amount` is in the currency's smallest unit;
+ * `status` is pending · applied · free (nothing to take off) · failed (tried again next time).
+ */
+export const guaranteeCredits = pgTable('guarantee_credits', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  month: text('month').notNull(),
+  status: text('status').notNull().default('pending'),
+  amount: integer('amount').notNull().default(0),
+  currency: text('currency'),
+  stripeTransactionId: text('stripe_transaction_id'),
+  error: text('error'),
+  reportedBy: text('reported_by').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [uniqueIndex('guarantee_credits_tenant_month').on(t.tenantId, t.month)]).enableRLS();
+
+/**
  * The weekly Make it simple report — one per business per meeting, kept as written.
  *
  * Kris, 25 September: every week, before the COGS meeting, what got simpler, the top three things

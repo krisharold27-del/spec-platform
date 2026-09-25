@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
+import { applyGuarantee } from '@/lib/guarantee-data';
 import { SETTABLE_PLANS, type SettablePlan } from '@/lib/plan';
 import { PACKAGE_KEYS, type Package } from '@/lib/pricing';
 
@@ -144,4 +145,19 @@ export async function detachStripe(form: FormData) {
   revalidatePath('/admin');
   revalidatePath('/settings');
   redirect(outcome.ok ? '/admin?detached=1' : `/admin?nodetach=${outcome.refusal}`);
+}
+
+/**
+ * A Simple Guarantee credit that did not go through — Stripe down, a key missing — tried again.
+ * The same claim the business made, so every guard against a double credit still holds.
+ */
+export async function retryGuarantee(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user || !isAdminEmail(user.email)) redirect('/signin');
+  const tenantId = String(form.get('tenantId') ?? '');
+  const month = String(form.get('month') ?? '');
+  if (!tenantId || !/^\d{4}-\d{2}$/.test(month)) redirect('/admin');
+  const outcome = await applyGuarantee(tenantId, month, 'SPEC, retrying', true);
+  revalidatePath('/admin');
+  redirect(`/admin?guarantee=${outcome}`);
 }

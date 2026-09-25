@@ -13,6 +13,7 @@ import {
   productName, sideBySideName, didYouKnow, GUARANTEE, DAY_ONE, FRICTION_KINDS, monthOf,
 } from '@/lib/switch';
 import { LIGHT_COLOUR } from '@/lib/today';
+import { guaranteeMessage, isClaimOutcome } from '@/lib/guarantee';
 import { runSideBySide, sayReady, switchNow, undoSwitch, reportFriction } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -54,7 +55,8 @@ export default async function SwitchPage({
   const product = productName(area);
   const plan = row ? switchPlan(area, row, checks) : null;
   const ok = confirmed(area, checks);
-  const told = sp.told === '1';
+  // What happened to the claim just made: the month came off, was already off, or is still owed.
+  const told = isClaimOutcome(sp.told) ? sp.told : null;
 
   const Control = ({ action, label, primary }: { action: (f: FormData) => Promise<void>; label: string; primary?: boolean }) => (
     <form action={action}>
@@ -140,26 +142,6 @@ export default async function SwitchPage({
             )}
           </section>
 
-          {/* ── The Simple Guarantee ─────────────────────────────────────────────────────────── */}
-          <section className="mt-6 card" data-switch-guarantee>
-            <h2 className="font-serif text-xl text-ink">{GUARANTEE}</h2>
-            {told ? (
-              <p className="mt-2 text-sm text-ink" data-switch-told>
-                Logged, so it gets fixed. Your Simple Guarantee claim for {monthOf()} is recorded — that month comes off your bill.
-              </p>
-            ) : (
-              <form action={reportFriction} className="mt-3 grid max-w-xl gap-2">
-                <input type="hidden" name="area" value={area.key} />
-                <label className="text-sm text-ink" htmlFor="kind">Was anything not easy?</label>
-                <select id="kind" name="kind" required className="rounded-lg border border-ink/20 bg-surface px-3 py-2 text-sm">
-                  {FRICTION_KINDS.map(k => <option key={k.key} value={k.key}>{k.label}</option>)}
-                </select>
-                <textarea name="note" rows={2} maxLength={1000} placeholder="What happened, if you want to say (stays in your business)"
-                  className="rounded-lg border border-ink/20 bg-surface px-3 py-2 text-sm" />
-                <SubmitButton className="btn-secondary w-fit px-4 py-2 text-sm">Tell SPEC</SubmitButton>
-              </form>
-            )}
-          </section>
 
           <details className="mt-6 text-sm">
             <summary className="cursor-pointer text-rust-700">What SPEC checked</summary>
@@ -167,6 +149,27 @@ export default async function SwitchPage({
           </details>
         </>
       )}
+
+      {/* ── The Simple Guarantee ─────────────────────────────────────────────────────────── */}
+      <section className="mt-6 card" data-switch-guarantee>
+        <h2 className="font-serif text-xl text-ink">{GUARANTEE}</h2>
+        {told ? (
+          <p className="mt-2 text-sm text-ink" data-switch-told={told}>
+            {guaranteeMessage(told, monthOf())}
+          </p>
+        ) : (
+          <form action={reportFriction} className="mt-3 grid max-w-xl gap-2">
+            <input type="hidden" name="area" value={area.key} />
+            <label className="text-sm text-ink" htmlFor="kind">Was anything not easy?</label>
+            <select id="kind" name="kind" required className="rounded-lg border border-ink/20 bg-surface px-3 py-2 text-sm">
+              {FRICTION_KINDS.map(k => <option key={k.key} value={k.key}>{k.label}</option>)}
+            </select>
+            <textarea name="note" rows={2} maxLength={1000} placeholder="What happened, if you want to say (stays in your business)"
+              className="rounded-lg border border-ink/20 bg-surface px-3 py-2 text-sm" />
+            <SubmitButton className="btn-secondary w-fit px-4 py-2 text-sm">Tell SPEC</SubmitButton>
+          </form>
+        )}
+      </section>
     </Shell>
   );
 }

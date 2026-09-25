@@ -9,6 +9,7 @@ import { assertWritable } from '@/lib/plan';
 import { getScope } from '@/lib/scope';
 import { refuseTo } from '@/lib/refuse';
 import { coverageFor, setCoverage } from '@/lib/coverage-data';
+import { applyGuarantee } from '@/lib/guarantee-data';
 import { switchReading, logDecision } from '@/lib/recommends-data';
 import {
   areaOf, mayRunSideBySide, mayUseSwitch, mayUndo, stillChecking, switchChoices, parsePrevious,
@@ -111,5 +112,7 @@ export async function reportFriction(formData: FormData) {
     id: randomUUID(), tenantId: user.tenantId, area: area.key, kind, note,
     month: monthOf(), reportedBy: user.name, createdAt: new Date().toISOString(),
   });
-  done(`${screen}&told=1`);
+  // And the month comes off the bill, there and then — once per business per month (lib/guarantee).
+  const outcome = await applyGuarantee(user.tenantId, monthOf(), user.name);
+  done(`${screen}&told=${outcome}`);
 }

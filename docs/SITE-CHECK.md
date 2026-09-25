@@ -106,44 +106,47 @@ After each fix: typecheck clean, the full suite green (2,375+ tests), then rebas
 - **Bad and expired addresses show the proper "There is no page at that address" screen:**
   `/join/<bad token>`, `/customer/<bad token>` and made-up addresses.
 
-## What is left — for Kris to decide
+## Kris's decisions, 25 September
 
-1. **Hourly rates are shown in three places.**
-   - *Where:*
-     - the landing page example: "Set your labour rate at $105/hr — here's why", labelled
-       "Example";
-     - the look-around's Rate Board: "$115 → $105";
-     - the Jobs quote builder: "$120.00 per hour" for a licensed electrician. This is the
-       business's own labour rate, and only visible signed in.
-   - *Why they were left:* none of these is what SPEC charges. They are the business's own
-     charge-out rate. The landing page example was put there on purpose by the landing-page
-     session, and a test allows exactly `$105/hr`.
-   - *Proposed fix, if the rule is "no hourly figure on a public page, full stop":* change the
-     landing example to a non-hourly one, such as "Raise your call-out fee to $140 — here's
-     why", and make the look-around's Rate Board read "$115 → $105" without the "/hr".
-2. **`/connections` and `/setup/systems` show vendor names as quick-fill chips.**
-   - *What they show:* "Xero · MYOB · Simpro · AroFlo · HubSpot · Employment Hero …"
-   - *Where:* signed-in only, not public.
-   - *Why it matters:* the rule book says "no vendor name in the UI". These look deliberate
-     (press a name to fill the box), so they were left for a decision.
-   - *Proposed fix:* keep them, since a person naming their own system is not SPEC naming a
-     vendor, or replace them with categories.
-3. **The Simple Guarantee credit is manual.**
-   - *What happens now:* a claim is logged on `/switch` and listed on `/admin`. Nothing takes the
-     month off the bill automatically, so the promise "that month comes off your bill" depends on
-     somebody applying the credit in Stripe by hand.
-   - *Proposed fix:* apply a Stripe credit note when a claim is logged, or have `/admin` show
-     unapplied claims in red until they are credited.
-4. **There is no `/favicon.ico`.**
+1. **Hourly rates: kept.** The landing page's "$105/hr" example is a business's own labour rate,
+   not what SPEC charges.
+2. **Vendor names on the signed-in `/connections` and `/setup/systems` pages: kept.** They help
+   people pick their own system. Public pages still name systems by category.
+3. **The Simple Guarantee is now automatic.**
+   - *What happens now:* when a business tells SPEC something wasn't easy, SPEC credits one month
+     of its subscription to its Stripe customer balance, there and then. Stripe takes the credit
+     off the next invoice by itself.
+   - *What the business sees:* "That month's on us — thanks for telling us."
+   - *Never twice:* once per business per month, with three guards:
+     - a record that is unique per business per month, claimed before Stripe is asked;
+     - a Stripe idempotency key;
+     - a check of the customer's existing Stripe credits.
+   - *What Kris sees on `/admin`:* every claim, with what was credited and the Stripe transaction.
+     A credit that failed shows "Try again".
+   - *Where to claim:* the "Tell SPEC" box is now on every area's page under Switch when ready.
+     It used to appear only once a switch had started, so most businesses had nowhere to claim
+     at all.
+   - *Tests:* `tests/guarantee.test.ts`, 20 tests. They drive the real Stripe library against a
+     stand-in for Stripe's API, because Stripe cannot be reached from this environment.
+   - *Checked in a browser:* first claim, then "already on us" for the same month, one database
+     row, and the claim listed on `/admin`.
+   - **Not yet run against real Stripe test mode.** The only Stripe account the connector exposes
+     is live, and it was not touched. To run it:
+     `STRIPE_SECRET_KEY=sk_test_… npx tsx scripts/guarantee-stripe-check.mts`
+     The script refuses a live key.
+
+## Still open
+
+1. **There is no `/favicon.ico`.**
    - *What happens now:* the site's icon is `/icon.svg`. Browsers still ask for `/favicon.ico` on
      non-page addresses such as `/robots.txt`, and get a 404. It is harmless: one console line,
      no visible effect.
    - *Proposed fix:* add a `favicon.ico` to `public/`.
-5. **A malformed address crashes on Vercel.**
+2. **A malformed address crashes on Vercel.**
    - *What happens now:* `/spec\` (with a backslash) produced a Vercel "Cannot find module" error
      twice on 23 September. It is Vercel's own handling of a malformed path, not SPEC code.
    - *Proposed fix:* none needed unless it recurs.
-6. **The live site should be re-checked in a real browser.**
+3. **The live site should be re-checked in a real browser.**
    - *Why:* this check could only drive the local build, not the live site, because
      `www.sitevipapp.com` is blocked for this environment.
    - *Proposed fix:* allow `www.sitevipapp.com` in the environment's network settings, then rerun
