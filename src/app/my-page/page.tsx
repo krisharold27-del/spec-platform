@@ -234,7 +234,7 @@ export default async function MyPage({
       {runsAnything && (
         <div className="mt-2 flex justify-end">
           <Link href="/virtual-gm" className="text-sm text-rust-700 hover:underline" data-door-virtual-gm>
-            Open the Virtual GM &rarr;
+            Open the Virtual GM + Virtual Admin &rarr;
           </Link>
         </div>
       )}

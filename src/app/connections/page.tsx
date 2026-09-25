@@ -19,6 +19,7 @@ import { credentialFor } from '@/lib/xero-link';
 import { xeroApp } from '@/lib/xero-net';
 import { canHoldSecrets } from '@/lib/secret-box';
 import { isXero } from '@/lib/systems';
+import { SwitchCards } from '@/components/recommends';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,6 +106,8 @@ export default async function Connections({
       subtitle={`${live.length} of ${connections.length} connected · ${tenant.name}`}
     >
       <Refused reason={cannot} />
+      {/* Switch when ready — every area this business runs somewhere else, and accounting and payroll. */}
+      <div className="mb-6"><SwitchCards areas={['accounting', 'payroll', 'jobs', 'crm', 'people', 'safety']} back="/connections" /></div>
       {/*
         Coming back from Xero, said plainly — and said differently depending on what actually
         happened. "Connected" and "connected, but SPEC does not know whose books yet" are different

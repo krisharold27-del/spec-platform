@@ -10,15 +10,25 @@ import { registerFor } from '@/lib/register-data';
 import { viewerPowerMeter } from '@/lib/power-meter-data';
 import { scopeLabel } from '@/lib/power-meter';
 import { LIGHT_COLOUR } from '@/lib/today';
-import { levers, leversLine, coverageGrid, ledgerPanel, ANGUS_SHIELD } from '@/lib/virtual-gm-overview';
+import { levers, leversLine, coverageGrid, ledgerPanel, ANGUS_SHIELD, ADMIN_DEPARTMENT } from '@/lib/virtual-gm-overview';
+import { VIRTUAL_GM } from '@/lib/virtual-gm';
+import { Recommends, SwitchCards } from '@/components/recommends';
+import { Refused } from '@/components/refused';
+import { refusedReason } from '@/lib/refuse';
 import { ledgerConnections } from '@/lib/virtual-gm-data';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = { title: 'Virtual GM' };
+export const metadata = { title: 'Virtual GM + Virtual Admin' };
 
 /**
- * The Virtual GM — the whole business on one screen.
+ * Virtual GM + Virtual Admin — the whole business on one screen, both halves of it.
+ *
+ * Kris, 25 September: *"SPEC runs BOTH the GM and the Admin Department virtually."* So the page has
+ * two sides. The GM side is below first: the dial, the levers, the whole business. The admin side is
+ * the paperwork — payroll, invoicing, bills, compliance, HR admin, reporting — each named with the
+ * screen that does it, and the Claude recommends and Switch when ready cards where Angus Shield or a
+ * decision is in play.
  *
  * Reached as a door from My Page, beside the Power Meter. Not a tab on the bar: My Page is still
  * where the day starts, and this is where a leader goes from it to see the whole business at once.
@@ -39,7 +49,7 @@ export const metadata = { title: 'Virtual GM' };
 export default async function VirtualGm({
   searchParams,
 }: {
-  searchParams: Promise<{ power?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const arrival = await searchParams;
   const user = await getCurrentUser();
@@ -72,8 +82,12 @@ export default async function VirtualGm({
   const colour = reading.band === 'unknown' ? LIGHT_COLOUR.pending : LIGHT_COLOUR[reading.band];
 
   return (
-    <Shell title="Virtual GM" headline={`${tenant.name}, all of it, on one screen.`}>
+    <Shell title="Virtual GM + Virtual Admin" headline={`${tenant.name}: the GM and the admin department, run virtually.`}>
       <Link href="/my-page" className="text-sm text-rust-700 hover:underline">&larr; My Page</Link>
+      <Refused reason={refusedReason(arrival)} />
+      <p className="mt-2 max-w-3xl text-sm text-ink-light" data-vgm-both>{VIRTUAL_GM.both}</p>
+
+      <h2 className="mt-8 font-serif text-3xl text-ink" data-vgm-side="gm">Virtual GM</h2>
 
       {/* ── The dial ─────────────────────────────────────────────────────────────────────────── */}
       <section className="mt-4 flex flex-wrap items-center gap-6" aria-label="Virtual GM Power Meter" data-vgm-dial>
@@ -151,6 +165,32 @@ export default async function VirtualGm({
         <Link href="/workflows" className="mt-3 inline-block text-sm text-rust-700 hover:underline">Every workflow, step by step &rarr;</Link>
       </section>
 
+      {/* ── Claude recommends, on the GM side ────────────────────────────────────────────────── */}
+      <section className="mt-10 grid gap-3" data-vgm-recommends>
+        <h2 className="font-serif text-2xl text-ink">Claude recommends</h2>
+        <Recommends topic="labour_rate" back="/virtual-gm" />
+      </section>
+
+      {/* ══ The Virtual Admin Department ════════════════════════════════════════════════════════ */}
+      <h2 className="mt-14 font-serif text-3xl text-ink" data-vgm-side="admin">Virtual Admin Department</h2>
+      <p className="mt-1 max-w-3xl text-sm text-ink-light">
+        The paperwork, run by SPEC and Angus Shield. Everything keeps running as it does today; each
+        part switches over only when you say so.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-vgm-admin>
+        {ADMIN_DEPARTMENT.map(j => (
+          <Link key={j.key} href={j.href} className="card-inset grid content-start gap-1 hover:bg-cream" data-vgm-admin-job={j.key}>
+            <span className="font-serif text-base text-ink">{j.label}</span>
+            <span className="text-xs text-ink-light">{j.does}</span>
+            {j.switchArea && <span className="mt-1 text-xs text-rust-700">{ANGUS_SHIELD.name} can take over the rest when you switch</span>}
+          </Link>
+        ))}
+      </div>
+
+      <section className="mt-6 grid gap-3" data-vgm-payroll>
+        <SwitchCards areas={['payroll']} back="/virtual-gm" />
+      </section>
+
       {/* ── Your financial system ────────────────────────────────────────────────────────────── */}
       <section className="mt-10 card" data-vgm-ledger={ledger.state}>
         <h2 className="font-serif text-2xl text-ink">Your financial system</h2>
@@ -159,10 +199,18 @@ export default async function VirtualGm({
         <div className="mt-5 border-t border-rust-200 pt-4" data-vgm-angus>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="font-serif text-base text-ink">{ANGUS_SHIELD.name}</span>
-            <span className="pill pill-pending">Not switchable yet</span>
+            <span className="pill pill-pending">{ANGUS_SHIELD.switchable ? 'Ready to switch' : 'Not switchable yet'}</span>
           </div>
           <p className="mt-1 text-sm text-ink-light">{ANGUS_SHIELD.line}</p>
         </div>
+        <div className="mt-4">
+          <SwitchCards areas={['accounting']} back="/virtual-gm" />
+        </div>
+      </section>
+
+      {/* ── Switch when ready: the other areas this business runs somewhere else ─────────────── */}
+      <section className="mt-10 grid gap-3" data-vgm-switch>
+        <SwitchCards areas={['jobs', 'crm', 'people', 'safety']} back="/virtual-gm" />
       </section>
     </Shell>
   );

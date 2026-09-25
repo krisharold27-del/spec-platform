@@ -104,6 +104,11 @@ export default async function SiteVipLanding() {
                 Every job feeds the KPI boards. Every KPI rolls up to the Virtual GM Power Meter. You see
                 the whole business at a glance, every morning.
               </p>
+              <p className="mt-2.5 text-[14.5px] leading-[23px] text-ink-light">
+                And the admin department, run virtually too: payroll checks, invoicing, bills, compliance
+                paperwork, HR admin and reporting in one place, with Angus Shield to take over payroll and
+                the books when you’re ready. Virtual GM + Virtual Admin.
+              </p>
             </div>
           </div>
         </section>

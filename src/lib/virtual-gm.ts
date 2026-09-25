@@ -46,8 +46,19 @@ export const GM_HEADLINE: GmHeadline = 'cost';
 
 export const VIRTUAL_GM = {
   /** The eyebrow above the headline, on both pages. */
-  kicker: 'The virtual GM',
+  kicker: 'The virtual GM + virtual admin',
   headline: GM_HEADLINES[GM_HEADLINE],
+  /**
+   * Kris, 25 September: *"SPEC runs BOTH the GM and the Admin Department virtually. Not just a
+   * Virtual GM - Virtual GM + Virtual Admin."* Said once here and read by every page that carries
+   * the headline. Worded to what is true today: the admin work runs in SPEC, and Angus Shield takes
+   * over payroll and the books only when a business chooses to switch — see lib/switch.
+   */
+  both:
+    'SPEC runs both the GM and the admin department, virtually. The GM side reads the whole business '
+    + 'and says what to pull this week. The admin side — payroll checks, invoicing, bills, compliance '
+    + 'paperwork, HR admin and reporting — runs in SPEC, with Angus Shield to take over payroll and the '
+    + 'books when you are ready.',
   /**
    * Pricing only. The whole ladder in four sentences — try it, add training, and if neither gets
    * you there, the program does. "No ongoing GM" is the point of the paragraph: every other line

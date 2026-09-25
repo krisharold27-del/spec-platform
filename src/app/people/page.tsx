@@ -37,6 +37,7 @@ import { LeaversTab } from './leavers-tab';
 import { seatKindFor } from '@/lib/chart-seats';
 import { planStateFor } from '@/lib/plan';
 import type { Person, SeatKind } from '@/lib/onboarding';
+import { SwitchCards } from '@/components/recommends';
 
 export const dynamic = 'force-dynamic';
 
@@ -397,6 +398,12 @@ export default async function People({ searchParams }: { searchParams: Promise<R
           system. For a people business, this is the system.
         </p>
       </section>
+
+      {/* Switch when ready — payroll where pay is run, HR here. Only shown when it applies. */}
+      <div className="mb-6 grid gap-3">
+        {mode === 'pay' && <SwitchCards areas={['payroll']} back="/people?mode=pay" />}
+        <SwitchCards areas={['people']} back="/people" />
+      </div>
 
       <div className="flex flex-wrap gap-2">
         {HR_TABS.map(t => (

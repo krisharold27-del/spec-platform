@@ -69,6 +69,7 @@ import {
   stockStats, stockLine, byShortage, stockStateOf, STOCK_LABEL, reorderList, shortBy, placesIn,
 } from '@/lib/stock';
 import { packState, parseChecklist, vanList } from '@/lib/prebuild';
+import { Recommends, SwitchCards } from '@/components/recommends';
 
 export const dynamic = 'force-dynamic';
 
@@ -338,6 +339,8 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       {tab === 'catalogue' && (
         <Catalogue items={itemRows} kits={kits} kitRows={kitRows} rates={rates} q={one(sp.q)} skipped={one(sp.skipped)} rises={one(sp.rises)} rose={one(sp.rose)} manage={manage} today={today} />
       )}
+      {/* Claude recommends the labour rate, beside the rates it would change. */}
+      {tab === 'catalogue' && <div className="mt-6"><Recommends topic="labour_rate" back="/jobs?tab=catalogue" /></div>}
       {tab === 'leads' && <Leads jobs={jobs} manage={manage} now={now} />}
       {tab === 'stock' && <Stock orders={orderRows} jobs={jobs} manage={manage} today={today} levels={stockRows} items={items} />}
       {tab === 'billing' && <Billing bills={billRows} jobs={jobs} manage={manage} now={now} />}

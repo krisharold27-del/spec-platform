@@ -2568,3 +2568,108 @@ export const leavers = pgTable('leavers', {
   done: text('done').notNull().default(''),
   createdAt: text('created_at').notNull(),
 }, t => [index('leavers_tenant').on(t.tenantId)]).enableRLS();
+
+/* ══ Claude recommends, and Switch when ready ══════════════════════════════════════════════════════
+ *
+ * Kris, 25 September: every decision SPEC helps with runs the same three steps — a recommendation
+ * with the numbers behind it, "Ready to do this?", and on Yes SPEC does it and logs it. The figures
+ * are always SPEC's own arithmetic (lib/labour-rate-advice, lib/switch); Claude only puts them into
+ * words. No AI path writes anything: the write happens on a person's Yes, and it is the action the
+ * recommendation named, re-checked on the server first. See lib/recommends.
+ */
+
+/**
+ * Every answer to a recommendation — append-only, the record of what was decided on what data.
+ *
+ * `facts` is the numbers as they were shown, kept as written: "what did we know when we did it" is
+ * the question that gets asked later, and recomputing it would answer a different one.
+ */
+export const decisions = pgTable('decisions', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** `labour_rate`, `switch:payroll`, … — see TOPICS in lib/recommends-data. */
+  topic: text('topic').notNull(),
+  /** yes | not_yet */
+  answer: text('answer').notNull(),
+  /** The recommendation answered — the topic and the exact action it named. */
+  fingerprint: text('fingerprint').notNull(),
+  headline: text('headline').notNull(),
+  /** JSON `[{ label, value, note? }]`, as shown. */
+  facts: text('facts').notNull().default('[]'),
+  /** JSON of the action a Yes carried out. Null for Not yet. */
+  action: text('action'),
+  /** done | failed — what happened when SPEC did it. Null for Not yet. */
+  outcome: text('outcome'),
+  decidedBy: text('decided_by').notNull(),
+  decidedAt: text('decided_at').notNull(),
+}, t => [
+  index('decisions_tenant').on(t.tenantId),
+  index('decisions_topic').on(t.tenantId, t.topic),
+]).enableRLS();
+
+/**
+ * Claude's wording of a recommendation, kept so it is written once rather than on every page load.
+ *
+ * Keyed on `wordsKey` — a hash of the headline, reason and every figure — so wording written for
+ * last week's numbers is never shown beside this week's.
+ */
+export const recommendationWords = pgTable('recommendation_words', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  topic: text('topic').notNull(),
+  wordsKey: text('words_key').notNull(),
+  text: text('text').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('recommendation_words_tenant').on(t.tenantId),
+  uniqueIndex('recommendation_words_key').on(t.tenantId, t.topic, t.wordsKey),
+]).enableRLS();
+
+/**
+ * Where a business stands on switching one area to SPEC. One row per area, created on "I want this".
+ *
+ * Day one changes nothing: a business with no row runs exactly what it ran before. `previous` holds
+ * the Coverage choices the switch replaced, so Undo puts back precisely what was there.
+ */
+export const systemSwitches = pgTable('system_switches', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** accounting | payroll | jobs | crm | people | safety — SWITCH_AREAS in lib/switch. */
+  area: text('area').notNull(),
+  /** requested | side_by_side | spec. `side_by_side` is Shadow for accounting. */
+  state: text('state').notNull().default('requested'),
+  requestedBy: text('requested_by').notNull(),
+  requestedAt: text('requested_at').notNull(),
+  sideBySideAt: text('side_by_side_at'),
+  /**
+   * When the owner said "I'm ready to switch". Half of what unlocks the switch — the other half is
+   * SPEC's own check that it matches what the business runs now (lib/switch, `confirmed`).
+   */
+  ownerReadyAt: text('owner_ready_at'),
+  switchedAt: text('switched_at'),
+  switchedBy: text('switched_by'),
+  /** JSON `{ capability: 'own' }` — the Coverage rows the switch cleared. */
+  previous: text('previous').notNull().default('{}'),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  index('system_switches_tenant').on(t.tenantId),
+  uniqueIndex('system_switches_area').on(t.tenantId, t.area),
+]).enableRLS();
+
+/**
+ * Something about a switch that was not easy — and the Simple Guarantee claim it makes.
+ *
+ * `kind` is from a fixed list, so SPEC can count what goes wrong across every business without
+ * reading a word any business wrote. `note` is the business's own words and stays inside it.
+ * `month` is the month the guarantee covers; one claim per business per month.
+ */
+export const switchFriction = pgTable('switch_friction', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  area: text('area').notNull(),
+  kind: text('kind').notNull(),
+  note: text('note'),
+  month: text('month').notNull(),
+  reportedBy: text('reported_by').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [index('switch_friction_tenant').on(t.tenantId)]).enableRLS();

@@ -25,6 +25,7 @@ import {
   sendReport, setReportState, updateReport, closeReport, markRegulatorTold,
   addAction, completeAction, addCheck, updateCheck, addClaim, updateClaim, addTicket,
 } from './actions';
+import { SwitchCards } from '@/components/recommends';
 
 export const dynamic = 'force-dynamic';
 
@@ -346,6 +347,8 @@ export default async function Safety({ searchParams }: { searchParams: Promise<R
           <Link href="/connections" className="pill" style={pillTone('pending')}>Manual · no job system connected</Link>
         )}
       </p>
+
+      <div className="mb-6"><SwitchCards areas={['safety']} back="/safety" /></div>
 
       <nav className="mb-6 flex flex-wrap gap-2" aria-label="Safety sections">
         {TABS.map(t => {

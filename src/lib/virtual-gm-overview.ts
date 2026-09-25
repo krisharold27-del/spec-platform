@@ -204,3 +204,35 @@ export function ledgerPanel(connections: readonly LedgerConnection[]): LedgerPan
     says: `${best.name} is named as your accounting system — ${(STATUS_LABEL[best.status] ?? best.status).toLowerCase()}.`,
   };
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * The Virtual Admin Department
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * SPEC runs both the GM and the admin department, virtually.
+ *
+ * Kris, 25 September: *"Not just a Virtual GM - Virtual GM + Virtual Admin."* The GM side is the
+ * dial, the levers and the whole business at a glance. The admin side is the paperwork a trade
+ * business drowns in — each item named with the screen in SPEC that already does it, and, where
+ * Angus Shield is what would take the rest over, the switch area whose card says how ready it is.
+ * Nothing here claims more than that screen does: `does` is what is built, `rest` is what is not.
+ */
+export interface AdminJob {
+  key: string;
+  label: string;
+  /** What SPEC does for it today, on `href`. */
+  does: string;
+  href: string;
+  /** Where Angus Shield would take the rest over — the Switch when ready area for it. */
+  switchArea?: 'payroll' | 'accounting';
+}
+
+export const ADMIN_DEPARTMENT: AdminJob[] = [
+  { key: 'payroll', label: 'Payroll', does: 'Every pay run built from the phone’s timesheets and checked against the award before it goes.', href: '/people?mode=pay', switchArea: 'payroll' },
+  { key: 'invoicing', label: 'Invoicing and debtors', does: 'Invoiced on sign-off, chased at 7, 14 and 30 days, never the same reminder twice.', href: '/jobs?tab=billing' },
+  { key: 'bills', label: 'Bills', does: 'Supplier bills matched to their orders; a bill over its order waits until somebody says why.', href: '/jobs?tab=stock', switchArea: 'accounting' },
+  { key: 'compliance', label: 'Compliance paperwork', does: 'Licences, insurance, certificates and audits in one place, warned 60 days before anything lapses.', href: '/compliance' },
+  { key: 'hr', label: 'HR admin', does: 'Contracts from the role, leave, records and a fair process one step at a time.', href: '/people' },
+  { key: 'reporting', label: 'Reporting', does: 'The month on one screen, and the board pack written from the data at close.', href: '/summary' },
+];

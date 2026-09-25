@@ -10,6 +10,7 @@ import { SETTABLE_PLANS, PLAN_MEANING, type SettablePlan } from '@/lib/plan';
 import { PACKAGES, PACKAGE_KEYS, packageOf, packagePrice } from '@/lib/pricing';
 import { SubmitButton } from '@/components/submit-button';
 import { setPlan, setPackage, removeBusiness, detachStripe } from './actions';
+import { summariseClaims, FRICTION_KINDS, areaOf } from '@/lib/switch';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,18 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
   const rows = tenants
     .map(t => ({ tenant: t, contact: contactFor(t.id) }))
     .sort((a, b) => b.tenant.startDate.localeCompare(a.tenant.startDate));
+  /*
+    The Simple Guarantee — "if switching isn't easy, that month is free". A claim is billing data: the
+    business, the month, the area. The business's own note is never selected here; the kind is a
+    fixed-list choice, counted across every business so SPEC can fix what goes wrong.
+  */
+  const friction = await db.select({
+    tenantId: schema.switchFriction.tenantId, month: schema.switchFriction.month,
+    area: schema.switchFriction.area, kind: schema.switchFriction.kind, at: schema.switchFriction.createdAt,
+  }).from(schema.switchFriction);
+  const guarantee = summariseClaims(friction);
+  const nameOf = (tenantId: string) => tenants.find(t => t.id === tenantId)?.name ?? 'A business no longer here';
+
   const programRequests = rows.filter(r => r.tenant.programRequestedAt)
     .sort((a, b) => (b.tenant.programRequestedAt ?? '').localeCompare(a.tenant.programRequestedAt ?? ''));
 
@@ -69,6 +82,23 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {guarantee.claims.length > 0 && (
+          <section className="mt-6" data-guarantee-claims>
+            <h2 className="label-caps">Simple Guarantee claims — take that month off the bill</h2>
+            <ul className="mt-2 divide-y rounded-lg border bg-surface text-sm">
+              {guarantee.claims.map(c => (
+                <li key={`${c.tenantId}:${c.month}`} className="flex flex-wrap items-center justify-between gap-2 p-3">
+                  <span><b>{nameOf(c.tenantId)}</b> <span className="text-ink-light">· {c.month} · {areaOf(c.area)?.noun ?? c.area}</span></span>
+                  <span className="text-ink-light">claimed {c.at.slice(0, 10)}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-ink-light">
+              What was not easy, across every business: {FRICTION_KINDS.map(k => `${k.label} ${guarantee.kinds[k.key] ?? 0}`).join(' · ')}.
+            </p>
           </section>
         )}
 
