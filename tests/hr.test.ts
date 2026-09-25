@@ -7,11 +7,19 @@ import {
 import { FRAMEWORK } from '../src/lib/power-meter';
 
 describe('the People tabs', () => {
-  it('are the design’s, in its order', () => {
+  it('are the design’s, in its order, plus what has been added since', () => {
+    /*
+      "When somebody leaves" is not in the design. It was added 25 September, from the workflow
+      review: every part of offboarding already lived somewhere — tools on the tools register, the
+      seat on billing, access on the chart — and nothing joined them, so each was done by whoever
+      remembered, which on a last day is nobody. Named here rather than folded into the list, so an
+      addition stays a decision somebody made and not a thing that happened.
+    */
     expect(HR_TABS.map(t => t.label)).toEqual([
       'Who you have', 'Staff list', 'Set everybody up', 'Reviews & conduct', 'Pay & exits',
-      'Subcontractors', 'Who you need',
+      'Subcontractors', 'When somebody leaves', 'Who you need',
     ]);
+    expect(tabOf('leavers')).toBe('leavers');
     expect(tabOf('staff')).toBe('staff');
     expect(hrefOf('staff')).toBe('/people?mode=staff');
   });

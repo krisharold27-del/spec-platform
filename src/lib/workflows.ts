@@ -237,8 +237,9 @@ export const WORKFLOWS: Workflow[] = [
     'A builder gives you an agreed rate card and sends work against it.',
     'Every job under that agreement prices itself off the agreed rates.', 'growth', ['gross_profit'], [
     { does: 'Work comes in against an existing agreement rather than as a fresh quote.', by: 'office', where: '/jobs?tab=leads' },
-    nowhere('office', 'Hold the agreed rate card against the customer, so a job under it prices itself.',
-      'There is no rate card on a customer. Today the rates live in a spreadsheet and get typed in per quote, which is exactly where a business loses margin without noticing.'),
+    { does: 'The agreed schedule is held against the customer, in the builder’s own wording. Put in once.', by: 'office', where: '/jobs?tab=rates' },
+    { does: 'A job under it prices itself off the agreed rates, and says which card the price came from. An exact match or nothing — near enough is how you bill for something the schedule does not cover.', by: 'spec', where: '/jobs?tab=rates' },
+    { does: 'Two cards in force for one customer is named as a fault, and a card running out is flagged before it lapses.', by: 'spec', where: '/jobs?tab=rates' },
   ]),
 
   W('win', 'maintenance-sale', 'Sell a maintenance agreement',
@@ -463,8 +464,9 @@ export const WORKFLOWS: Workflow[] = [
     'A job needs plant you do not own.',
     'Off-hired the day it is finished with, not three weeks later.', 'commercial', ['gross_profit', 'budget_miss'], [
     { does: 'The job needs plant.', by: 'office', where: '/jobs?tab=pipeline' },
-    nowhere('office', 'Put it on hire against the job, and be told to off-hire it when the job finishes.',
-      'There is no on-hire/off-hire register. Hire that runs past the job is one of the quietest margin leaks in the trade — the cost lands weeks later on a bill nobody connects to the job.'),
+    { does: 'On hire against the job, with what it costs a day when you know it.', by: 'office', where: '/jobs?tab=rates' },
+    { does: 'The JOB finishing is the trigger — not a reminder anybody sets. Anything still on hire against a finished job is named, counted from the day the job ended rather than the day it went out.', by: 'spec', where: '/jobs?tab=rates' },
+    { does: 'Off hire. One press, and the meter stops.', by: 'office', where: '/jobs?tab=rates' },
   ]),
 
   /* ── People ───────────────────────────────────────────────────────────────────────────────── */
@@ -560,9 +562,14 @@ export const WORKFLOWS: Workflow[] = [
   W('people', 'offboard', 'Somebody leaves',
     'A resignation, or a last day.',
     'Access gone, tools back, final pay right, seat not still being paid for.', 'operations', ['turnover', 'contract_breach'], [
-    { does: 'Tools they hold are on record.', by: 'office', where: '/jobs?tab=tools' },
-    nowhere('office', 'One last-day list: close their login, get the tools and keys back, final pay, and stop billing for the seat.',
-      'Every piece exists separately and nothing joins them. The two that bite are a login that still works months later, and a seat still being paid for — both are things a business only finds by accident.'),
+    /*
+      The standalone "tools they hold are on record" step used to live here, and it is gone rather
+      than excused: the last-day list names the tools among its six and links to the register that
+      holds them, so keeping it as its own step was one workflow describing the same act twice and
+      sending the office to two screens to do it once.
+    */
+    { does: 'Record the last day, which is what starts the list. Six things, each linking to the register that already holds it.', by: 'office', where: '/people?mode=leavers' },
+    { does: 'Two of them bite — a login that still works, and a seat still being paid for — and those are what the summary leads with. SPEC closes nothing itself: somebody on gardening leave still has a login on purpose.', by: 'spec', where: '/people?mode=leavers' },
   ]),
 
   /* ── Safety and compliance ─────────────────────────────────────────────────────────────────── */

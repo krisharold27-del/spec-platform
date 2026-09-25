@@ -2485,3 +2485,86 @@ export const noAccessVisits = pgTable('no_access_visits', {
   index('no_access_tenant').on(t.tenantId),
   index('no_access_job').on(t.tenantId, t.jobId),
 ]).enableRLS();
+
+
+/**
+ * A builder's agreed schedule of rates, held against the customer it belongs to.
+ *
+ * Today these live in a spreadsheet and get typed into every quote, which is where a business loses
+ * margin without noticing: a rate typed from memory drifts, and it only ever drifts one way. Nobody
+ * finds out, because a quote priced off the wrong rate is not rejected — it is accepted, and the
+ * difference comes out of the job. See lib/rate-cards.
+ */
+export const rateCards = pgTable('rate_cards', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  /** Which customer. A card with no customer is a spreadsheet again. */
+  customerKey: text('customer_key').notNull(),
+  customerName: text('customer_name').notNull(),
+  name: text('name').notNull(),
+  startsAt: text('starts_at'),
+  endsAt: text('ends_at'),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('rate_cards_tenant').on(t.tenantId),
+  index('rate_cards_customer').on(t.tenantId, t.customerKey),
+]).enableRLS();
+
+/** One agreed rate, in the builder's own wording — because that is what the schedule says. */
+export const rateCardLines = pgTable('rate_card_lines', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  cardId: text('card_id').notNull(),
+  what: text('what').notNull(),
+  unit: text('unit').notNull().default('each'),
+  cents: integer('cents').notNull(),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('rate_card_lines_tenant').on(t.tenantId),
+  index('rate_card_lines_card').on(t.tenantId, t.cardId),
+]).enableRLS();
+
+/**
+ * Plant on hire against a job.
+ *
+ * The quietest margin leak there is: the job finishes and the scissor lift sits on site for three
+ * more weeks, because off-hiring it is nobody's specific job. The cost turns up later on an invoice
+ * nobody connects to the job it belonged to.
+ *
+ * The JOB finishing is the trigger — not a reminder somebody sets. The job already knows when it
+ * finished and this row already knows which job it is on; the connection is the whole feature.
+ */
+export const plantHires = pgTable('plant_hires', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  jobId: text('job_id').notNull(),
+  what: text('what').notNull(),
+  supplier: text('supplier'),
+  onHireAt: text('on_hire_at').notNull(),
+  offHireAt: text('off_hire_at'),
+  /** Null is honest rather than empty: SPEC never invents what a day of hire costs. */
+  perDayCents: integer('per_day_cents'),
+  createdAt: text('created_at').notNull(),
+}, t => [
+  index('plant_hires_tenant').on(t.tenantId),
+  index('plant_hires_job').on(t.tenantId, t.jobId),
+]).enableRLS();
+
+/**
+ * Somebody's last day, and which parts of the list have been done.
+ *
+ * Every piece already exists somewhere — tools on the tools register, the seat on billing, access
+ * on the chart — and nothing joined them, so each was done by whoever remembered, which on a last
+ * day is nobody. `done` is the keys from LAST_DAY in lib/last-day; the two that bite are a login
+ * still open and a seat still being paid for.
+ */
+export const leavers = pgTable('leavers', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  staffId: text('staff_id').notNull(),
+  name: text('name').notNull(),
+  lastDay: text('last_day').notNull(),
+  /** Comma-separated keys. A list this short does not earn a second table. */
+  done: text('done').notNull().default(''),
+  createdAt: text('created_at').notNull(),
+}, t => [index('leavers_tenant').on(t.tenantId)]).enableRLS();

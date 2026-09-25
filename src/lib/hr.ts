@@ -19,7 +19,7 @@ import { light, type Light, LIGHT_LABEL } from './today';
 
 /* ── The tabs ─────────────────────────────────────────────────────────────────────────────────── */
 
-export type HrTab = 'have' | 'setup' | 'staff' | 'conduct' | 'pay' | 'subbies' | 'hiring';
+export type HrTab = 'have' | 'setup' | 'staff' | 'conduct' | 'pay' | 'subbies' | 'leavers' | 'hiring';
 
 /**
  * The tabs, in the design's order — HR, Reviews & conduct, Pay & exits, Recruitment — with the
@@ -51,6 +51,14 @@ export const HR_TABS: { tab: HrTab; mode: string | null; label: string }[] = [
     can see. See lib/subbies.
   */
   { tab: 'subbies', mode: 'subbies', label: 'Subcontractors' },
+  /*
+    When somebody leaves, 25 September. Every part of offboarding already lived somewhere — tools on
+    the tools register, the seat on billing, access on the chart — and nothing joined them, so each
+    was done by whoever remembered, which on a last day is nobody. Two of them cost money or create
+    risk every day they stay open: a login that still works, and a seat still being paid for. See
+    lib/last-day.
+  */
+  { tab: 'leavers', mode: 'leavers', label: 'When somebody leaves' },
   { tab: 'hiring', mode: 'hiring', label: 'Who you need' },
 ];
 

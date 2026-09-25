@@ -71,6 +71,10 @@ const ADDED_SINCE: { key: string; label: string; why: string }[] = [
     key: 'certificates', label: 'Certificates',
     why: 'From the workflow review, 25 September: a job finishes, the customer signs it off on the phone, the invoice goes — and the certificate of compliance is done somewhere else entirely, on a different system or a pad in the ute. So the one document that proves the work was lawful is the one document the job does not hold, and the first time anybody looks for it is an insurance claim, a fire, a regulator or a builder audit. Kris named it as a gap worth closing first.',
   },
+  {
+    key: 'rates', label: 'Rates & hire',
+    why: 'Two of the workflow map\u2019s last holes, closed together because they are the same shape: money that leaves because nothing said it was going. A builder\u2019s agreed schedule typed from memory drifts, and only ever one way; plant left on hire past the job that needed it turns up weeks later on an invoice nobody connects to the job. Kris, 25 September: everything must be done.',
+  },
 ];
 
 describe('the Jobs tabs match the design', () => {

@@ -35,7 +35,30 @@ import { redirect } from 'next/navigation';
  * right answer to SPEC being wrong.
  */
 export function refuseTo(screen: string, reason: string): never {
-  redirect(`${screen}?cannot=${encodeURIComponent(reason)}`);
+  /*
+    ── The separator, which was wrong for every screen with a tab ────────────────────────────────
+
+    This always appended `?cannot=`, so a refusal on `/people?mode=setup` produced
+    `/people?mode=setup?cannot=...` — one address with two question marks, where the whole of
+    `setup?cannot=...` is read as the value of `mode`. It matches no tab, so `tabOf` falls back to
+    the first one, and somebody refused on the setup screen was silently dropped onto a different
+    screen with no explanation.
+
+    Nothing failed, which is why it survived: a refusal is already an unhappy path, and landing
+    somewhere unexpected after one reads as SPEC being confusing rather than as a bug.
+  */
+  redirect(`${screen}${screen.includes('?') ? '&' : '?'}cannot=${encodeURIComponent(reason)}`);
+}
+
+/**
+ * Back to a screen with nothing to say — the ordinary end of an action that worked.
+ *
+ * Its own function rather than `refuseTo(screen, '')`, which is what this replaced. An empty
+ * refusal still puts `cannot=` on the address, and a page that reads it renders an empty warning
+ * box after a successful save.
+ */
+export function backTo(screen: string): never {
+  redirect(screen);
 }
 
 /**

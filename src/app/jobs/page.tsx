@@ -21,6 +21,8 @@ import { runForward, cashStats, cashAdvice, cashLine, cashLabel, DEFAULT_BUFFER_
 import { seatOf, tabsFor, maySeeTab, stripMoney, insteadGoTo } from '@/lib/sight';
 import { crewWatch, crewLine, unheld, WHY_ONE_SUPERVISOR } from '@/lib/crews';
 import { noAccessCount, repeaters } from '@/lib/no-access';
+import { overlapping, cardLine } from '@/lib/rate-cards';
+import { hireWatch, shouldBeBack, plantLine } from '@/lib/plant';
 import {
   outstanding, certificateLine, isSetUp, TERRITORIES, SUGGESTED_NAME,
   CONFIRM_THE_NAME, WHY_THE_WINDOW_IS_YOURS, type CertificateSetup, type Territory,
@@ -47,6 +49,7 @@ import {
   addTool,
   logCallback, setReviewLink, askForReview, recordQuoteChase, addScope, setSupervisor,
   setCertificateSetup, issueCertificate, lodgeCertificate, excuseCertificate,
+  addRateCard, addRateLine, putOnHire, offHire,
 } from './actions';
 
 import {
@@ -123,11 +126,12 @@ const TABS = [
   { key: 'reviews', label: 'Reviews' },
   { key: 'growth', label: 'Keep work coming' },
   { key: 'certificates', label: 'Certificates' },
+  { key: 'rates', label: 'Rates & hire' },
 ] as const;
 type Tab = (typeof TABS)[number]['key'];
 
 export const TAB_GROUPS = [
-  { key: 'win', label: 'Win the work', tabs: ['growth', 'leads', 'tenders', 'takeoff', 'customers', 'ace', 'quotes', 'prebuilds', 'howlong'] },
+  { key: 'win', label: 'Win the work', tabs: ['growth', 'leads', 'tenders', 'takeoff', 'customers', 'rates', 'ace', 'quotes', 'prebuilds', 'howlong'] },
   { key: 'do', label: 'Do the work', tabs: ['pipeline', 'jobace', 'schedule', 'time', 'catalogue', 'stock', 'tools'] },
   { key: 'paid', label: 'Get paid and keep them', tabs: ['billing', 'certificates', 'wip', 'cash', 'service', 'rework', 'reviews'] },
 ] as const;
@@ -179,7 +183,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const today = now.toISOString().slice(0, 10);
 
   /* Everything this business has recorded for Jobs, read once and scoped by tenant in the query. */
-  const [allJobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows, chaseRows, noAccessRows] = await Promise.all([
+  const [allJobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows, chaseRows, noAccessRows, rateCardRows, rateLineRows, hireRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
     db.select().from(schema.quotes).where(eq(schema.quotes.tenantId, user.tenantId)).orderBy(schema.quotes.createdAt),
     db.select().from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, user.tenantId)).orderBy(schema.catalogueItems.name),
@@ -208,6 +212,10 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
     db.select().from(schema.quoteChases).where(eq(schema.quoteChases.tenantId, user.tenantId)),
     db.select().from(schema.noAccessVisits).where(eq(schema.noAccessVisits.tenantId, user.tenantId))
       .orderBy(schema.noAccessVisits.createdAt),
+    db.select().from(schema.rateCards).where(eq(schema.rateCards.tenantId, user.tenantId)),
+    db.select().from(schema.rateCardLines).where(eq(schema.rateCardLines.tenantId, user.tenantId)),
+    db.select().from(schema.plantHires).where(eq(schema.plantHires.tenantId, user.tenantId))
+      .orderBy(schema.plantHires.onHireAt),
   ]);
   const crew = await crewFor(user);
 
@@ -346,6 +354,10 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
           noAccessHours={tenantRow?.noAccessHours ? Number(tenantRow.noAccessHours) : null} />
       )}
       {tab === 'reviews' && <Reviews rows={reviewRows} jobs={jobs} manage={manage} link={tenantRow?.reviewLink ?? null} />}
+      {tab === 'rates' && (
+        <RatesAndPlant jobs={jobs} cards={rateCardRows} lines={rateLineRows} hires={hireRows}
+          manage={manage} today={today} />
+      )}
       {tab === 'certificates' && (
         <Certificates jobs={jobs} manage={manage} setup={{
           territory: (tenantRow?.certificateTerritory ?? null) as Territory | null,
@@ -3594,6 +3606,162 @@ function Certificates({ jobs, setup, manage }: {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/**
+ * Agreed rates and plant on hire — two leaks that look nothing alike and behave identically.
+ *
+ * Both are money that goes out because nothing said it was going. A rate typed from memory drifts
+ * one way; a hire runs past the job that needed it. Neither is anybody forgetting on purpose, and
+ * neither shows up until the invoice.
+ */
+function RatesAndPlant({ jobs, cards, lines, hires, manage, today }: {
+  jobs: JobRow[];
+  cards: (typeof schema.rateCards.$inferSelect)[];
+  lines: (typeof schema.rateCardLines.$inferSelect)[];
+  hires: (typeof schema.plantHires.$inferSelect)[];
+  manage: boolean;
+  today: string;
+}) {
+  const full = cards.map(c => ({
+    id: c.id, customerKey: c.customerKey, customerName: c.customerName, name: c.name,
+    startsAt: c.startsAt, endsAt: c.endsAt,
+    lines: lines.filter(l => l.cardId === c.id)
+      .map(l => ({ id: l.id, what: l.what, unit: l.unit, cents: l.cents })),
+  }));
+  const clash = overlapping(full, today);
+
+  const jobOf = (id: string) => jobs.find(j => j.id === id);
+  const watches = hires.map(h => hireWatch(
+    { id: h.id, jobId: h.jobId, jobRef: jobOf(h.jobId)?.ref ?? 'A job', what: h.what,
+      supplier: h.supplier ?? '', onHireAt: h.onHireAt, offHireAt: h.offHireAt,
+      perDayCents: h.perDayCents },
+    /* The job finishing is the trigger. Nothing else has to be remembered. */
+    ['invoiced', 'paid'].includes(jobOf(h.jobId)?.stage ?? '') ? (jobOf(h.jobId)?.stageAt ?? null) : null,
+  ));
+  const late = shouldBeBack(watches);
+
+  return (
+    <div className="grid gap-6">
+      <section className="card">
+        <h2 className="font-serif text-xl text-ink">Agreed rates &amp; plant on hire</h2>
+        <p className="mt-1 max-w-[74ch] text-sm text-ink-light">
+          Two leaks that look nothing alike and behave identically: money that goes out because
+          nothing said it was going. A rate typed from memory drifts, and it only ever drifts one
+          way. A hire runs past the job that needed it, and the cost turns up on an invoice nobody
+          connects to the job.
+        </p>
+        <p className="mt-3 text-sm font-semibold text-ink">{plantLine(watches)}</p>
+      </section>
+
+      {late.length > 0 && (
+        <section className="card" style={{ background: LIGHT_COLOUR.amber }}>
+          <h3 className="font-serif text-lg" style={{ color: LIGHT_INK.amber }}>Still on hire, job finished</h3>
+          <ul className="mt-3 grid gap-2">
+            {late.map(w => (
+              <li key={w.hire.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm" style={{ color: LIGHT_INK.amber }}>
+                  <strong>{w.hire.what}</strong> — {w.says}
+                </span>
+                {manage && (
+                  <form action={offHire}>
+                    <input type="hidden" name="hireId" value={w.hire.id} />
+                    <SubmitButton className="btn-secondary shrink-0 text-sm" pending="…">Off hire</SubmitButton>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="card">
+        <h3 className="font-serif text-lg text-ink">On hire</h3>
+        {watches.filter(w => w.state !== 'returned').length === 0 ? (
+          <p className="mt-2 text-sm text-ink-light">Nothing out.</p>
+        ) : (
+          <ul className="mt-3 grid gap-2">
+            {watches.filter(w => w.state !== 'returned').map(w => (
+              <li key={w.hire.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-cream px-4 py-3">
+                <span className="text-sm text-ink">{w.hire.what} · {w.hire.jobRef}</span>
+                <span className="text-[13px] text-ink-light">{w.says}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {manage && (
+          <form action={putOnHire} className="mt-3 grid gap-2 sm:grid-cols-[1.2fr_1fr_1fr_0.7fr_auto]">
+            <select className="input" name="jobId" required aria-label="Which job">
+              <option value="">Which job</option>
+              {jobs.map(j => <option key={j.id} value={j.id}>{j.ref} · {j.title}</option>)}
+            </select>
+            <input className="input" name="what" placeholder="Scissor lift" aria-label="What is on hire" required />
+            <input className="input" name="supplier" placeholder="Who from" aria-label="Supplier" />
+            <input className="input" name="perDay" inputMode="decimal" placeholder="$/day" aria-label="Cost per day" />
+            <SubmitButton className="btn-secondary shrink-0" pending="…">On hire</SubmitButton>
+          </form>
+        )}
+      </section>
+
+      <section className="card">
+        <h3 className="font-serif text-lg text-ink">Agreed rates</h3>
+        {clash.length > 0 && (
+          /* Two cards in force for one customer is an argument waiting to happen, not a preference. */
+          <p className="mt-2 rounded-2xl px-4 py-3 text-sm"
+            style={{ background: LIGHT_COLOUR.amber, color: LIGHT_INK.amber }}>
+            {clash.length === 1 ? 'One customer has' : `${clash.length} customers have`} two cards in
+            force at once — {clash.map(cs => cs[0].customerName).join(', ')}. End one, or a quote
+            will be priced off whichever started last.
+          </p>
+        )}
+        {full.length === 0 ? (
+          <p className="mt-2 max-w-[74ch] text-sm text-ink-light">
+            No agreed rates yet. If a builder sends you work against a schedule, put it here once —
+            every job under it prices itself, and says which card the price came from.
+          </p>
+        ) : (
+          <ul className="mt-3 grid gap-3">
+            {full.map(c => (
+              <li key={c.id} className="rounded-2xl bg-cream p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm text-ink"><strong>{c.customerName}</strong> · {c.name}</span>
+                  <span className="text-[13px] text-ink-light">{cardLine(c, today)}</span>
+                </div>
+                {c.lines.length > 0 && (
+                  <ul className="mt-2 grid gap-1">
+                    {c.lines.map(l => (
+                      <li key={l.id} className="flex justify-between gap-3 text-[13px] text-ink-light">
+                        <span>{l.what}</span>
+                        <span>{money(l.cents)} / {l.unit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {manage && (
+                  <form action={addRateLine} className="mt-3 grid gap-2 sm:grid-cols-[1.4fr_0.7fr_0.7fr_auto]">
+                    <input type="hidden" name="cardId" value={c.id} />
+                    <input className="input" name="what" placeholder="Double GPO" aria-label="What the schedule calls it" required />
+                    <input className="input" name="unit" placeholder="each" aria-label="Unit" />
+                    <input className="input" name="dollars" inputMode="decimal" placeholder="$" aria-label="Agreed price" required />
+                    <SubmitButton className="btn-secondary shrink-0" pending="…">Add</SubmitButton>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {manage && (
+          <form action={addRateCard} className="mt-4 grid gap-2 sm:grid-cols-[1.2fr_1fr_0.8fr_0.8fr_auto]">
+            <input className="input" name="customerName" placeholder="Big Builder" aria-label="Which customer" required />
+            <input className="input" name="name" placeholder="2026 schedule" aria-label="What the card is called" required />
+            <input className="input" name="startsAt" type="date" aria-label="From" />
+            <input className="input" name="endsAt" type="date" aria-label="To" />
+            <SubmitButton className="btn-secondary shrink-0" pending="…">New card</SubmitButton>
+          </form>
         )}
       </section>
     </div>

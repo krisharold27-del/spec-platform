@@ -33,6 +33,7 @@ import { ConductTab, PayTab, type ReviewPerson, type TrainingRow, type ContractR
 import { StaffListTab } from './staff-list';
 import { SubbiesTab, type SubbieRow } from './subbies-tab';
 import { SetupTab } from './setup-tab';
+import { LeaversTab } from './leavers-tab';
 import { seatKindFor } from '@/lib/chart-seats';
 import { planStateFor } from '@/lib/plan';
 import type { Person, SeatKind } from '@/lib/onboarding';
@@ -118,6 +119,10 @@ export default async function People({ searchParams }: { searchParams: Promise<R
   */
   const obligationRows = await db.select().from(schema.obligations)
     .where(eq(schema.obligations.tenantId, user.tenantId));
+  const leaverRows = await db.select().from(schema.leavers)
+    .where(eq(schema.leavers.tenantId, user.tenantId))
+    .orderBy(schema.leavers.lastDay);
+
   const leaveRows = await db.select().from(schema.leaveEntries)
     .where(eq(schema.leaveEntries.tenantId, user.tenantId));
   const staffRows = await db.select().from(schema.staff).where(eq(schema.staff.tenantId, user.tenantId));
@@ -144,7 +149,12 @@ export default async function People({ searchParams }: { searchParams: Promise<R
     tick on the row beats it; until somebody ticks, the guess stands and the screen says so.
   */
   const setupPeople: (Person & { chartSeat: SeatKind; setupToken: string | null })[] = await (async () => {
-    if (tab !== 'setup') return [];
+    /*
+      Loaded for the leavers tab too, which needs the same staff-backed list: a leaver IS a staff
+      record, and the chart's rows carry a role id rather than a person. Still skipped on every
+      other tab, because this is four queries nobody else is asking for.
+    */
+    if (tab !== 'setup' && tab !== 'leavers') return [];
     const [staffRows, assignments, licences, trainingDone] = await Promise.all([
       db.select().from(schema.staff).where(eq(schema.staff.tenantId, user.tenantId))
         .orderBy(schema.staff.name),
@@ -409,6 +419,16 @@ export default async function People({ searchParams }: { searchParams: Promise<R
           people={setupPeople} roles={visible.map(r => ({ id: r.id, title: r.title }))}
           today={todayIso} currency={setupCurrency} canPay={scope.canAdminister} subscribed={setupSubscribed}
           business={tenant.name} appUrl={process.env.APP_URL ?? ''}
+        />
+      ) : tab === 'leavers' ? (
+        <LeaversTab
+          leavers={leaverRows.map(l => ({
+            staffId: l.id, name: l.name, lastDay: l.lastDay,
+            done: l.done.split(',').filter(Boolean),
+          }))}
+          /* Staff rows, because a leaver IS a staff record — the chart's rows carry a role id. */
+          people={setupPeople.map(p => ({ id: p.id, name: p.name }))}
+          manage={manage} today={todayIso}
         />
       ) : tab === 'subbies' ? (
         <SubbiesTab rows={subbieRows} manage={manage} today={todayIso} business={tenant.name} />

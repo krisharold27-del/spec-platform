@@ -5,11 +5,12 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
+import { LAST_DAY } from '@/lib/last-day';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { PILLARS } from '@/lib/scoring';
 import { STAGES } from '@/lib/people';
-import { refuseTo } from '@/lib/refuse';
+import { refuseTo, backTo } from '@/lib/refuse';
 import { getCurrentUser } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { isCheckKind, mayBook } from '@/lib/subbies';
@@ -716,4 +717,52 @@ export async function sendSetupLink(form: FormData) {
   await db.update(schema.staff).set({ setupToken: randomBytes(16).toString('hex') })
     .where(eq(schema.staff.id, staffId));
   backToSetup();
+}
+
+/* ── Somebody leaves ─────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Record a last day, which is what starts the list.
+ *
+ * SPEC closes nothing by itself. Final pay, tools and access are decisions with consequences —
+ * somebody on gardening leave still has a login on purpose, and a tool written off is a
+ * conversation rather than a tick. The job here is to make sure nobody has to REMEMBER.
+ */
+export async function recordLastDay(form: FormData) {
+  const user = await manager();
+  const staffId = txt(form, 'staffId', 64);
+  const person = await ownStaff(user.tenantId, staffId);
+  if (!person) refuseTo('/people?mode=leavers', 'That person is not in this business.');
+
+  const lastDay = txt(form, 'lastDay', 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(lastDay)) refuseTo('/people?mode=leavers', 'When was their last day?');
+
+  await db.insert(schema.leavers).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    staffId,
+    name: person.name,
+    lastDay,
+    done: '',
+    createdAt: stamp(),
+  });
+  backTo('/people?mode=leavers');
+}
+
+/** Tick one thing off somebody's last-day list. */
+export async function tickLastDay(form: FormData) {
+  const user = await manager();
+  const id = txt(form, 'leaverId', 64);
+  const key = txt(form, 'key', 40);
+  if (!LAST_DAY.some(i => i.key === key)) refuseTo('/people?mode=leavers', 'SPEC does not know that step.');
+
+  const [row] = await db.select().from(schema.leavers)
+    .where(and(eq(schema.leavers.id, id), eq(schema.leavers.tenantId, user.tenantId)));
+  if (!row) refuseTo('/people?mode=leavers', 'That is not in this business.');
+
+  const done = new Set(row.done.split(',').filter(Boolean));
+  done.add(key);
+  await db.update(schema.leavers).set({ done: [...done].join(',') })
+    .where(eq(schema.leavers.id, id));
+  backTo('/people?mode=leavers');
 }

@@ -1268,3 +1268,87 @@ export async function excuseCertificate(form: FormData) {
     .where(eq(schema.jobs.id, job.id));
   back('certificates');
 }
+
+/* ── A builder's agreed rates, and plant on hire ─────────────────────────────────────────────── */
+
+/** Start a rate card against a customer. */
+export async function addRateCard(form: FormData) {
+  const user = await writer();
+  const customerName = str(form, 'customerName', 200);
+  const name = str(form, 'name', 120);
+  if (!customerName || !name) back('rates', {}, 'A card needs a customer and a name.');
+
+  await db.insert(schema.rateCards).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    customerKey: customerName.toLowerCase().replace(/\s+/g, '-').slice(0, 64),
+    customerName,
+    name,
+    startsAt: str(form, 'startsAt', 10) || null,
+    endsAt: str(form, 'endsAt', 10) || null,
+    createdAt: now(),
+  });
+  back('rates');
+}
+
+/** One agreed rate, in the builder's own wording. */
+export async function addRateLine(form: FormData) {
+  const user = await writer();
+  const cardId = str(form, 'cardId', 64);
+  const [card] = await db.select({ id: schema.rateCards.id }).from(schema.rateCards)
+    .where(and(eq(schema.rateCards.id, cardId), eq(schema.rateCards.tenantId, user.tenantId)));
+  if (!card) back('rates', {}, 'That card is not in this business.');
+
+  const what = str(form, 'what', 160);
+  const dollars = Number(form.get('dollars'));
+  if (!what || !Number.isFinite(dollars) || dollars <= 0) back('rates', {}, 'A rate needs wording and a price.');
+
+  await db.insert(schema.rateCardLines).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    cardId,
+    what,
+    unit: str(form, 'unit', 24) || 'each',
+    cents: Math.round(dollars * 100),
+    createdAt: now(),
+  });
+  back('rates');
+}
+
+/** Put plant on hire against a job. */
+export async function putOnHire(form: FormData) {
+  const user = await writer();
+  const job = await ownJob(user.tenantId, str(form, 'jobId', 64));
+  if (!job) back('rates', {}, 'That job is not in this business.');
+
+  const what = str(form, 'what', 160);
+  if (!what) back('rates', {}, 'Say what went on hire.');
+
+  const perDay = Number(form.get('perDay'));
+  await db.insert(schema.plantHires).values({
+    id: randomUUID(),
+    tenantId: user.tenantId,
+    jobId: job.id,
+    what,
+    supplier: str(form, 'supplier', 160) || null,
+    onHireAt: now(),
+    offHireAt: null,
+    /* Null rather than zero: SPEC never invents what a day of hire costs. */
+    perDayCents: Number.isFinite(perDay) && perDay > 0 ? Math.round(perDay * 100) : null,
+    createdAt: now(),
+  });
+  back('rates');
+}
+
+/** Off hire. The press that stops the meter. */
+export async function offHire(form: FormData) {
+  const user = await writer();
+  const id = str(form, 'hireId', 64);
+  const [row] = await db.select({ id: schema.plantHires.id }).from(schema.plantHires)
+    .where(and(eq(schema.plantHires.id, id), eq(schema.plantHires.tenantId, user.tenantId)));
+  if (!row) back('rates', {}, 'That hire is not in this business.');
+
+  await db.update(schema.plantHires).set({ offHireAt: now() })
+    .where(eq(schema.plantHires.id, id));
+  back('rates');
+}

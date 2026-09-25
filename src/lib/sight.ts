@@ -97,6 +97,8 @@ export const TAB_SIGHT: Record<string, Sight> = {
   rework: 'money',
   /* A compliance register, not a price list — but it names every job, so it stays leadership. */
   certificates: 'money',
+  /* Agreed rates ARE a price list, and hire costs money. Leadership. */
+  rates: 'money',
   reviews: 'money',
 };
 
