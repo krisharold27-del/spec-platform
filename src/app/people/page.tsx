@@ -31,6 +31,11 @@ import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
 import { HR_TABS, tabOf, hrefOf, lastThree, lastPayWeek, exitsFrom, trainingStateOf, trainingSummary } from '@/lib/hr';
 import { ConductTab, PayTab, type ReviewPerson, type TrainingRow, type ContractRow, type ExitRow } from './hr-tabs';
+import { PayRunPanel } from './pay-run-panel';
+import { payRunFor, type PayRunView } from '@/lib/pay-run-data';
+import { approvePayRun, approveLeave, declineLeave } from './actions';
+import { LeavePanel } from './leave-panel';
+import { requestsFor, type SafeRequest } from '@/lib/leave-data';
 import { StaffListTab } from './staff-list';
 import { SubbiesTab, type SubbieRow } from './subbies-tab';
 import { SetupTab } from './setup-tab';
@@ -334,6 +339,11 @@ export default async function People({ searchParams }: { searchParams: Promise<R
   const payRunRows = tab === 'pay'
     ? await db.select().from(schema.payRuns).where(eq(schema.payRuns.tenantId, user.tenantId))
     : [];
+  /* The seven checks, and the rates they depend on. Read only on the tab that shows them. */
+  const payRun: PayRunView | null = tab === 'pay' ? await payRunFor(user.tenantId) : null;
+  const leaveRequests: SafeRequest[] = tab === 'pay'
+    ? await requestsFor(user.tenantId, manage ? 'approver' : 'anyone')
+    : [];
 
   const contracts: ContractRow[] = [];
   const exits: ExitRow[] = [];
@@ -450,6 +460,21 @@ export default async function People({ searchParams }: { searchParams: Promise<R
           manage={manage}
         />
       ) : tab === 'pay' ? (
+        <>
+        {/*
+          Design 19's seven checks, above the rest of Pay. Above deliberately: a pay run that cannot
+          be approved is the thing the person came here to deal with, and putting it under the
+          contracts and the exits makes it something they find rather than something they are told.
+        */}
+        {payRun && <PayRunPanel view={payRun} approve={approvePayRun} manage={manage} />}
+        <div className="mt-6" />
+        {/*
+          Leave. The viewer is 'approver' here because this tab is already behind the manage check —
+          anybody who can open it can decide somebody's leave, which is exactly who is entitled to
+          see what kind it is. Every other screen that shows leave passes 'anyone'.
+        */}
+        <LeavePanel requests={leaveRequests} approve={approveLeave} decline={declineLeave} manage={manage} />
+        <div className="mt-6" />
         <PayTab
           signed={personRecords.filter(r => r.kind === 'contract')}
           roles={visible.map(r => ({ id: r.id, title: r.title }))}
@@ -464,6 +489,7 @@ export default async function People({ searchParams }: { searchParams: Promise<R
           claims={claimRows}
           today={todayIso}
         />
+        </>
       ) : !hiring ? (
         <>
           <section className="card mt-6">

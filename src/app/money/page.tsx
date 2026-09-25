@@ -187,7 +187,7 @@ export default async function Money({
         <h2 className="font-serif text-3xl text-ink">How pay flows</h2>
         <p className="mt-2 max-w-3xl text-sm text-ink-light">{PAYROLL_RULE}</p>
         <p className="mt-2 max-w-3xl text-sm text-ink">{payrollPostsTo(view.source, view.connectorName)}</p>
-        <Link href="/people?tab=pay" className="mt-3 inline-block text-sm text-rust-700 hover:underline">
+        <Link href="/people?mode=pay" className="mt-3 inline-block text-sm text-rust-700 hover:underline">
           People &rarr; Pay
         </Link>
       </section>

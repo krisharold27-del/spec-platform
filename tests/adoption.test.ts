@@ -124,6 +124,30 @@ describe('one line per tile', () => {
   });
 });
 
+describe('every tile goes somewhere that exists', () => {
+  /*
+    Added after a browser journey found two tiles pointing at /people?tab=pay when the People screen
+    reads ?mode=. Both landed silently on the default tab — the page rendered, nothing errored, and
+    the owner simply did not get where the tile said they would. Exactly the shape of the refusal
+    bug found on 25 September, in a new place.
+  */
+  it('names a query parameter the target screen actually reads', () => {
+    const known: Record<string, string> = { '/people': 'mode', '/jobs': 'tab' };
+    for (const area of AREAS) {
+      const [path, query] = area.to.split('?');
+      if (!query) continue;
+      const expected = known[path];
+      if (!expected) continue;
+      expect(query.split('=')[0], `${area.key} sends ${area.to}, but ${path} reads ?${expected}=`)
+        .toBe(expected);
+    }
+  });
+
+  it('points every tile at a path, not at a bare query', () => {
+    for (const area of AREAS) expect(area.to, area.key).toMatch(/^\//);
+  });
+});
+
 describe('turning one on', () => {
   it('names what comes across rather than promising a migration', () => {
     const p = movePlan(areaByKey('do')!, 'Simpro');

@@ -673,7 +673,18 @@ export const leaveEntries = pgTable('leave_entries', {
   tenantId: text('tenant_id').notNull().references(() => tenants.id),
   staffId: text('staff_id').references(() => staff.id),
   userId: text('user_id').references(() => users.id),
-  /** annual | sick | unpaid | parental | other — their words for it, from a short fixed list. */
+  /**
+   * One of KINDS in lib/leave: annual, personal, long_service, unpaid, til, rdo, compassionate, fdv.
+   *
+   * Design 19 widened this from the original five. `sick` reads as `personal` and `parental` as
+   * `other` through `kindByKey`, so rows written before the change still mean what they meant —
+   * rewriting stored history to match a new vocabulary is how a leave record stops being evidence.
+   *
+   * This is the field to be careful with. Family and domestic violence leave shows as "Leave" to
+   * anybody who is not the person, their approver or payroll: somebody taking it is often hiding
+   * from a person who may know where they work, and a roster that names it has published that. The
+   * rule lives in `labelFor` in lib/leave and every screen must go through it.
+   */
   kind: text('kind').notNull().default('annual'),
   fromDate: text('from_date').notNull(),
   toDate: text('to_date').notNull(),
@@ -683,6 +694,23 @@ export const leaveEntries = pgTable('leave_entries', {
   decidedAt: text('decided_at'),
   /** Who is covering, if anybody is. Free text: it is usually a name, sometimes "nobody yet". */
   coveredBy: text('covered_by'),
+  /*
+    ── Design 19: balances, and the deliberate override ──────────────────────────────────────────
+
+    `hours` rather than days, because a nine-day fortnight makes "days" a number two people can
+    disagree about while both being right. Null on rows written before the change: SPEC says it
+    does not know rather than counting them as nothing.
+
+    `overrideBy` is set when a MANAGER deliberately allowed leave past the balance, and the owner is
+    told when it is. Leave in advance is a normal thing a good employer does — refusing it outright
+    just means the business does it in a text message and payroll finds out in the run. What it must
+    never be is accidental.
+
+    `reason` is only ever read by the person, their approver and payroll. See `mayReadReason`.
+  */
+  hours: real('hours'),
+  reason: text('reason').notNull().default(''),
+  overrideBy: text('override_by'),
   createdAt: text('created_at').notNull(),
 }, t => [index('leave_tenant').on(t.tenantId)]).enableRLS();
 
@@ -3054,38 +3082,6 @@ export const leaveBalances = pgTable('leave_balances', {
   uniqueIndex('leave_balances_one').on(t.tenantId, t.personKey, t.kind),
   index('leave_balances_tenant').on(t.tenantId),
 ]).enableRLS();
-
-/**
- * A request for time off.
- *
- * `overrideBy` is the deliberate manager decision that let it through past the balance, and the
- * owner is told when it is set. Leave in advance is a normal thing a good employer does; what it
- * must never be is accidental.
- *
- * `kind` is the field to be careful with. Family and domestic violence leave shows as "Leave" to
- * anybody who is not the person, their approver or payroll — somebody taking it is often hiding
- * from a person who may know where they work, and a roster that names it has published that. The
- * rule lives in `labelFor` in lib/leave, and every screen showing leave must go through it.
- */
-export const leaveRequests = pgTable('leave_requests', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id').notNull(),
-  personKey: text('person_key').notNull(),
-  personName: text('person_name').notNull(),
-  kind: text('kind').notNull(),
-  fromDate: text('from_date').notNull(),
-  toDate: text('to_date').notNull(),
-  hours: real('hours').notNull(),
-  /** Only ever read by the person, their approver and payroll. */
-  reason: text('reason').notNull().default(''),
-  /** asked | approved | declined */
-  state: text('state').notNull().default('asked'),
-  decidedBy: text('decided_by'),
-  decidedAt: text('decided_at'),
-  /** Set when a manager deliberately allowed it past the balance. */
-  overrideBy: text('override_by'),
-  createdAt: text('created_at').notNull(),
-}, t => [index('leave_requests_tenant').on(t.tenantId, t.fromDate)]).enableRLS();
 
 /**
  * Retention held out of a job, and when it comes back.
