@@ -1,6 +1,6 @@
 import type { PowerReading, SlotReading } from './power-meter';
 import {
-  WORKFLOWS, FAMILIES, inFamily, movedBy, placeOf, screensOf, tally,
+  WORKFLOWS, FAMILIES, inFamily, movedBy, placeOf, screensOf, isSentLinkScreen, tally,
   type FamilyKey, type SlotId, type Workflow,
 } from './workflows';
 import { STATUS_LABEL } from './systems';
@@ -52,8 +52,12 @@ export interface Lever {
 
 const familyLabel = (key: FamilyKey): string => FAMILIES.find(f => f.key === key)?.label ?? key;
 
-/** Where a workflow starts: the first step that has a screen. Null only for a workflow with none. */
-export const startOf = (w: Workflow): string | null => screensOf(w)[0] ?? null;
+/**
+ * Where a workflow starts: the first step with a screen the business itself can open. A screen that
+ * only exists behind a link somebody is sent (the customer's page, the join page) is skipped — the
+ * bare address is a 404, and the site check on 25 September found a lever pointing at one.
+ */
+export const startOf = (w: Workflow): string | null => screensOf(w).find(s => !isSentLinkScreen(s)) ?? null;
 
 /** The workflows that fix a measure, each with the screen it starts on. */
 export function fixesFor(slotId: string, list: readonly Workflow[] = WORKFLOWS): Fix[] {

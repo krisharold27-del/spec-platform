@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { powerReading, type Measure } from '../src/lib/power-meter';
-import { WORKFLOWS, FAMILIES, movedBy, inFamily } from '../src/lib/workflows';
+import { WORKFLOWS, FAMILIES, movedBy, inFamily, isSentLinkScreen } from '../src/lib/workflows';
 import {
   levers, leversLine, fixesFor, startOf, coverageGrid, ledgerPanel, ANGUS_SHIELD,
 } from '../src/lib/virtual-gm-overview';
@@ -147,5 +147,13 @@ describe('your financial system', () => {
     expect(ANGUS_SHIELD.line).toContain('SPEC’s own financial system');
     expect(ANGUS_SHIELD.line).toContain('not switchable yet');
     expect(page).toContain('ANGUS_SHIELD.name');
+  });
+});
+
+describe('a lever never points at a page that needs a token', () => {
+  it('no workflow starts on the customer’s page or the join page', () => {
+    const starts = WORKFLOWS.map(startOf).filter((s): s is string => !!s);
+    expect(starts.length).toBeGreaterThan(0);
+    expect(starts.filter(isSentLinkScreen)).toEqual([]);
   });
 });
