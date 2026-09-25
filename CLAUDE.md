@@ -63,6 +63,12 @@ biggest piece, and the one SimPro gets most wrong.
 3. **`DECISIONS.md`** — the running record of corrections.
 4. `docs/SPEC_Master_Requirements.md`, `docs/SPEC_Platform_Build_Plan.md` — **historical.** Written
    6 September 2026. Useful context, **superseded wherever they conflict with BUILD_SPEC.md.**
+5. **`docs/ANGUS_SHIELD_SITEVIP_CONTRACT.md`** — **every SiteVIP session follows it for anything that
+   touches Angus Shield** (the connection, what flows each way, events, security, words, errors,
+   versioning, tests). It is the single source of truth both products build to; an identical copy
+   lives in the angus-shield repo. Change it only in both repos on the same day, version bumped.
+   Separate products, seamless together: "SiteVIP powered by SPEC" and "Angus Shield powered by
+   SPEC", both made by SPEC Business Solutions.
 
 The specification is maintained as a set of published artifacts; `docs/BUILD_SPEC.md` is their
 distillation into buildable form. **Do not re-derive rules from the older docs.**
