@@ -823,8 +823,8 @@ export default async function MyPage({
       <section id="everywhere" className="mt-12 scroll-mt-20 border-t border-ink/10 pt-8">
         <h2 className="font-serif text-xl text-ink">Everywhere else in SPEC</h2>
         <p className="mt-1 max-w-2xl text-sm text-ink-light">
-          There is no menu. Everything opens from here, and the mark at the top of any screen brings
-          you back.
+          Every page in SPEC. The menu at the top holds the ones you use most, and All pages opens this
+          list on its own.
         </p>
 
         {/*

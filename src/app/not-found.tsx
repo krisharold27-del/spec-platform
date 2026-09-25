@@ -28,8 +28,7 @@ export default function NotFound() {
       </div>
 
       <p className="mt-8 text-sm leading-6 text-ink-light">
-        Everything inside SPEC opens from My Page. There is no menu to hunt through, which is on
-        purpose.
+        Everything inside SPEC is in the menu at the top of every page, and All pages lists the rest.
       </p>
     </main>
   );
