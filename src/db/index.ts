@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from './schema';
+import { withDeadline } from '../lib/db-deadline';
 
 /**
  * The database handle, connected on FIRST USE rather than on import.
@@ -58,17 +59,41 @@ function connect(): PostgresJsDatabase<typeof schema> {
 
     Kept on globalThis outside production so a hot reload does not open a new pool on every save.
   */
-  const client = globalForDb.sql ?? postgres(connectionString, {
+  const raw = globalForDb.sql ?? postgres(connectionString, {
     prepare: false,
     max: 1,
     connect_timeout: 10,
     idle_timeout: 20,
   });
-  if (process.env.NODE_ENV !== 'production') globalForDb.sql = client;
+  if (process.env.NODE_ENV !== 'production') globalForDb.sql = raw;
 
-  handle = drizzle(client, { schema });
+  /*
+    Every query drizzle sends goes through `unsafe`, so that is where the deadline goes (see
+    lib/db-deadline for the morning it was needed). Stuck past it: the connection is dropped, which
+    rejects the waiting query, and the next query anywhere connects afresh.
+  */
+  const stuck = () => {
+    if (handle === mine) handle = null;
+    if (globalForDb.sql === raw) globalForDb.sql = undefined;
+    raw.end({ timeout: 0 }).catch(() => {});
+  };
+  const client = new Proxy(raw, {
+    get(target, property, receiver) {
+      if (property !== 'unsafe') return Reflect.get(target, property, receiver);
+      return (text: string, ...rest: unknown[]) =>
+        withDeadline((target.unsafe as (...a: unknown[]) => PromiseLike<unknown>)(text, ...rest), text,
+          { deadlineMs: QUERY_DEADLINE_MS, slowMs: SLOW_QUERY_MS, onStuck: stuck });
+    },
+  });
+
+  const mine = drizzle(client, { schema });
+  handle = mine;
   return handle;
 }
+
+/** Longest any one database wait may take. Far past a healthy query; far short of Vercel's 300s. */
+const QUERY_DEADLINE_MS = 25_000;
+const SLOW_QUERY_MS = 2_000;
 
 export const db = new Proxy({} as PostgresJsDatabase<typeof schema>, {
   get(_target, property, receiver) {
