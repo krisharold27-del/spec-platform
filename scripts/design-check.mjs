@@ -158,10 +158,26 @@ if (groups.length > 1) {
 */
 const roll = (() => {
   try {
+    /*
+      ── Any screen name, not only the ones beginning "SPEC " ────────────────────────────────────
+
+      This filtered on `startsWith('SPEC ')`, which silently excluded every siteVIP screen — GM,
+      Angus Shield, Landing and Questions — from the roll. Four screens were listed in screens.txt,
+      exactly as a person would expect, and protected by nothing: they could never be reported as
+      LOST, because the roll they were checked against did not contain them.
+
+      And it cried wolf about it on every single run, telling Kris to add names that were already
+      there — the failure mode that teaches people to stop reading a check's output. Found on
+      26 September when he asked, fairly, *"how can i check you have everything."*
+
+      The file's own prose says "one name per line". So: any line that is not blank, a comment or a
+      markdown heading is a name.
+    */
     return readFileSync(join(DESIGNS, 'screens.txt'), 'utf8')
       .split('\n')
       .map(l => l.trim())
-      .filter(l => l.startsWith('SPEC '));
+      .filter(l => l && !l.startsWith('#') && !l.startsWith('-') && /^[A-Za-z]/.test(l) && !/[.:]$/.test(l))
+      .filter(l => /^(SPEC|siteVIP) /.test(l));
   } catch {
     return []; // No roll yet — the first run after this lands writes one.
   }

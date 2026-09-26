@@ -103,3 +103,45 @@ if (process.argv[1]?.endsWith('reachable.mjs')) {
   for (const r of lost) console.log(`  ${r}`);
   if (lost.length) process.exit(1);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   THE LIST KRIS CAN CHECK HIMSELF
+
+   Kris, 26 September: *"we really must keep an eye on the list of functions of this system - how
+   can i check you have everything."*
+
+   Fair question, and "I checked" is not an answer — it is the same answer that was true every day
+   Mirrors sat in a drawer. What he needs is a page he opens himself that is GENERATED from the
+   code rather than written by hand, because a hand-written list of everything is the one document
+   guaranteed to fall behind.
+
+   So this writes `src/lib/every-page.ts`: every route in the product, whether the directory lists
+   it, and — for the handful it does not — the reason from docs/UNREACHABLE.md. `/pages` reads that
+   and shows him the audit. `tests/reachable.test.ts` regenerates it and fails if it has gone stale,
+   so the page cannot quietly stop being true.
+
+   A TS module rather than a file read at runtime, because src/ is not deployed: a page that tried
+   to walk the filesystem in production would show an empty list and call it a clean bill of health.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/** Every route, with how a person reaches it. */
+export function census(doorHrefs = []) {
+  const listed = new Set(doorHrefs);
+  const said = agreedGone.name ? readExcuses() : new Map();
+  return routes()
+    .filter(r => !r.includes('['))
+    .map(r => ({
+      route: r,
+      inDirectory: listed.has(r),
+      reachedBy: said.get(r) ?? '',
+    }));
+}
+
+/** The reasons in docs/UNREACHABLE.md, keyed by route. */
+export function readExcuses() {
+  const out = new Map();
+  let doc = '';
+  try { doc = readFileSync(EXCUSES, 'utf8'); } catch { return out; }
+  for (const m of doc.matchAll(/^- `(\/[^`]*)` — (.+)$/gm)) out.set(m[1], m[2].trim());
+  return out;
+}
