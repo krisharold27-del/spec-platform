@@ -138,4 +138,20 @@ const [sentQ] = await sql`select status from quotes where tenant_id = ${tenant.i
 const [movedJob] = await sql`select stage from jobs where id = ${plansJob.id}`;
 check('APPROVING A CLEAN COUNT RECORDS THE QUOTE AS SENT AND MOVES THE JOB', sentQ?.status === 'sent' && movedJob?.stage === 'quoted', JSON.stringify({ sentQ, movedJob }));
 
+/* ── 5. Materials for a job: one order per supplier, at the cheaper price ───────────────────── */
+const itemA = randomUUID(), itemB = randomUUID();
+await sql`insert into catalogue_items ${sql([
+  { id: itemA, tenant_id: tenant.id, name: 'Charger cable', supplier: 'Alpha Supply', unit: 'm', cost_cents: 900, created_at: daysAgo(1) },
+  { id: itemB, tenant_id: tenant.id, name: 'Charger cable', supplier: 'Bravo Supply', unit: 'm', cost_cents: 700, created_at: daysAgo(1) },
+])}`;
+await sql`update kits set components = ${JSON.stringify([{ itemId: itemA, qty: 10 }])} where id = ${kitId}`;
+await page.goto(`${BASE}/jobs?tab=catalogue&job=${plansJob.id}`, { waitUntil: 'networkidle' });
+const mat = page.locator('[data-materials]');
+const matText = await mat.innerText().catch(() => '(no section)');
+check('CATALOGUE HAS "MATERIALS FOR" THE JOB, AT THE CHEAPER SUPPLIER', matText.includes('Materials for J-9901') && matText.includes('20 × Charger cable') && matText.includes('Bravo Supply'), matText.slice(0, 400));
+await Promise.all([page.waitForLoadState('networkidle'), mat.getByRole('button', { name: 'Order it all' }).click({ timeout: 15000 }).catch(() => {})]);
+await page.waitForTimeout(800);
+const pos = await sql`select supplier, total_cents from purchase_orders where tenant_id = ${tenant.id} and job_id = ${plansJob.id}`;
+check('ORDER IT ALL RAISES THE ORDER, ONCE, TAGGED TO THE JOB', pos.length === 1 && pos[0].supplier === 'Bravo Supply' && pos[0].total_cents === 14000, JSON.stringify(pos));
+
 await finish();

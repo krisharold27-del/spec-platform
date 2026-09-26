@@ -10,6 +10,7 @@ import { CopyBox } from '@/components/copy-box';
 import { InboxPanel } from './inbox-panel';
 import { UnderstandPanel } from './understand-panel';
 import { PlansPanel } from './plans-panel';
+import { MaterialsPanel } from './materials-panel';
 import { quoteWatch, chaseDraft, worthGoingBackFor, tenderWatch, growthLine } from '@/lib/growth';
 import { Refused } from '@/components/refused';
 import { QuoteBuilder } from '@/components/quote-builder';
@@ -370,6 +371,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       {tab === 'catalogue' && (
         <Catalogue items={itemRows} kits={kits} kitRows={kitRows} rates={rates} q={one(sp.q)} skipped={one(sp.skipped)} rises={one(sp.rises)} rose={one(sp.rose)} manage={manage} today={today} />
       )}
+      {tab === 'catalogue' && <MaterialsPanel tenantId={user.tenantId} jobId={one(sp.job)} manage={manage} />}
       {/* Claude recommends the labour rate, beside the rates it would change. */}
       {tab === 'catalogue' && <div className="mt-6"><Recommends topic="labour_rate" back="/jobs?tab=catalogue" /></div>}
       {tab === 'leads' && (
