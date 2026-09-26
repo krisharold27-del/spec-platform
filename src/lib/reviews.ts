@@ -25,8 +25,13 @@
 export type ReviewTrigger = 'paid';
 
 /**
- * The message. One text for everybody — the business's name and the customer's are filled in, and
+ * The message. One EMAIL for everybody — the business's name and the customer's are filled in, and
  * nothing else varies.
+ *
+ * An email rather than a text (Kris, 26 September): it carries a link, and a link read down a phone
+ * is a link nobody taps. The "how did we go?" call is a separate thing and comes first — that one
+ * is a call precisely so anything wrong becomes a callback for the supervisor before it becomes a
+ * review. See lib/channels.
  */
 export function thankYou(business: string, customer: string, link: string): string {
   const who = customer.trim().split(/\s+/)[0] || 'there';

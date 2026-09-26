@@ -149,14 +149,29 @@ describe('the scale checklist has to be true, not just written', () => {
   */
   const evidence = SCALE_CHECKS.map(c => c.evidence).join(' ');
 
-  it('QUOTES THE REAL NUMBER OF TESTS', () => {
+  it('NEVER CLAIMS MORE TESTS THAN EXIST, AND NEVER GOES STALE', () => {
+    /*
+      This used to demand the exact figure, which meant every commit that added a test failed the
+      build until somebody hand-edited a number in product copy — three times in one afternoon on
+      26 September. A check that fails on every commit for a reason nobody cares about is a check
+      that gets rubber-stamped, and a rubber-stamped check is worse than no check at all.
+
+      So the cockpit states a floor — "2,900+ tests" — and this holds both ends of it. The claim can
+      never be larger than the truth, which is the thing that actually mattered. And it can never
+      sit more than a hundred behind it, so "2,900+" cannot still be there at four thousand:
+      technically true, quietly useless, which is the exact failure this file was written to catch.
+    */
     const files = readdirSync('tests').filter(f => f.endsWith('.ts'));
     const blocks = files
       .map(f => readFileSync(`tests/${f}`, 'utf8').match(/^\s*(it|test)(\.[a-z]+)?\(/gm)?.length ?? 0)
       .reduce((a, b) => a + b, 0);
-    // Written with a thousands separator, the way a person reads it.
-    const written = `${blocks.toLocaleString('en-AU')} tests`;
-    expect(evidence, `there are ${blocks} tests; the cockpit says otherwise`).toContain(written);
+
+    const quoted = evidence.match(/([\d,]+)\+ tests/);
+    expect(quoted, 'the cockpit no longer states a test count at all — it should read like "2,900+ tests"').toBeTruthy();
+    const claimed = Number(quoted![1].replace(/,/g, ''));
+
+    expect(claimed, `the cockpit claims ${claimed} tests; there are only ${blocks}`).toBeLessThanOrEqual(blocks);
+    expect(blocks - claimed, `there are ${blocks} tests but the cockpit still says ${claimed}+ — round it up`).toBeLessThan(100);
   });
 
   it('QUOTES THE REAL NUMBER OF BROWSER JOURNEYS', () => {

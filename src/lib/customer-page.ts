@@ -1,5 +1,5 @@
 /**
- * What the customer sees — the link that goes in every text and email.
+ * What the customer sees — the link that goes in every email SPEC sends them.
  *
  * ── The one screen the business does not control ─────────────────────────────────────────────────
  *

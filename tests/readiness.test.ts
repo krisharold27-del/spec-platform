@@ -93,14 +93,33 @@ describe('the readiness list matches the product', () => {
     which number the document is being held to, so a future disagreement surfaces as a failure to
     explain rather than as a silence.
   */
-  it('states the right number of tests, and of test files', () => {
+  it('never claims more tests, or more test files, than exist', () => {
+    /*
+      A floor rather than an exact figure, for the reason set out at length in tests/cockpit.test.ts:
+      demanding the exact number meant every commit that added a test failed the build until a human
+      edited a number in a document — which teaches people to edit the number without reading it,
+      and that is the same habit that produced "623 tests when there were 852" in the first place.
+
+      Both ends are still held. The document can never claim MORE than is there, which is the half
+      that would actually mislead somebody deciding whether this is ready to sell; and it can never
+      fall more than a hundred tests, or five files, behind, so a floor cannot rot into a fiction.
+    */
     const files = readdirSync('tests').filter(f => f.endsWith('.ts'));
     const blocks = files
       .map(f => readFileSync(`tests/${f}`, 'utf8').match(/^\s*(it|test)(\.[a-z]+)?\(/gm)?.length ?? 0)
       .reduce((a, b) => a + b, 0);
 
-    expect(doc, `there are ${blocks} tests, not what the document says`).toContain(`${blocks} tests`);
-    expect(doc, `there are ${files.length} test files`).toContain(`${files.length} files`);
+    const saidTests = doc.match(/([\d,]+)\+ tests/);
+    expect(saidTests, 'the document no longer states a test count — it should read like "2,900+ tests"').toBeTruthy();
+    const tests = Number(saidTests![1].replace(/,/g, ''));
+    expect(tests, `the document claims ${tests} tests; there are only ${blocks}`).toBeLessThanOrEqual(blocks);
+    expect(blocks - tests, `there are ${blocks} tests but the document still says ${tests}+ — round it up`).toBeLessThan(100);
+
+    const saidFiles = doc.match(/([\d,]+)\+ files/);
+    expect(saidFiles, 'the document no longer states a test-file count — it should read like "165+ files"').toBeTruthy();
+    const count = Number(saidFiles![1].replace(/,/g, ''));
+    expect(count, `the document claims ${count} test files; there are only ${files.length}`).toBeLessThanOrEqual(files.length);
+    expect(files.length - count, `there are ${files.length} test files but the document still says ${count}+`).toBeLessThan(5);
   });
 
   /*

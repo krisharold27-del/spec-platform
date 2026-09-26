@@ -517,6 +517,15 @@ src/lib/chain.ts :: linkWatch
 src/lib/chain.ts :: obligationByKey
 src/lib/chain.ts :: readChain
 src/lib/chain.ts :: tellWhom
+src/lib/channels.ts :: CHANNELS
+src/lib/channels.ts :: Channel
+src/lib/channels.ts :: INSTEAD
+src/lib/channels.ts :: NO_SMS
+src/lib/channels.ts :: TOUCHPOINTS
+src/lib/channels.ts :: Touchpoint
+src/lib/channels.ts :: WHY_NOT_SMS
+src/lib/channels.ts :: byChannel
+src/lib/channels.ts :: channelFor
 src/lib/chart-seats.ts :: Cadence
 src/lib/chart-seats.ts :: KPI_EXAMPLES
 src/lib/chart-seats.ts :: KpiAdded

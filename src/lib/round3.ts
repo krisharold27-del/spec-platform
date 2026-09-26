@@ -37,7 +37,7 @@
  * ───────────────────────────────────────────────────────────────────────────── */
 
 export const NO_UPTIME_PROMISE =
-  'SPEC does not publish an uptime figure. A number like that is a promise, and a business that lost a morning after reading it has been misled in a way it can point at. What is true instead: the phones keep working without signal and sync when it comes back, there is a status page anybody can open without signing in, and the owner gets a text when something is wrong.';
+  'SPEC does not publish an uptime figure. A number like that is a promise, and a business that lost a morning after reading it has been misled in a way it can point at. What is true instead: the phones keep working without signal and sync when it comes back, there is a status page anybody can open without signing in, and the owner gets an email when something is wrong.';
 
 /** What keeps working on a phone with no signal, and what does not. Named, because vagueness here is a lie. */
 export const WORKS_OFFLINE = [

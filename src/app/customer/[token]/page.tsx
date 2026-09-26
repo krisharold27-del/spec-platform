@@ -121,7 +121,14 @@ export default async function CustomerPage({ params }: { params: Promise<{ token
       {view.stage === 'approved' && (
         <section className="card">
           <h2 className="font-serif text-lg text-ink">Pick a time that suits you</h2>
-          <p className="mt-1 text-sm text-ink-light">Whichever you choose, we will text you the morning before.</p>
+          {/*
+            Email, not a text (Kris, 26 September — see lib/channels).
+
+            The sharpest place the old wording was wrong: this is the CUSTOMER'S own page, and it
+            promised a message SPEC has no way to send. Somebody who waits for a text that never
+            arrives has been misled by the product, and it is the business's name at the top.
+          */}
+          <p className="mt-1 text-sm text-ink-light">Whichever you choose, we will email you the morning before.</p>
           <div className="mt-3 grid gap-2">
             {slots.map(s => (
               <form key={s} action={pickSlot}>
