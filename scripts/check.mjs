@@ -435,6 +435,17 @@ const JOURNEYS = [
   ['pay', 'a business that wants to pay being able to', 'pay-journey.mts'],
   ['seat', 'somebody you invited taking their seat', 'seat-journey'],
   ['boards', 'a board a team can pin, read the working on, and argue over', 'boards-journey'],
+  /*
+    Kris, 26 September: *"no confirm the mirrors."* Everything in that feature had unit tests and
+    nothing had ever opened it — and opening it found the page blank for every business, because a
+    column was missing. Tests pass against functions; a business uses a page.
+
+    The half that must be driven rather than asserted is the sealed frame: a unit test can check
+    the sandbox is spelled `allow-scripts`, and only a browser can say whether the origin, the
+    cookie, the parent document, local storage and the network are really withheld. So the tool
+    reports on itself from inside the frame and this reads the answer off the page.
+  */
+  ['mirrors', 'asking for a mirror, changing it, undoing it, and the sealed frame', 'mirrors-journey'],
   ['cockpit', 'your own cockpit staying private', 'cockpit-journey'],
   /*
     The only journey that reads a stored row back out of the database at the end.
