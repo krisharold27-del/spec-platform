@@ -9,6 +9,7 @@ import { requireManager } from '@/lib/guard';
 import { getScope } from '@/lib/scope';
 import { assertWritable } from '@/lib/plan';
 import { weekStart } from '@/lib/today-data';
+import { QUOTE_CHASE } from '@/lib/growth';
 
 /**
  * Log this week's senior meeting.
@@ -120,4 +121,50 @@ export async function signOffTraining(formData: FormData) {
     .where(eq(schema.roleAssignments.id, assignment.id));
   revalidatePath('/my-page');
   revalidatePath(`/scorecard/${roleId}`);
+}
+
+/**
+ * Approve SPEC's draft chase on a late quote and record it as sent — from My Page.
+ *
+ * Kris, 26 September: *"control is always in my page - this is associated with the administrator of
+ * the company"*. The quote chases already lived on Jobs; the decision to send one is the
+ * administrator's, so the control sits on the page they open every morning. Same row as Jobs'
+ * "Sent it" (`quote_chases`), so a chase approved here never shows as due there, and vice versa.
+ */
+export async function approveQuoteChase(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  const scope = await getScope(user);
+  if (!scope.canAdminister) redirect('/my-page');
+  await assertWritable(user.tenantId);
+
+  const jobId = String(form.get('jobId') ?? '').slice(0, 64);
+  const day = Number(form.get('day') ?? 0);
+  if (!QUOTE_CHASE.includes(day as (typeof QUOTE_CHASE)[number])) redirect('/my-page');
+
+  /* Found in this business and still out as a quote, so an id from anywhere else finds nothing. */
+  const [job] = await db.select().from(schema.jobs)
+    .where(and(eq(schema.jobs.id, jobId), eq(schema.jobs.tenantId, user.tenantId)));
+  if (!job || job.stage !== 'quoted') redirect('/my-page');
+
+  /* Pressed twice, or already sent from Jobs: one row, never two. */
+  const already = await db.select().from(schema.quoteChases).where(and(
+    eq(schema.quoteChases.tenantId, user.tenantId),
+    eq(schema.quoteChases.jobId, jobId),
+    eq(schema.quoteChases.day, day),
+  ));
+  if (!already.length) {
+    await db.insert(schema.quoteChases).values({
+      id: randomUUID(),
+      tenantId: user.tenantId,
+      jobId,
+      day,
+      said: String(form.get('said') ?? '').slice(0, 2000) || null,
+      sentAt: new Date().toISOString(),
+      sentBy: user.id,
+    });
+  }
+  revalidatePath('/my-page');
+  revalidatePath('/jobs');
+  redirect(`/my-page?chased=${encodeURIComponent(jobId)}#late-quotes`);
 }
