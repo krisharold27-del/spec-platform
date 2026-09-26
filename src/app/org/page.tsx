@@ -29,6 +29,9 @@ import { goalsFor } from '@/lib/goals-data';
 import { goalsAnswered } from '@/lib/goals';
 import { ChainPanel } from './chain-panel';
 import { chainFor } from '@/lib/chain-data';
+import { CopyBox } from '@/components/copy-box';
+import { inviteText } from '@/lib/onboarding';
+import { ROUTE_SAYS } from '@/lib/reach';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +56,13 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   const cannot = String(sp.cannot ?? '').slice(0, 300);
   // Same length cap and the same reasoning: it arrives in the address, so it is somebody else's text.
   const invited = String(sp.invited ?? '').slice(0, 200);
+  /*
+    Somebody reached by phone number instead (26 September). SPEC does not send the text — the phone
+    already in the admin's hand has everybody's number in it — so what comes back has to be the
+    MESSAGE, ready to send. Handing back a token and leaving somebody to build a URL out of it is
+    how one of thirty-eight gets typed wrong, and that one person then never finishes.
+  */
+  const texted = String(sp.texted ?? '').slice(0, 64);
   const claimed = String(sp.claimed ?? '').slice(0, 200);
   const asked = String(sp.asked ?? '').slice(0, 200);
   const moved = String(sp.moved ?? '').slice(0, 400);
@@ -63,6 +73,16 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
   const chain = await chainFor(user.tenantId, duty);
+  /*
+    The person just reached by phone, and the message to send them. Scoped to this business by the
+    same query that finds them — a staff id arriving in the address bar is somebody else's text
+    until the tenant clause says otherwise.
+  */
+  const [textThem] = texted
+    ? await db.select({ name: schema.staff.name, phone: schema.staff.phone, setupToken: schema.staff.setupToken })
+        .from(schema.staff)
+        .where(and(eq(schema.staff.id, texted), eq(schema.staff.tenantId, user.tenantId)))
+    : [];
   const scope = await getScope(user);
   const period = await currentPeriod(tenant.id);
   const manage = canManage(user.access);
@@ -395,6 +415,40 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
           Invitation sent to <b>{invited}</b>. They set their own password when they arrive and land
           on their own My Page. The link works once, and only for that address.
         </p>
+      )}
+
+      {/*
+        ── Reached by phone number (26 September) ───────────────────────────────────────────────
+
+        Not a lesser outcome than an email invitation and not worded as one. The owner had a number
+        rather than an address, which used to be a refusal with nothing to do next; now it is a
+        message sitting in a box that selects on one press, for the phone that is already in their
+        hand. Nothing is charged, because nothing has been created — the seat starts when the person
+        finishes their half, not when the owner gives up trying to remember an address.
+      */}
+      {textThem?.setupToken && (
+        <section
+          role="status"
+          className="mt-6 rounded-lg border-l-4 border-sage bg-surface p-4"
+          data-texted
+        >
+          <p className="text-sm text-ink">
+            <b>{textThem.name}</b> has a link{textThem.phone ? <> for <b>{textThem.phone}</b></> : null}.
+            Send them this — SPEC does not text on your behalf, and the phone in your hand already
+            has their number.
+          </p>
+          <div className="mt-3">
+            <CopyBox
+              label="Send them this"
+              value={inviteText(
+                tenant.name,
+                textThem.name,
+                `${(process.env.APP_URL ?? '').replace(/\/+$/, '')}/join/${textThem.setupToken}`,
+              )}
+            />
+          </div>
+          <p className="mt-2 text-xs text-ink-light">{ROUTE_SAYS.phone}</p>
+        </section>
       )}
 
       {/*

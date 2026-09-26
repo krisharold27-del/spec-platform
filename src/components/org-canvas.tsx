@@ -12,6 +12,7 @@ import {
   TEAM_DEFAULT_NAME, TEAM_NAME_EXAMPLES,
 } from '@/lib/chart-seats';
 import { LIGHT_COLOUR, LIGHT_INK, light } from '@/lib/today';
+import { EITHER_WILL_DO, ROUTE_SAYS } from '@/lib/reach';
 import { AcePips, AceStar } from '@/components/ace-pips';
 import { ChartKey, ChartKeyDetail } from '@/components/chart-key';
 import {
@@ -1579,14 +1580,24 @@ export function OrgCanvas({ roles, rootId, canEdit, canInvite = false, averages,
                         <label className="block text-[13px] text-ink-light" htmlFor="org-invite">
                           {selected.person} has no SPEC login yet. Send them one:
                         </label>
+                        {/*
+                          ── type="text", deliberately (26 September) ────────────────────────────
+
+                          It was `type="email"`, which meant the browser refused a phone number
+                          before SPEC was ever asked — so no amount of generosity on the server
+                          would have been reached. An owner with a mobile number and no address got
+                          a red outline and nothing to do, which is where a rollout quietly loses a
+                          third of its people. See lib/reach.
+                        */}
                         <div className="mt-1.5 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
                           <input
                             id="org-invite"
                             name="email"
-                            type="email"
+                            type="text"
+                            inputMode="email"
                             autoComplete="off"
                             className="min-h-[40px] w-full rounded-md border border-ink/15 bg-surface-raised px-3 py-2 text-sm text-ink"
-                            placeholder="their@email.com"
+                            placeholder="their@email.com or 0412 345 678"
                           />
                           {/*
                             They decide which seat, right where they decide to send it — Kris:
@@ -1606,9 +1617,11 @@ export function OrgCanvas({ roles, rootId, canEdit, canInvite = false, averages,
                           </select>
                           <button className="btn-secondary">Invite {selected.person.split(' ')[0]}</button>
                         </div>
-                        <p className="mt-2 text-[12px] text-ink-light">
-                          They set their own password when they arrive and land on their own My Page.
-                          The link works once and only for that address.
+                        <p className="mt-2 text-[12px] text-ink-light" data-invite-either>
+                          {EITHER_WILL_DO}
+                        </p>
+                        <p className="mt-1 text-[12px] text-ink-light">
+                          {ROUTE_SAYS.email} {ROUTE_SAYS.phone}
                         </p>
                       </form>
                     ) : (

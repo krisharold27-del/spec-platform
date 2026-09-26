@@ -2,11 +2,12 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { and, eq, isNull } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
 import { emailConfirmed } from '@/lib/auth';
 import { inviteToSeat } from '@/lib/invite';
+import { reachBy, EITHER_WILL_DO, NEITHER_SAYS } from '@/lib/reach';
 import { getScope } from '@/lib/scope';
 import { assertWritable, syncSubscriptionSeats } from '@/lib/plan';
 import { getRoles, placementShown } from '@/lib/queries';
@@ -445,7 +446,12 @@ export async function invitePerson(formData: FormData) {
   if (!(await emailConfirmed())) redirect('/account/verify?next=/org');
 
   const roleId = String(formData.get('roleId') ?? '');
-  const email = String(formData.get('email') ?? '').trim();
+  /*
+    Whatever they had (Kris, 26 September). The field is still called `email` because renaming a
+    form field breaks links and fixes nothing; what it CARRIES now is either an address or a number,
+    and `reachBy` says which. See lib/reach for why this is not an SMS gateway.
+  */
+  const reach = reachBy(String(formData.get('email') ?? ''));
 
   const scope = await getScope(user);
   if (!scope.canShapeChart(roleId)) outside(scope, user.access);
@@ -464,13 +470,39 @@ export async function invitePerson(formData: FormData) {
   if (placement.userId) refuse('They already have a SPEC login, so there is nothing to send.');
   if (!placement.staffId) refuse('SPEC cannot tell who is in that role. Put the name on the card again.');
 
+  if (reach.kind === 'nothing') refuse(`How do you reach them? ${EITHER_WILL_DO}`);
+  if (reach.kind === 'unreadable') refuse(NEITHER_SAYS);
+
+  /*
+    ── A phone number is a route, not a refusal (26 September) ─────────────────────────────────
+
+    Until today this answered "That does not look like an email address." and stopped. An owner
+    working down thirty-eight people, with a mobile number for eleven of them, hit a wall eleven
+    times and had nothing to do about it — which does not read as a missing feature, it reads as
+    "I'll sort this out tonight", and those eleven are then never in the system at all.
+
+    So the number is kept and a join link is issued: the same link Setting up → Your business has
+    always handed out, which the person opens on their phone with no account and fills in their own
+    half, their own email included. Nothing is charged, because nothing has been created — the seat
+    starts when they finish, not when the owner gives up trying to remember an address.
+  */
+  if (reach.kind === 'phone') {
+    const token = randomBytes(16).toString('hex');
+    await db.update(schema.staff)
+      .set({ phone: reach.phone, setupToken: token })
+      .where(and(eq(schema.staff.id, placement.staffId), eq(schema.staff.tenantId, user.tenantId)));
+
+    for (const path of ['/org', '/setup/business', '/people', '/team', '/journey']) revalidatePath(path);
+    redirect(`/org?texted=${encodeURIComponent(placement.staffId)}`);
+  }
+
   // The same rule that let them invite at all is what lets them choose the seat — see `canInvite`.
   const seatKind = seatKindFromForm(formData.get('seatKind'), scope.canInvite);
 
-  const outcome = await inviteToSeat(user.tenantId, placement.staffId, email, seatKind);
+  const outcome = await inviteToSeat(user.tenantId, placement.staffId, reach.email, seatKind);
   if (!outcome.ok) {
     refuse(
-      outcome.reason === 'no-email' ? 'That does not look like an email address.'
+      outcome.reason === 'no-email' ? NEITHER_SAYS
       : outcome.reason === 'already-has-an-account' ? 'They already have a SPEC login, so there is nothing to send.'
       : 'SPEC could not send that invitation. Nothing has been charged.',
     );
