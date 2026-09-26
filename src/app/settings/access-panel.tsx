@@ -82,7 +82,26 @@ export function AccessPanel({ seat, benchmarksOn, toggleBenchmarks }: {
           ))}
         </ul>
         {mayExportEverything(seat) ? (
-          <p className="mt-3 text-sm text-ink">Yours to take, any time, in one click.</p>
+          /*
+            A real link, not a sentence about one.
+
+            This said "Yours to take, any time, in one click" for a fortnight with nothing behind it
+            — the promise a business tests on the worst day it ever has with SPEC. An ordinary
+            anchor rather than a form: the browser downloads it, and it keeps working with no
+            JavaScript, which matters because the moment somebody needs this is not the moment to
+            find out their browser is having a bad day.
+          */
+          <p className="mt-3 text-sm text-ink">
+            <a
+              href="/api/export"
+              download
+              data-export-everything
+              className="btn-primary inline-flex min-h-[36px] items-center text-sm"
+            >
+              Download everything
+            </a>
+            <span className="ml-3 text-ink-light">A zip of spreadsheets. Opens in Excel; it does not need SPEC.</span>
+          </p>
         ) : (
           <p className="mt-3 text-sm text-ink-light" data-export-not-yours>
             The owner does this one.

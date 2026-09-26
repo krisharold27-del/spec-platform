@@ -891,6 +891,11 @@ src/lib/email.ts :: sendSignInEmail
 src/lib/email.ts :: stuckOnStepNudgeTemplate
 src/lib/every-page.ts :: EVERY_PAGE
 src/lib/every-page.ts :: PageRow
+src/lib/export-data.ts :: sheetsFor
+src/lib/export-everything.ts :: Sheet
+src/lib/export-everything.ts :: archiveName
+src/lib/export-everything.ts :: filesFor
+src/lib/export-everything.ts :: readme
 src/lib/financials-data.ts :: FinancialsView
 src/lib/financials-data.ts :: financialsFor
 src/lib/financials.ts :: Dot
@@ -2914,3 +2919,8 @@ src/lib/xero.ts :: parseTokens
 src/lib/xero.ts :: refreshRequestBody
 src/lib/xero.ts :: reportQuery
 src/lib/xero.ts :: tokenRequestBody
+src/lib/zip.ts :: ZipEntry
+src/lib/zip.ts :: crc32
+src/lib/zip.ts :: csv
+src/lib/zip.ts :: csvRow
+src/lib/zip.ts :: zip
