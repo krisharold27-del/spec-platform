@@ -14,6 +14,35 @@ import { PILLARS } from './scoring';
 
 export type Placement = 'held' | 'pencilled' | 'vacant';
 
+/**
+ * What is held against the PERSON rather than against their role.
+ *
+ * ── Why this is a separate shape, and why it is allowed to be null ───────────────────────────────
+ *
+ * Until 26 September this gate read the role half only — a missed compliance measure, an expired
+ * ticket on the role, an overdue module — while `stopsWork` in lib/onboarding read the person half:
+ * induction and tickets. Two functions, near enough the same name, answering "may this person be
+ * sent to work" differently. The schema even says of `staff.inductedAt` that it "is what Clear to
+ * Work reads", which was prose: nothing read it. A claim nobody checks quietly stops being true.
+ *
+ * So both halves arrive here now, and the field is REQUIRED rather than optional. An optional field
+ * would let a caller that never looked pass nothing and be told "clear" — the exact failure the gate
+ * exists to prevent, wearing the shape of a convenience. A caller that genuinely cannot establish
+ * the person half passes `null` and gets "not established" back, which is an answer it can print.
+ */
+export interface Personal {
+  /**
+   * The business's own mark that the induction was done. Null means it was not — see the schema
+   * note: the person's own acknowledgement is a different field on purpose, because anybody holding
+   * a forwarded text message could otherwise grant themselves the check.
+   */
+  inductedAt: string | null;
+  /** Tickets and licences recorded against them. A null expiry is one that does not run out. */
+  licences: { what: string; expiresAt: string | null }[];
+  /** Today, as an ISO date, for reading those expiries. Passed in so the answer is testable. */
+  today: string;
+}
+
 export interface PersonRow {
   roleId: string;
   roleTitle: string;
@@ -25,6 +54,38 @@ export interface PersonRow {
   blocking: string[];
   /** Training modules on their role's path that are overdue. */
   overdue: string[];
+  /** Induction and tickets. `null` where the caller could not establish them — never assumed. */
+  personal: Personal | null;
+}
+
+/**
+ * The person half, as reasons.
+ *
+ * Two things stop work and a third deliberately does not:
+ *
+ *   No induction mark is a BLOCK. The schema says it outright — "not bookable until then" — and a
+ *   business that has not inducted somebody has not inducted them; there is no third reading.
+ *
+ *   A ticket that has run out is a BLOCK, and is the same as not having it.
+ *
+ *   No tickets recorded AT ALL is not a block, because it is not evidence of anything. It is a
+ *   business that has not filled its ticket register in, and refusing every person in it would be a
+ *   check that cries wolf on day one and gets ignored by the week the ticket really has expired.
+ *   That case comes back "not established" below, which is a different word and a different action.
+ */
+export function personalReasons(p: Personal): string[] {
+  const out: string[] = [];
+  if (!p.inductedAt) out.push('Not inducted');
+  for (const l of p.licences) {
+    /*
+      Worded exactly as `blockingReasons` in lib/obligations words it, on purpose. A caller that
+      reads the same ticket down both paths — the role half and the person half — would otherwise
+      report it twice in two phrasings, and the person reading the screen would think there were two
+      problems. The de-duplication below does the rest.
+    */
+    if (l.expiresAt && l.expiresAt < p.today) out.push(`${l.what} has expired`);
+  }
+  return out;
 }
 
 export type ClearState = 'clear' | 'blocked' | 'unknown';
@@ -36,22 +97,45 @@ export interface ClearToWork {
 }
 
 /**
- * Clear to Work, per person.
+ * Clear to Work, per person. One answer, from both halves.
  *
  * Pass or fail, and never a percentage: somebody is either allowed on site or they are not. Where
  * nothing has been recorded the answer is "not established" rather than "clear" — assuming clear
  * because nobody checked is exactly the failure the gate exists to prevent.
+ *
+ * The order below is the whole rule. Evidence of a problem beats absence of evidence, so a block is
+ * a block whether or not the rest was established; and absence of evidence is reported as its own
+ * state rather than folded into either "clear" or "not clear", because the three need three
+ * different things done about them — a ticket renewed, a register filled in, nothing at all.
  */
 export function clearToWork(person: PersonRow): ClearToWork {
   if (person.placement === 'vacant') {
     return { state: 'unknown', label: 'Nobody in the role', note: 'Nothing to establish until somebody holds it.' };
   }
-  const reasons = [...person.blocking, ...person.overdue];
+  const reasons = [...new Set([
+    ...person.blocking,
+    ...person.overdue,
+    ...(person.personal ? personalReasons(person.personal) : []),
+  ])];
   if (reasons.length) {
     return {
       state: 'blocked',
       label: 'Not clear',
       note: `${reasons.join('; ')}. Clear to Work is a hard gate — pass or fail, and reported separately from every score.`,
+    };
+  }
+  if (person.personal === null) {
+    return {
+      state: 'unknown',
+      label: 'Not established',
+      note: 'Nothing has been read about their induction or their tickets, so this answer covers their role only. Not established is not the same as clear.',
+    };
+  }
+  if (person.personal.licences.length === 0) {
+    return {
+      state: 'unknown',
+      label: 'Not established',
+      note: 'Inducted, and no ticket or licence is recorded against them — so there is nothing to check rather than nothing wrong. Record what they hold and this becomes an answer.',
     };
   }
   if (!person.seated) {
@@ -61,7 +145,7 @@ export function clearToWork(person: PersonRow): ClearToWork {
       note: 'Pencilled in and not invited, so nothing has been recorded against them yet. Not established is not the same as clear.',
     };
   }
-  return { state: 'clear', label: 'Clear to work', note: 'Nothing on their role is blocking.' };
+  return { state: 'clear', label: 'Clear to work', note: 'Inducted, tickets current, and nothing on their role is blocking.' };
 }
 
 export interface OnboardingStep {

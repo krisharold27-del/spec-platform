@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  FIRMNESS_SAYS, holesLine, HOW_IT_DECIDES, IT_PROPOSES, WHY_A_MONTH, PLAN_DAYS,
+  FIRMNESS_SAYS, holesLine, HOW_IT_DECIDES, IT_PROPOSES, THE_SAME_GATE, WHY_A_MONTH, PLAN_DAYS,
   type Firmness,
 } from '@/lib/schedule-ahead';
 import { WHAT_IT_STILL_NEEDS, PUBLIC_HOLIDAYS_NOT_KNOWN } from '@/lib/schedule-ahead-data';
@@ -86,6 +86,19 @@ export function AheadPanel({ view }: { view: AheadView }) {
               >
                 <span className="font-serif text-base text-ink">{u.need.ref} · {u.need.client}</span>
                 <span className="text-sm text-ink">{u.says}</span>
+                {/*
+                  Who was stopped, by name. "Nobody is clear" sends a manager through Compliance
+                  looking; "Hemi Walker — Confined space has expired" is a phone call this morning.
+                */}
+                {u.blocked.length > 0 && (
+                  <ul className="mt-1 grid gap-0.5">
+                    {u.blocked.map(b => (
+                      <li key={b.name} className="text-xs text-ink-light" data-ahead-blocked-person>
+                        {b.name} — {b.why}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
@@ -133,10 +146,31 @@ export function AheadPanel({ view }: { view: AheadView }) {
         </section>
       )}
 
+      {/* ── Who has never been checked ──────────────────────────────────────────────────────── */}
+      {plan.notEstablished.length > 0 && (
+        <section data-ahead-not-established>
+          <h3 className="font-serif text-lg text-ink">Not proposed, because nobody has checked</h3>
+          <p className="mt-1 max-w-3xl text-sm text-ink">
+            {plan.notEstablished.length === 1 ? 'One person is' : `${plan.notEstablished.length} people are`} on
+            the list with no Clear to Work established. SPEC will not put them on a job — proposing
+            somebody nobody has checked is the exact thing the gate exists to stop. This is an
+            afternoon with the ticket register, not a scheduling problem.
+          </p>
+          <ul className="mt-3 grid gap-1">
+            {plan.notEstablished.map(p => (
+              <li key={p.name} className="text-sm text-ink-light" data-ahead-not-established-row>
+                <span className="text-ink">{p.name}</span> — {p.why}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* ── How it decides ──────────────────────────────────────────────────────────────────── */}
       <section data-ahead-how>
         <h3 className="font-serif text-lg text-ink">How this is worked out</h3>
         <p className="mt-1 max-w-3xl text-sm text-ink">{HOW_IT_DECIDES}</p>
+        <p className="mt-2 max-w-3xl text-sm text-ink" data-ahead-gate>{THE_SAME_GATE}</p>
         <p className="mt-2 max-w-3xl text-xs text-ink-light">{PUBLIC_HOLIDAYS_NOT_KNOWN}</p>
         <h4 className="mt-4 label-caps">What it still needs from you</h4>
         <ul className="mt-2 grid gap-2">

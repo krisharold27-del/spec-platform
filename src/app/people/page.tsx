@@ -265,10 +265,30 @@ export default async function People({ searchParams }: { searchParams: Promise<R
       .map(c => modules.find(m => m.id === c.moduleId)?.title ?? 'A module')
       .filter(Boolean);
 
+    /*
+      The person half of the gate — induction and tickets — joined on 26 September.
+
+      Until then this screen answered Clear to Work from the ROLE alone, while `stopsWork` in
+      lib/onboarding answered it from the PERSON on the Setup tab of this same page. Two answers to
+      one question, so somebody could be clear here and stopped there. The staff row is found by
+      whichever of the two keys the placement carries; `null` where the business has no staff row
+      for them at all, which comes back "not established" rather than a false clear.
+    */
+    const staffRow = assignment?.staffId
+      ? staffRows.find(s => s.id === assignment.staffId) ?? null
+      : assignment?.userId ? staffRows.find(s => s.userId === assignment.userId) ?? null : null;
+
     people.push({
       roleId: r.id, roleTitle: r.title, name,
       placement: r.holder ? 'held' : r.pencilled ? 'pencilled' : 'vacant',
       seated: !!assignment?.userId,
+      personal: staffRow
+        ? {
+            inductedAt: staffRow.inductedAt,
+            licences: theirs.map(o => ({ what: o.what, expiresAt: o.expiresAt })),
+            today: todayIso,
+          }
+        : null,
       blocking, overdue, scored,
       hasPath: path.length > 0,
       pathComplete: path.length > 0 && path.every(c => done.has(c.moduleId)),

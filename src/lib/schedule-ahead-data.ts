@@ -8,6 +8,7 @@
 import { and, eq, gte, inArray, lte } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { PLAN_DAYS, plan, holes, type Need, type Hand, type Plan, type Hole } from './schedule-ahead';
+import { clearAcross } from './clear-to-work-data';
 
 export interface AheadView {
   plan: Plan;
@@ -44,7 +45,7 @@ export async function aheadFor(tenantId: string, now: Date = new Date()): Promis
   const from = days[0];
   const to = days[days.length - 1];
 
-  const [jobs, bookings, staff, leave, scopes] = await Promise.all([
+  const [jobs, bookings, clear, leave, scopes] = await Promise.all([
     db.select({
       id: schema.jobs.id, ref: schema.jobs.ref, title: schema.jobs.title, client: schema.jobs.client,
       stage: schema.jobs.stage, sectorId: schema.jobs.sectorId, workKind: schema.jobs.workKind,
@@ -59,11 +60,11 @@ export async function aheadFor(tenantId: string, now: Date = new Date()): Promis
         gte(schema.scheduleBookings.day, from),
         lte(schema.scheduleBookings.day, to),
       )),
-    db.select({
-      id: schema.staff.id, name: schema.staff.name, userId: schema.staff.userId,
-      inductedAt: schema.staff.inductedAt, isSubcontractor: schema.staff.isSubcontractor,
-    })
-      .from(schema.staff).where(eq(schema.staff.tenantId, tenantId)),
+    /*
+      Clear to Work, from the one loader that answers it for the whole product. Not a staff query
+      and not a floor of its own — see lib/clear-to-work-data for why there is only one of these.
+    */
+    clearAcross(tenantId, { now }),
     db.select({
       staffId: schema.leaveEntries.staffId, userId: schema.leaveEntries.userId,
       fromDate: schema.leaveEntries.fromDate, toDate: schema.leaveEntries.toDate, state: schema.leaveEntries.state,
@@ -117,32 +118,30 @@ export async function aheadFor(tenantId: string, now: Date = new Date()): Promis
     return [...new Set([...booked, ...off])];
   };
 
-  const hands: Hand[] = staff.map(s => {
-    const key = s.userId ? `user:${s.userId}` : `staff:${s.id}`;
-    /*
-      Whether they may be sent to work — and this is the honest limit of it today.
+  /*
+    ── The gate, joined (26 September) ─────────────────────────────────────────────────────────
 
-      `clearToWork` in lib/people is the real gate, and it reads blocking measures and overdue
-      training off a person's ROLE. This reads the staff list, which does not carry those, so
-      calling it here with empty arrays would have every inducted person come back "clear" — a
-      check that always passes, which is worse than no check because it looks like one.
+    This used to read the staff list and call somebody available if their induction date was set —
+    a floor rather than the gate, named as such on the screen, because the real `clearToWork` reads
+    blocking measures and overdue training off a person's ROLE and nothing here carried those.
 
-      So the plan uses the one fact it genuinely has: somebody not inducted is not available. That
-      is a floor rather than the gate, it is named in WHAT_IT_STILL_NEEDS, and the screen says so.
-      Assuming clear because nobody checked is exactly the failure the real gate exists to prevent,
-      and pretending to have run it would be the same failure wearing a better coat.
-    */
-    const inducted = Boolean(s.inductedAt);
+    Calling the real gate with empty arrays would have been worse than the floor: every inducted
+    person would have come back "clear", which is a check that always passes, and a check that
+    always passes is worse than no check because it looks like one.
 
-    return {
-      key,
-      name: s.name,
-      /* Nothing records per-person tickets yet, so nobody holds anything named. See the note below. */
-      holds: [] as string[],
-      clear: inducted,
-      busy: busyOf(key),
-    };
-  });
+    So the fix was never to call the gate from here — it was to load the facts properly, once, for
+    the whole product. `clearAcross` does that, and the People screen, the crew picker and this
+    plan now read one answer. What each person HOLDS comes out of the same load, which is what
+    makes `needs` below matchable at all rather than decorative.
+  */
+  const hands: Hand[] = clear.map(c => ({
+    key: c.key,
+    name: c.name,
+    holds: c.holds,
+    clear: c.state,
+    why: c.reason,
+    busy: busyOf(c.key),
+  }));
 
   /* ── What needs doing ───────────────────────────────────────────────────────────────────── */
 
@@ -183,9 +182,14 @@ export async function aheadFor(tenantId: string, now: Date = new Date()): Promis
       /* More than one scope means more than one crew — the rule lib/crews already holds. */
       crew: crewOf(j.id),
       /*
-        Nothing records per-person tickets yet, so no need can require one. Named in
-        WHAT_IT_STILL_NEEDS rather than quietly treated as "no requirements", which would let the
-        plan send somebody to a mine site they are not inducted for.
+        What a JOB requires is still the missing half of this.
+
+        People now carry what they hold — the gate load above brings every current ticket and
+        induction — so the matching in `holdsWhatIsNeeded` finally has something real on one side.
+        Nothing yet records what the WORK needs: a site induction for a mine, a high-voltage ticket
+        for a switchroom. Until something does, this stays empty and is named in
+        WHAT_IT_STILL_NEEDS, rather than quietly treated as "this job requires nothing" — which is
+        how a plan sends somebody to a site they are not allowed on.
       */
       needs: [],
     });
@@ -204,10 +208,10 @@ export async function aheadFor(tenantId: string, now: Date = new Date()): Promis
 /**
  * What is missing before this can plan anything real.
  *
- * Said on the screen rather than discovered. Two things: how long each job takes, and what tickets
- * each person holds. Without the first there is nothing to place; without the second the plan
- * cannot tell a mine job from a domestic one, and it would happily send somebody who is not allowed
- * on the site.
+ * Said on the screen rather than discovered, and it gets SHORTER as things are built — the Clear to
+ * Work entry that stood here until 26 September is gone because the gate is joined, not because the
+ * wording was softened. A list of known gaps that never shrinks is a disclaimer; one that shrinks is
+ * a plan.
  */
 export const WHAT_IT_STILL_NEEDS = [
   {
@@ -216,13 +220,8 @@ export const WHAT_IT_STILL_NEEDS = [
     where: '/jobs?tab=howlong',
   },
   {
-    what: 'What each person holds',
-    why: 'Tickets, inductions and site access. Without them the plan cannot tell a mine job from a domestic one, and would send somebody who is not allowed on.',
-    where: '/compliance',
-  },
-  {
-    what: 'Clear to Work, joined to the schedule',
-    why: 'Right now the plan only knows whether somebody has been inducted. The real gate — licences, blocking measures, overdue training — hangs off their role, and until it is joined here the plan is using a floor rather than the gate.',
+    what: 'What each job requires',
+    why: 'People now carry what they hold — tickets, inductions, site access — but nothing yet records what the work needs. Until it does, the plan cannot tell a mine job from a domestic one.',
     where: '/compliance',
   },
 ] as const;

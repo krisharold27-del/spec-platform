@@ -121,8 +121,37 @@ await sql`insert into jobs ${sql({
   created_by: me.id, created_at: iso, stage_at: iso,
 })}`;
 
+/*
+  ── Clear to Work, before anything can be placed (26 September) ───────────────────────────────
+
+  Hemi is inducted and there is not one ticket recorded against him. That is NOT clear, and it is
+  not blocked either: it is a business that has never filled its ticket register in. The schedule
+  has to refuse to propose him AND name him, because the alternatives are sending somebody nobody
+  has checked, or dropping him silently and leaving a manager to wonder where he went.
+
+  This check is the whole point of joining the gate. Under the floor that stood here until today —
+  "is there an induction date?" — Hemi came back available and this job was placed.
+*/
 await page.goto(SCHEDULE, { waitUntil: 'networkidle' });
-check('WITH HISTORY, IT PLACES THE JOB', await page.locator('[data-ahead-proposal]').count() === 1);
+check('NOBODY IS PROPOSED UNTIL CLEAR TO WORK IS ESTABLISHED',
+  await page.locator('[data-ahead-proposal]').count() === 0);
+const unchecked = await page.locator('[data-ahead-not-established]').innerText();
+check('AND THE UNCHECKED PERSON IS NAMED, NOT QUIETLY DROPPED',
+  /Hemi Walker/.test(unchecked), unchecked.replace(/\n/g, ' ').slice(0, 180));
+check('WITH THE REASON IT IS NOT A SCHEDULING PROBLEM',
+  /ticket register/i.test(unchecked), unchecked.replace(/\n/g, ' ').slice(0, 220));
+check('AND THE JOB SAYS THE SAME, RATHER THAN BLAMING THE DIARY',
+  await page.locator('[data-ahead-unfilled-why="nobody_established"]').count() === 1);
+
+/* The register gets filled in: one current ticket, so there is something to check and it passes. */
+const ticketId = randomUUID();
+await sql`insert into obligations ${sql({
+  id: ticketId, tenant_id: tenant.id, what: 'Electrical licence', staff_id: staffId,
+  expires_at: '2027-06-30', created_at: iso,
+})}`;
+
+await page.goto(SCHEDULE, { waitUntil: 'networkidle' });
+check('WITH HISTORY AND A CLEAR PERSON, IT PLACES THE JOB', await page.locator('[data-ahead-proposal]').count() === 1);
 
 const proposed = await page.locator('[data-ahead-proposals]').innerText();
 check('ON A PERSON WHO IS ACTUALLY AVAILABLE', /Hemi Walker/.test(proposed), proposed.replace(/\n/g, ' ').slice(0, 180));
@@ -138,15 +167,50 @@ const booked = await sql`select count(*)::int as n from schedule_bookings where 
 check('NOTHING WAS BOOKED', booked[0].n === 0, `${booked[0].n} bookings`);
 check('AND THE SCREEN SAYS SO', /Nothing here is booked/i.test(proposed), proposed.replace(/\n/g, ' ').slice(0, 200));
 
+/* ── A ticket that has run out ───────────────────────────────────────────────────────────────── */
+
+/*
+  The half the schedule could not see until today. An expired licence sitting in a drawer is the
+  precise thing a builder, an insurer or a regulator asks about, and it has to reach the schedule
+  the same day it reaches Compliance — with the PERSON and the REASON on the screen, because
+  "nobody is clear" sends a manager hunting and "Hemi Walker — Electrical licence has expired" is
+  a phone call before smoko.
+*/
+await sql`update obligations set expires_at = '2026-08-01' where id = ${ticketId}`;
+await page.goto(SCHEDULE, { waitUntil: 'networkidle' });
+check('AN EXPIRED TICKET STOPS THE PROPOSAL', await page.locator('[data-ahead-proposal]').count() === 0);
+const lapsed = await page.locator('[data-ahead-unfilled]').innerText();
+check('AND THE JOB IS REPORTED, NOT DROPPED', /J-PLANNED/.test(lapsed), lapsed.replace(/\n/g, ' ').slice(0, 180));
+check('IT NAMES THE PERSON AND THE TICKET', /Hemi Walker/.test(lapsed) && /Electrical licence/i.test(lapsed),
+  lapsed.replace(/\n/g, ' ').slice(0, 240));
+check('AND CALLS IT COMPLIANCE, NOT A MISSING THURSDAY',
+  await page.locator('[data-ahead-unfilled-why="nobody_clear"]').count() === 1);
+
+await sql`update obligations set expires_at = '2027-06-30' where id = ${ticketId}`;
+
 /* ── Somebody not inducted is not available ──────────────────────────────────────────────────── */
 
 await sql`update staff set inducted_at = null where id = ${staffId}`;
 await page.goto(SCHEDULE, { waitUntil: 'networkidle' });
 check('AN UNINDUCTED PERSON IS NOT SENT TO WORK', await page.locator('[data-ahead-proposal]').count() === 0);
 const blocked = await page.locator('[data-ahead-unfilled]').innerText();
-check('AND THE JOB IS REPORTED, NOT DROPPED', /J-PLANNED/.test(blocked), blocked.replace(/\n/g, ' ').slice(0, 180));
+check('AND SAYS WHICH OF THE TWO IT IS', /Not inducted/i.test(blocked), blocked.replace(/\n/g, ' ').slice(0, 220));
 
 await sql`update staff set inducted_at = ${iso} where id = ${staffId}`;
+
+/* ── One gate, said out loud ─────────────────────────────────────────────────────────────────── */
+
+await page.goto(SCHEDULE, { waitUntil: 'networkidle' });
+const gate = await page.locator('[data-ahead-gate]').innerText();
+check('THE SCREEN SAYS IT IS THE SAME GATE AS EVERYWHERE ELSE',
+  /same answer as the People screen/i.test(gate), gate.replace(/\n/g, ' ').slice(0, 200));
+
+/*
+  That the crew picker really reads the same loader is proved in tests/clear-to-work.test.ts, which
+  reads the source. It is deliberately NOT asserted here with a soft locator: a browser check that
+  passes when its selector finds nothing is a check whose failure mode is silence, which is worse
+  than no check at all.
+*/
 
 /* ── The hole ────────────────────────────────────────────────────────────────────────────────── */
 

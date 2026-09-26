@@ -114,18 +114,32 @@ export function inOrder(needs: readonly Need[]): Need[] {
  * Who can actually do it
  * ───────────────────────────────────────────────────────────────────────────── */
 
+/**
+ * Clear to Work, as the schedule needs it: three states, not a tick.
+ *
+ * Until the gate was joined properly on 26 September this was a boolean, and a boolean could only
+ * ever have been a lie in one direction or the other. "Not clear" and "we have never checked" are
+ * different facts that need different things done about them — one is a ticket to renew, the other
+ * is a register to fill in — and collapsing them means the plan either refuses people it has no
+ * reason to refuse, or sends people nobody has checked.
+ */
+export type HandState = 'clear' | 'blocked' | 'unknown';
+
 export interface Hand {
   key: string;
   name: string;
   /** What they hold — tickets, inductions, site access. Matched against a need's requirements. */
   holds: readonly string[];
   /**
-   * Whether they may be sent to work at all, from Compliance.
+   * Whether they may be sent to work at all, from Compliance — the real gate in lib/people, loaded
+   * by lib/clear-to-work-data, the same answer the People screen and the crew picker get.
    *
    * Not a preference and not a soft score. Somebody not clear to work is not available on any day
    * at any price, and a scheduler that treats this as a tiebreaker will eventually book them.
    */
-  clear: boolean;
+  clear: HandState;
+  /** Why not, in the business's own words. Empty when they are clear. */
+  why: string;
   /** Days they are already spoken for: booked, on leave, on a course. Whatever the reason. */
   busy: readonly string[];
 }
@@ -133,8 +147,15 @@ export interface Hand {
 export const holdsWhatIsNeeded = (hand: Hand, need: Need): boolean =>
   need.needs.every(n => hand.holds.includes(n));
 
+/**
+ * Only a positive "clear" puts somebody on a job.
+ *
+ * `unknown` is deliberately NOT good enough. It is the state the gate uses for absence of evidence,
+ * and proposing on absence of evidence is how a business finds out on site that nobody had checked.
+ * Those people are not dropped — they come back under `notEstablished` with what is missing.
+ */
 export const freeOn = (hand: Hand, day: string): boolean =>
-  hand.clear && !hand.busy.includes(day);
+  hand.clear === 'clear' && !hand.busy.includes(day);
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * The plan
@@ -149,16 +170,35 @@ export interface Proposal {
   says: string;
 }
 
+/**
+ * Why a job could not be placed — and these are kept apart on purpose.
+ *
+ * Every one of them sends a different person to do a different thing. "Nobody free" is a manager
+ * moving something. "Nobody holds it" is somebody booking a course. "Nobody clear" is a ticket
+ * renewed or a paper filed, and it names who. "Nobody established" is an afternoon with the ticket
+ * register. Report them as one number and a manager goes hunting for a spare Thursday that would
+ * never have helped.
+ */
 export type WhyNot =
-  | 'nobody_holds_it'    // nobody has the ticket or the induction
-  | 'nobody_free'        // everybody who could is already spoken for
-  | 'past_its_date'      // it cannot be finished by when it is needed
-  | 'beyond_the_month';  // it fits, but not inside the window
+  | 'nobody_on_the_list'  // the business has nobody entered who could do it
+  | 'nobody_clear'        // people could, but none of them is clear to work
+  | 'nobody_established'  // people could, but nobody's compliance has ever been checked
+  | 'nobody_holds_it'     // nobody has the ticket or the induction the work needs
+  | 'nobody_free'         // everybody who could is already spoken for
+  | 'past_its_date'       // it cannot be finished by when it is needed
+  | 'beyond_the_month';   // it fits, but not inside the window
 
 export interface Unfilled {
   need: Need;
   why: WhyNot;
   says: string;
+  /**
+   * Who was stopped, and by what — the part of the gate worth having on a schedule.
+   *
+   * "Nobody is clear" sends a manager looking through Compliance. "Hemi Walker — confined space has
+   * expired" is a phone call. Empty for the reasons that are not about a person.
+   */
+  blocked: { name: string; why: string }[];
 }
 
 export interface Plan {
@@ -169,10 +209,23 @@ export interface Plan {
   unfilled: Unfilled[];
   /** Days with nobody on anything. The output worth having. */
   quiet: string[];
+  /**
+   * People the plan would not propose because their Clear to Work has never been established.
+   *
+   * Not an error and not a refusal — a list of who the business still has to check, carried out of
+   * the plan so it can be shown rather than discovered when somebody is turned away at a gate.
+   */
+  notEstablished: { name: string; why: string }[];
   says: string;
 }
 
-const WHY_SAYS: Record<WhyNot, (n: Need) => string> = {
+const WHY_SAYS: Record<WhyNot, (n: Need, blocked: readonly { name: string; why: string }[]) => string> = {
+  nobody_on_the_list: n =>
+    `There is nobody on the staff list to put on ${n.ref}. Everything else waits on that — a schedule is people before it is days.`,
+  nobody_clear: (n, blocked) =>
+    `${n.ref} has people who could do it and none of them is clear to work${blocked.length ? `: ${blocked.map(b => `${b.name} — ${b.why}`).join('; ')}` : ''}. That is Compliance, not scheduling, and moving another job will not fix it.`,
+  nobody_established: n =>
+    `${n.ref} has people who could do it and nobody's Clear to Work has been established. SPEC will not propose somebody nobody has checked — that is the whole point of the gate.`,
   nobody_holds_it: n =>
     `Nobody has what ${n.ref} needs: ${n.needs.join(', ')}. That is not a scheduling problem — it is a ticket or an induction somebody has to get.`,
   nobody_free: n =>
@@ -213,15 +266,33 @@ export function plan(input: {
     freeOn(hand, day) && !taken.get(day)?.has(hand.key);
 
   for (const need of inOrder(input.needs)) {
-    const able = input.hands.filter(h => h.clear && holdsWhatIsNeeded(h, need));
+    /*
+      ── Why this is four questions and not one filter ──────────────────────────────────────────
+
+      It used to be `hands.filter(h => h.clear && holdsWhatIsNeeded(h, need))`, and everything that
+      failed it came back as "nobody holds it". That was wrong in a way that mattered: a business
+      whose whole crew had lapsed tickets was told to go and get an induction for a job that needed
+      none, and a brand new business with nobody entered was told the same thing.
+
+      So the questions are asked in the order a person would ask them, and the FIRST one that fails
+      is the answer — because that is the one to go and do something about.
+    */
+    const holders = input.hands.filter(h => holdsWhatIsNeeded(h, need));
+    const able = holders.filter(h => h.clear === 'clear');
+
+    const noneAtAll = input.hands.length === 0;
+    const stopped = holders.filter(h => h.clear === 'blocked').map(h => ({ name: h.name, why: h.why }));
+    const unchecked = holders.filter(h => h.clear === 'unknown').map(h => ({ name: h.name, why: h.why }));
 
     if (able.length < need.crew) {
-      /*
-        Told apart from "nobody free" on purpose. One is a scheduling problem the business can solve
-        by moving something; the other is a ticket somebody has to go and get, and a scheduler that
-        blurs them sends a manager looking for a spare Thursday that would not have helped.
-      */
-      unfilled.push({ need, why: 'nobody_holds_it', says: WHY_SAYS.nobody_holds_it(need) });
+      const why: WhyNot =
+        noneAtAll ? 'nobody_on_the_list'
+        : holders.length < need.crew ? 'nobody_holds_it'
+        : stopped.length > 0 ? 'nobody_clear'
+        : unchecked.length > 0 ? 'nobody_established'
+        : 'nobody_holds_it';
+      const blocked = why === 'nobody_clear' ? stopped : why === 'nobody_established' ? unchecked : [];
+      unfilled.push({ need, why, says: WHY_SAYS[why](need, blocked), blocked });
       continue;
     }
 
@@ -229,7 +300,7 @@ export function plan(input: {
 
     if (!placed) {
       const why: WhyNot = need.by && need.by < (days.at(-1) ?? need.by) ? 'past_its_date' : 'nobody_free';
-      unfilled.push({ need, why, says: WHY_SAYS[why](need) });
+      unfilled.push({ need, why, says: WHY_SAYS[why](need, []), blocked: [] });
       continue;
     }
 
@@ -257,6 +328,9 @@ export function plan(input: {
     proposals,
     unfilled,
     quiet,
+    notEstablished: input.hands
+      .filter(h => h.clear === 'unknown')
+      .map(h => ({ name: h.name, why: h.why })),
     says: planLine(proposals, unfilled, quiet, days.length),
   };
 }
@@ -382,6 +456,17 @@ export function holesLine(found: readonly Hole[]): string {
  */
 export const HOW_IT_DECIDES =
   'This is worked out from your own facts — who holds which tickets, who is free, what is owed by when — not guessed. Every day it proposes can be explained in a sentence, and it will give you the same answer twice.';
+
+/**
+ * The gate, said on the screen.
+ *
+ * Worth printing rather than assuming, because the promise is specific: this is not the schedule's
+ * own opinion about who may work. It is the same Clear to Work answer the People screen shows and
+ * the crew picker enforces, read from one place, so the three can never disagree about whether
+ * somebody may be sent to site.
+ */
+export const THE_SAME_GATE =
+  'Clear to Work here is the same answer as the People screen and the crew picker — one gate, read once: a compliance measure answered no, a ticket expired, a module overdue, no induction recorded. Somebody not clear is not proposed on any day. Somebody nobody has checked is not proposed either, and is listed below by name.';
 
 export const IT_PROPOSES =
   'Nothing here is booked. These are proposals, and a scheduler accepts them one tap at a time — because a booking is a promise to a customer, and SPEC does not make those on your behalf.';

@@ -39,6 +39,14 @@ export async function seatsFor(user: CurrentUser, scope?: Scope): Promise<Seat[]
     db.select().from(schema.trainingModules).where(eq(schema.trainingModules.tenantId, user.tenantId)),
     currentPeriod(user.tenantId),
   ]);
+  /*
+    The staff list, for the person half of Clear to Work (26 September). The chart used to answer
+    the gate from the role alone, so a seat could read "clear to work" on the org chart while the
+    person in it had no induction recorded — which is the one thing a builder or an insurer asks
+    about. LINK is the foundation, and a foundation that says clear when nobody checked is not one.
+  */
+  const staffRows = await db.select().from(schema.staff).where(eq(schema.staff.tenantId, user.tenantId));
+  const today = now.toISOString().slice(0, 10);
 
   const out: Seat[] = [];
   for (const r of visible) {
@@ -65,10 +73,21 @@ export async function seatsFor(user: CurrentUser, scope?: Scope): Promise<Seat[]
       .filter(c => dueState(dueDateFor(assignment?.fromDate ?? null, c.dueDays), done.has(c.moduleId), now) === 'overdue')
       .map(c => modules.find(m => m.id === c.moduleId)?.title ?? 'A module');
 
+    const staffRow = assignment?.staffId
+      ? staffRows.find(s => s.id === assignment.staffId) ?? null
+      : assignment?.userId ? staffRows.find(s => s.userId === assignment.userId) ?? null : null;
+
     const ctw = clearToWork({
       roleId: r.id, roleTitle: r.title, name,
       placement: r.holder ? 'held' : r.pencilled ? 'pencilled' : 'vacant',
       seated: !!assignment?.userId,
+      personal: staffRow
+        ? {
+            inductedAt: staffRow.inductedAt,
+            licences: theirs.map(o => ({ what: o.what, expiresAt: o.expiresAt })),
+            today,
+          }
+        : null,
       blocking, overdue,
     });
 

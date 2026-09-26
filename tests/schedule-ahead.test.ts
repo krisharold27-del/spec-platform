@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   PLAN_DAYS, FIRM_DAYS, firmnessAt, FIRMNESS_SAYS,
   inOrder, holdsWhatIsNeeded, freeOn, plan,
-  A_HOLE_IS, holes, holesLine, HOW_IT_DECIDES, IT_PROPOSES,
+  A_HOLE_IS, holes, holesLine, HOW_IT_DECIDES, IT_PROPOSES, THE_SAME_GATE,
   type Need, type Hand,
 } from '../src/lib/schedule-ahead';
 
@@ -19,7 +19,7 @@ const need = (over: Partial<Need> = {}): Need => ({
 });
 
 const hand = (over: Partial<Hand> = {}): Hand => ({
-  key: 'h1', name: 'Hemi', holds: [], clear: true, busy: [],
+  key: 'h1', name: 'Hemi', holds: [], clear: 'clear', why: '', busy: [],
   ...over,
 });
 
@@ -66,10 +66,54 @@ describe('a person is not a body', () => {
       Not a tiebreaker and not a preference. A scheduler that treats this as a soft score will
       eventually book somebody whose ticket has lapsed.
     */
-    expect(freeOn(hand({ clear: false }), DAYS[0])).toBe(false);
-    const p = plan({ from: DAYS[0], workingDays: DAYS, needs: [need()], hands: [hand({ clear: false })] });
+    const stopped = hand({ clear: 'blocked', why: 'Confined space has expired' });
+    expect(freeOn(stopped, DAYS[0])).toBe(false);
+    const p = plan({ from: DAYS[0], workingDays: DAYS, needs: [need()], hands: [stopped] });
     expect(p.proposals).toHaveLength(0);
-    expect(p.unfilled[0].why).toBe('nobody_holds_it');
+    expect(p.unfilled[0].why).toBe('nobody_clear');
+  });
+
+  /*
+    ── The three ways of not being available, kept apart (26 September) ─────────────────────────
+
+    This used to be one boolean, and everything that failed it came back "nobody holds it" — so a
+    crew with lapsed tickets was told to go and get an induction for a job that needed none. Each
+    of these sends a different person to do a different thing, so each has to say so.
+  */
+  it('names WHO is not clear, and why, rather than saying nobody is', () => {
+    const p = plan({
+      from: DAYS[0], workingDays: DAYS, needs: [need()],
+      hands: [hand({ clear: 'blocked', why: 'Confined space has expired' })],
+    });
+    expect(p.unfilled[0].blocked).toEqual([{ name: 'Hemi', why: 'Confined space has expired' }]);
+    /* A manager can act on this sentence without opening another screen. */
+    expect(p.unfilled[0].says).toContain('Hemi — Confined space has expired');
+    expect(p.unfilled[0].says).toContain('Compliance, not scheduling');
+  });
+
+  it('will not propose somebody nobody has checked either', () => {
+    /* Absence of evidence. Proposing on it is how a business finds out at the site gate. */
+    const unchecked = hand({ clear: 'unknown', why: 'No ticket recorded' });
+    expect(freeOn(unchecked, DAYS[0])).toBe(false);
+    const p = plan({ from: DAYS[0], workingDays: DAYS, needs: [need()], hands: [unchecked] });
+    expect(p.unfilled[0].why).toBe('nobody_established');
+    /* Named on the plan, not silently missing from it. */
+    expect(p.notEstablished).toEqual([{ name: 'Hemi', why: 'No ticket recorded' }]);
+  });
+
+  it('tells an empty staff list apart from a compliance problem', () => {
+    const p = plan({ from: DAYS[0], workingDays: DAYS, needs: [need()], hands: [] });
+    expect(p.unfilled[0].why).toBe('nobody_on_the_list');
+    expect(p.unfilled[0].says).toContain('people before it is days');
+  });
+
+  it('says the gate is the same one the rest of the product uses', () => {
+    /*
+      The promise that makes this worth anything: not the schedule's own opinion about who may
+      work. Same loader, same answer, so the three screens cannot disagree.
+    */
+    expect(THE_SAME_GATE).toContain('same answer as the People screen');
+    expect(THE_SAME_GATE).toContain('one gate');
   });
 
   it('checks tickets and inductions', () => {
