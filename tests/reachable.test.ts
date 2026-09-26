@@ -13,7 +13,8 @@
 */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { routes, orphans, EXCUSES } from '../scripts/reachable.mjs';
+import { routes, orphans, EXCUSES, everyPageModule, LEDGER_TS } from '../scripts/reachable.mjs';
+import { EVERY_PAGE } from '../src/lib/every-page';
 import { navDoors, allDoors, NAV_HREFS } from '../src/lib/doors';
 
 const shape = { businesses: 1, runsSpec: false };
@@ -84,5 +85,46 @@ describe('nothing gets lost in a drawer', () => {
     for (const gone of ['/org', '/scoring', '/virtual-gm', '/board', '/meeting', '/pages']) {
       expect(doc, `${gone} is not accounted for in the removals log`).toContain(gone);
     }
+  });
+});
+
+describe('the list Kris can check himself', () => {
+  /*
+    Kris, 26 September: *"we really must keep an eye on the list of functions of this system - how
+    can i check you have everything."*
+
+    "I checked" is not an answer — it is the same answer that was true every day Mirrors sat off the
+    menu. So /pages shows a list GENERATED from the code, and this keeps it honest.
+  */
+  it('IS NOT STALE — regenerating it changes nothing', () => {
+    const onDisk = readFileSync(LEDGER_TS, 'utf8');
+    expect(
+      everyPageModule(),
+      `${LEDGER_TS} is out of date — a page has been added or removed since it was written.\n` +
+        'Run `npm run reachable -- --write` and commit the result.',
+    ).toEqual(onDisk);
+  });
+
+  it('holds every page, so the audit cannot be true of an empty list', () => {
+    /* The failure this whole file exists to catch: a check that passes because the list behind it
+       is empty. Three faults of exactly that shape were found on 26 September alone. */
+    expect(EVERY_PAGE.length).toBeGreaterThan(50);
+    expect(EVERY_PAGE.every(p => p.route.startsWith('/'))).toBe(true);
+  });
+
+  it('accounts for EVERY page — on the bar, in the directory, or with a written reason', () => {
+    /*
+      The audit itself, run here as well as drawn on /pages: three ways a page may be reachable, and
+      a page that is none of them is named. This is the question "have you got everything" turned
+      into something a build can answer.
+    */
+    const directory = new Set(allDoors(shape).map(d => d.href));
+    const bar = new Set(navDoors(shape).map(d => d.href));
+    const unaccounted = EVERY_PAGE.filter(p =>
+      p.route !== '/' && !bar.has(p.route) && !directory.has(p.route) && !p.linked && !p.reachedBy);
+    expect(
+      unaccounted.map(p => p.route),
+      'these pages are on no menu and have no written reason — they exist and nobody can find them',
+    ).toEqual([]);
   });
 });

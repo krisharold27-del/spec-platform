@@ -20,7 +20,8 @@
     "restore-drill": "node scripts/restore-drill.mjs",
     "designs:pull": "node scripts/designs-pull.mjs",
     "production": "node scripts/production-check.mjs",
-    "surface": "node scripts/surface.mjs"
+    "surface": "node scripts/surface.mjs",
+    "reachable": "node scripts/reachable.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",

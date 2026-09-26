@@ -889,6 +889,8 @@ src/lib/email.ts :: sendBoardOutputReadyEmail
 src/lib/email.ts :: sendInviteEmail
 src/lib/email.ts :: sendSignInEmail
 src/lib/email.ts :: stuckOnStepNudgeTemplate
+src/lib/every-page.ts :: EVERY_PAGE
+src/lib/every-page.ts :: PageRow
 src/lib/financials-data.ts :: FinancialsView
 src/lib/financials-data.ts :: financialsFor
 src/lib/financials.ts :: Dot
