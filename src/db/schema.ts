@@ -3355,3 +3355,24 @@ export const mailboxMessages = pgTable('mailbox_messages', {
   doneAt: text('done_at'),
   doneBy: text('done_by'),
 }, t => [index('mailbox_messages_tenant').on(t.tenantId, t.addedAt)]).enableRLS();
+
+/**
+ * Understand the work (Design 20): what SPEC read in a job's photos, plans and message, kept so the
+ * reading is not lost when the page reloads and so the quote built from it can say where it came
+ * from. Everything in it is a proposal (lib/understand); the quote is built only when a person says so.
+ */
+export const jobReadings = pgTable('job_readings', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  jobId: text('job_id').notNull(),
+  /** What the customer said, as it was typed or pasted. */
+  said: text('said').notNull().default(''),
+  photos: integer('photos').notNull().default(0),
+  /** The cleaned reading, as JSON: sees, scope, extras, questions. */
+  reading: text('reading').notNull(),
+  byModel: boolean('by_model').notNull().default(false),
+  questionsApprovedAt: text('questions_approved_at'),
+  quoteId: text('quote_id'),
+  createdAt: text('created_at').notNull(),
+  createdBy: text('created_by'),
+}, t => [index('job_readings_tenant').on(t.tenantId, t.jobId)]).enableRLS();
