@@ -35,6 +35,46 @@ export const isCheckKind = (v: string): v is CheckKind => CHECKS.some(c => c.key
 
 export const checkLabel = (v: string): string => CHECKS.find(c => c.key === v)?.label ?? 'Check';
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Which of the six the subbie does, and which stay the business's
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * The four a subcontractor records about themselves, on their own phone.
+ *
+ * ── Why they do it and not the office ────────────────────────────────────────────────────────────
+ *
+ * The same argument as `/join` for employees, and it is an arithmetic one. Forty subbies with an
+ * ABN, two insurance policies and a licence is a hundred and sixty fields, and an office typing
+ * them off emailed PDFs gets the EXPIRY DATES wrong — which is the one field that matters, because
+ * it is what stops somebody being booked the day after their cover lapses. The certificate is in
+ * their filing cabinet, so the date should be typed by the person holding it.
+ *
+ * ── Why the other two are not on this list ───────────────────────────────────────────────────────
+ *
+ * `subcontract` is the BUSINESS's document: rates and payment terms it agreed. A subbie who could
+ * tick it could declare terms nobody at the business had seen.
+ *
+ * `induction` is the business's mark, exactly as it is for an employee — `staff.inductedAt` is the
+ * office's and `inductionReadAt` is the person's, two fields on purpose, because a link that
+ * arrives as a text can be forwarded and inducting yourself is how an uninducted body walks onto a
+ * site. A subbie is on the job rather than beside it, so the same rule applies to them.
+ *
+ * Written out rather than derived from `expires` or from position. The four that happen to be
+ * theirs today is a coincidence of this list's contents, and a rule that holds by coincidence
+ * breaks silently the first time somebody adds a seventh check.
+ */
+export const THEIRS: readonly CheckKind[] = ['abn', 'liability', 'workers_comp', 'licence'];
+
+/** The two the business does. Derived from THEIRS, so the two lists cannot drift apart. */
+export const OURS: readonly CheckKind[] = CHECKS.map(c => c.key).filter(k => !THEIRS.includes(k));
+
+export const isTheirs = (kind: string): boolean => THEIRS.includes(kind as CheckKind);
+
+/** Said on their screen, so nobody waits on a tick that was never theirs to make. */
+export const NOT_YOURS_TO_TICK =
+  'Two of the six are your office’s to do — the subcontract they write, and the induction they sign off with you. Nothing on this page can mark those, and you are not holding anything up by leaving them.';
+
 /** How far ahead an expiry is warned. The same 30 days Clear to Work uses, so one rule, one number. */
 export const WARN_DAYS = 30;
 

@@ -226,7 +226,8 @@ export default async function People({ searchParams }: { searchParams: Promise<R
         .where(eq(schema.subbieChecks.tenantId, user.tenantId)),
     ]);
     return subs.map(s => ({
-      id: s.id, business: s.business, contact: s.contact, mobile: s.mobile, status: s.status,
+      id: s.id, business: s.business, contact: s.contact, mobile: s.mobile,
+      email: s.email, setupToken: s.setupToken, status: s.status,
       checks: checks.filter(c => c.subbieId === s.id)
         .map(c => ({ kind: c.kind, expiresAt: c.expiresAt, state: c.state })),
     }));
@@ -477,7 +478,10 @@ export default async function People({ searchParams }: { searchParams: Promise<R
           manage={manage} today={todayIso}
         />
       ) : tab === 'subbies' ? (
-        <SubbiesTab rows={subbieRows} manage={manage} today={todayIso} business={tenant.name} />
+        <SubbiesTab
+          rows={subbieRows} manage={manage} today={todayIso}
+          business={tenant.name} appUrl={process.env.APP_URL ?? ''}
+        />
       ) : tab === 'conduct' ? (
         <ConductTab
           reviews={reviews}

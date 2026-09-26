@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { reachBy, NEITHER_SAYS, EITHER_WILL_DO, ROUTE_SAYS } from '../src/lib/reach';
 
 /**
@@ -86,9 +86,11 @@ describe('the give-up-point law', () => {
   const FORMS = [
     'src/components/org-canvas.tsx',
     'src/app/people/setup-tab.tsx',
+    'src/app/people/subbies-tab.tsx',
     'src/app/people/hr-tabs.tsx',
     'src/app/setup/people/page.tsx',
     'src/app/join/[token]/page.tsx',
+    'src/app/subbie/[token]/page.tsx',
   ];
 
   it('no screen demands a way of contacting somebody', () => {
@@ -158,5 +160,45 @@ describe('the give-up-point law', () => {
     const phoneBranch = action.slice(action.indexOf("reach.kind === 'phone'"));
     const untilRedirect = phoneBranch.slice(0, phoneBranch.indexOf('redirect('));
     expect(untilRedirect).not.toContain('inviteToSeat');
+  });
+
+  /*
+    ── The same law on the Subcontractors screen (26 September) ─────────────────────────────────
+
+    The mirror image, and worse. It required a MOBILE, refusing with "A mobile is how they get the
+    link to set themselves up" — and there was no link: no token, no message, no route. A required
+    field justified by a capability that did not exist, in front of a screen promising the subbie
+    would "set themselves up on their phone in about ten minutes" while the office typed in all six
+    checks.
+  */
+  it('does not demand a mobile for a subcontractor either', () => {
+    const code = readFileSync('src/app/people/actions.ts', 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    expect(code).not.toContain('A mobile is how they get the link to set themselves up.');
+    expect(code, 'it should read whatever was typed').toContain('reachBy(');
+  });
+
+  /* And the link it names is now real, which is the half prose cannot prove. */
+  it('the subcontractor link exists, rather than being described', () => {
+    expect(existsSync('src/app/subbie/[token]/page.tsx'), 'the page the link opens').toBe(true);
+    expect(existsSync('src/app/subbie/[token]/actions.ts'), 'what they may record').toBe(true);
+
+    const invite = readFileSync('src/app/people/actions.ts', 'utf8');
+    expect(invite, 'inviting one has to issue a token').toMatch(/setupToken: randomBytes/);
+
+    const tab = readFileSync('src/app/people/subbies-tab.tsx', 'utf8');
+    expect(tab, 'and the office needs the message, not the token').toContain('inviteText(');
+    expect(tab).toContain('/subbie/');
+  });
+
+  /*
+    The fence on that page, checked in the code rather than trusted to the markup. A form is a thing
+    anybody can post to, so "the page does not draw a button for it" is not a rule.
+  */
+  it('a subcontractor cannot tick the two checks that are not theirs', () => {
+    const actions = readFileSync('src/app/subbie/[token]/actions.ts', 'utf8');
+    expect(actions).toContain('isTheirs(');
+    /* Every write finds the subbie BY TOKEN — an id from the form would open every business. */
+    expect(actions).not.toMatch(/txt\(form, 'subbieId'/);
   });
 });

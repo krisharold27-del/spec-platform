@@ -97,7 +97,7 @@ export const SCALE_CHECKS: ScaleCheck[] = [
   {
     label: 'Nothing reaches production unchecked',
     done: true,
-    evidence: 'npm run check — 2,917 tests, the security policies, and 42 customer journeys driven in a real browser.',
+    evidence: 'npm run check — 2,930 tests, the security policies, and 43 customer journeys driven in a real browser.',
   },
   {
     label: 'Anybody can see whether it is working',

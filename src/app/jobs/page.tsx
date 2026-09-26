@@ -2896,7 +2896,21 @@ function Rework({ rows, jobs, crew, manage, minutes, noAccessRows, noAccessHours
                 server-rendered page that hides a field behind JavaScript is a page that breaks in
                 the one place this gets filled in: a phone with bad reception in a ute.
               */}
-              <select className="input" name="cause" required aria-label="If unpaid, what caused it">
+              {/*
+                ── No default cause, and not `required` (26 September) ──────────────────────
+
+                It was `required` with no empty option, which does two wrong things at once. The
+                `required` achieved nothing, because a select with no empty option always has a
+                value — and that value was CAUSES[0], so an unpaid callback was filed against a
+                cause nobody chose. SPEC does not invent a number it cannot know, and an attributed
+                cause is the same fault wearing different clothes.
+
+                It stays un-required because it is read only when the answer above is "no", and
+                demanding it in the browser would stop somebody logging a PAID return, which needs
+                no cause at all. `logCallback` asks for it on the unpaid path, where it matters.
+              */}
+              <select className="input" name="cause" defaultValue="" aria-label="If unpaid, what caused it">
+                <option value="">What caused it</option>
                 {CAUSES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
               </select>
               <select className="input" name="who" aria-label="Who did the original work">

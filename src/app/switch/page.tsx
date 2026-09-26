@@ -161,7 +161,18 @@ export default async function SwitchPage({
           <form action={reportFriction} className="mt-3 grid max-w-xl gap-2">
             <input type="hidden" name="area" value={area.key} />
             <label className="text-sm text-ink" htmlFor="kind">Was anything not easy?</label>
-            <select id="kind" name="kind" required className="rounded-lg border border-ink/20 bg-surface px-3 py-2 text-sm">
+            {/*
+              ── Nothing chosen by default (26 September) ───────────────────────────────────
+
+              This was `required` with no empty option, so it arrived pre-set to "It took too many
+              steps" and pressing Tell SPEC filed that complaint whether or not anybody meant it.
+
+              Worse here than anywhere else in the product: this is the register SPEC reads to find
+              its own friction, so its own improvement data was skewed by the order of a list. A
+              product that measures itself with a pre-ticked box is measuring the box.
+            */}
+            <select id="kind" name="kind" required defaultValue="" className="rounded-lg border border-ink/20 bg-surface px-3 py-2 text-sm">
+              <option value="">Choose what was not easy</option>
               {FRICTION_KINDS.map(k => <option key={k.key} value={k.key}>{k.label}</option>)}
             </select>
             <textarea name="note" rows={2} maxLength={1000} placeholder="What happened, if you want to say (stays in your business)"

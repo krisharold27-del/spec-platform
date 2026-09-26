@@ -1018,6 +1018,14 @@ export async function logCallback(formData: FormData) {
   }
 
   const cause = str(formData, 'cause', 24);
+  /*
+    Asked here rather than demanded by the browser, because the cause matters only on THIS path —
+    an unpaid return. Marking the field required would stop somebody logging a paid one, which
+    needs no cause at all. Until today an empty answer was impossible anyway: the select had no
+    empty option, so every callback was filed against whichever cause happened to be first in the
+    list. A cause nobody chose is worse than a question nobody answered.
+  */
+  if (!cause) back('rework', {}, 'What caused it? Rework filed against a cause nobody picked is a number nobody can act on.');
   if (!isCause(cause)) back('rework', {}, 'SPEC does not know that cause.');
 
   /*

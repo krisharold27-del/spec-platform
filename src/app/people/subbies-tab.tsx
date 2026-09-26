@@ -4,7 +4,10 @@ import {
   CHECKS, stateOf, mayBook, expiringSoon, chaseText, subbieStats, subbieLine, WARN_DAYS,
   type Check,
 } from '@/lib/subbies';
-import { inviteSubbie, recordSubbieCheck } from './actions';
+import { inviteSubbie, recordSubbieCheck, sendSubbieLink } from './actions';
+import { CopyBox } from '@/components/copy-box';
+import { inviteText } from '@/lib/onboarding';
+import { EITHER_WILL_DO } from '@/lib/reach';
 
 function Pill({ light, children }: { light: Light; children: React.ReactNode }) {
   return <span className="pill whitespace-nowrap" style={pillTone(light)}>{children}</span>;
@@ -15,6 +18,9 @@ export interface SubbieRow {
   business: string;
   contact: string;
   mobile: string;
+  email: string | null;
+  /** Their own link. Null only for subbies added before there was one to give. */
+  setupToken: string | null;
   status: string;
   checks: Check[];
 }
@@ -33,11 +39,12 @@ export interface SubbieRow {
  * checks are the whole screen: ALL SIX or they cannot be booked — see lib/subbies for why five is
  * not a number this uses.
  */
-export function SubbiesTab({ rows, manage, today, business }: {
+export function SubbiesTab({ rows, manage, today, business, appUrl }: {
   rows: SubbieRow[];
   manage: boolean;
   today: string;
   business: string;
+  appUrl: string;
 }) {
   const byId = new Map(rows.map(r => [r.id, r.checks]));
   const stats = subbieStats(rows, byId, today);
@@ -73,16 +80,25 @@ export function SubbiesTab({ rows, manage, today, business }: {
         </div>
 
         {manage && (
-          <form action={inviteSubbie} className="mt-4 grid gap-2 sm:grid-cols-[1.5fr_1.2fr_1fr_auto]">
+          /*
+            ── Either will do, and the link is real (26 September) ────────────────────────────
+
+            The mobile was `required` here, and the server refused without one because "a mobile is
+            how they get the link to set themselves up" — while nothing issued a link at all. A
+            subbie you only had an email for could not be added, and a subbie you did add was never
+            sent anything. See lib/reach, and `/subbie/[token]`, which is the link that now exists.
+          */
+          <form action={inviteSubbie} className="mt-4 grid gap-2 sm:grid-cols-[1.5fr_1.2fr_1.2fr_auto]">
             <input className="input" name="business" required maxLength={160} placeholder="Their business name" aria-label="Business name" />
             <input className="input" name="contact" maxLength={120} placeholder="Who you deal with" aria-label="Contact name" />
-            <input className="input" name="mobile" required maxLength={40} inputMode="tel" placeholder="Mobile" aria-label="Mobile" />
+            <input className="input" name="reach" maxLength={320} placeholder="Mobile or email" aria-label="Mobile or email" />
             <SubmitButton className="btn-secondary shrink-0" pending="Inviting…">Invite</SubmitButton>
           </form>
         )}
-        <p className="mt-2 text-xs text-ink-light">
-          They set themselves up on their phone in about ten minutes — the six checks below, once,
-          and SPEC keeps track of the dates after that.
+        <p className="mt-2 text-xs text-ink-light" data-subbie-either>
+          {EITHER_WILL_DO} They do four of the six on their phone — ABN, public liability,
+          workers&rsquo; comp and licence, straight off their own certificates. The subcontract and
+          the induction stay yours.
         </p>
       </section>
 
@@ -145,6 +161,38 @@ export function SubbiesTab({ rows, manage, today, business }: {
                     );
                   })}
                 </div>
+
+                {/*
+                  ── Their link, ready to send (26 September) ───────────────────────────────
+
+                  The message rather than the token, for the same reason the staff setup screen
+                  hands over the message: an admin who has to assemble a URL out of a token gets one
+                  wrong somewhere in forty, and the subbie on the end of that one never finishes.
+
+                  SPEC does not send it. The phone in the admin's hand already has the number, and
+                  the mailbox already has the address.
+                */}
+                {manage && (
+                  <div className="mt-3 grid gap-2" data-subbie-link={r.id}>
+                    {r.setupToken ? (
+                      <CopyBox
+                        label={`Send ${r.contact || r.business} this`}
+                        value={inviteText(
+                          business,
+                          r.contact || r.business,
+                          `${appUrl.replace(/\/+$/, '')}/subbie/${r.setupToken}`,
+                        )}
+                      />
+                    ) : (
+                      <form action={sendSubbieLink}>
+                        <input type="hidden" name="subbieId" value={r.id} />
+                        <SubmitButton className="btn-secondary text-xs" pending="…">
+                          Give them a link
+                        </SubmitButton>
+                      </form>
+                    )}
+                  </div>
+                )}
 
                 {/*
                   The chase, drafted and not sent. A message that goes out on its own is a message

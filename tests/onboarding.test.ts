@@ -197,6 +197,46 @@ describe('finishing the list', () => {
       .toContain('no role on the chart');
     expect(finaliseLine(readiness([], TODAY), billFor([]))).toBe('Add your people first.');
   });
+
+  /*
+    ── It counts them, and while it can, it names them (26 September) ─────────────────────────
+
+    This line said "Somebody has no role on the chart yet" whether it was one person or twelve,
+    because the count was computed as `r.people - (r.people - 1)` — always 1, leaving the plural
+    branch unreachable. It is the LAST screen before a business pays: the button is greyed out, the
+    reason is singular and vague, and an owner with thirty-eight names goes hunting.
+  */
+  it('says how many have no role, rather than that somebody has not', () => {
+    const three = [
+      person({ id: 'a', name: 'Ana Rivers', roleTitle: null }),
+      person({ id: 'b', name: 'Tom Whitmore', roleTitle: null }),
+      person({ id: 'c', name: 'Hemi Walker', roleTitle: null }),
+    ];
+    const line = finaliseLine(readiness(three, TODAY), billFor([]));
+    expect(line).toContain('3 people have');
+    /* And while the list is short enough to read, exactly who — so nobody has to go looking. */
+    expect(line).toContain('Ana Rivers, Tom Whitmore, Hemi Walker');
+  });
+
+  it('says one person rather than "somebody" when it is one', () => {
+    const line = finaliseLine(readiness([person({ name: 'Ana Rivers', roleTitle: null })], TODAY), billFor([]));
+    expect(line).toContain('1 person has');
+    expect(line).toContain('Ana Rivers');
+  });
+
+  /* Past a handful, names stop being help and become a wall. The count still has to be right. */
+  it('gives the count without the names when the list is long', () => {
+    const many = Array.from({ length: 11 }, (_, i) =>
+      person({ id: `p${i}`, name: `Person ${i}`, roleTitle: null }));
+    const line = finaliseLine(readiness(many, TODAY), billFor([]));
+    expect(line).toContain('11 people have');
+    expect(line).not.toContain('Person 0,');
+  });
+
+  it('counts only the ones actually missing a role', () => {
+    const mixed = [person({ id: 'a' }), person({ id: 'b', roleTitle: null })];
+    expect(readiness(mixed, TODAY).withoutRole).toBe(1);
+  });
 });
 
 describe('the half they do on their phone', () => {

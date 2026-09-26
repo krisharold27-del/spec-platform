@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
   CHECKS, isCheckKind, checkLabel, stateOf, mayBook, expiringSoon, chaseText,
   checkClaim, queryText, subbieStats, subbieLine, HIDDEN_FROM_SUBBIES, WARN_DAYS,
+  THEIRS, OURS, isTheirs, NOT_YOURS_TO_TICK,
   type Check,
 } from '../src/lib/subbies';
 
@@ -173,5 +174,61 @@ describe('the headline', () => {
 
   it('and says nothing rather than congratulating an empty register', () => {
     expect(subbieLine(subbieStats([], new Map(), TODAY))).toBe('No subcontractors yet.');
+  });
+});
+
+/**
+ * Four of the six are theirs, and the promise that says so is now kept.
+ *
+ * ── What this replaces ───────────────────────────────────────────────────────────────────────────
+ *
+ * The Subcontractors screen said "They set themselves up on their phone in about ten minutes" and
+ * required a mobile because "a mobile is how they get the link to set themselves up". There was no
+ * link — no token, no message, no route — and the office typed in all six checks. A required field
+ * justified by a capability that did not exist, in front of a promise nothing kept.
+ *
+ * Prose is not behaviour. These are the behaviour.
+ */
+describe('which of the six a subbie does themselves', () => {
+  it('is four: the ones whose paperwork is in their filing cabinet', () => {
+    expect([...THEIRS]).toEqual(['abn', 'liability', 'workers_comp', 'licence']);
+  });
+
+  /*
+    The two that are not, and the reason is the same one that stops an employee inducting
+    themselves: a link arrives as a message, messages get forwarded, and a subbie who could tick
+    their own induction could put themselves on a site they are not inducted for. The subcontract is
+    the business's document — a subbie who could tick it could declare terms nobody had agreed.
+  */
+  it('leaves the subcontract and the induction with the business', () => {
+    expect([...OURS]).toEqual(['subcontract', 'induction']);
+    expect(isTheirs('induction')).toBe(false);
+    expect(isTheirs('subcontract')).toBe(false);
+  });
+
+  it('covers all six between them, with nothing counted twice', () => {
+    const all = [...THEIRS, ...OURS].sort();
+    expect(all).toEqual(CHECKS.map(c => c.key).sort());
+    expect(new Set(all).size).toBe(CHECKS.length);
+  });
+
+  /*
+    Derived from THEIRS rather than written out again, so adding a seventh check cannot leave one
+    list saying it is the subbie's and the other saying it is the office's.
+  */
+  it('cannot drift, because OURS is whatever THEIRS is not', () => {
+    expect(OURS.some(k => THEIRS.includes(k))).toBe(false);
+  });
+
+  it('says on their screen which two were never theirs to tick', () => {
+    /* A subbie who thinks they are blocked on somebody else's tick stops and waits. */
+    expect(NOT_YOURS_TO_TICK).toMatch(/subcontract/i);
+    expect(NOT_YOURS_TO_TICK).toMatch(/induction/i);
+    expect(NOT_YOURS_TO_TICK).toMatch(/not holding anything up/i);
+  });
+
+  it('refuses an unknown kind, so the fence is not the markup', () => {
+    expect(isTheirs('everything')).toBe(false);
+    expect(isTheirs('')).toBe(false);
   });
 });
