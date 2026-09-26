@@ -189,7 +189,7 @@ begin
     'safety_reports', 'safety_actions', 'safety_checks', 'safety_claims',
     -- The Angus Shield connection, added 25 September: events waiting to go, events received, and
     -- a job's money as the business's own books have it. Each carries its own tenant_id.
-    'connection_outbox', 'connection_inbox', 'job_book_figures'
+    'connection_outbox', 'connection_inbox', 'job_book_figures', 'mailbox_messages'
   ]
   loop
     continue when to_regclass(t) is null;
@@ -208,7 +208,7 @@ declare
   t text;
 begin
   foreach t in array array['safety_reports', 'safety_actions', 'safety_checks', 'safety_claims',
-    'connection_outbox', 'connection_inbox', 'job_book_figures']
+    'connection_outbox', 'connection_inbox', 'job_book_figures', 'mailbox_messages']
   loop
     continue when to_regclass(t) is null;
     execute format('alter table %I enable row level security', t);

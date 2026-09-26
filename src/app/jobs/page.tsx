@@ -7,6 +7,7 @@ import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
 import { CopyBox } from '@/components/copy-box';
+import { InboxPanel } from './inbox-panel';
 import { quoteWatch, chaseDraft, worthGoingBackFor, tenderWatch, growthLine } from '@/lib/growth';
 import { Refused } from '@/components/refused';
 import { QuoteBuilder } from '@/components/quote-builder';
@@ -342,6 +343,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
 
       <OwnSystemLine line={own.line} connected={own.connected} />
 
+      {tab === 'pipeline' && <InboxPanel tenantId={user.tenantId} manage={manage} />}
       {tab === 'pipeline' && (
         <Pipeline jobs={costed} openId={one(sp.job)} crew={crew} quotes={quotes} manage={manage} now={now} tabHref={tabHref} hasRate={!!standard} kind={isFilter(one(sp.kind)) ? one(sp.kind) as Filter : 'all'} />
       )}

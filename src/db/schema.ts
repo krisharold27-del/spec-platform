@@ -3331,3 +3331,27 @@ export const chainLinks = pgTable('chain_links', {
   uniqueIndex('chain_links_one').on(t.tenantId, t.obligation, t.link),
   index('chain_links_tenant').on(t.tenantId),
 ]).enableRLS();
+
+/**
+ * From your inboxes (Design 20, `SPEC Jobs.dc.html`): customer emails put in front of the pipeline,
+ * each read into what it is asking for and a reply to approve. Arrives by hand — forwarded or pasted
+ * — because nothing yet fetches mail from the mailboxes approved in Connections (see lib/email-read).
+ * Approving an enquiry opens the job; the row keeps which one, so it can never open two.
+ */
+export const mailboxMessages = pgTable('mailbox_messages', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  kind: text('kind').notNull(),
+  fromName: text('from_name').notNull(),
+  subject: text('subject').notNull(),
+  /** The message as it arrived. Kept so a reading can always be checked against the words. */
+  body: text('body').notNull(),
+  readLine: text('read_line').notNull(),
+  reply: text('reply').notNull(),
+  /** The job this opened, once approved. */
+  jobId: text('job_id'),
+  addedBy: text('added_by'),
+  addedAt: text('added_at').notNull(),
+  doneAt: text('done_at'),
+  doneBy: text('done_by'),
+}, t => [index('mailbox_messages_tenant').on(t.tenantId, t.addedAt)]).enableRLS();
