@@ -13,6 +13,7 @@ import { describe, it, expect } from 'vitest';
 import {
   starter, readDraft, kindFor, wantsNumbers, stripNumbers, systemPrompt,
   CAN_DRAFT, WILL_NOT_DRAFT, MIN_ASK,
+  dropped, revisePrompt, currentAsText,
 } from '../src/lib/mirror-maker';
 
 describe('a drafted mirror never invents a number', () => {
@@ -143,5 +144,63 @@ describe('a bad answer costs one more press, not the afternoon', () => {
 
   it('asks for a sentence before spending a call on two words', () => {
     expect(MIN_ASK).toBeGreaterThan(5);
+  });
+});
+
+describe('changing a mirror that people are already working to', () => {
+  /*
+    The dangerous half. A drafted mirror nobody has read is harmless; one somebody asks to CHANGE is
+    already pinned and already has judgement in it. A rewrite regenerates the list, and a step can
+    fail to come back without anything deciding to remove it — the new version reads perfectly.
+  */
+  const before = [
+    { text: 'Isolate at the board and lock it off', owner: 'Electrician' },
+    { text: 'Test for dead', owner: 'Electrician' },
+    { text: 'Fit the new breaker', owner: 'Electrician' },
+  ];
+
+  it('SAYS WHAT A REWRITE TOOK OUT', () => {
+    const after = [{ text: 'Test for dead', owner: '' }, { text: 'Fit the new breaker', owner: '' }];
+    expect(dropped(before, after)).toEqual(['Isolate at the board and lock it off']);
+  });
+
+  it('says nothing when nothing went', () => {
+    /* A check that cries wolf is worse than no check: a warning on every revision teaches people to
+       press past it, and then the one that mattered goes past too. */
+    const after = [...before, { text: 'Sign it off', owner: 'Site supervisor' }];
+    expect(dropped(before, after)).toEqual([]);
+  });
+
+  it('is not fooled by reordering, or by a capital letter', () => {
+    const after = [
+      { text: 'Fit the new breaker', owner: '' },
+      { text: 'isolate at the board and lock it off', owner: '' },
+      { text: 'Test for dead', owner: '' },
+    ];
+    expect(dropped(before, after)).toEqual([]);
+  });
+
+  it('counts a reworded step as dropped, which is the right way to be wrong', () => {
+    /* Telling somebody a step went when it was only reworded costs them a glance. Missing a real
+       removal costs a crew the step that stopped the job. */
+    const after = [{ text: 'Isolate the board', owner: '' }, { text: 'Test for dead', owner: '' }, { text: 'Fit the new breaker', owner: '' }];
+    expect(dropped(before, after)).toContain('Isolate at the board and lock it off');
+  });
+
+  it('TELLS THE MODEL TO KEEP WHAT IT WAS NOT ASKED TO CHANGE', () => {
+    const p = revisePrompt();
+    expect(p).toContain('Keep every step the request did not ask you to change');
+    expect(p).toContain('stops a job');
+    /* It inherits the no-invented-figures rule rather than restating it — one copy of the answer. */
+    expect(p).toContain('NEVER invent a figure');
+  });
+
+  it('sends the whole current mirror, not just the request', () => {
+    /* Asked to "make it shorter" with no mirror attached, a model writes a new one from nothing and
+       the business loses everything it had written. */
+    const text = currentAsText({ title: 'Switchboard work', summary: 'Before you open it.', steps: before }, 'make it shorter');
+    expect(text).toContain('Switchboard work');
+    expect(text).toContain('Isolate at the board');
+    expect(text).toContain('make it shorter');
   });
 });

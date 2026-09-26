@@ -197,3 +197,80 @@ export function readDraft(text: string): Draft | null {
     steps,
   };
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CHANGING ONE THAT ALREADY EXISTS
+
+   Kris, 26 September: mirrors are to be *"exactly the same as artifacts"*. An artifact is not
+   written once and kept — it is argued into shape. "Make it shorter." "Add a step about isolating
+   the board." "That is not how we do it here." Each answer replaces the last, and the going back
+   and forth IS the feature.
+
+   ── The danger that shapes this half ──────────────────────────────────────────────────────────
+
+   A drafted mirror nobody has read yet is harmless. A mirror somebody asks to CHANGE is one that is
+   already pinned, already being worked to, and already has somebody's judgement in it. Ask for a
+   small change at four on a Friday and a rewrite will cheerfully hand back a tidier version with
+   the isolation step gone — not because it decided to remove it, but because it regenerated the
+   list and that one did not come back.
+
+   Nothing on the screen would say so. The new version reads perfectly.
+
+   Two things stand against that, and they are different in kind:
+
+     `boardVersions` keeps what it was, so the change can be undone. That is the backstop.
+     `dropped()` below says what disappeared, BEFORE anybody accepts it. That is the point.
+
+   A backstop nobody knows they need is not much use on a Friday afternoon. Being told "this removed
+   two steps, here they are" is what actually stops the bad version being pinned.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+export const CHANGE_LABEL = 'Change this mirror';
+
+export const CHANGE_PLACEHOLDER =
+  'Make it shorter — and add a step about isolating the board before anyone opens it';
+
+export const CHANGE_HELP =
+  'Say what to change in plain words. What it says now is kept, so you can put it back.';
+
+/** Said above a revision that took something out. The steps themselves are listed under it. */
+export const THIS_REMOVED = 'This change removed:';
+
+export const PUT_IT_BACK = 'Undo this change';
+
+/**
+ * Steps that were there before and are not there now.
+ *
+ * Matched on the text, which is how this codebase already matches steps elsewhere — a step whose
+ * wording was tidied counts as dropped, and that is the right way for it to be wrong. Telling
+ * somebody a step went when it was only reworded costs them a glance; missing a real removal costs
+ * a crew the step that stopped the job.
+ */
+export function dropped(before: { text: string }[], after: { text: string }[]): string[] {
+  const now = new Set(after.map(s => s.text.trim().toLowerCase()));
+  return before.map(s => s.text).filter(t => !now.has(t.trim().toLowerCase()));
+}
+
+/** What Claude is told when changing one that exists, rather than drafting a new one. */
+export function revisePrompt(): string {
+  return [
+    systemPrompt(),
+    '',
+    'You are CHANGING a mirror that already exists and that people are working to.',
+    'Return the WHOLE mirror in the same JSON shape, not a description of your changes.',
+    'Keep every step the request did not ask you to change, in its own words.',
+    'A step that stops a job if it is not done is never removed unless the request says to remove it.',
+  ].join('\n');
+}
+
+/** The current mirror, as the message that goes with the request. */
+export function currentAsText(m: { title: string; summary: string; steps: { text: string; owner: string }[] }, ask: string): string {
+  return [
+    `TITLE: ${m.title}`,
+    `SUMMARY: ${m.summary}`,
+    'STEPS:',
+    ...m.steps.map((s, i) => `${i + 1}. ${s.text}${s.owner ? ` — ${s.owner}` : ''}`),
+    '',
+    `CHANGE ASKED FOR: ${ask}`,
+  ].join('\n');
+}

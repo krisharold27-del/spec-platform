@@ -406,3 +406,64 @@ export async function addStep(opts: {
     .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
   return { added: true };
 }
+
+/**
+ * Change a mirror, keeping what it was.
+ *
+ * Kris, 26 September: mirrors are to be *"exactly the same as artifacts"*, and an artifact is
+ * argued into shape rather than written once. What makes that safe is not care, it is the undo:
+ * every revision snapshots the mirror as it stood, with the words that asked for the change, before
+ * a single field moves. See the note on `boardVersions`.
+ *
+ * The snapshot is written FIRST and in full. If the update below fails, the business has a row
+ * saying what the mirror was and nothing has moved — the harmless order. The other way round, a
+ * failure loses the previous version for ever, which is the one outcome this whole table exists to
+ * prevent.
+ */
+export async function reviseBoard(opts: {
+  tenantId: string;
+  boardId: string;
+  title: string;
+  summary: string;
+  steps: { text: string; owner: string; state: string }[];
+  askedFor: string;
+  changedBy: string;
+}): Promise<{ revised: boolean }> {
+  const [board] = await db.select().from(schema.boards)
+    .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
+  if (!board) return { revised: false };
+
+  const now = new Date().toISOString();
+  await db.insert(schema.boardVersions).values({
+    id: randomUUID(),
+    tenantId: opts.tenantId,
+    boardId: opts.boardId,
+    title: board.title,
+    summary: board.summary,
+    steps: board.steps,
+    askedFor: opts.askedFor.slice(0, 600),
+    changedBy: opts.changedBy,
+    changedAt: now,
+  });
+
+  await db.update(schema.boards)
+    .set({
+      title: opts.title.slice(0, 120),
+      summary: opts.summary,
+      steps: JSON.stringify(opts.steps.map(s => ({
+        text: s.text.slice(0, 300),
+        owner: s.owner.slice(0, 120) || 'Nobody yet',
+        state: s.state,
+      }))),
+      updatedAt: now,
+    })
+    .where(and(eq(schema.boards.id, opts.boardId), eq(schema.boards.tenantId, opts.tenantId)));
+  return { revised: true };
+}
+
+/** What a mirror has been, newest first — the trail behind the thing a crew is working to. */
+export async function versionsOf(tenantId: string, boardId: string) {
+  return db.select().from(schema.boardVersions)
+    .where(and(eq(schema.boardVersions.tenantId, tenantId), eq(schema.boardVersions.boardId, boardId)))
+    .orderBy(desc(schema.boardVersions.changedAt));
+}

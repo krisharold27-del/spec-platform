@@ -17,10 +17,11 @@ import { listBoards, getBoard, markViewing, mirrorKpisFor } from '@/lib/boards-l
 import { kpiStanding, kpiGap, kpiWorking } from '@/lib/mirror-kpis';
 import { NAME_WORDS, atRest, signifier, tabName } from '@/lib/mirror-rules';
 import { LIGHT_COLOUR } from '@/lib/today';
-import { newBoard, sayOnBoard, putKpiOnBoard, takeKpiOffBoard, moveStepOnBoard, addStepToBoard, askForMirror } from './actions';
+import { newBoard, sayOnBoard, putKpiOnBoard, takeKpiOffBoard, moveStepOnBoard, addStepToBoard, askForMirror, reviseMirror, undoLastChange } from './actions';
 import {
   ASK_LABEL, ASK_HELP, ASK_PLACEHOLDER, A_DRAFT_NOT_A_DECISION, TOO_SHORT, MIN_ASK,
   CAN_DRAFT, WILL_NOT_DRAFT,
+  CHANGE_LABEL, CHANGE_HELP, CHANGE_PLACEHOLDER, PUT_IT_BACK,
 } from '@/lib/mirror-maker';
 
 export const dynamic = 'force-dynamic';
@@ -81,6 +82,8 @@ export default async function Boards({ searchParams }: {
     cannot?: string; full?: string; title?: string; summary?: string; kind?: string;
     /** The ask was too short to spend a draft on — see MIN_ASK in lib/mirror-maker. */
     short?: string; drafted?: string;
+    /** A change took steps out — how many, so the page can offer the undo. */
+    removed?: string; changed?: string; nochange?: string; undone?: string;
   }>;
 }) {
   const user = await getCurrentUser();
@@ -185,6 +188,56 @@ export default async function Boards({ searchParams }: {
               {board.meta ? ` · ${board.meta}` : ''}
               {board.editingNow.length > 0 ? ` · ${board.editingNow.join(', ')} here now` : ''}
             </p>
+
+            {/*
+              ── Change it by saying what to change ───────────────────────────────────────────────
+
+              Kris, 26 September: mirrors are to be *"exactly the same as artifacts"*. An artifact is
+              argued into shape rather than written once — "make it shorter", "add a step about
+              isolating the board" — and the going back and forth IS the feature.
+
+              Directly under the name, because that is what somebody is looking at when they decide
+              it is not quite right. What it used to say is kept, and when a change takes a step out
+              the page says which one: a rewrite regenerates the list, and a step can fail to come
+              back with nothing having decided to remove it. The new version reads perfectly, which
+              is exactly why somebody has to be told rather than left to notice.
+            */}
+            <details className="mt-3" data-change-mirror>
+              <summary className="cursor-pointer text-sm text-rust-700 hover:underline">{CHANGE_LABEL}</summary>
+              <form action={reviseMirror} className="mt-2 max-w-[68ch]">
+                <input type="hidden" name="boardId" value={board.id} />
+                <textarea
+                  name="ask"
+                  rows={2}
+                  required
+                  minLength={MIN_ASK}
+                  placeholder={CHANGE_PLACEHOLDER}
+                  aria-label={CHANGE_LABEL}
+                  className="w-full rounded-lg border border-ink/20 p-3 text-base"
+                />
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <SubmitButton pending="Changing&hellip;">Make the change</SubmitButton>
+                  <span className="text-xs text-ink-light">{CHANGE_HELP}</span>
+                </div>
+              </form>
+            </details>
+
+            {sp.removed && (
+              <div className="mt-2 max-w-[68ch] rounded-lg bg-cream p-3 text-sm text-ink" data-removed-warning>
+                <p>
+                  That change removed {sp.removed} step{sp.removed === '1' ? '' : 's'} — listed in the discussion below.
+                </p>
+                <form action={undoLastChange} className="mt-2">
+                  <input type="hidden" name="boardId" value={board.id} />
+                  <button type="submit" className="text-rust-700 underline">{PUT_IT_BACK}</button>
+                </form>
+              </div>
+            )}
+            {sp.nochange === '1' && (
+              <p className="mt-2 text-sm text-ink-light">
+                Nothing was changed — the mirror is exactly as it was. Try saying it a different way.
+              </p>
+            )}
           </div>
 
           {months.length > 0 && (

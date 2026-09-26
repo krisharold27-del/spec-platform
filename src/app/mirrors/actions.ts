@@ -5,12 +5,15 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth';
 import { assertWritable } from '@/lib/plan';
 import { kindOf, stepStateOf } from '@/lib/boards-live';
-import { createBoard, commentOnBoard, addKpiToBoard, removeKpiFromBoard, moveStep, addStep } from '@/lib/boards-live-data';
+import { createBoard, commentOnBoard, addKpiToBoard, removeKpiFromBoard, moveStep, addStep, getBoard, reviseBoard, versionsOf } from '@/lib/boards-live-data';
 import { getScope } from '@/lib/scope';
 import { readTitle } from '@/lib/mirror-rules';
 import { refuseTo } from '@/lib/refuse';
 import { CLAUDE_MODEL, anthropicHeaders } from '@/lib/claude';
-import { starter, readDraft, systemPrompt, MIN_ASK } from '@/lib/mirror-maker';
+import {
+  starter, readDraft, systemPrompt, MIN_ASK,
+  revisePrompt, currentAsText, dropped, THIS_REMOVED,
+} from '@/lib/mirror-maker';
 
 /**
  * Starting a board, and saying something on one.
@@ -279,4 +282,121 @@ export async function askForMirror(form: FormData) {
 
   revalidatePath('/mirrors');
   redirect(`/mirrors?board=${id}&drafted=1`);
+}
+
+/**
+ * Change a mirror by saying what to change — the going back and forth that makes it an artifact.
+ *
+ * Kris, 26 September: mirrors are to be *"exactly the same as artifacts"*. An artifact is argued
+ * into shape, not written once. The rules are in lib/mirror-maker; two things happen here that the
+ * drafting action does not need:
+ *
+ *   **The whole current mirror goes with the request.** Asked to "make it shorter" with nothing
+ *   attached, a model writes a new one from nothing and the business loses what it had written.
+ *
+ *   **What disappeared is named, before anybody accepts it.** A rewrite regenerates the list, and a
+ *   step can fail to come back with nothing having decided to remove it — the new version reads
+ *   perfectly. `boardVersions` means it can be undone; `dropped()` means somebody is TOLD. A
+ *   backstop nobody knows they need is not much use at four on a Friday.
+ */
+export async function reviseMirror(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+
+  const boardId = String(form.get('boardId') ?? '');
+  const ask = String(form.get('ask') ?? '').trim().replace(/\s+/g, ' ');
+  if (!boardId) redirect('/mirrors');
+  if (ask.length < MIN_ASK) redirect(`/mirrors?board=${boardId}&short=1`);
+
+  const board = await getBoard(user.tenantId, boardId);
+  if (!board) redirect('/mirrors');
+
+  const was = board.steps.map(s => ({ text: s.text, owner: s.owner }));
+  let next: { title: string; summary: string; steps: { text: string; owner: string; state: 'todo' }[] } | null = null;
+
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (key) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: anthropicHeaders(key),
+        body: JSON.stringify({
+          model: CLAUDE_MODEL,
+          max_tokens: 1400,
+          system: revisePrompt(),
+          messages: [{ role: 'user', content: currentAsText({ title: board.title, summary: board.summary, steps: was }, ask) }],
+        }),
+      });
+      if (res.ok) {
+        const body = await res.json() as { content?: { text?: string }[] };
+        next = readDraft(body.content?.[0]?.text ?? '');
+      }
+    } catch {
+      /* Anthropic having a moment must not look like this business's fault, and must not half-apply
+         a change. Nothing moves and the mirror is exactly as it was. */
+    }
+  }
+
+  if (!next) redirect(`/mirrors?board=${boardId}&nochange=1`);
+
+  await reviseBoard({
+    tenantId: user.tenantId,
+    boardId,
+    title: next.title,
+    summary: next.summary,
+    steps: next.steps,
+    askedFor: ask,
+    changedBy: user.id,
+  });
+
+  /*
+    The request and what it cost, on the mirror itself. Somebody reading it in six weeks can see
+    what was asked for and what went — next to the thing, not in a log nobody opens.
+  */
+  const gone = dropped(was, next.steps);
+  await commentOnBoard({
+    boardId,
+    tenantId: user.tenantId,
+    authorName: user.name ?? 'Somebody',
+    text: gone.length
+      ? `Changed: "${ask}". ${THIS_REMOVED} ${gone.join('; ')}`
+      : `Changed: "${ask}".`,
+  });
+
+  revalidatePath('/mirrors');
+  redirect(`/mirrors?board=${boardId}${gone.length ? `&removed=${gone.length}` : '&changed=1'}`);
+}
+
+/**
+ * Put a mirror back to what it was before the last change.
+ *
+ * The undo the version table exists for. It does not delete the version it is undoing — it writes
+ * the current state as a version of its own and then restores. Going back is itself a change, and
+ * a history that quietly drops the branch nobody liked is a history you cannot trust on the day it
+ * matters.
+ */
+export async function undoLastChange(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+
+  const boardId = String(form.get('boardId') ?? '');
+  if (!boardId) redirect('/mirrors');
+
+  const [previous] = await versionsOf(user.tenantId, boardId);
+  if (!previous) redirect(`/mirrors?board=${boardId}`);
+
+  await reviseBoard({
+    tenantId: user.tenantId,
+    boardId,
+    title: previous.title,
+    summary: previous.summary,
+    steps: JSON.parse(previous.steps || '[]'),
+    askedFor: 'Put back to how it was before the last change',
+    changedBy: user.id,
+  });
+
+  revalidatePath('/mirrors');
+  redirect(`/mirrors?board=${boardId}&undone=1`);
 }

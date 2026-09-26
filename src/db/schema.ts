@@ -1369,6 +1369,48 @@ export const boards = pgTable('boards', {
  * belongs next to the sell rate, where the next person to ask the question will find it, and not in
  * a thread three people were on.
  */
+/**
+ * Every version a mirror has been, so a change can be undone.
+ *
+ * ── Kris, 26 September ───────────────────────────────────────────────────────────────────────────
+ *
+ * *"mirrors are for the business to use for all sorts of important things - exactly the same as
+ * artifacts."* An artifact is not written once; it is argued into shape. "Make it shorter", "add a
+ * step about isolation", "that is not how we do it here" — and each answer replaces the last.
+ *
+ * Replacing the last one is the whole danger. A mirror is PINNED: a crew works to it. Somebody asks
+ * for a small change at four on a Friday, the rewrite drops the step that stopped the job, and
+ * there is no way back to the version that was right. The thing that makes refining safe is not
+ * being careful, it is being able to undo.
+ *
+ * So every revision writes down what the mirror WAS before it changed, with the words that asked
+ * for the change. Reading the history tells you what the business used to do and why it stopped.
+ *
+ * ── Why a snapshot rather than a diff ────────────────────────────────────────────────────────────
+ *
+ * A diff needs the chain to be complete to mean anything, and one lost row makes every later one
+ * unreadable. A snapshot is worth exactly the same whether the rows either side survived or not,
+ * and the whole point of this table is to be trustworthy on the day something has gone wrong.
+ */
+export const boardVersions = pgTable('board_versions', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  boardId: text('board_id').notNull(),
+  /** What the mirror said BEFORE the change this row records. */
+  title: text('title').notNull(),
+  summary: text('summary').notNull().default(''),
+  /** The steps as they were, same JSON shape the board holds. */
+  steps: text('steps').notNull().default('[]'),
+  /** The words somebody typed to ask for the change. Empty when edited by hand. */
+  askedFor: text('asked_for').notNull().default(''),
+  changedBy: text('changed_by').notNull(),
+  changedAt: text('changed_at').notNull(),
+}, t => [
+  /* tenant first: reading one business's history must never scan every business's. */
+  index('board_versions_tenant').on(t.tenantId),
+  index('board_versions_board').on(t.boardId),
+]).enableRLS();
+
 export const boardComments = pgTable('board_comments', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),

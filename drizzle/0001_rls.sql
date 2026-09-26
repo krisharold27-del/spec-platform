@@ -152,6 +152,10 @@ begin
     -- comment and a viewer are scoped by the business, not only by the board, so that a board id
     -- guessed from a shared link still reaches nothing.
     'boards', 'board_comments', 'board_viewers',
+    -- What a mirror used to say, so a change can be undone. Its own tenant_id for the same reason
+    -- as the two above: a version row holds a whole previous copy of a mirror — the steps a crew
+    -- was working to — and a board id guessed from a shared link must reach nothing.
+    'board_versions',
     -- Rights over a branch somebody does not sit above, granted by an administrator. It carries its
     -- own tenant_id rather than reaching the business through the role it points at, for the same
     -- reason connection_credentials does: this table decides who can see whose scorecards, and a
