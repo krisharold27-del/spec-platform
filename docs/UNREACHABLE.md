@@ -36,5 +36,9 @@ Each line says how the page is really opened. Format — the route in backticks,
 - `/start` — the four-questions opener, reached from campaigns and from links sent to a business
   before it has an account. Not linked from inside the product because everybody inside it is past
   that question.
+- `/subbie` — the subcontractor's own paperwork page, at `/subbie/<token>`. The address only ever
+  arrives in a link sent to that subcontractor, and it carries their insurance and licences, so it
+  is marked `noindex` and is deliberately not advertised anywhere inside the business's menus. A
+  subbie is not a seat holder and never signs in.
 - `/investor` — reached by a link sent to a specific person, and gated on `isAdminEmail` besides.
   It is deliberately not advertised in the menu of a customer's business.

@@ -2043,6 +2043,7 @@ src/lib/queries.ts :: getTenantById
 src/lib/queries.ts :: placementShown
 src/lib/queries.ts :: scorecardsFor
 src/lib/questions-data.ts :: routesInApp
+src/lib/questions-data.ts :: routesInProduct
 src/lib/questions.ts :: EVERYWHERE_IS_NOT_CHECKED
 src/lib/questions.ts :: PLACES
 src/lib/questions.ts :: Place

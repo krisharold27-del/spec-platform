@@ -145,8 +145,20 @@ export function readExcuses() {
 export function census() {
   const said = readExcuses();
   const links = mentioned();
-  return routes()
-    .filter(r => !r.includes('['))
+  /*
+    A dynamic route counts as its parent.
+
+    `/customer/[token]` is the customer page; that it needs a token is a fact about the link, not a
+    different screen. The design names "Customer page" and an owner asking whether it exists means
+    the screen, so the parent is what has to resolve. Left out, four real screens — the customer
+    page, the join page, a scorecard and the subbie page — read as missing.
+  */
+  const parents = routes()
+    .filter(r => r.includes('['))
+    .map(r => r.slice(0, r.indexOf('/[')))
+    .filter(r => r.length > 1);
+
+  return [...new Set([...routes().filter(r => !r.includes('[')), ...parents])]
     .map(r => ({
       route: r,
       /*

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Shell } from '@/components/ui';
 import { QUESTIONS, placeOf, statusOf, read, byGroup, EVERYWHERE_IS_NOT_CHECKED } from '@/lib/questions';
-import { routesInApp } from '@/lib/questions-data';
+import { routesInProduct } from '@/lib/questions-data';
 import { LIGHT_COLOUR } from '@/lib/today';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +28,12 @@ export const metadata = { title: 'Owner questions' };
  * account first would be asking them to trust the thing they came here to check.
  */
 export default async function Questions() {
-  const routes = routesInApp();
+  /*
+    The generated list, not a walk of src/app — this page is force-dynamic, so it runs in a
+    serverless function where src/ does not exist. The walk found nothing there and every question
+    read as a gap: 0 of 96 in production against 93 of 96 in the repo. See routesInProduct.
+  */
+  const routes = routesInProduct();
   const reading = read(QUESTIONS, routes);
   const groups = byGroup(QUESTIONS, routes);
 
