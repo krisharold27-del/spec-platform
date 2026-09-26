@@ -29,7 +29,7 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { currentPeriod } from './period';
-import { getScorecard } from './queries';
+import { scorecardsFor } from './queries';
 import { isScored } from './today-data';
 import { blockingReasons } from './obligations';
 import { dueDateFor, dueState } from './training';
@@ -114,11 +114,17 @@ export async function clearAcross(
   */
   const roleBlocking = new Map<string, string[]>();
   if (period) {
-    for (const r of roles) {
-      const own = criteria.filter(c => c.roleId === r.id && c.active);
-      if (!isScored(r.level, own.length, r.isTeam)) continue;
-      const { rows } = await getScorecard(r.id, period.id);
-      roleBlocking.set(r.id, rows.filter(x => x.pillar === 'compliance' && x.answer === 'N').map(x => x.text));
+    /*
+      One batch for every scored role, rather than three round trips each (26 September). The same
+      shape that timed `/org` and `/people` out — see `scorecardsFor` in lib/queries.
+    */
+    const scoredIds = roles
+      .filter(r => isScored(r.level, criteria.filter(c => c.roleId === r.id && c.active).length, r.isTeam))
+      .map(r => r.id);
+    const cards = await scorecardsFor(scoredIds, period.id);
+    for (const id of scoredIds) {
+      const rows = cards.get(id)?.rows ?? [];
+      roleBlocking.set(id, rows.filter(x => x.pillar === 'compliance' && x.answer === 'N').map(x => x.text));
     }
   }
 

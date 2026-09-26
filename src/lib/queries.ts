@@ -1,5 +1,5 @@
 /** Read-side queries used by the pages. All scores are computed here from raw assessments — never stored. */
-import { eq, and, isNull, desc } from 'drizzle-orm';
+import { eq, and, isNull, desc, inArray } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { roleScore, teamScore, gates as gateCalc, PILLARS, type Pillar, type RoleScore, type Answer } from './scoring';
 import { answerFor } from './status';
@@ -67,56 +67,98 @@ export const placementShown = <T extends { userId: string | null; staffId: strin
   open: readonly T[],
 ): T | null => open.find(a => a.userId) ?? open.find(a => a.staffId) ?? null;
 
+/**
+ * The chart: every role, with who holds it and everybody on it.
+ *
+ * ── The outage this was rewritten for (26 September) ─────────────────────────────────────────────
+ *
+ * `/my-page`, `/org` and `/people` were all returning 504 FUNCTION_INVOCATION_TIMEOUT in production
+ * — eighteen of them, five minutes each. This function is what all three have in common: they call
+ * `getScope`, and `getScope` calls this.
+ *
+ * It ran a loop over every role, and inside the loop FOUR joined queries — of which two were
+ * character-for-character the same as the other two. The holder query and `withAccount` are one
+ * query; the pencilled query and `pencilledIn` are one query. So a sixty-role chart made two
+ * hundred and forty sequential round trips to Postgres, each waiting for the one before, to draw a
+ * page — and that was before the scorecards, which added three more per role on top.
+ *
+ * Nothing here was slow. Every one of those queries is indexed and answers in a millisecond. What
+ * killed it was doing hundreds of them in a row, across a network, inside one request that has five
+ * minutes to live.
+ *
+ * This is the failure mode that does not announce itself: it is invisible on a demo business with
+ * four roles, and it does not break when the code changes — it breaks when the CHART GETS BIGGER.
+ * So it passed every test, worked all week, and stopped working the week JBI's chart filled up.
+ *
+ * Now: two queries, whatever the size of the chart.
+ */
 export async function getRoles(tenantId: string): Promise<RoleView[]> {
   const rows = await db.select().from(schema.roles)
     .where(and(eq(schema.roles.tenantId, tenantId), eq(schema.roles.active, true)))
     .orderBy(schema.roles.sortOrder);
-  const out: RoleView[] = [];
-  for (const r of rows) {
-    const a = await db.select({
+  if (rows.length === 0) return [];
+  const roleIds = rows.map(r => r.id);
+
+  /*
+    Both halves of every open placement on this business's roles, in one pass each.
+
+    Two queries rather than one outer join, for the reason the old code gave and which still holds:
+    the join would need a coalesce, and these read the way `holder` and `pencilled` are thought
+    about. What has changed is that they are asked once for the whole chart instead of once per
+    role — and asked together, since neither depends on the other.
+  */
+  const [seated, pencilledRows] = await Promise.all([
+    db.select({
+      assignmentId: schema.roleAssignments.id,
+      roleId: schema.roleAssignments.roleId,
       id: schema.users.id, name: schema.users.name, email: schema.users.email, access: schema.users.access,
       seatKindOverride: schema.users.seatKindOverride,
     })
       .from(schema.roleAssignments)
       .innerJoin(schema.users, eq(schema.users.id, schema.roleAssignments.userId))
-      .where(and(eq(schema.roleAssignments.roleId, r.id), isNull(schema.roleAssignments.toDate)));
-    let pencilled: string | null = null;
-    if (!a[0]) {
-      const p = await db.select({ name: schema.staff.name })
-        .from(schema.roleAssignments)
-        .innerJoin(schema.staff, eq(schema.staff.id, schema.roleAssignments.staffId))
-        .where(and(eq(schema.roleAssignments.roleId, r.id), isNull(schema.roleAssignments.toDate)));
-      pencilled = p[0]?.name ?? null;
-    }
-
-    /*
-      Everybody on the role, not just the one the card shows.
-
-      A team holds several and the chart has to draw all of them; an ordinary role is meant to hold
-      one, and `placementShown` exists precisely because the schema does not enforce that. Two
-      queries — accounts and pencilled names — rather than one outer join, because the join would
-      need a coalesce and this reads the same way `holder` and `pencilled` above already do.
-    */
-    const withAccount = await db.select({ id: schema.roleAssignments.id, name: schema.users.name })
-      .from(schema.roleAssignments)
-      .innerJoin(schema.users, eq(schema.users.id, schema.roleAssignments.userId))
-      .where(and(eq(schema.roleAssignments.roleId, r.id), isNull(schema.roleAssignments.toDate)));
-    const pencilledIn = await db.select({ id: schema.roleAssignments.id, name: schema.staff.name })
+      .where(and(inArray(schema.roleAssignments.roleId, roleIds), isNull(schema.roleAssignments.toDate))),
+    db.select({
+      assignmentId: schema.roleAssignments.id,
+      roleId: schema.roleAssignments.roleId,
+      name: schema.staff.name,
+    })
       .from(schema.roleAssignments)
       .innerJoin(schema.staff, eq(schema.staff.id, schema.roleAssignments.staffId))
-      .where(and(eq(schema.roleAssignments.roleId, r.id), isNull(schema.roleAssignments.toDate)));
-    const members = [
-      ...withAccount.map(m => ({ id: m.id, name: m.name, hasAccount: true })),
-      ...pencilledIn.map(m => ({ id: m.id, name: m.name, hasAccount: false })),
-    ];
+      .where(and(inArray(schema.roleAssignments.roleId, roleIds), isNull(schema.roleAssignments.toDate))),
+  ]);
 
-    out.push({
+  const seatedBy = new Map<string, typeof seated>();
+  for (const s of seated) seatedBy.set(s.roleId, [...(seatedBy.get(s.roleId) ?? []), s]);
+  const pencilledBy = new Map<string, typeof pencilledRows>();
+  for (const p of pencilledRows) pencilledBy.set(p.roleId, [...(pencilledBy.get(p.roleId) ?? []), p]);
+
+  return rows.map(r => {
+    const mine = seatedBy.get(r.id) ?? [];
+    const theirs = pencilledBy.get(r.id) ?? [];
+    const first = mine[0];
+    return {
       id: r.id, title: r.title, stream: r.stream, level: r.level,
-      reportsToRoleId: r.reportsToRoleId, holder: a[0] ?? null, pencilled,
-      isTeam: r.isTeam, members,
-    });
-  }
-  return out;
+      reportsToRoleId: r.reportsToRoleId,
+      holder: first
+        ? {
+            id: first.id, name: first.name, email: first.email, access: first.access,
+            seatKindOverride: first.seatKindOverride,
+          }
+        : null,
+      /* A pencilled name only shows where nobody holds the seat — the rule this always had. */
+      pencilled: first ? null : theirs[0]?.name ?? null,
+      isTeam: r.isTeam,
+      /*
+        Everybody on the role, not just the one the card shows. A team holds several and the chart
+        has to draw all of them; an ordinary role is meant to hold one, and `placementShown` exists
+        precisely because the schema does not enforce that.
+      */
+      members: [
+        ...mine.map(m => ({ id: m.assignmentId, name: m.name, hasAccount: true })),
+        ...theirs.map(m => ({ id: m.assignmentId, name: m.name, hasAccount: false })),
+      ],
+    };
+  });
 }
 
 export interface ScorecardRow {
@@ -135,32 +177,87 @@ export interface ScorecardRow {
   source: string | null;
 }
 
-export async function getScorecard(roleId: string, periodId: string): Promise<{ rows: ScorecardRow[]; score: RoleScore }> {
-  const crit = await db.select().from(schema.criteria)
-    .where(and(eq(schema.criteria.roleId, roleId), eq(schema.criteria.active, true)))
-    .orderBy(schema.criteria.sortOrder);
-  const ans = await db.select().from(schema.assessments)
-    .where(and(eq(schema.assessments.roleId, roleId), eq(schema.assessments.periodId, periodId)));
-  const byId = new Map(ans.map(a => [a.criterionId, a]));
+export type Scorecard = { rows: ScorecardRow[]; score: RoleScore };
+
+/**
+ * Every role's scorecard for a month, in three queries rather than three PER ROLE.
+ *
+ * ── The outage this was written for (26 September) ───────────────────────────────────────────────
+ *
+ * `/org` and `/people` were timing out in production — eighteen `Vercel Runtime Timeout Error: Task
+ * timed out after 300 seconds`, with Postgres also reporting `canceling statement due to statement
+ * timeout`. Kris could not open either page.
+ *
+ * The cause was not a slow query. Every query here is indexed and answers in milliseconds:
+ * `criteria_role_pillar` covers the criteria read and `assessments_unique` covers the answers. The
+ * cause was HOW MANY of them, and that each waited for the last. `getScorecard` makes three round
+ * trips, and both screens called it inside a loop over every role on the chart — so a business with
+ * sixty roles made a hundred and eighty sequential round trips to draw one page, holding a
+ * connection the whole way.
+ *
+ * That shape looks perfect on a demo business with four roles and falls over on a real one, which
+ * is exactly what happened: it worked all week and stopped working the week the chart got big. It
+ * degrades rather than breaks, so nothing caught it until it hit the ceiling.
+ *
+ * So the loop moved into the database. Three queries, whatever the size of the chart.
+ */
+export async function scorecardsFor(
+  roleIds: readonly string[],
+  periodId: string,
+): Promise<Map<string, Scorecard>> {
+  const out = new Map<string, Scorecard>();
+  if (roleIds.length === 0) return out;
+
+  /* Issued together rather than in sequence — none of the three depends on another. */
+  const [crit, ans, periodRow] = await Promise.all([
+    db.select().from(schema.criteria)
+      .where(and(inArray(schema.criteria.roleId, [...roleIds]), eq(schema.criteria.active, true)))
+      .orderBy(schema.criteria.sortOrder),
+    db.select().from(schema.assessments)
+      .where(and(inArray(schema.assessments.roleId, [...roleIds]), eq(schema.assessments.periodId, periodId))),
+    db.select({ status: schema.periods.status }).from(schema.periods).where(eq(schema.periods.id, periodId)),
+  ]);
+
   // A locked month keeps the answers it was locked with — nothing recalculates history (Watch was
   // stored as N before BUILD_SPEC §3.1 made it NA). An open month scores from the status itself.
-  const [period] = await db.select({ status: schema.periods.status }).from(schema.periods).where(eq(schema.periods.id, periodId));
-  const locked = period?.status === 'locked';
+  const locked = periodRow[0]?.status === 'locked';
   const answerOf = (a: (typeof ans)[number] | undefined): Answer =>
     !a ? '' : !locked && a.status ? answerFor(a.status) : (a.answer as Answer);
-  const rows: ScorecardRow[] = crit.map(c => ({
-    criterionId: c.id, pillar: c.pillar as Pillar, text: c.text, weight: c.weight, kpi: c.kpi, target: c.target,
-    proposedTarget: c.proposedTarget,
-    answer: answerOf(byId.get(c.id)), note: byId.get(c.id)?.note ?? null,
-    status: byId.get(c.id)?.status ?? null,
-    result: byId.get(c.id)?.result ?? null,
-    source: byId.get(c.id)?.source ?? null,
-  }));
-  const score = roleScore(
-    crit.map(c => ({ id: c.id, pillar: c.pillar as Pillar, text: c.text, weight: c.weight })),
-    rows.map(r => ({ criterionId: r.criterionId, answer: r.answer })),
-  );
-  return { rows, score };
+
+  const byId = new Map(ans.map(a => [a.criterionId, a]));
+  const critByRole = new Map<string, typeof crit>();
+  for (const c of crit) critByRole.set(c.roleId, [...(critByRole.get(c.roleId) ?? []), c]);
+
+  /*
+    Every role asked for gets an entry, including one with no criteria at all. A missing key and an
+    empty scorecard are different things to a caller, and returning nothing for an unscored role is
+    how a screen decides somebody is fine because it could not find them.
+  */
+  for (const roleId of roleIds) {
+    const mine = critByRole.get(roleId) ?? [];
+    const rows: ScorecardRow[] = mine.map(c => ({
+      criterionId: c.id, pillar: c.pillar as Pillar, text: c.text, weight: c.weight, kpi: c.kpi, target: c.target,
+      proposedTarget: c.proposedTarget,
+      answer: answerOf(byId.get(c.id)), note: byId.get(c.id)?.note ?? null,
+      status: byId.get(c.id)?.status ?? null,
+      result: byId.get(c.id)?.result ?? null,
+      source: byId.get(c.id)?.source ?? null,
+    }));
+    out.set(roleId, {
+      rows,
+      score: roleScore(
+        mine.map(c => ({ id: c.id, pillar: c.pillar as Pillar, text: c.text, weight: c.weight })),
+        rows.map(r => ({ criterionId: r.criterionId, answer: r.answer })),
+      ),
+    });
+  }
+  return out;
+}
+
+/** One role's scorecard — a wrapper on the batch, so there is one copy of the rules. */
+export async function getScorecard(roleId: string, periodId: string): Promise<Scorecard> {
+  const all = await scorecardsFor([roleId], periodId);
+  return all.get(roleId) ?? { rows: [], score: roleScore([], []) };
 }
 
 /**

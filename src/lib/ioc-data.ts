@@ -12,10 +12,10 @@
  * over one set of rules cannot disagree; two copies of the rules would, and the day they did
  * nobody could say which screen was right.
  */
-import { eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { getScope, type Scope } from './scope';
-import { getScorecard } from './queries';
+import { scorecardsFor, type Scorecard } from './queries';
 import { currentPeriod } from './period';
 import { blockingReasons } from './obligations';
 import { dueState, dueDateFor } from './training';
@@ -29,12 +29,40 @@ export async function seatsFor(user: CurrentUser, scope?: Scope): Promise<Seat[]
   const visible = s.roles.filter(r => s.visible.has(r.id));
   const now = new Date();
 
+  /*
+    ── Scoped in the QUERY, not afterwards (26 September) ─────────────────────────────────────
+
+    These three read whole tables. `criteria`, `role_assignments` and `role_curriculum` carry no
+    tenant column, and the note that used to sit here said they were "scoped by the visible roles
+    below" — which they were, in JavaScript, AFTER every row of every business SPEC has ever had
+    was pulled across the wire.
+
+    That is what took `/org` and `/people` down. It is not a bug that appears; it is one that
+    ARRIVES, because the cost grows with the whole customer base rather than with the business
+    looking at the page — and it grows fastest of all here, where every journey run in CI creates
+    another business with roles and KPIs. It worked all week and stopped working the week the
+    tables got big. Eighteen 300-second timeouts.
+
+    It is also the exact shape that leaked in chain-data: read everything, keep ours. One clause
+    written slightly wrong and another company's rows are in the result.
+
+    So the roles this business owns are the filter, in SQL. An empty list short-circuits rather
+    than sending `in ()`.
+  */
+  const roleIds = s.roles.map(r => r.id);
+
   const [criteria, assignments, obligationRows, curriculum, records, modules, period] = await Promise.all([
-    /* Criteria hang off a role, not a tenant — scoped by the visible roles below. */
-    db.select().from(schema.criteria),
-    db.select().from(schema.roleAssignments).where(isNull(schema.roleAssignments.toDate)),
+    roleIds.length
+      ? db.select().from(schema.criteria).where(inArray(schema.criteria.roleId, roleIds))
+      : Promise.resolve([] as (typeof schema.criteria.$inferSelect)[]),
+    roleIds.length
+      ? db.select().from(schema.roleAssignments)
+          .where(and(inArray(schema.roleAssignments.roleId, roleIds), isNull(schema.roleAssignments.toDate)))
+      : Promise.resolve([] as (typeof schema.roleAssignments.$inferSelect)[]),
     db.select().from(schema.obligations).where(eq(schema.obligations.tenantId, user.tenantId)),
-    db.select().from(schema.roleCurriculum),
+    roleIds.length
+      ? db.select().from(schema.roleCurriculum).where(inArray(schema.roleCurriculum.roleId, roleIds))
+      : Promise.resolve([] as (typeof schema.roleCurriculum.$inferSelect)[]),
     db.select().from(schema.trainingRecords).where(eq(schema.trainingRecords.tenantId, user.tenantId)),
     db.select().from(schema.trainingModules).where(eq(schema.trainingModules.tenantId, user.tenantId)),
     currentPeriod(user.tenantId),
@@ -48,6 +76,14 @@ export async function seatsFor(user: CurrentUser, scope?: Scope): Promise<Seat[]
   const staffRows = await db.select().from(schema.staff).where(eq(schema.staff.tenantId, user.tenantId));
   const today = now.toISOString().slice(0, 10);
 
+  /*
+    Every visible role's scorecard in one batch, before the loop (26 September).
+
+    This loop used to call `getScorecard` per role — three sequential round trips each — and it is
+    what timed `/org` out in production at 300 seconds. See `scorecardsFor` in lib/queries.
+  */
+  const cards = period ? await scorecardsFor(visible.map(r => r.id), period.id) : new Map<string, Scorecard>();
+
   const out: Seat[] = [];
   for (const r of visible) {
     const own = criteria.filter(c => c.roleId === r.id && c.active);
@@ -57,7 +93,7 @@ export async function seatsFor(user: CurrentUser, scope?: Scope): Promise<Seat[]
 
     let blocking: string[] = [];
     if (period && scored) {
-      const { rows } = await getScorecard(r.id, period.id);
+      const rows = cards.get(r.id)?.rows ?? [];
       blocking = rows.filter(x => x.pillar === 'compliance' && x.answer === 'N').map(x => x.text);
     }
     const theirs = obligationRows.filter(o =>

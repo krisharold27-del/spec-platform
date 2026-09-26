@@ -9,7 +9,7 @@ import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
 import { getCurrentUser, canManage } from '@/lib/auth';
-import { getScorecard, getTenantById, PILLARS } from '@/lib/queries';
+import { scorecardsFor, getTenantById, PILLARS, type Scorecard } from '@/lib/queries';
 import { currentPeriod } from '@/lib/period';
 import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
@@ -233,6 +233,14 @@ export default async function People({ searchParams }: { searchParams: Promise<R
     }));
   })();
   const people: (PersonRow & { scored: boolean; hasPath: boolean; pathComplete: boolean; signedOff: boolean })[] = [];
+  /*
+    Every visible role's scorecard in one batch, before the loop (26 September).
+
+    This called `getScorecard` per role — three sequential round trips each — and it is what timed
+    `/people` out in production at 300 seconds. See `scorecardsFor` in lib/queries.
+  */
+  const cards = period ? await scorecardsFor(visible.map(r => r.id), period.id) : new Map<string, Scorecard>();
+
   for (const r of visible) {
     const own = criteria.filter(c => c.roleId === r.id && c.active);
     const scored = isScored(r.level, own.length, r.isTeam);
@@ -241,7 +249,7 @@ export default async function People({ searchParams }: { searchParams: Promise<R
 
     let blocking: string[] = [];
     if (period && scored) {
-      const { rows } = await getScorecard(r.id, period.id);
+      const rows = cards.get(r.id)?.rows ?? [];
       blocking = rows.filter(x => x.pillar === 'compliance' && x.answer === 'N').map(x => x.text);
     }
 
@@ -332,13 +340,22 @@ export default async function People({ searchParams }: { searchParams: Promise<R
   const trainingRows: TrainingRow[] = [];
   if (tab === 'conduct') {
     const months = lastThree(await db.select().from(schema.periods).where(eq(schema.periods.tenantId, user.tenantId)));
-    for (const p of held.filter(x => x.scored)) {
-      const scores = [];
-      for (const m of months) {
-        const { score } = await getScorecard(p.roleId, m.id);
-        scores.push({ period: m.period, score: score.overall, status: m.status });
-      }
-      reviews.push({ roleId: p.roleId, name: p.name!, roleTitle: p.roleTitle, months: scores });
+    /*
+      One batch per MONTH rather than one call per person per month — three reads instead of nine
+      times the number of people. Same fault as the loop above, one tab along.
+    */
+    const scoredHere = held.filter(x => x.scored);
+    const byMonth = new Map<string, Awaited<ReturnType<typeof scorecardsFor>>>();
+    for (const m of months) byMonth.set(m.id, await scorecardsFor(scoredHere.map(p => p.roleId), m.id));
+    for (const p of scoredHere) {
+      reviews.push({
+        roleId: p.roleId, name: p.name!, roleTitle: p.roleTitle,
+        months: months.map(m => ({
+          period: m.period,
+          score: byMonth.get(m.id)?.get(p.roleId)?.score.overall ?? null,
+          status: m.status,
+        })),
+      });
     }
     for (const p of held) {
       const assignment = assignments.find(a => a.roleId === p.roleId);
