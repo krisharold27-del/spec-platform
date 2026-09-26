@@ -31,6 +31,8 @@ export interface BoardCard {
 }
 
 export interface BoardDetail extends BoardCard {
+  /** The document, as markdown. Rendered with `renderSafeMarkdown` — never the trusting one. */
+  body: string;
   rows: Row[];
   steps: Step[];
   headline: Headline | null;
@@ -117,6 +119,7 @@ export async function getBoard(tenantId: string, boardId: string): Promise<Board
     id: r.id,
     title: r.title,
     summary: r.summary,
+    body: r.body,
     kind: kindOf(r.kind),
     live,
     missingFeeds: missing,
@@ -156,6 +159,8 @@ export async function markViewing(tenantId: string, boardId: string, userId: str
 
 export async function createBoard(opts: {
   tenantId: string; title: string; kind: BoardKind; summary?: string; createdBy: string;
+  /** The document itself, as markdown. Empty for a mirror that is genuinely just a checklist. */
+  body?: string;
 }): Promise<string> {
   const id = randomUUID();
   const now = new Date().toISOString();
@@ -167,6 +172,7 @@ export async function createBoard(opts: {
     kind: opts.kind,
     live: false,
     feeds: '[]', rows: '[]', steps: '[]',
+    body: opts.body ?? '',
     createdBy: opts.createdBy,
     createdAt: now,
     updatedAt: now,
@@ -425,6 +431,7 @@ export async function reviseBoard(opts: {
   boardId: string;
   title: string;
   summary: string;
+  body: string;
   steps: { text: string; owner: string; state: string }[];
   askedFor: string;
   changedBy: string;
@@ -440,6 +447,7 @@ export async function reviseBoard(opts: {
     boardId: opts.boardId,
     title: board.title,
     summary: board.summary,
+    body: board.body,
     steps: board.steps,
     askedFor: opts.askedFor.slice(0, 600),
     changedBy: opts.changedBy,
@@ -450,6 +458,7 @@ export async function reviseBoard(opts: {
     .set({
       title: opts.title.slice(0, 120),
       summary: opts.summary,
+      body: opts.body,
       steps: JSON.stringify(opts.steps.map(s => ({
         text: s.text.slice(0, 300),
         owner: s.owner.slice(0, 120) || 'Nobody yet',

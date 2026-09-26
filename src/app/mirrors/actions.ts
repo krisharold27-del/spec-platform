@@ -261,6 +261,7 @@ export async function askForMirror(form: FormData) {
     title: draft.title,
     kind: draft.kind,
     summary: draft.summary,
+    body: draft.body,
     createdBy: user.id,
   });
   for (const step of draft.steps) {
@@ -313,7 +314,7 @@ export async function reviseMirror(form: FormData) {
   if (!board) redirect('/mirrors');
 
   const was = board.steps.map(s => ({ text: s.text, owner: s.owner }));
-  let next: { title: string; summary: string; steps: { text: string; owner: string; state: 'todo' }[] } | null = null;
+  let next: { title: string; summary: string; body: string; steps: { text: string; owner: string; state: 'todo' }[] } | null = null;
 
   const key = process.env.ANTHROPIC_API_KEY;
   if (key) {
@@ -325,7 +326,7 @@ export async function reviseMirror(form: FormData) {
           model: CLAUDE_MODEL,
           max_tokens: 1400,
           system: revisePrompt(),
-          messages: [{ role: 'user', content: currentAsText({ title: board.title, summary: board.summary, steps: was }, ask) }],
+          messages: [{ role: 'user', content: currentAsText({ title: board.title, summary: board.summary, body: board.body, steps: was }, ask) }],
         }),
       });
       if (res.ok) {
@@ -345,6 +346,7 @@ export async function reviseMirror(form: FormData) {
     boardId,
     title: next.title,
     summary: next.summary,
+    body: next.body,
     steps: next.steps,
     askedFor: ask,
     changedBy: user.id,
@@ -392,6 +394,7 @@ export async function undoLastChange(form: FormData) {
     boardId,
     title: previous.title,
     summary: previous.summary,
+    body: previous.body,
     steps: JSON.parse(previous.steps || '[]'),
     askedFor: 'Put back to how it was before the last change',
     changedBy: user.id,

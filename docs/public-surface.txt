@@ -1412,6 +1412,7 @@ src/lib/mapping.ts :: deterministic
 src/lib/mapping.ts :: enforce
 src/lib/mapping.ts :: propose
 src/lib/markdown.ts :: renderMarkdown
+src/lib/markdown.ts :: renderSafeMarkdown
 src/lib/markup.ts :: MARK_TOOLS
 src/lib/markup.ts :: Mark
 src/lib/markup.ts :: MarkKind

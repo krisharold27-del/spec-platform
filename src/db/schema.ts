@@ -1357,6 +1357,24 @@ export const boards = pgTable('boards', {
   steps: text('steps').notNull().default('[]'),
   /** The headline pair a rate-style board turns on, as JSON `{ wasLabel, was, nowLabel, now, note }`. */
   headline: text('headline'),
+  /**
+   * The document itself, as markdown.
+   *
+   * Kris, 26 September: *"mirrors must be as powerful as artifacts."* Until this column a mirror
+   * could only be a title, a summary and a list of steps — which is a good shape for a checklist
+   * and the wrong shape for most of what a business actually pins up. A rate card is a table. An
+   * induction is headings and paragraphs. A scope of works is both, plus a list of exclusions.
+   * Forced through "steps", each of those becomes a worse version of itself.
+   *
+   * Markdown rather than HTML, and this is a decision rather than a shortcut. Several people edit
+   * one of these and the whole business reads it, so the body is untrusted input the moment it
+   * exists — `renderSafeMarkdown` escapes the angle brackets before parsing, so raw HTML shows as
+   * characters instead of running. Storing HTML would mean trusting every editor and every model
+   * answer for ever, and one mistake there reads another business's data.
+   *
+   * Empty on every mirror made before this existed, and on any that is genuinely just a checklist.
+   */
+  body: text('body').notNull().default(''),
   createdBy: text('created_by').notNull(),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
@@ -1399,6 +1417,8 @@ export const boardVersions = pgTable('board_versions', {
   /** What the mirror said BEFORE the change this row records. */
   title: text('title').notNull(),
   summary: text('summary').notNull().default(''),
+  /** The document as it was. Without this an undo would restore the steps and lose the body. */
+  body: text('body').notNull().default(''),
   /** The steps as they were, same JSON shape the board holds. */
   steps: text('steps').notNull().default('[]'),
   /** The words somebody typed to ask for the change. Empty when edited by hand. */

@@ -5,6 +5,7 @@ import { Shell } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
 import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
+import { renderSafeMarkdown } from '@/lib/markdown';
 import { getCurrentUser } from '@/lib/auth';
 import {
   BOARD_TYPES, BOARDS_INTRO, EMPTY_BOARD, NOTHING_PINNED, STEP_STATE,
@@ -182,6 +183,28 @@ export default async function Boards({ searchParams }: {
             <h1 data-mirror-name className="truncate font-serif text-xl leading-tight text-ink">{board.title}</h1>
             {board.summary && (
               <p className="mt-0.5 max-w-[68ch] text-sm text-ink" data-mirror-description>{board.summary}</p>
+            )}
+            {board.body && (
+              /*
+                ── The document itself ──────────────────────────────────────────────────────────
+
+                Kris, 26 September: *"mirrors must be as powerful as artifacts."* A mirror could
+                only ever be a title, a summary and a list of steps — a good shape for a checklist
+                and the wrong shape for most of what a business pins up. A rate card is a table. An
+                induction is headings and paragraphs. A scope of works is both, plus exclusions.
+                Forced through "steps", each of those becomes a worse version of itself.
+
+                `renderSafeMarkdown`, never `renderMarkdown`. Several people edit one of these and
+                the whole business reads it, so this text is untrusted the moment it exists — the
+                angle brackets are escaped before parsing, so raw HTML shows as characters instead
+                of running. The trusting renderer stays where it belongs: the board pack, which this
+                codebase writes from its own prompt and nobody edits.
+              */
+              <div
+                data-mirror-body
+                className="mt-3 max-w-[68ch] text-sm leading-6 text-ink [&_h1]:mt-5 [&_h1]:font-serif [&_h1]:text-lg [&_h1]:font-bold [&_h1]:first:mt-0 [&_h2]:mt-5 [&_h2]:font-serif [&_h2]:text-base [&_h2]:font-bold [&_h2]:first:mt-0 [&_h3]:mt-4 [&_h3]:font-semibold [&_p]:mt-3 [&_p]:first:mt-0 [&_strong]:font-semibold [&_em]:text-ink-light [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1 [&_a]:text-rust-700 [&_a]:underline [&_code]:rounded [&_code]:bg-cream [&_code]:px-1 [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-ink/15 [&_th]:bg-cream [&_th]:p-2 [&_th]:text-left [&_td]:border [&_td]:border-ink/15 [&_td]:p-2 [&_blockquote]:mt-3 [&_blockquote]:border-l-2 [&_blockquote]:border-rust/40 [&_blockquote]:pl-3 [&_blockquote]:text-ink-light"
+                dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(board.body) }}
+              />
             )}
             <p className="mt-0.5 text-xs text-ink-light">
               {signifier(board.kind)}

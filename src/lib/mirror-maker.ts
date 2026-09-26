@@ -78,6 +78,14 @@ export interface Draft {
   title: string;
   summary: string;
   kind: MirrorKind;
+  /**
+   * The document, as markdown. Empty when the thing really is just a checklist.
+   *
+   * Kris, 26 September: *"mirrors must be as powerful as artifacts."* A rate card is a table, an
+   * induction is headings and paragraphs, a scope of works is both plus a list of exclusions.
+   * Forced through `steps`, every one of those becomes a worse version of itself.
+   */
+  body: string;
   steps: { text: string; owner: string; state: 'todo' }[];
 }
 
@@ -120,10 +128,12 @@ export function systemPrompt(): string {
     'You draft a "mirror" for SPEC, an operating system for Australian trade businesses.',
     'A mirror is a resource a team pins and works from — like a good one-pager a supervisor wrote.',
     '',
-    'Return ONLY JSON: {"title","summary","kind","steps":[{"text","owner"}]}.',
+    'Return ONLY JSON: {"title","summary","kind","body","steps":[{"text","owner"}]}.',
     `kind is one of: ${CAN_DRAFT.map(k => k.id).join(', ')}.`,
     'title: five words or fewer, what it is, no colons.',
     'summary: two or three sentences a tradesperson would actually read.',
+    'body: the document itself, as markdown. Use whatever shape the thing needs — headings, paragraphs, a table, a list. A rate card is a table; an induction is headings. Leave it "" only when the thing genuinely is nothing but a checklist.',
+    'Markdown only in body. No HTML tags: they will be shown as characters, not rendered.',
     'steps: between 3 and 12. Each text is one action in plain words. owner is a ROLE ("Site supervisor", "Apprentice") or "" — never a person\'s name, because you do not know who works here.',
     '',
     'NEVER invent a figure. No percentages, no dollar amounts, no rates, no targets, no benchmarks.',
@@ -148,6 +158,9 @@ export function starter(ask: string): Draft {
     title: title.charAt(0).toUpperCase() + title.slice(1),
     summary: `Started from what was asked for: "${trimmed}". Nothing has been filled in for you — add the steps your business actually takes, in the order it takes them.`,
     kind,
+    /* Deliberately empty. An invented body would be the confident-looking template this whole file
+       refuses to produce — the steps below are a real prompt to write one; a fake document is not. */
+    body: '',
     steps: [
       { text: 'Write down the first thing somebody does.', owner: '', state: 'todo' },
       { text: 'Then the next, in the order it really happens.', owner: '', state: 'todo' },
@@ -194,6 +207,9 @@ export function readDraft(text: string): Draft | null {
     title: stripNumbers(title).slice(0, 80),
     summary: stripNumbers(summary),
     kind,
+    /* Scrubbed like everything else, and capped: one runaway answer must not become a document
+       nobody can scroll past. */
+    body: stripNumbers(typeof o.body === 'string' ? o.body.trim() : '').slice(0, 20_000),
     steps,
   };
 }
@@ -259,15 +275,17 @@ export function revisePrompt(): string {
     'You are CHANGING a mirror that already exists and that people are working to.',
     'Return the WHOLE mirror in the same JSON shape, not a description of your changes.',
     'Keep every step the request did not ask you to change, in its own words.',
+    'Keep the body the same except where the request asks otherwise. Return it in full — a shortened body is a document the business has lost half of.',
     'A step that stops a job if it is not done is never removed unless the request says to remove it.',
   ].join('\n');
 }
 
 /** The current mirror, as the message that goes with the request. */
-export function currentAsText(m: { title: string; summary: string; steps: { text: string; owner: string }[] }, ask: string): string {
+export function currentAsText(m: { title: string; summary: string; body?: string; steps: { text: string; owner: string }[] }, ask: string): string {
   return [
     `TITLE: ${m.title}`,
     `SUMMARY: ${m.summary}`,
+    ...(m.body ? ['BODY:', m.body, ''] : []),
     'STEPS:',
     ...m.steps.map((s, i) => `${i + 1}. ${s.text}${s.owner ? ` — ${s.owner}` : ''}`),
     '',

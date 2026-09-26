@@ -204,3 +204,75 @@ describe('changing a mirror that people are already working to', () => {
     expect(text).toContain('make it shorter');
   });
 });
+
+describe('a mirror can be whatever shape the thing needs', () => {
+  /*
+    Kris, 26 September: *"mirrors must be as powerful as artifacts."* Until the body existed a
+    mirror was a title, a summary and a list of steps — the right shape for a checklist and the
+    wrong one for most of what a business actually pins up.
+  */
+  it('CARRIES A DOCUMENT, not just steps', () => {
+    const d = readDraft(JSON.stringify({
+      title: 'Rate card',
+      summary: 'What we charge, and when.',
+      kind: 'training',
+      body: '## Standard hours\n\n| Job | Rate |\n|---|---|\n| Callout | Standard |',
+      steps: [{ text: 'Check the client is on standard terms', owner: 'Estimator' }],
+    }))!;
+    expect(d.body).toContain('| Job | Rate |');
+    expect(d.body).toContain('## Standard hours');
+  });
+
+  it('scrubs figures out of the body as well', () => {
+    /* The body is where an invented number is MOST dangerous: a table of rates reads as the
+       business's own price list. */
+    const d = readDraft(JSON.stringify({
+      title: 'Rate card', summary: 'Rates.', kind: 'training',
+      body: '| Callout | $185 |\n| Margin | 22% |',
+      steps: [{ text: 'Check terms', owner: '' }],
+    }))!;
+    expect(d.body).not.toContain('$185');
+    expect(d.body).not.toMatch(/22\s*%/);
+  });
+
+  it('caps a runaway body rather than storing a document nobody can scroll past', () => {
+    const huge = 'x'.repeat(40_000);
+    const d = readDraft(JSON.stringify({
+      title: 'Long', summary: 'Long.', kind: 'plans', body: huge,
+      steps: [{ text: 'Start', owner: '' }],
+    }))!;
+    expect(d.body.length).toBeLessThanOrEqual(20_000);
+  });
+
+  it('is happy with no body at all, because some mirrors really are just a checklist', () => {
+    const d = readDraft(JSON.stringify({
+      title: 'Pre-start', summary: 'Before the job.', kind: 'training',
+      steps: [{ text: 'Isolate', owner: '' }],
+    }))!;
+    expect(d.body).toBe('');
+  });
+
+  it('the starter writes NO body, rather than a fake one', () => {
+    /* An invented document is the confident-looking empty template this whole file refuses to
+       produce. Real prompts to write one beat a fake one. */
+    expect(starter('a pre-start checklist for switchboard work').body).toBe('');
+  });
+
+  it('SENDS THE BODY BACK WITH A CHANGE REQUEST', () => {
+    /* Asked to "make it shorter" without the body attached, a rewrite returns a mirror with no
+       document and the business has lost the whole thing. */
+    const text = currentAsText(
+      { title: 'Rate card', summary: 'Rates.', body: '## Standard hours', steps: [{ text: 'Check terms', owner: '' }] },
+      'add weekend rates',
+    );
+    expect(text).toContain('## Standard hours');
+  });
+
+  it('tells a rewrite to return the body in full', () => {
+    expect(revisePrompt()).toContain('Return it in full');
+  });
+
+  it('tells the model markdown only, because HTML will be shown as characters', () => {
+    expect(systemPrompt()).toContain('No HTML tags');
+  });
+});
