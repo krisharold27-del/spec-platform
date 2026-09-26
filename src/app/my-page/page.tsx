@@ -248,7 +248,7 @@ export default async function MyPage({
       */}
       {runsAnything && (
         <div className="mt-2 flex justify-end">
-          <Link href="/virtual-gm" className="text-sm text-rust-700 hover:underline" data-door-virtual-gm>
+          <Link href="/virtual-gm" className="inline-flex min-h-[24px] items-center text-sm text-rust-700 hover:underline" data-door-virtual-gm>
             Open the Virtual GM + Virtual Admin &rarr;
           </Link>
         </div>
@@ -256,7 +256,7 @@ export default async function MyPage({
       {/* The money, one tap from where the day starts — for anybody who manages. */}
       {data.canManage && (
         <div className="mt-1 flex justify-end">
-          <Link href="/financials" className="text-sm text-rust-700 hover:underline" data-door-financials>
+          <Link href="/financials" className="inline-flex min-h-[24px] items-center text-sm text-rust-700 hover:underline" data-door-financials>
             See the money: Financials &rarr;
           </Link>
         </div>

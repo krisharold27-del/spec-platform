@@ -234,7 +234,14 @@ export function OrgCanvas({ roles, rootId, canEdit, canInvite = false, averages,
       const frameW = el.clientWidth;
       // Leave room for whatever is above the frame — the key, the heading — so the WHOLE tree,
       // not just its top half, lands inside the window without a vertical scroll either.
-      const top = el.getBoundingClientRect().top;
+      /*
+        Capped at 200px. It used to be the frame's whole distance from the top of the page, so every
+        section added above the chart shrank it — on 25 September the Link panel went in above it and
+        a five-role chart dropped to half size on an ordinary screen, cards and pipes with it. The
+        chart is meant to fit one screen once somebody is looking at it, not whatever is left of the
+        first screen after everything above it.
+      */
+      const top = Math.min(el.getBoundingClientRect().top, 200);
       const frameH = Math.max(320, window.innerHeight - top - 24);
       if (!frameW || !width || !height) return;
       // Clamped at MIN_FIT rather than left to shrink further: a chart too big even at the floor
@@ -748,7 +755,7 @@ export function OrgCanvas({ roles, rootId, canEdit, canInvite = false, averages,
               id="org-view-from"
               value={from ?? ''}
               onChange={e => setViewFrom(e.target.value || null)}
-              className="min-h-[36px] rounded-md border border-ink/15 bg-cream px-2.5 py-1 text-[13px] text-ink"
+              className="min-h-[36px] min-w-0 max-w-full rounded-md border border-ink/15 bg-cream px-2.5 py-1 text-[13px] text-ink"
             >
               <option value="">Whole company chart</option>
               {onChart.map(r => (
@@ -1408,7 +1415,7 @@ export function OrgCanvas({ roles, rootId, canEdit, canInvite = false, averages,
         averages appeared nowhere on this screen at all, even though the chart is where they are
         made.
       */}
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <section ref={panelRef} className="rounded-2xl bg-sage-100 p-6 sm:p-8">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="label-caps text-sage-700">Role scorecard</span>
@@ -1651,7 +1658,7 @@ export function OrgCanvas({ roles, rootId, canEdit, canInvite = false, averages,
                           id="org-seat-kind"
                           name="seatKind"
                           defaultValue={selected.billing.override ?? 'auto'}
-                          className="min-h-[36px] rounded-md border border-ink/15 bg-surface-raised px-2 text-sm text-ink"
+                          className="min-h-[36px] w-full min-w-0 max-w-full rounded-md border border-ink/15 bg-surface-raised px-2 text-sm text-ink sm:w-auto"
                         >
                           <option value="auto">Auto — from the chart ({selected.billing.chartKind === 'leadership' ? 'Leadership' : 'Team'} seat right now)</option>
                           <option value="leadership">Leadership seat</option>
@@ -1950,7 +1957,7 @@ function PillarCard({ pillar, role, canEdit }: {
                   <button
                     aria-label={`Take "${n}" off ${PILLAR_META[pillar].name}`}
                     title={`Take "${n}" off ${PILLAR_META[pillar].name}`}
-                    className="text-xs leading-none"
+                    className="inline-flex h-6 w-6 items-center justify-center text-xs leading-none"
                     style={{ color: LIGHT_COLOUR.red }}
                   >
                     &times;

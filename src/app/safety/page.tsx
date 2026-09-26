@@ -366,7 +366,7 @@ export default async function Safety({ searchParams }: { searchParams: Promise<R
         {data.jobSystemLinked ? (
           <span className="pill" style={pillTone('green')}>Your job system is linked · jobs, sites, crews and vehicles</span>
         ) : (
-          <Link href="/connections" className="pill" style={pillTone('pending')}>Manual · no job system connected</Link>
+          <Link href="/connections" className="pill min-h-[24px]" style={pillTone('pending')}>Manual · no job system connected</Link>
         )}
       </p>
 

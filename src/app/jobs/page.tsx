@@ -1124,8 +1124,8 @@ async function Schedule({ jobs, crew, week, book, manage, today, tenantId, tabHr
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="font-serif text-xl text-ink">{weekLabel(monday)}</h2>
         <span className="flex flex-wrap items-center gap-3 text-sm">
-          <Link href={tabHref('schedule', { week: shiftWeek(monday, -1), ...(target ? { book: target.id } : {}) })} className="text-rust-700 hover:underline">← Last week</Link>
-          <Link href={tabHref('schedule', { week: shiftWeek(monday, 1), ...(target ? { book: target.id } : {}) })} className="text-rust-700 hover:underline">Next week →</Link>
+          <Link href={tabHref('schedule', { week: shiftWeek(monday, -1), ...(target ? { book: target.id } : {}) })} className="inline-flex min-h-[24px] items-center text-rust-700 hover:underline">← Last week</Link>
+          <Link href={tabHref('schedule', { week: shiftWeek(monday, 1), ...(target ? { book: target.id } : {}) })} className="inline-flex min-h-[24px] items-center text-rust-700 hover:underline">Next week →</Link>
         </span>
       </div>
 
@@ -1319,8 +1319,8 @@ async function Timesheets({ jobs, crew, week, manage, today, tenantId, tabHref }
           or payslips; your payroll system does that.
         </p>
         <p className="mt-2 flex gap-3 text-sm">
-          <Link href={tabHref('time', { week: shiftWeek(monday, -1) })} className="text-rust-700 hover:underline">← Last week</Link>
-          <Link href={tabHref('time', { week: shiftWeek(monday, 1) })} className="text-rust-700 hover:underline">Next week →</Link>
+          <Link href={tabHref('time', { week: shiftWeek(monday, -1) })} className="inline-flex min-h-[24px] items-center text-rust-700 hover:underline">← Last week</Link>
+          <Link href={tabHref('time', { week: shiftWeek(monday, 1) })} className="inline-flex min-h-[24px] items-center text-rust-700 hover:underline">Next week →</Link>
         </p>
       </div>
 
@@ -1338,7 +1338,7 @@ async function Timesheets({ jobs, crew, week, manage, today, tenantId, tabHref }
             const waiting = theirs.some(e => !e.approvedAt);
             const tags = [...new Set(theirs.flatMap(e => parseAllowances(e.allowances)))];
             return (
-              <div key={c.key} className="grid grid-cols-[minmax(150px,1.4fr)_repeat(3,minmax(80px,1fr))_auto] items-center gap-3 rounded-2xl bg-cream px-4 py-3 text-sm">
+              <div key={c.key} className="grid grid-cols-2 items-center gap-3 rounded-2xl bg-cream px-4 py-3 text-sm sm:grid-cols-[minmax(150px,1.4fr)_repeat(3,minmax(80px,1fr))_auto]">
                 <span className="grid gap-0.5"><strong>{c.name}</strong><span className="text-xs text-ink-light">{c.roleTitle}</span></span>
                 <span>{theirs.length ? `${b.hours} h` : '—'}</span>
                 <span style={b.light === 'pending' ? undefined : { color: pillTone(b.light).color }}>
