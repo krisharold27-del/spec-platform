@@ -16,7 +16,7 @@ import { EITHER_WILL_DO, ROUTE_SAYS } from '@/lib/reach';
 import { AcePips, AceStar } from '@/components/ace-pips';
 import { ChartKey, ChartKeyDetail } from '@/components/chart-key';
 import {
-  moveRole, movePerson, breakLink, vacateRole, addRole, removeRole, renameRole, renamePerson,
+  moveRole, movePerson, breakLink, vacateRole, addRole, addRoleAbove, removeRole, renameRole, renamePerson,
   invitePerson, claimRole, requestRights, setSeatKind,
   addTeam, addTeamMember, removeTeamMember, addRoleKpi, removeRoleKpi,
 } from '@/app/org/actions';
@@ -415,6 +415,21 @@ export function OrgCanvas({ roles, rootId, canEdit, canInvite = false, averages,
       out.push({ label: 'Rename the team', run: () => editRole(roleId) });
     } else {
       out.push({ label: 'Add a direct report', run: () => { post(addRole, { title: 'New role', parentId: roleId }); shut(); } });
+      /*
+        ── Above, not only below (Kris, 26 September) ──────────────────────────────────────────
+
+        *"where do i add the directors - need to see Justin above me in jbi electrical"*.
+
+        Every route this menu offered went DOWNWARDS. Putting somebody above you was possible —
+        add a role at "Top of the chart", then drag your own card under it — but it lived in a
+        collapsed panel headed "Start from what you already have" whose link read "Import your
+        structure". Nothing about that says "add a role", so the one thing an owner does on their
+        first morning sat behind the one heading that gave no reason to open it.
+
+        A GM has a director, a director has a board, and a business drawn from the middle outwards
+        needs this immediately. It sits next to its opposite so the pair reads as one idea.
+      */
+      out.push({ label: 'Add a role above this one', run: () => { post(addRoleAbove, { roleId, title: 'New role' }); shut(); } });
       /*
         The design names it from a `window.prompt`. This adds the team named "Team" and opens it —
         where the name is an ordinary box on the page, alongside everything else about the crew.

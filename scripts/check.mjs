@@ -202,6 +202,32 @@ if (!dbUrl) {
   });
 }
 
+/*
+  ── Does a page cost more as the business grows? (26 September) ────────────────────────────────
+
+  The morning seven screens returned 504 FUNCTION_INVOCATION_TIMEOUT and Kris could not open any of
+  them. `getRoles` cost four queries per role, so it was fine on a four-role demo and fatal on a
+  sixty-role chart. Two thousand nine hundred tests passed throughout, and none of them could have
+  caught it: they all run against businesses with a handful of roles.
+
+  It does not fail when the code changes. It fails when the CHART GETS BIGGER — which is to say, it
+  fails in front of the customer and never in front of us. This is the check that closes that.
+
+  It counts round trips rather than seconds on purpose; `scripts/scale-check.mts` says why at
+  length, and the short version is that a stopwatch on a shared machine reports how busy the machine
+  is, which nobody can act on.
+*/
+if (dbUp) {
+  step('scale', 'a page costs the same on a big business as a small one', () => {
+    const out = run('npx tsx scripts/scale-check.mts');
+    if (/FAIL/.test(out)) throw new Error(out);
+    const counts = [...out.matchAll(/(\d+) roles: (\d+) queries/g)];
+    return counts.length ? `flat: ${counts.map(c => `${c[2]} queries at ${c[1]} roles`).join(', ')}` : null;
+  });
+} else {
+  skip('scale', 'a page costs the same on a big business as a small one', 'the database is not running');
+}
+
 // ── The ways in ──────────────────────────────────────────────────────────────────────────────────
 console.log('\nThe ways in, and the one way out of bounds');
 

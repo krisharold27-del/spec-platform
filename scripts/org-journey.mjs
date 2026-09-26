@@ -178,7 +178,7 @@ const offered = (await menu.locator('[role="menuitem"]').allInnerTexts()).map(t 
   vanished once a role had KPIs, and the chart had no route at all.
 */
 check('  KPIs ARE THE FIRST THING THE MENU OFFERS', offered[0] === 'Set this role\u2019s KPIs', offered.join(', '));
-for (const item of ['Add a direct report', 'Rename role & person', 'Remove role']) {
+for (const item of ['Add a direct report', 'Add a role above this one', 'Rename role & person', 'Remove role']) {
   check(`  and it offers "${item}"`, offered.includes(item), `offered: ${offered.join(', ')}`);
 }
 
@@ -242,6 +242,79 @@ await chartSays('New role');
 
 const after = await cardCount();
 check('"ADD A DIRECT REPORT" REALLY ADDS ONE', after === before + 1, `${before} → ${after}`);
+
+/*
+  ── Add a role ABOVE this one (Kris, 26 September) ──────────────────────────────────────────────
+
+  *"where do i add the directors - need to see Justin above me in jbi electrical"*. Every route the
+  menu offered went downwards; putting somebody above you meant a collapsed panel headed "Start from
+  what you already have", which says nothing about adding a role.
+
+  The label on the menu proves nothing — what matters is that the chart afterwards shows the new
+  role with the old one UNDER it. So this reads the reporting line out of the database rather than
+  trusting the picture.
+*/
+{
+  /*
+    The card carries its own role id, so this asks the database about THAT role rather than about a
+    title. The first version matched on the name "New role" and could not tell the role this step
+    creates from the one the previous step already left on the chart — a check that cannot fail for
+    the right reason is worse than no check.
+  */
+  const target = page.locator('[data-org-canvas] [data-role-card]').first();
+  const targetId = await target.getAttribute('data-role-card');
+  const probe = (await import('postgres')).default(process.env.DATABASE_URL, { max: 1, onnotice: () => {} });
+
+  const parentOf = async id => {
+    const [row] = await probe`select reports_to_role_id as parent from roles where id = ${id}`;
+    return row?.parent ?? null;
+  };
+  const parentBefore = await parentOf(targetId);
+
+  await aimAt(target);
+  const item = menu.getByRole('menuitem', { name: 'Add a role above this one' });
+  check('THE MENU OFFERS ADDING A ROLE ABOVE', await item.count() > 0);
+
+  if (await item.count()) {
+    await item.click();
+    /*
+      Wait for the REPORTING LINE to change, not for a word on the screen. "New role" is already on
+      this chart from the step before, so waiting for that text proves nothing and returns instantly.
+    */
+    const moved = await (async () => {
+      for (let i = 0; i < 40; i += 1) {
+        const now = await parentOf(targetId);
+        if (now && now !== parentBefore) return now;
+        await page.waitForTimeout(250);
+      }
+      return null;
+    })();
+
+    check('  AND THE ROLE NOW REPORTS TO A NEW ONE', Boolean(moved),
+      `still reports to ${parentBefore ?? 'nothing'}`);
+
+    if (moved) {
+      const [above] = await probe`select title, reports_to_role_id as parent from roles where id = ${moved}`;
+      check('  the new role is the one that was asked for', above?.title === 'New role', String(above?.title));
+      /* Inserted, not appended: it took whatever the old role used to report to. */
+      check('  and it took the old role\u2019s place in the line',
+        (above?.parent ?? null) === parentBefore,
+        `new role reports to ${above?.parent ?? 'nothing'}, expected ${parentBefore ?? 'nothing'}`);
+
+      /*
+        Name it, so the chart is left as this step found it.
+
+        Both "Add a direct report" and this one create a role called "New role", so leaving mine
+        behind puts TWO of them on the chart — and the rename step that follows then renames one and
+        finds the other still sitting there. That failure would have been read as a bug in renaming,
+        which it is not: it is this step failing to clear up after itself.
+      */
+      await probe`update roles set title = 'Director' where id = ${moved}`;
+      await page.reload({ waitUntil: 'networkidle' });
+    }
+  }
+  await probe.end();
+}
 
 // ── Rename, which did not exist anywhere in SPEC ─────────────────────────────────────────────────
 //
@@ -535,7 +608,23 @@ const squeezed = await page.evaluate(() => {
     const lines = Number(st.webkitLineClamp);
     if (!lines) continue;                       // not clamped, nothing promised
     const lineHeight = parseFloat(st.lineHeight);
-    const box = title.getBoundingClientRect().height;
+    /*
+      `offsetHeight`, not `getBoundingClientRect().height` (26 September).
+
+      The tree is drawn inside `transform: scale(fit)` so the whole chart fits the window. A
+      bounding rect is measured AFTER that transform; `lineHeight` from getComputedStyle is not. So
+      the two were in different units, and the ratio came out as two lines times the zoom — 1.9 on a
+      chart at 95%, and lower the bigger the chart gets.
+
+      Which meant this fired on every chart big enough to be zoomed out, reporting squeezed titles
+      that were not squeezed. It was found by adding one level to the chart, which was enough to
+      trigger the fit — a check that goes red when the chart grows is the same fault it exists to
+      catch, pointed at itself.
+
+      `offsetHeight` is the layout box and ignores transforms, so it is in the same units as
+      `lineHeight` and measures the thing this check is actually about.
+    */
+    const box = title.offsetHeight;
     if (box < lineHeight * lines - 1) {
       out.push(`"${title.textContent.trim().slice(0, 28)}" has ${(box / lineHeight).toFixed(1)} of its ${lines} lines`);
     }

@@ -260,6 +260,78 @@ export async function movePerson(formData: FormData) {
   redirect(`/org?moved=${encodeURIComponent(said)}`);
 }
 
+/**
+ * Add a role ABOVE this one — the new role takes its parent, and this one reports to it.
+ *
+ * ── Kris, 26 September ───────────────────────────────────────────────────────────────────────────
+ *
+ * *"where do i add the directors - need to see Justin above me in jbi electrical"*.
+ *
+ * It was already possible and nobody could find it: add a role with "Reports to: Top of the chart",
+ * then drag your own card underneath it. Two steps, in a panel headed "Start from what you already
+ * have" with a link reading "Import your structure" — which says nothing about adding a role, and
+ * is folded shut once a chart exists. So the one thing an owner does on their first morning was
+ * behind the one heading that gave no reason to open it.
+ *
+ * Putting somebody above you is not an edge case. A GM has a director, a director has a board, and
+ * every business that draws its chart from the middle outwards needs this on day one.
+ *
+ * ── What it does to the lines ────────────────────────────────────────────────────────────────────
+ *
+ * The new role is INSERTED, not appended: it takes whatever this role reported to — including
+ * nothing, which is how a new top of the chart gets made — and this role then reports to it.
+ * Everybody already under this role stays under it. One gesture, and the branch keeps its shape.
+ */
+export async function addRoleAbove(formData: FormData) {
+  const user = await editor();
+  const roleId = String(formData.get('roleId') ?? '');
+  const title = String(formData.get('title') ?? '').trim() || 'New role';
+
+  const scope = await getScope(user);
+  /*
+    Permission is asked about the role being moved under — this changes ITS reporting line, so it is
+    that role's branch the caller has to be allowed to shape. The same question `moveRole` asks.
+  */
+  if (!scope.canShapeChart(roleId)) outside(scope, user.access);
+
+  const [role] = await db.select().from(schema.roles)
+    .where(and(eq(schema.roles.id, roleId), eq(schema.roles.tenantId, user.tenantId)));
+  if (!role) refuse('That role is not in this business.');
+  /*
+    A team holds people rather than roles, so nothing reports to one and nothing is inserted above
+    one either — the same rule `canMove` already keeps.
+  */
+  if (role.isTeam) refuse('That is a team, not a role. A team belongs to the leader who runs it.');
+
+  const id = randomUUID();
+  /*
+    The new role sits at the level above, which is what "above" means on this chart: a GM's senior
+    is not another GM. At the top there is nothing above `gm`, so it stays there.
+  */
+  const level = role.level === 'staff' ? 'supervisor'
+    : role.level === 'supervisor' ? 'manager'
+    : 'gm';
+
+  await db.insert(schema.roles).values({
+    id,
+    tenantId: user.tenantId,
+    title,
+    stream: role.stream,
+    level,
+    defaultAccess: 'full',
+    /* Takes this role's parent. Null means it becomes the new top of the chart. */
+    reportsToRoleId: role.reportsToRoleId,
+    sortOrder: Math.max(0, (role.sortOrder ?? 0) - 1),
+  });
+  await db.update(schema.roles).set({ reportsToRoleId: id }).where(eq(schema.roles.id, roleId));
+
+  await installTraining(user.tenantId, [{ roleId: id, level }]);
+  for (const path of ['/org', '/people', '/team', '/journey']) revalidatePath(path);
+  /* Whoever leads whom has changed, which is what the seat mix is worked out from. */
+  await syncSubscriptionSeats(user.tenantId);
+  redirect(`/org?added=${encodeURIComponent(title)}`);
+}
+
 /** Add a role under another. It starts vacant, because roles exist before people. */
 export async function addRole(formData: FormData) {
   const user = await editor();

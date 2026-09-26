@@ -82,3 +82,48 @@ describe('the rule is written where every session reads it', () => {
     expect(claude).toContain('Never remove or hide a core component');
   });
 });
+
+/**
+ * Going UP the chart, not only down.
+ *
+ * Kris, 26 September: *"where do i add the directors - need to see Justin above me in jbi
+ * electrical"*, and then *"add 'Add a role above this one' to the right-click menu"*.
+ *
+ * It was already possible — add a role at "Top of the chart", then drag your own card under it —
+ * and it lived in a collapsed panel headed "Start from what you already have" whose only link read
+ * "Import your structure". A route that exists and cannot be found is not a route; that is the same
+ * finding failure as the org chart itself, and the KPI screen before it.
+ */
+describe('you can put somebody above you', () => {
+  it('the card menu offers it, next to its opposite', () => {
+    const canvas = readFileSync('src/components/org-canvas.tsx', 'utf8');
+    expect(canvas).toContain('Add a role above this one');
+    /* Beside "Add a direct report", so the pair reads as one idea rather than two features. */
+    const below = canvas.indexOf("label: 'Add a direct report'");
+    const above = canvas.indexOf("label: 'Add a role above this one'");
+    expect(below).toBeGreaterThan(-1);
+    expect(above).toBeGreaterThan(below);
+    expect(above - below).toBeLessThan(1400);
+  });
+
+  it('and there is a server action behind it, not just a label', () => {
+    const actions = readFileSync('src/app/org/actions.ts', 'utf8');
+    expect(actions).toContain('export async function addRoleAbove');
+    /* It INSERTS: the new role takes this one's parent, and this one reports to the new role. */
+    expect(actions).toMatch(/reportsToRoleId: role\.reportsToRoleId/);
+    /* Permission is asked about the role being moved — the same question moveRole asks. */
+    expect(actions).toMatch(/canShapeChart\(roleId\)/);
+  });
+
+  /*
+    Board members are a different thing and must not be confused with this. A director on the BOARD
+    is governance — they approve the pack, they are not in the operating chart — and they live in
+    `directors`, added at /setup/board. Somebody above you on the chart is a reporting line.
+  */
+  it('keeps board members as their own thing, with a door that does not close behind you', () => {
+    const settings = readFileSync('src/app/settings/page.tsx', 'utf8');
+    expect(settings).toContain('/setup/board');
+    /* The link is there whether or not the board is empty — see the note beside it. */
+    expect(settings).toMatch(/Add a director, or stand one down/);
+  });
+});
