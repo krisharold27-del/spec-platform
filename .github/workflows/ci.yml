@@ -456,7 +456,17 @@ jobs:
           # checkout existed, worked, was unit-tested, and was reachable only from a button that
           # appears after a subscription has already FAILED. Every test passed because they all
           # tested the rooms rather than whether you could get into the building.
-          journey pay-journey.mjs
+          # (It became pay-journey.mts on 24 September, when it started importing the product's own
+          # TypeScript; this line still named the .mjs and failed on a file that no longer exists.)
+          journey pay-journey.mts
+
+          # The administrator's controls (26 September): late quotes on My Page, the inbox on the
+          # pipeline, reading the work, estimating from plans, and materials — each against real rows.
+          journey admin-control-journey.mjs
+
+          # "Enquiry to paid in 12 taps. Count them." The landing page says it; this counts them in a
+          # browser and fails the build if it grows, so the front page can never promise more than it does.
+          journey taps-journey.mjs
 
           # Taking a seat somebody gave you -- the other half of the way in, and the one that
           # reaches every person in a customer's business except the owner. Single use,
