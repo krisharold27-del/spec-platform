@@ -1375,6 +1375,17 @@ export const boards = pgTable('boards', {
    * Empty on every mirror made before this existed, and on any that is genuinely just a checklist.
    */
   body: text('body').notNull().default(''),
+  /**
+   * A mirror that RUNS — a calculator, a sizing tool, an interactive checklist.
+   *
+   * Kris, 26 September: *"mirrors must be as powerful as artifacts."* HTML with its own inline
+   * script and style, and it never touches the page: it is handed to a sandboxed iframe with
+   * `allow-scripts` and nothing else, as `srcdoc`, under a `default-src 'none'` policy. See
+   * lib/runnable for the three walls and why each is needed.
+   *
+   * Empty on almost every mirror. Most are documents, and a tool is the exception.
+   */
+  runnable: text('runnable').notNull().default(''),
   createdBy: text('created_by').notNull(),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
@@ -1419,6 +1430,8 @@ export const boardVersions = pgTable('board_versions', {
   summary: text('summary').notNull().default(''),
   /** The document as it was. Without this an undo would restore the steps and lose the body. */
   body: text('body').notNull().default(''),
+  /** And the tool as it was, for the same reason. */
+  runnable: text('runnable').notNull().default(''),
   /** The steps as they were, same JSON shape the board holds. */
   steps: text('steps').notNull().default('[]'),
   /** The words somebody typed to ask for the change. Empty when edited by hand. */

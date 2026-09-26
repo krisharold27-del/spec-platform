@@ -39,6 +39,8 @@
  * business owns what its people are told, not the model.
  */
 
+import { checkRunnable } from './runnable';
+
 export type MirrorKind = 'plans' | 'improve' | 'training' | 'meetings';
 
 /** The four a draft may be, and what each is for — in the words the box uses. */
@@ -86,6 +88,13 @@ export interface Draft {
    * Forced through `steps`, every one of those becomes a worse version of itself.
    */
   body: string;
+  /**
+   * A tool, when the thing asked for is one — a calculator, a sizing check, an estimator.
+   *
+   * Kris, 26 September: *"mirrors must be as powerful as artifacts."* Empty for almost every
+   * mirror; most are documents and a tool is the exception. Sealed off when it runs — lib/runnable.
+   */
+  runnable: string;
   steps: { text: string; owner: string; state: 'todo' }[];
 }
 
@@ -128,12 +137,15 @@ export function systemPrompt(): string {
     'You draft a "mirror" for SPEC, an operating system for Australian trade businesses.',
     'A mirror is a resource a team pins and works from — like a good one-pager a supervisor wrote.',
     '',
-    'Return ONLY JSON: {"title","summary","kind","body","steps":[{"text","owner"}]}.',
+    'Return ONLY JSON: {"title","summary","kind","body","runnable","steps":[{"text","owner"}]}.',
     `kind is one of: ${CAN_DRAFT.map(k => k.id).join(', ')}.`,
     'title: five words or fewer, what it is, no colons.',
     'summary: two or three sentences a tradesperson would actually read.',
     'body: the document itself, as markdown. Use whatever shape the thing needs — headings, paragraphs, a table, a list. A rate card is a table; an induction is headings. Leave it "" only when the thing genuinely is nothing but a checklist.',
     'Markdown only in body. No HTML tags: they will be shown as characters, not rendered.',
+    'runnable: leave it "" unless what was asked for is a TOOL somebody uses — a calculator, a sizing check, an estimator. Then it is one self-contained HTML fragment with its own inline <style> and <script>.',
+    'A tool runs sealed off: it CANNOT load anything from the internet and CANNOT reach any data. No src or href to another site, no CDN, no fonts, no images from elsewhere. Write everything it needs into the fragment.',
+    'A tool never states a rate, a price or a benchmark of its own. It takes the business\'s numbers as inputs.',
     'steps: between 3 and 12. Each text is one action in plain words. owner is a ROLE ("Site supervisor", "Apprentice") or "" — never a person\'s name, because you do not know who works here.',
     '',
     'NEVER invent a figure. No percentages, no dollar amounts, no rates, no targets, no benchmarks.',
@@ -161,6 +173,7 @@ export function starter(ask: string): Draft {
     /* Deliberately empty. An invented body would be the confident-looking template this whole file
        refuses to produce — the steps below are a real prompt to write one; a fake document is not. */
     body: '',
+    runnable: '',
     steps: [
       { text: 'Write down the first thing somebody does.', owner: '', state: 'todo' },
       { text: 'Then the next, in the order it really happens.', owner: '', state: 'todo' },
@@ -210,6 +223,13 @@ export function readDraft(text: string): Draft | null {
     /* Scrubbed like everything else, and capped: one runaway answer must not become a document
        nobody can scroll past. */
     body: stripNumbers(typeof o.body === 'string' ? o.body.trim() : '').slice(0, 20_000),
+    /*
+      A tool is kept only if it passes `checkRunnable` — refused whole, never half-stripped. Half a
+      calculator that still runs is one that gives a wrong answer with nothing on screen to say so.
+      NOT put through `stripNumbers`: a tool's digits are its arithmetic, and rewriting `* 2.5` into
+      prose would break it silently. The prompt forbids stated rates instead.
+    */
+    runnable: keepRunnable(typeof o.runnable === 'string' ? o.runnable.trim() : ''),
     steps,
   };
 }
@@ -276,6 +296,7 @@ export function revisePrompt(): string {
     'Return the WHOLE mirror in the same JSON shape, not a description of your changes.',
     'Keep every step the request did not ask you to change, in its own words.',
     'Keep the body the same except where the request asks otherwise. Return it in full — a shortened body is a document the business has lost half of.',
+    'If it has a runnable tool, return that in full too, working, and still loading nothing from the internet.',
     'A step that stops a job if it is not done is never removed unless the request says to remove it.',
   ].join('\n');
 }
@@ -291,4 +312,17 @@ export function currentAsText(m: { title: string; summary: string; body?: string
     '',
     `CHANGE ASKED FOR: ${ask}`,
   ].join('\n');
+}
+
+/**
+ * Keep a drafted tool only if it is safe and whole.
+ *
+ * Refused rather than repaired. A tool that reaches for a script on the internet will silently do
+ * nothing inside the sealed frame, and the person reading the answer has no way to tell. An empty
+ * string here means the mirror is simply a document, which is an honest outcome; a half-working
+ * calculator is not.
+ */
+export function keepRunnable(html: string): string {
+  if (!html) return '';
+  return checkRunnable(html) === null ? html : '';
 }

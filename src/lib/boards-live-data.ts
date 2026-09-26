@@ -33,6 +33,8 @@ export interface BoardCard {
 export interface BoardDetail extends BoardCard {
   /** The document, as markdown. Rendered with `renderSafeMarkdown` — never the trusting one. */
   body: string;
+  /** A tool, if this mirror is one. Runs in a sealed frame — see lib/runnable. */
+  runnable: string;
   rows: Row[];
   steps: Step[];
   headline: Headline | null;
@@ -120,6 +122,7 @@ export async function getBoard(tenantId: string, boardId: string): Promise<Board
     title: r.title,
     summary: r.summary,
     body: r.body,
+    runnable: r.runnable,
     kind: kindOf(r.kind),
     live,
     missingFeeds: missing,
@@ -161,6 +164,8 @@ export async function createBoard(opts: {
   tenantId: string; title: string; kind: BoardKind; summary?: string; createdBy: string;
   /** The document itself, as markdown. Empty for a mirror that is genuinely just a checklist. */
   body?: string;
+  /** A tool, if this one runs. Sealed off — see lib/runnable. */
+  runnable?: string;
 }): Promise<string> {
   const id = randomUUID();
   const now = new Date().toISOString();
@@ -173,6 +178,7 @@ export async function createBoard(opts: {
     live: false,
     feeds: '[]', rows: '[]', steps: '[]',
     body: opts.body ?? '',
+    runnable: opts.runnable ?? '',
     createdBy: opts.createdBy,
     createdAt: now,
     updatedAt: now,
@@ -432,6 +438,7 @@ export async function reviseBoard(opts: {
   title: string;
   summary: string;
   body: string;
+  runnable: string;
   steps: { text: string; owner: string; state: string }[];
   askedFor: string;
   changedBy: string;
@@ -448,6 +455,7 @@ export async function reviseBoard(opts: {
     title: board.title,
     summary: board.summary,
     body: board.body,
+    runnable: board.runnable,
     steps: board.steps,
     askedFor: opts.askedFor.slice(0, 600),
     changedBy: opts.changedBy,
@@ -459,6 +467,7 @@ export async function reviseBoard(opts: {
       title: opts.title.slice(0, 120),
       summary: opts.summary,
       body: opts.body,
+      runnable: opts.runnable,
       steps: JSON.stringify(opts.steps.map(s => ({
         text: s.text.slice(0, 300),
         owner: s.owner.slice(0, 120) || 'Nobody yet',

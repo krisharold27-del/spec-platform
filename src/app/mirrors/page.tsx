@@ -24,6 +24,7 @@ import {
   CAN_DRAFT, WILL_NOT_DRAFT,
   CHANGE_LABEL, CHANGE_HELP, CHANGE_PLACEHOLDER, PUT_IT_BACK,
 } from '@/lib/mirror-maker';
+import { framed, SANDBOX, SEALED_OFF } from '@/lib/runnable';
 
 export const dynamic = 'force-dynamic';
 
@@ -183,6 +184,31 @@ export default async function Boards({ searchParams }: {
             <h1 data-mirror-name className="truncate font-serif text-xl leading-tight text-ink">{board.title}</h1>
             {board.summary && (
               <p className="mt-0.5 max-w-[68ch] text-sm text-ink" data-mirror-description>{board.summary}</p>
+            )}
+            {board.runnable && (
+              /*
+                ── A mirror that RUNS ───────────────────────────────────────────────────────────
+
+                Kris, 26 September: *"mirrors must be as powerful as artifacts."* A calculator, a
+                sizing check, an estimator — the crew does not want to read a table, it wants to
+                type two numbers and be told.
+
+                It never touches this page. `srcDoc` so nothing is served from SPEC's own origin,
+                `sandbox="allow-scripts"` and NOTHING else so the frame gets an opaque origin with
+                no cookie, no storage and no view of this document, and a `default-src 'none'`
+                policy inside so it cannot talk to anywhere either. See lib/runnable: each of the
+                three walls is needed and none of them is sufficient alone.
+              */
+              <figure className="mt-4 max-w-[68ch]" data-mirror-runs>
+                <iframe
+                  title={`${board.title} — the tool`}
+                  srcDoc={framed(board.runnable)}
+                  sandbox={SANDBOX}
+                  loading="lazy"
+                  className="h-[420px] w-full rounded-xl border border-ink/15 bg-cream"
+                />
+                <figcaption className="mt-1 text-xs text-ink-light">{SEALED_OFF}</figcaption>
+              </figure>
             )}
             {board.body && (
               /*
