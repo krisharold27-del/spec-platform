@@ -56,7 +56,14 @@ export async function RecommendCard({ rec, tenantId, back, lead, owners = [], ch
       <input type="hidden" name="back" value={back} />
       {needsOwner && answer === 'yes' && (
         owners.length ? (
-          <select name="owner" required aria-label="Who owns it" className="mr-2 rounded-lg border border-ink/20 bg-surface px-3 py-2 text-sm">
+          /*
+            Nobody pre-selected (26 September). With no empty option this arrived set to whoever
+            came first in the list, so pressing Yes without looking handed the action to them — and
+            an action nobody agreed to own is an action nobody does. Who owns it IS the decision;
+            the button only records that it was made.
+          */
+          <select name="owner" required defaultValue="" aria-label="Who owns it" className="mr-2 rounded-lg border border-ink/20 bg-surface px-3 py-2 text-sm">
+            <option value="">Who owns it</option>
             {owners.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
         ) : (

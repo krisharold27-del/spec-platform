@@ -14,6 +14,7 @@ import { refuseTo, backTo } from '@/lib/refuse';
 import { getCurrentUser, canManage } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { isCheckKind, mayBook } from '@/lib/subbies';
+import { reachBy, EITHER_WILL_DO, NEITHER_SAYS } from '@/lib/reach';
 import { isSeatKind } from '@/lib/onboarding';
 import { draftContract, mayTake, FAIR_PROCESS } from '@/lib/hr';
 import { isRecordKind, parseSteps } from '@/lib/hr-records';
@@ -462,27 +463,67 @@ export async function takeStep(form: FormData) {
 /**
  * Invite a subcontractor to set themselves up.
  *
- * A business name and a mobile, which is all anybody has when they decide to use somebody. The six
- * checks come from them, on their phone — asking the office to collect six certificates on a
- * subbie's behalf is how a business ends up with none of them.
+ * A business name and a way of reaching them, which is all anybody has when they decide to use
+ * somebody. The four checks that are theirs come from them, on their phone — asking the office to
+ * collect certificates on a subbie's behalf is how a business ends up with none of them.
  */
 export async function inviteSubbie(form: FormData) {
   const user = await manager();
   const business = txt(form, 'business', 160);
-  const mobile = txt(form, 'mobile', 40);
   if (!business) refuseTo('/people?mode=subbies', 'A subcontractor needs a business name.');
-  if (!mobile) refuseTo('/people?mode=subbies', 'A mobile is how they get the link to set themselves up.');
+
+  /*
+    ── Either will do, and the link is now real (26 September) ─────────────────────────────────
+
+    This required a mobile and refused with "A mobile is how they get the link to set themselves
+    up." There was no link. Nothing issued a token, nothing produced a message to send, and the six
+    checks were typed in by the office — while this very screen promised the subbie would "set
+    themselves up on their phone in about ten minutes".
+
+    A required field, justified by a capability that did not exist, in front of a promise nothing
+    kept. So: either an address or a number, whichever the business has, and a token, so the
+    sentence on the screen is true. See lib/reach for why this is not an SMS gateway.
+  */
+  const reach = reachBy(txt(form, 'reach', 320));
+  if (reach.kind === 'nothing') {
+    refuseTo('/people?mode=subbies', `How do you reach them? ${EITHER_WILL_DO}`);
+  }
+  if (reach.kind === 'unreadable') refuseTo('/people?mode=subbies', NEITHER_SAYS);
 
   await db.insert(schema.subcontractors).values({
     id: randomUUID(),
     tenantId: user.tenantId,
     business,
     contact: txt(form, 'contact', 120),
-    mobile,
+    mobile: reach.kind === 'phone' ? reach.phone : '',
+    email: reach.kind === 'email' ? reach.email : null,
+    setupToken: randomBytes(16).toString('hex'),
     status: 'invited',
     invitedAt: stamp(),
     createdAt: stamp(),
   });
+  revalidatePath('/people');
+  redirect('/people?mode=subbies');
+}
+
+/**
+ * Issue a fresh link for a subcontractor.
+ *
+ * A new token every press, for the same reason `sendSetupLink` does it for staff: pressing it again
+ * is what somebody does when the first one went to the wrong number, and reusing the token would
+ * leave the wrong phone holding a working link into that subbie's record.
+ */
+export async function sendSubbieLink(form: FormData) {
+  const user = await manager();
+  const subbieId = txt(form, 'subbieId', 64);
+  const [subbie] = await db.select({ id: schema.subcontractors.id })
+    .from(schema.subcontractors)
+    .where(and(eq(schema.subcontractors.id, subbieId), eq(schema.subcontractors.tenantId, user.tenantId)));
+  if (!subbie) refuseTo('/people?mode=subbies', 'That subcontractor is not in this business.');
+
+  await db.update(schema.subcontractors)
+    .set({ setupToken: randomBytes(16).toString('hex') })
+    .where(eq(schema.subcontractors.id, subbieId));
   revalidatePath('/people');
   redirect('/people?mode=subbies');
 }

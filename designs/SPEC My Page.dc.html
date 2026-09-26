@@ -1080,7 +1080,7 @@ const bizOf = () => {
 class Component extends DCLogic {
   state = { persona: 'ops', done: {}, question: '', answer: null, acknowledged: {}, meetingLogged: false, toolboxDone: false, clockedIn: false, problem: '', diagLoading: false, diag: null, diagError: '', register: [], ownerDrafts: {}, deadlineDrafts: {}, assignToast: '', improvementOpen: false, bizMenuOpen: false, notifsOpen: false, gmOpen: false, gmOtherOpen: false };
   // Notifications are computed live from the register (assigned/overdue/approved/denied), no push.
-  // For Claude Code: replace with real email/SMS dispatch on these same events, per the user's
+  // For Claude Code: replace with real email and phone dispatch on these same events, per the user's
   // preferences set on the Admin page (notif_email / notif_sms toggles below).
   // Business switcher is a visual placeholder — one login per business today.
   // For Claude Code: back this with real accounts (list of businesses the user belongs to,

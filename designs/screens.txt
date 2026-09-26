@@ -23,10 +23,14 @@ The same ratchet the wording coverage uses: growth is free, loss is loud.
 
 SPEC Admin
 SPEC Board Pack
+SPEC Calls
 SPEC Cockpit
 SPEC Colour System
+SPEC Compliance
 SPEC Connections
 SPEC Coverage
+SPEC Customer Page
+SPEC Function Map
 SPEC Group
 SPEC Home
 SPEC Inbox
@@ -45,8 +49,12 @@ SPEC Pricing
 SPEC Safety
 SPEC Sectors
 SPEC Setup
+SPEC Setup v1
 SPEC Sign In
 SPEC Tech Day
 SPEC Training
 SPEC Weekly Meeting
+siteVIP Angus Shield
+siteVIP GM
 siteVIP Landing
+siteVIP Questions

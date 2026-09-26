@@ -244,6 +244,17 @@ export interface Readiness {
   /** On an address the business does not control — a recommendation, never a block. */
   personalEmail: number;
   cannotBeBooked: number;
+  /**
+   * How many people have no role on the chart — the one thing that holds finalising up.
+   *
+   * Carried as a real count because `finaliseLine` used to fake one with
+   * `r.people - (r.people - 1)`, which is always 1. So the last screen before a business pays said
+   * "Somebody has no role on the chart yet" whether it was one person or twelve, its plural branch
+   * was unreachable, and an owner with thirty-eight names had to go hunting.
+   */
+  withoutRole: number;
+  /** Who they are, so nobody has to hunt. Capped where the list is long — see `finaliseLine`. */
+  withoutRoleNames: string[];
   /** True when the list is worth confirming — somebody on it, and everybody has a role. */
   canFinalise: boolean;
 }
@@ -255,6 +266,8 @@ export function readiness(people: readonly Person[], today: string): Readiness {
     missingEmail: people.filter(p => !p.email?.trim()).length,
     personalEmail: people.filter(p => isPersonalEmail(p.email)).length,
     cannotBeBooked: people.filter(p => !readyToWork(p, today)).length,
+    withoutRole: people.filter(p => !p.roleTitle).length,
+    withoutRoleNames: people.filter(p => !p.roleTitle).map(p => p.name),
     /*
       Deliberately NOT "everything is filled in". Licences, inductions and training arrive over
       weeks, and a business that cannot turn SPEC on until every certificate is scanned is a
@@ -265,12 +278,29 @@ export function readiness(people: readonly Person[], today: string): Readiness {
   };
 }
 
-/** What the finalise button says, and why it is not available when it is not. */
+/** How many names to print before the list stops being readable and becomes a wall. */
+export const NAME_THEM_UP_TO = 4;
+
+/**
+ * What the finalise button says, and why it is not available when it is not.
+ *
+ * ── Why it names them (26 September) ─────────────────────────────────────────────────────────────
+ *
+ * This said "Somebody has no role on the chart yet" whether it was one person or twelve, because
+ * the count was computed as `r.people - (r.people - 1)` — always 1, with the plural branch dead.
+ * So the last screen before a business pays greyed out its own button and sent an owner with
+ * thirty-eight names off to hunt for the ones missing a role.
+ *
+ * Now it says how many and, while the list is short enough to read, exactly who. Past that it gives
+ * the count and stops, because eleven names in a sentence is a wall, not help.
+ */
 export function finaliseLine(r: Readiness, b: Bill): string {
   if (r.people === 0) return 'Add your people first.';
   if (!r.canFinalise) {
-    const n = r.people - (r.people - 1);
-    return `${n === 1 ? 'Somebody has' : 'Some people have'} no role on the chart yet. Give everybody a role and the bill can be confirmed.`;
+    const n = r.withoutRole;
+    const who = r.withoutRoleNames.filter(Boolean);
+    const named = n > 0 && n <= NAME_THEM_UP_TO && who.length === n ? ` — ${who.join(', ')}` : '';
+    return `${n === 1 ? '1 person has' : `${n} people have`} no role on the chart yet${named}. Give everybody a role and the bill can be confirmed.`;
   }
   if (b.monthlyCents === 0) return 'Nothing to pay — the first seat is free. Confirm the list and everybody gets their invitation.';
   return `Confirm the list and everybody gets their invitation. ${money(b.monthlyCents, b.symbol)} a month from then, first seat free.`;

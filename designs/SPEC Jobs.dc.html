@@ -178,7 +178,7 @@
                 </div>
               </sc-for>
             </div>
-            <p style="font-size: 13px; line-height: 20px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 68%, transparent);">Missed calls get a text back within two minutes: “Sorry we missed you, we’re on the tools. What do you need done?” Their answer lands here.</p>
+            <p style="font-size: 13px; line-height: 20px; margin: 12px 0 0; color: color-mix(in srgb, var(--color-text) 68%, transparent);">Missed calls get a call back within a minute: “Sorry we missed you, we’re on the tools. What do you need done?” Their answer lands here.</p>
           </section>
 
           <section style="flex: 1 1 320px; min-width: 0; background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(20px,3vw,28px);">
@@ -935,7 +935,7 @@
             <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; line-height: 1.2; margin: 0;">Google reviews</h2>
             <span style="font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ reviewQueue }}</span>
           </div>
-          <p style="font-size: 14px; line-height: 22px; margin: 8px 0 16px; max-width: 72ch; color: color-mix(in srgb, var(--color-text) 65%, transparent);">When a job is paid, the customer gets a thank-you text with your Google review link. Every customer gets the same link. If anyone says something's wrong, it goes to the supervisor as a callback straight away.</p>
+          <p style="font-size: 14px; line-height: 22px; margin: 8px 0 16px; max-width: 72ch; color: color-mix(in srgb, var(--color-text) 65%, transparent);">When a job is paid, the customer gets a thank-you email with your Google review link. SPEC also keeps your Google profile up to date with your hours and photos of finished jobs. Every customer gets the same link. If anyone says something's wrong, it goes to the supervisor as a callback straight away.</p>
           <div style="display: grid; gap: 8px;">
             <sc-for list="{{ reviews }}" as="rv" hint-placeholder-count="3">
               <div style="padding: 14px 16px; border-radius: 16px; background: var(--color-bg); display: grid; gap: 6px;">
@@ -1979,7 +1979,7 @@ class Component extends DCLogic {
       { id: 'lena', name: 'Lena Ford', role: 'Commercial Manager', months: [['Jul', 93], ['Aug', 91], ['Sep', null]], now: 88, ceiling: 4000,
         kpis: [['Quotes out within 2 days', '96%', '95%', 100], ['Win rate', '41%', '40%', 100], ['Leads followed up within 24 h', '84%', '95%', 88], ['Pipeline covered', '2.6×', '3×', 87], ['Quoted margin', '39%', '40%', 97]],
         today: [
-          { id: 'a1', title: 'Harris Strata · Q-2291 follow-up', why: 'Sent 6 days ago, $18,400. Win rate halves after day 7.', action: 'Approve the text to Mia', doneLabel: 'Sent · Mia replying' },
+          { id: 'a1', title: 'Harris Strata · Q-2291 follow-up', why: 'Sent 6 days ago, $18,400. Win rate halves after day 7.', action: 'Approve the email to Mia', doneLabel: 'Sent · Mia replying' },
           { id: 'a2', title: 'Coastal Dental · LED refit enquiry', why: 'In 21 hours ago. Reply today and the 24-hour KPI stays green.', action: 'Approve the reply', doneLabel: 'Replied · site visit Fri' },
           { id: 'a3', title: 'Ridge Homes · Epping duplex', why: 'Paul mentioned it 3 weeks ago. $38,000 of pipeline not yet logged.', action: 'Add it as a lead', doneLabel: 'Lead added · pipeline 2.8×' },
           { id: 'a4', title: 'Metro Freight · warehouse stage 2', why: 'Stage 1 won. Gary has 2 more buildings.', action: 'Draft the proposal', doneLabel: 'Draft in Quotes' },
@@ -2065,14 +2065,14 @@ class Component extends DCLogic {
       tools: [
         { id: 't1', title: 'Hilti hammer drill TE 30', sub: 'With Tom Reyes\u2019s crew · Ute 09', detail: 'Test and tag was due 20 Sep.', state: 'Overdue', tone: RED, action: 'Book test and tag', doneLabel: 'Booked Monday at the yard' },
         { id: 't2', title: 'Fluke insulation tester 1587', sub: 'With Jai Fenton · Ute 04', detail: 'Calibration due 12 Oct. Needed for every test result on a CCEW.', state: 'Due soon', tone: AMBER, action: 'Book calibration', doneLabel: 'Booked · loan tester arranged' },
-        { id: 't3', title: 'Laser level', sub: 'Last with Marcus Bly · 16 Sep', detail: 'Not scanned back into the yard since.', state: 'Missing', tone: RED, action: 'Ask Marcus', doneLabel: 'Text sent to Marcus' },
+        { id: 't3', title: 'Laser level', sub: 'Last with Marcus Bly · 16 Sep', detail: 'Not scanned back into the yard since.', state: 'Missing', tone: RED, action: 'Ask Marcus', doneLabel: 'Called Marcus' },
         { id: 'u1', title: 'Ute 04 · Toyota HiLux · Hemi Walker', sub: 'Last clock-on: Northside Health, St Leonards, 7:02 today', detail: 'Service due at 90,000 km, now 88,400. Rego current to Mar 2027.', state: 'Service soon', tone: AMBER, action: 'Book the service', doneLabel: 'Booked Sat 8am' },
         { id: 'u2', title: 'Ute 09 · Isuzu D-Max · Tom Reyes', sub: 'Last clock-on: Harbourview, Pyrmont, 6:48 today', detail: 'Pre-start: all OK. Service and rego current.', state: 'Good', tone: GREEN, action: '', doneLabel: '' },
         { id: 'u3', title: 'Ute 14 · Ford Ranger · Jai Fenton', sub: 'Last clock-on: Metro Freight, Botany, 7:10 today', detail: 'Rego due 12 Oct.', state: 'Rego due', tone: AMBER, action: 'Pay the rego', doneLabel: 'Paid \u00b7 in Xero' },
         { id: 't4', title: 'Step and platform ladders (14)', sub: 'Across the utes', detail: 'One cracked ladder pulled from Ute 09 after Hemi\u2019s report.', state: '13 in use', tone: GREEN, action: '', doneLabel: '' },
       ].map(row),
       reviewStats: [T('Google rating', '4.9', 'from 212 reviews', GREEN), T('New this month', '14', 'up from 9 in August'), T('Paid jobs reviewed', '38%', 'of customers asked'), T('Replies', 'All', 'every review answered')],
-      reviewQueue: '6 thank-you texts go out today, for jobs paid yesterday',
+      reviewQueue: '6 thank-you emails go out today, for jobs paid yesterday',
       reviews: [
         { id: 'r1', who: 'Leah Morton, Harbourview Build', stars: '★★★★★', starTone: GREEN, text: 'Tom\u2019s crew turned up on time every day and left the site clean. Easy to deal with.', reply: 'Thanks Leah, we\u2019ll pass that on to Tom and the crew. Looking forward to Level 4.' },
         { id: 'r2', who: 'Sam Lee', stars: '★★★★☆', starTone: GREEN, text: 'Good work on the switchboard, just a bit late to arrive.', reply: 'Thanks Sam, and sorry we were late. We now text you when the tech leaves the job before yours.' },
@@ -2179,7 +2179,7 @@ class Component extends DCLogic {
     return {
       leadSources: [
         ['Website form', 14, '5 won · $21,400 · replied in 4 min'], ['Google Business Profile', 11, '3 won · $9,800 · 38% margin'], ['Google ads', 7, '1 won · $2,100 · ads cost $1,400'],
-        ['hipages & ServiceSeeking', 6, '2 won · $1,900 · small jobs'], ['EstimateOne & Cordell', 4, '1 won · $64,000 · 41% margin'], ['Missed calls', 8, 'All texted back in 1 min · 6 booked'],
+        ['hipages & ServiceSeeking', 6, '2 won · $1,900 · small jobs'], ['EstimateOne & Cordell', 4, '1 won · $64,000 · 41% margin'], ['Missed calls', 8, 'All called back in 1 min · 6 booked'],
         ['Repeat customers', 9, '7 won · $38,600 · best margin'], ['Referrals', 6, '4 won · $17,200'], ['Emails to staff', 5, 'Found by SPEC · 3 quoted'], ['Work orders', 7, 'From agents, strata and email · accept in Leads'],
       ].map(([name, count, note]) => ({ name, count: String(count), note })),
       speedLine: '1.4 days to quote · target 2', speedChip: chip(GREEN),

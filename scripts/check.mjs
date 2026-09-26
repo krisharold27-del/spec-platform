@@ -467,6 +467,8 @@ const JOURNEYS = [
   ['chain', 'the duty with a hole in it, and a figure SPEC will not invent', 'chain-journey'],
   ['gentle', 'asking rather than blocking, and what the leader sees a fortnight later', 'gentle-journey'],
   ['ahead', 'a month of schedule proposed, and the hole found while there is time to fill it', 'ahead-journey'],
+  ['reach', 'an owner with a phone number and no email address not being stopped', 'reach-journey'],
+  ['subbie', 'a subcontractor doing their own paperwork, and the two ticks that are not theirs', 'subbie-journey'],
   ['noaccess', 'a crew locked out being counted from the doorstep', 'no-access-journey'],
   ['leaks', 'agreed rates, plant still on hire, and somebody\u2019s last day', 'leaks-journey'],
   ['setup', 'setting a whole business up in one sitting, with an HR admin', 'setup-journey'],

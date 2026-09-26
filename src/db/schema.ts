@@ -2490,6 +2490,21 @@ export const subcontractors = pgTable('subcontractors', {
   business: text('business').notNull(),
   contact: text('contact').notNull().default(''),
   mobile: text('mobile').notNull().default(''),
+  /**
+   * An address, where that is what the business has instead of a number (26 September).
+   *
+   * Both are optional and either is enough — see `reachBy` in lib/reach. The mobile used to be
+   * REQUIRED, refusing with "A mobile is how they get the link to set themselves up", and there was
+   * no link: nothing issued a token, nothing sent a message, and the office typed in all six
+   * checks. A required field justified by a capability that did not exist.
+   */
+  email: text('email'),
+  /**
+   * Their own link, the same shape as `staff.setupToken` and for the same reason: the certificate
+   * is in THEIR filing cabinet. An office typing insurance expiry dates off an emailed PDF gets
+   * wrong the one field that stops somebody being booked the day after their cover lapses.
+   */
+  setupToken: text('setup_token'),
   /** Who they work under. The same reporting line an employee has. */
   reportsToRoleId: text('reports_to_role_id'),
   /** invited | onboarding | active | stood_down */
