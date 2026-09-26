@@ -31,6 +31,16 @@ import { Refused } from '@/components/refused';
 import { refusedReason } from '@/lib/refuse';
 import { HR_TABS, tabOf, hrefOf, lastThree, lastPayWeek, exitsFrom, trainingStateOf, trainingSummary } from '@/lib/hr';
 import { ConductTab, PayTab, type ReviewPerson, type TrainingRow, type ContractRow, type ExitRow } from './hr-tabs';
+import { PayRunPanel } from './pay-run-panel';
+import { payRunFor, type PayRunView } from '@/lib/pay-run-data';
+import { approvePayRun, approveLeave, declineLeave } from './actions';
+import { LeavePanel } from './leave-panel';
+import { OnCallPanel } from './on-call-panel';
+import { PatternsPanel } from './patterns-panel';
+import { patternsFor } from '@/lib/gentle-data';
+import type { Pattern } from '@/lib/gentle';
+import { onCallFor, type OnCallView } from '@/lib/on-call-data';
+import { requestsFor, type SafeRequest } from '@/lib/leave-data';
 import { StaffListTab } from './staff-list';
 import { SubbiesTab, type SubbieRow } from './subbies-tab';
 import { SetupTab } from './setup-tab';
@@ -255,10 +265,30 @@ export default async function People({ searchParams }: { searchParams: Promise<R
       .map(c => modules.find(m => m.id === c.moduleId)?.title ?? 'A module')
       .filter(Boolean);
 
+    /*
+      The person half of the gate — induction and tickets — joined on 26 September.
+
+      Until then this screen answered Clear to Work from the ROLE alone, while `stopsWork` in
+      lib/onboarding answered it from the PERSON on the Setup tab of this same page. Two answers to
+      one question, so somebody could be clear here and stopped there. The staff row is found by
+      whichever of the two keys the placement carries; `null` where the business has no staff row
+      for them at all, which comes back "not established" rather than a false clear.
+    */
+    const staffRow = assignment?.staffId
+      ? staffRows.find(s => s.id === assignment.staffId) ?? null
+      : assignment?.userId ? staffRows.find(s => s.userId === assignment.userId) ?? null : null;
+
     people.push({
       roleId: r.id, roleTitle: r.title, name,
       placement: r.holder ? 'held' : r.pencilled ? 'pencilled' : 'vacant',
       seated: !!assignment?.userId,
+      personal: staffRow
+        ? {
+            inductedAt: staffRow.inductedAt,
+            licences: theirs.map(o => ({ what: o.what, expiresAt: o.expiresAt })),
+            today: todayIso,
+          }
+        : null,
       blocking, overdue, scored,
       hasPath: path.length > 0,
       pathComplete: path.length > 0 && path.every(c => done.has(c.moduleId)),
@@ -334,6 +364,13 @@ export default async function People({ searchParams }: { searchParams: Promise<R
   const payRunRows = tab === 'pay'
     ? await db.select().from(schema.payRuns).where(eq(schema.payRuns.tenantId, user.tenantId))
     : [];
+  /* The seven checks, and the rates they depend on. Read only on the tab that shows them. */
+  const payRun: PayRunView | null = tab === 'pay' ? await payRunFor(user.tenantId) : null;
+  const leaveRequests: SafeRequest[] = tab === 'pay'
+    ? await requestsFor(user.tenantId, manage ? 'approver' : 'anyone')
+    : [];
+  const onCall: OnCallView | null = tab === 'pay' ? await onCallFor(user.tenantId, now) : null;
+  const confirmPatterns: Pattern[] = tab === 'pay' ? await patternsFor(user.tenantId) : [];
 
   const contracts: ContractRow[] = [];
   const exits: ExitRow[] = [];
@@ -450,6 +487,34 @@ export default async function People({ searchParams }: { searchParams: Promise<R
           manage={manage}
         />
       ) : tab === 'pay' ? (
+        <>
+        {/*
+          Design 19's seven checks, above the rest of Pay. Above deliberately: a pay run that cannot
+          be approved is the thing the person came here to deal with, and putting it under the
+          contracts and the exits makes it something they find rather than something they are told.
+        */}
+        {payRun && <PayRunPanel view={payRun} approve={approvePayRun} manage={manage} />}
+        <div className="mt-6" />
+        {/*
+          Leave. The viewer is 'approver' here because this tab is already behind the manage check —
+          anybody who can open it can decide somebody's leave, which is exactly who is entitled to
+          see what kind it is. Every other screen that shows leave passes 'anyone'.
+        */}
+        <LeavePanel requests={leaveRequests} approve={approveLeave} decline={declineLeave} manage={manage} />
+        <div className="mt-6" />
+        {/*
+          On call, key roles, and who did the week on the phone. All three are lists whose value is
+          the absence they surface — an empty on-call week, a role one person is the only one who
+          can do, and somebody whose hours arrived as a text message.
+        */}
+        {onCall && (
+          <section className="card p-6 sm:p-8">
+            <OnCallPanel weeks={onCall.weeks} keyRoles={onCall.keyRoles} week={onCall.week} />
+          </section>
+        )}
+        <div className="mt-6" />
+        <PatternsPanel patterns={confirmPatterns} />
+        <div className="mt-6" />
         <PayTab
           signed={personRecords.filter(r => r.kind === 'contract')}
           roles={visible.map(r => ({ id: r.id, title: r.title }))}
@@ -464,6 +529,7 @@ export default async function People({ searchParams }: { searchParams: Promise<R
           claims={claimRows}
           today={todayIso}
         />
+        </>
       ) : !hiring ? (
         <>
           <section className="card mt-6">

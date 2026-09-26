@@ -63,7 +63,7 @@ export const AREAS: Area[] = [
   { key: 'do',         label: 'Do the work',   covers: 'The schedule, the crews, the day, and the job getting finished.', to: '/jobs?tab=schedule', alwaysHere: false, opensHereRegardless: false },
   { key: 'paid',       label: 'Get paid',      covers: 'Invoices, progress claims, and who owes you what.',        to: '/jobs?tab=billing',     alwaysHere: false, opensHereRegardless: false },
   { key: 'people',     label: 'People',        covers: 'Who does what, whether they can do it, and how they are going.', to: '/people',        alwaysHere: false, opensHereRegardless: false },
-  { key: 'pay',        label: 'Pay',           covers: 'Timesheets, the award, leave, super and the pay run.',     to: '/people?tab=pay',       alwaysHere: true,  opensHereRegardless: false },
+  { key: 'pay',        label: 'Pay',           covers: 'Timesheets, the award, leave, super and the pay run.',     to: '/people?mode=pay',       alwaysHere: true,  opensHereRegardless: false },
   { key: 'safety',     label: 'Safety',        covers: 'Pre-starts, Take 5s, incidents and everybody going home.',  to: '/safety',              alwaysHere: false, opensHereRegardless: false },
   { key: 'compliance', label: 'Compliance',    covers: 'Licences, inductions, certificates and the obligations you carry.', to: '/compliance',  alwaysHere: false, opensHereRegardless: false },
   { key: 'money',      label: 'Money',         covers: 'The reviews, the shields, tax set aside and what the business is worth.', to: '/money', alwaysHere: false, opensHereRegardless: true },

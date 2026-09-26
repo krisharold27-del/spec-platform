@@ -11,7 +11,7 @@ import { assertWritable } from '@/lib/plan';
 import { PILLARS } from '@/lib/scoring';
 import { STAGES } from '@/lib/people';
 import { refuseTo, backTo } from '@/lib/refuse';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, canManage } from '@/lib/auth';
 import { getTenantById } from '@/lib/queries';
 import { isCheckKind, mayBook } from '@/lib/subbies';
 import { isSeatKind } from '@/lib/onboarding';
@@ -20,6 +20,12 @@ import { isRecordKind, parseSteps } from '@/lib/hr-records';
 import type { Pillar } from '@/lib/scoring';
 import { directoryPerson, mayEditContact, staffOfUser } from '@/lib/directory-data';
 import { contactField, isoDay } from '@/lib/directory';
+import { payRunFor } from '@/lib/pay-run-data';
+import { balancesFor } from '@/lib/leave-data';
+import { check as leaveCheck, KINDS, type LeaveKind as LeaveLeaveKind } from '@/lib/leave';
+
+/** Where a refused pay-run write lands, with its reason. */
+const PAY_SCREEN = '/people?mode=pay';
 
 /**
  * Hiring against a role.
@@ -203,6 +209,17 @@ export async function bookLeave(formData: FormData) {
  *
  * A decline is a real outcome, not a request left open: it keeps the name and the date exactly as
  * an approval does, and the row stays visible so nobody has to remember the conversation.
+ *
+ * ── Design 19: leave in advance ────────────────────────────────────────────────────────────────
+ *
+ * A request past somebody's balance is allowed and must never be ACCIDENTAL. Whether it is over is
+ * worked out here, on the server, from the stored request and the stored balances — never from
+ * what the form says about it. A hidden field claiming this one is fine is one input away from
+ * anybody approving leave in advance, and the deliberate manager decision the rule rests on would
+ * be a formality.
+ *
+ * `overrideBy` being set is what the owner is told about. That is the whole mechanism: money going
+ * out before it is earned is the owner's to know about, not to second-guess.
  */
 export async function decideLeave(formData: FormData) {
   const user = await requireManager();
@@ -212,10 +229,50 @@ export async function decideLeave(formData: FormData) {
   const state = String(formData.get('state') ?? '');
   if (!id || !['approved', 'declined'].includes(state)) return;
 
+  const [row] = await db.select()
+    .from(schema.leaveEntries)
+    .where(and(eq(schema.leaveEntries.id, id), eq(schema.leaveEntries.tenantId, user.tenantId)))
+    .limit(1);
+  if (!row) return;
+
+  let overrideBy: string | null = null;
+  if (state === 'approved' && row.hours !== null) {
+    const personKey = row.userId ? `user:${row.userId}` : row.staffId ? `staff:${row.staffId}` : null;
+    if (personKey) {
+      const balances = await balancesFor(user.tenantId, personKey);
+      const fits = leaveCheck({ kind: kindOf(row.kind), hours: row.hours }, balances);
+      if (fits.verdict === 'over') overrideBy = user.name ?? 'A manager';
+    }
+  }
+
   await db.update(schema.leaveEntries)
-    .set({ state, decidedBy: user.name, decidedAt: new Date().toISOString() })
+    .set({ state, decidedBy: user.name, decidedAt: new Date().toISOString(), overrideBy })
     .where(and(eq(schema.leaveEntries.id, id), eq(schema.leaveEntries.tenantId, user.tenantId)));
   revalidatePath('/people');
+}
+
+/**
+ * The stored kind, read as one of Design 19's eight.
+ *
+ * Rows written before the widening say `sick` and `parental`. They are mapped rather than migrated:
+ * rewriting stored history to match a new vocabulary is how a leave record stops being evidence of
+ * what was actually agreed at the time.
+ */
+function kindOf(stored: string): LeaveLeaveKind {
+  if (stored === 'sick') return 'personal';
+  if (stored === 'parental' || stored === 'other') return 'unpaid';
+  return KINDS.some(k => k.key === stored) ? (stored as LeaveLeaveKind) : 'unpaid';
+}
+
+/** Approve, for a form that has only one button. */
+export async function approveLeave(formData: FormData) {
+  formData.set('state', 'approved');
+  return decideLeave(formData);
+}
+
+export async function declineLeave(formData: FormData) {
+  formData.set('state', 'declined');
+  return decideLeave(formData);
 }
 
 /* ── The staff list ────────────────────────────────────────────────────────────────────────────── */
@@ -700,3 +757,50 @@ export async function tickLastDay(form: FormData) {
     .where(eq(schema.leavers.id, id));
   backTo('/people?mode=leavers');
 }
+
+/**
+ * Approve a pay run.
+ *
+ * The one write in SPEC that refuses outright rather than asking. Every one of the seven checks has
+ * to have PASSED — a check that never ran counts exactly as one that failed, which is the guarantee
+ * `readRun` makes and this is the place it could be broken.
+ *
+ * Checked here as well as in the markup, and the markup does not render a button at all. Both,
+ * because a guard that lives only in the page is a guard that works until somebody opens devtools,
+ * and a guard that lives only on the server lets somebody press a button and be told no — which
+ * teaches people the checks are advisory.
+ *
+ * Why this one blocks when the rest of SPEC asks: an underpaid apprentice did not choose anything,
+ * will very often not know, and the error compounds every fortnight until somebody audits it. There
+ * is no version of that where "we asked and they clicked yes" is an answer.
+ */
+export async function approvePayRun(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+  if (!canManage(user.access)) refuseTo(PAY_SCREEN, 'manage');
+
+  const runId = String(formData.get('runId') ?? '').slice(0, 64);
+  if (!runId) redirect(PAY_SCREEN);
+
+  const [run] = await db.select()
+    .from(schema.payRuns)
+    .where(and(eq(schema.payRuns.id, runId), eq(schema.payRuns.tenantId, user.tenantId)))
+    .limit(1);
+  if (!run || run.approvedAt) redirect(PAY_SCREEN);
+
+  /*
+    Re-read the checks here rather than trusting what the page was showing. The page was rendered at
+    some earlier moment; a check can have failed since, and the approval is the thing that matters.
+  */
+  const view = await payRunFor(user.tenantId);
+  if (view.runId !== runId || !view.reading.mayApprove) refuseTo(PAY_SCREEN, 'checks');
+
+  await db.update(schema.payRuns)
+    .set({ approvedAt: new Date().toISOString(), approvedBy: user.name ?? 'Approved' })
+    .where(and(eq(schema.payRuns.id, runId), eq(schema.payRuns.tenantId, user.tenantId)));
+
+  revalidatePath(PAY_SCREEN);
+  redirect(PAY_SCREEN);
+}
+

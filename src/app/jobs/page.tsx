@@ -49,12 +49,21 @@ import {
   addTool,
   logCallback, setReviewLink, askForReview, recordQuoteChase, addScope, setSupervisor,
   setCertificateSetup, issueCertificate, lodgeCertificate, excuseCertificate,
-  addRateCard, addRateLine, putOnHire, offHire,
+  addRateCard, addRateLine, putOnHire, offHire, confirmGently,
 } from './actions';
 
 import {
   match, isLate, byAttention, purchasingStats, purchasingLine, orderStateLabel, type OrderRow,
 } from '@/lib/purchasing';
+import { ClaimsPanel } from './claims-panel';
+import { RatePanel } from './rate-panel';
+import { AheadPanel } from './ahead-panel';
+import { aheadFor, type AheadView } from '@/lib/schedule-ahead-data';
+import { Round3Panel } from './round3-panel';
+import { GentlePrompt } from '@/components/gentle-prompt';
+import { rateFor, type RateView } from '@/lib/our-rate-data';
+import { FILTERS, isFilter, matches, mix, typeOf, type Filter } from '@/lib/job-type';
+import { claimsFor, type ClaimsView } from '@/lib/claims-data';
 import {
   moneyStats, moneyLine, moneyLabel, chase, maySend, billKindLabel,
   BILL_KINDS, BILL_STATE_LABEL, isBillState,
@@ -186,6 +195,13 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const today = now.toISOString().slice(0, 10);
 
   /* Everything this business has recorded for Jobs, read once and scoped by tenant in the query. */
+  /* Claims, retentions and defects — read only on the tab that shows them. */
+  const claimsView: ClaimsView | null = tab === 'billing' ? await claimsFor(user.tenantId, now) : null;
+  /* Is our rate right, and every enquiry priced in the background. Leads tab only. */
+  const rateView: RateView | null = tab === 'leads' ? await rateFor(user.tenantId) : null;
+  /* The month ahead — proposals, holes, and what could not be placed. Schedule tab only. */
+  const ahead: AheadView | null = tab === 'schedule' ? await aheadFor(user.tenantId, now) : null;
+
   const [allJobs, quotes, itemRows, kitRows, rateRows, jobTime, orderRows, billRows, recurRows, stockRows, callbackRows, reviewRows, toolRows, tenderRows, chaseRows, noAccessRows, rateCardRows, rateLineRows, hireRows] = await Promise.all([
     db.select().from(schema.jobs).where(eq(schema.jobs.tenantId, user.tenantId)).orderBy(schema.jobs.createdAt),
     db.select().from(schema.quotes).where(eq(schema.quotes.tenantId, user.tenantId)).orderBy(schema.quotes.createdAt),
@@ -327,13 +343,21 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       <OwnSystemLine line={own.line} connected={own.connected} />
 
       {tab === 'pipeline' && (
-        <Pipeline jobs={costed} openId={one(sp.job)} crew={crew} quotes={quotes} manage={manage} now={now} tabHref={tabHref} hasRate={!!standard} />
+        <Pipeline jobs={costed} openId={one(sp.job)} crew={crew} quotes={quotes} manage={manage} now={now} tabHref={tabHref} hasRate={!!standard} kind={isFilter(one(sp.kind)) ? one(sp.kind) as Filter : 'all'} />
       )}
       {tab === 'quotes' && (
         <Quotes jobs={jobs} quotes={quotes} openId={one(sp.quote)} items={items} kits={kits} rates={rates} manage={manage} tenantId={user.tenantId} tabHref={tabHref} />
       )}
       {tab === 'schedule' && (
-        <Schedule jobs={jobs} crew={crew} week={one(sp.week)} book={one(sp.book)} manage={manage} today={today} tenantId={user.tenantId} tabHref={tabHref} />
+        <>
+          <Schedule jobs={jobs} crew={crew} week={one(sp.week)} book={one(sp.book)} manage={manage} today={today} tenantId={user.tenantId} tabHref={tabHref} />
+          {/*
+            The month ahead, under the week. Under because the week is what somebody came here to
+            work on; the month is what they should leave knowing — particularly the quiet stretch in
+            week three, which a week-at-a-time schedule cannot show them until it is next week.
+          */}
+          {ahead && <div className="mt-10"><AheadPanel view={ahead} /></div>}
+        </>
       )}
       {tab === 'time' && (
         <Timesheets jobs={jobs} crew={crew} week={one(sp.week)} manage={manage} today={today} tenantId={user.tenantId} tabHref={tabHref} />
@@ -343,9 +367,33 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       )}
       {/* Claude recommends the labour rate, beside the rates it would change. */}
       {tab === 'catalogue' && <div className="mt-6"><Recommends topic="labour_rate" back="/jobs?tab=catalogue" /></div>}
-      {tab === 'leads' && <Leads jobs={jobs} manage={manage} now={now} />}
+      {tab === 'leads' && (
+        <>
+          <Leads jobs={jobs} manage={manage} now={now} />
+          {/*
+            Design 19's rate question, below the leads themselves. Below because the leads are what
+            somebody came here for; the rate question is what they should leave thinking about.
+          */}
+          {rateView && <div className="mt-10"><RatePanel view={rateView} /></div>}
+        </>
+      )}
       {tab === 'stock' && <Stock orders={orderRows} jobs={jobs} manage={manage} today={today} levels={stockRows} items={items} />}
-      {tab === 'billing' && <Billing bills={billRows} jobs={jobs} manage={manage} now={now} />}
+      {tab === 'billing' && (
+        <>
+          <Billing bills={billRows} jobs={jobs} manage={manage} now={now} />
+          {/*
+            Design 19's claims, retentions and defects. Below the invoices because most businesses
+            invoice far more often than they claim — but the part that NEEDS somebody is at the top
+            of the panel itself, since a missed payment-schedule window is the most expensive thing
+            on this screen and it expires quietly.
+          */}
+          {claimsView && (
+            <div className="mt-10">
+              <ClaimsPanel view={claimsView} />
+            </div>
+          )}
+        </>
+      )}
       {tab === 'service' && <Recurring rows={recurRows} manage={manage} today={today} />}
       {tab === 'prebuilds' && (
         <Catalogue items={itemRows} kits={kits} kitRows={kitRows} rates={rates} q={one(sp.q)} skipped={one(sp.skipped)} rises={one(sp.rises)} rose={one(sp.rose)} manage={manage} today={today} only="kits" />
@@ -374,7 +422,41 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
         <KeepWorkComing jobs={jobs} chases={chaseRows} tenders={tenderRows} manage={manage}
           business={tenantRow?.name ?? 'us'} now={now} />
       )}
-      {tab === 'tools' && <Tools rows={toolRows} crew={crew} manage={manage} today={today} />}
+      {tab === 'tools' && (
+        <>
+          <Tools rows={toolRows} crew={crew} manage={manage} today={today} />
+          {/*
+            Design 19's Round 3: complaints, disputes, work orders and what the utes cost. Here
+            because they are all things arriving from outside that somebody has to decide about,
+            and because Tools is already where the utes are.
+          */}
+          <div className="mt-10">
+            <Round3Panel
+              /*
+                Complaints are real: a client complaint IS a callback, which SPEC already holds.
+                Building a separate complaints store would mean a business counting the same return
+                trip twice and reconciling them by hand.
+
+                Tolls, fines and work orders have no store yet — nothing feeds them — so those lists
+                are genuinely empty and the panel says so. The policy beside each is what is being
+                built now; the feed is what comes next.
+              */
+              complaints={callbackRows.map(c => ({
+                from: jobs.find(j => j.id === c.jobId)?.client ?? 'A client',
+                what: c.what,
+                at: c.createdAt,
+                ownerName: c.who || null,
+                dueAt: null,
+                updates: [],
+                closedAt: c.status === 'closed' ? c.closedAt : null,
+              }))}
+              events={[]}
+              orders={[]}
+              matched={() => null}
+            />
+          </div>
+        </>
+      )}
       {tab === 'tenders' && <Tenders rows={tenderRows} manage={manage} today={today} />}
       {tab === 'takeoff' && <Takeoff kits={kits} items={itemRows} manage={manage} />}
       {tab === 'howlong' && <HowLong jobs={costed} quotes={quotes} />}
@@ -412,10 +494,23 @@ function flagFor(j: Costed, booked: boolean, now: Date): { text: string; light: 
   return null;
 }
 
-async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasRate }: {
+async function Pipeline({ jobs: allOfThem, openId, crew, quotes, manage, now, tabHref, hasRate, kind }: {
   jobs: Costed[]; openId: string; crew: CrewMember[]; quotes: (typeof schema.quotes.$inferSelect)[];
   manage: boolean; now: Date; tabHref: (k: string, e?: Record<string, string>) => string; hasRate: boolean;
+  kind: Filter;
 }) {
+  /*
+    Design 19: every job is maintenance or project, and the pipeline switches between them.
+
+    Filtered before anything else is worked out, so the counts, the stats and the board all agree
+    with the switch. Deriving them from the full list and filtering only the cards is how a board
+    ends up saying "12 jobs" above nine of them.
+
+    The type is read from `workKind`, which SPEC already holds — a second field would let a job be
+    maintenance on this screen and a project on the billing one.
+  */
+  const jobs = allOfThem.filter(j => matches(j, kind));
+  const theMix = mix(allOfThem);
   const jobIds = jobs.map(j => j.id);
   const bookings = jobIds.length
     ? await db.select().from(schema.scheduleBookings)
@@ -470,6 +565,29 @@ async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasR
 
   return (
     <div>
+      {/* ── All / Maintenance / Projects ──────────────────────────────────────────────────── */}
+      <section className="mb-5" data-pipeline-kind>
+        <div className="flex flex-wrap items-center gap-2">
+          {FILTERS.map(f => (
+            <Link
+              key={f.key}
+              href={tabHref('pipeline', f.key === 'all' ? {} : { kind: f.key })}
+              className={`rounded-full px-4 py-2 text-sm font-semibold ${f.key === kind ? 'bg-ink text-white' : 'border border-sand-300 text-ink'}`}
+              data-pipeline-filter={f.key}
+              aria-current={f.key === kind ? 'true' : undefined}
+            >
+              {f.label}
+            </Link>
+          ))}
+        </div>
+        {/*
+          Split, because the two numbers mean different things to an owner: maintenance on the books
+          lands this month, and project money comes in as the work does. One combined figure reads
+          as cash that is coming and is not.
+        */}
+        <p className="mt-2 text-sm text-ink-light" data-pipeline-mix>{theMix.says}</p>
+      </section>
+
       <section aria-label="This month" className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map(s => (
           <div key={s.label} className="card">
@@ -511,7 +629,18 @@ async function Pipeline({ jobs, openId, crew, quotes, manage, now, tabHref, hasR
                       className={`block rounded-2xl bg-surface px-4 py-3.5 shadow-sm ${j.id === openId ? 'ring-2 ring-rust' : ''}`}
                     >
                       <span className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-ink-light">{j.ref}</span>
+                        <span className="text-xs text-ink-light">
+                          {j.ref}
+                          {/*
+                            The type, on the card. Design 19: "each card shows its type." It decides
+                            which steps the job has — claims, variations, retention and defects only
+                            exist on a project — so a card that does not say is a card somebody has
+                            to open to find out what kind of job they are looking at.
+                          */}
+                          <span className="ml-1.5" data-job-type={typeOf(j.workKind)}>
+                            · {typeOf(j.workKind) === 'project' ? 'Project' : 'Maintenance'}
+                          </span>
+                        </span>
                         {flag && <Pill light={flag.light}>{flag.text}</Pill>}
                       </span>
                       <span className="mt-1.5 block text-sm font-bold leading-snug text-ink">{j.title}</span>
@@ -797,8 +926,34 @@ async function Quotes({ jobs, quotes, openId, items, kits, rates, manage, tenant
         const job = jobOf(open.jobId);
         const lines = linesOf(open.id);
         const t = priceQuote(lines, open.markupPct);
+        /*
+          Design 19's gentle prompt: a quote priced under what the work costs to do.
+
+          Asked, never blocked. It happens on purpose more often than anybody outside a trade
+          expects — a job taken at cost to keep a good client, or to get onto a site. Blocking it
+          would mean the quote goes out of SPEC instead, and then nothing knows what was promised.
+        */
+        const underCost = t.exGstCents > 0 && t.exGstCents < t.costCents;
         return (
           <>
+            {underCost && (
+              <div className="mb-4" data-quote-under-cost>
+                <GentlePrompt
+                  what="under_cost"
+                  facts={{
+                    price: `$${Math.round(t.exGstCents / 100).toLocaleString('en-AU')}`,
+                    cost: `$${Math.round(t.costCents / 100).toLocaleString('en-AU')}`,
+                  }}
+                  confirm={confirmGently}
+                  hidden={{
+                    what: `${open.ref} priced under cost`,
+                    about: open.ref,
+                    back: tabHref('quotes', { quote: open.id }),
+                  }}
+                  check={tabHref('quotes', { quote: open.id })}
+                />
+              </div>
+            )}
             <QuoteBuilder
               key={open.id + open.updatedAt}
               quoteId={open.id}

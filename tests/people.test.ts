@@ -8,7 +8,10 @@ import { PILLARS } from '../src/lib/scoring';
 
 const person = (over: Partial<PersonRow> = {}): PersonRow => ({
   roleId: 'r1', roleTitle: 'Site Supervisor', name: 'T. Alderson',
-  placement: 'held', seated: true, blocking: [], overdue: [], ...over,
+  placement: 'held', seated: true, blocking: [], overdue: [],
+  /* Inducted, with a current ticket — which is the only state anybody is clear in. */
+  personal: { inductedAt: '2026-01-15', licences: [{ what: 'White card', expiresAt: null }], today: '2026-09-26' },
+  ...over,
 });
 
 describe('clearToWork', () => {
@@ -36,6 +39,74 @@ describe('clearToWork', () => {
 
   it('has nothing to establish for a vacant role', () => {
     expect(clearToWork(person({ placement: 'vacant', name: null })).state).toBe('unknown');
+  });
+
+  /*
+    ── The person half, joined on 26 September ──────────────────────────────────────────────────
+
+    Until then this gate read the role only — a compliance measure, a role ticket, an overdue
+    module — while `stopsWork` in lib/onboarding read the induction and the tickets. Two functions
+    answering "may this person be sent to work" differently, and the schema even claimed
+    `staff.inductedAt` "is what Clear to Work reads" when nothing read it.
+
+    So: one answer, from both halves. And the three states stay three, because a block, a gap in
+    the register and a clear person each need a different thing done.
+  */
+  it('is blocked by no induction, whatever the role says', () => {
+    const c = clearToWork(person({ personal: { inductedAt: null, licences: [], today: '2026-09-26' } }));
+    expect(c.state).toBe('blocked');
+    expect(c.note).toContain('Not inducted');
+  });
+
+  it('is blocked by a ticket that has run out', () => {
+    const c = clearToWork(person({
+      personal: {
+        inductedAt: '2026-01-15',
+        licences: [{ what: 'Confined space', expiresAt: '2026-08-01' }],
+        today: '2026-09-26',
+      },
+    }));
+    expect(c.state).toBe('blocked');
+    expect(c.note).toContain('Confined space has expired');
+  });
+
+  it('does not report one expired ticket twice when both halves see it', () => {
+    /*
+      `blockingReasons` in lib/obligations already words an expired ticket, and the loader passes
+      the same ticket down both paths. Two phrasings of one problem reads as two problems.
+    */
+    const c = clearToWork(person({
+      blocking: ['Confined space has expired'],
+      personal: {
+        inductedAt: '2026-01-15',
+        licences: [{ what: 'Confined space', expiresAt: '2026-08-01' }],
+        today: '2026-09-26',
+      },
+    }));
+    expect(c.note.match(/Confined space has expired/g)).toHaveLength(1);
+  });
+
+  /*
+    Not blocked — NOT ESTABLISHED. A business that has not filled its ticket register in has not
+    accused anybody of anything, and a gate that cries wolf on day one is ignored by the week a
+    ticket really has expired.
+  */
+  it('says not established, not blocked, when no ticket is recorded at all', () => {
+    const c = clearToWork(person({ personal: { inductedAt: '2026-01-15', licences: [], today: '2026-09-26' } }));
+    expect(c.state).toBe('unknown');
+    expect(c.note).toContain('nothing to check rather than nothing wrong');
+  });
+
+  /* A caller that could not read the person half says so and is told so. It is never assumed. */
+  it('will not call somebody clear on the role half alone', () => {
+    const c = clearToWork(person({ personal: null }));
+    expect(c.state).toBe('unknown');
+    expect(c.note).toContain('covers their role only');
+  });
+
+  /* Evidence of a problem beats absence of evidence: a block is still a block. */
+  it('still reports a role block when the person half was never read', () => {
+    expect(clearToWork(person({ personal: null, blocking: ['Tickets current'] })).state).toBe('blocked');
   });
 });
 

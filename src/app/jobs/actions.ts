@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
+import { getCurrentUser } from '@/lib/auth';
 import { requireManager } from '@/lib/guard';
 import { QUOTE_CHASE } from '@/lib/growth';
 import { isTerritory } from '@/lib/certificates';
@@ -20,6 +21,7 @@ import { reorderList } from '@/lib/stock';
 import { reprice, bigRises, splitChecklist } from '@/lib/prebuild';
 import { isCause } from '@/lib/rework';
 import { mayAsk } from '@/lib/reviews';
+import { recordConfirmation } from '@/lib/gentle-data';
 import {
   parseEnquiry, nextRef, nextStage, lineFrom, priceQuote, MARKUPS, DEFAULT_MARKUP,
   toCents, minutesBetween, bookingRefusal, workWeek, parseComponents, parsePriceFile,
@@ -1390,4 +1392,33 @@ export async function offHire(form: FormData) {
   await db.update(schema.plantHires).set({ offHireAt: now() })
     .where(eq(schema.plantHires.id, id));
   back('rates');
+}
+
+/**
+ * Somebody pressed "Yes, it's right" on a gentle prompt.
+ *
+ * It records the choice and does nothing else. That is the design: nothing here is blocked, and the
+ * only thing that makes a gentle prompt more than a speed bump is that the answer is written down —
+ * so that three of the same answer from the same person becomes a conversation a fortnight later
+ * rather than three separate Tuesdays nobody connected.
+ *
+ * Deliberately NOT a permission check beyond being signed in and writable. Asking somebody whether
+ * they meant something and then refusing to accept their answer would be worse than not asking.
+ */
+export async function confirmGently(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+
+  await recordConfirmation({
+    tenantId: user.tenantId,
+    promptKey: String(formData.get('promptKey') ?? ''),
+    who: user.name ?? user.email ?? 'Somebody',
+    what: String(formData.get('what') ?? '').trim().slice(0, 200),
+    about: String(formData.get('about') ?? '').trim().slice(0, 100) || null,
+  });
+
+  const back = String(formData.get('back') ?? '/jobs').slice(0, 200);
+  revalidatePath(back);
+  redirect(back);
 }

@@ -15,6 +15,8 @@ import {
   type ComplianceArea, type ItemState,
 } from '@/lib/compliance';
 import { addItem, renewItem, satisfyItem } from './actions';
+import { AtoPanel } from './ato-panel';
+import { atoFor } from '@/lib/ato-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +68,8 @@ export default async function CompliancePage({ searchParams }: {
   const tabParam = String(sp.tab ?? 'licences');
   const tab: ComplianceArea = isComplianceArea(tabParam) ? tabParam : 'licences';
   const spec = areaSpec(tab);
+  /* Design 19's ATO section, read once for the bottom of the page. */
+  const { subbies: atoSubbies, tparRows, year: taxYear } = await atoFor(user.tenantId, now);
 
   /* ── What this page stores itself ──────────────────────────────────────────────────────────── */
   const stored = await db.select().from(schema.complianceItems)
@@ -302,6 +306,14 @@ export default async function CompliancePage({ searchParams }: {
         People warns at {CLEAR_TO_WORK_WARNS_AT} days, because it answers a different question —
         whether this person can work today.
       </p>
+      {/*
+        Design 19: subbies and the ATO. Here rather than on People because it is a compliance
+        obligation with a regulator on the other end of it, and because the thing it does — stopping
+        a payment — belongs beside the other things that stop work.
+      */}
+      <section className="mt-10" id="subbies-ato">
+        <AtoPanel subbies={atoSubbies} year={taxYear} tparRows={tparRows} now={now} />
+      </section>
     </Shell>
   );
 }

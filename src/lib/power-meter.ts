@@ -428,6 +428,20 @@ export function powerReading(measures: readonly Measure[], snap?: SnapReading | 
   };
 }
 
+/**
+ * What one slot is worth on the meter, in the points the score is out of.
+ *
+ * Here rather than wherever a lever happens to be priced, because it is the same arithmetic
+ * `powerReading` uses just above: a heavy hitter carries its fifteen outright, and a shared slot
+ * carries an equal share of the twenty-five. A lever that worked out its own number would sooner or
+ * later promise a movement the meter does not make — and the first time the meter fails to move by
+ * what the lever said, it is the meter that stops being believed.
+ *
+ * Rounded, because a lever offering "1.3 points" is arithmetic showing through the floorboards.
+ */
+export const pointsFor = (weight: Weight): number =>
+  Math.round(weight === 'heavy' ? HEAVY_POINTS : SHARED_POINTS / SHARED_SLOTS);
+
 /** What the ring draws — the design's dasharray, kept out of the page. */
 export const ringOffset = (score: number | null, circumference = 264): number =>
   (score === null ? circumference : Math.max(0, circumference - (circumference * score) / 100));

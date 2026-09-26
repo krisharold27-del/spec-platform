@@ -9,6 +9,9 @@ import { getScope } from '@/lib/scope';
 import { isScored } from '@/lib/today-data';
 import { TechDayPhone, type ClearToWork, type OfficeEntry } from '@/components/tech-day-phone';
 import { storeConnected } from '@/lib/photos';
+import { gateFor, drivesFor, todayIn } from '@/lib/prestart-data';
+import { PreStartForm, PreStartHeld } from '@/components/pre-start';
+import { submitPreStart } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +40,34 @@ export const metadata = { title: 'Today — siteVIP' };
 export default async function TechDay() {
   const user = await getCurrentUser();
   if (!user) redirect('/signin');
+
+  /*
+    ── The pre-start gate ──────────────────────────────────────────────────────────────────────
+
+    Design 19, Kris 25 September: *"Not done = no jobs on the phone that day. Any 'Not OK' = jobs
+    stay locked until the supervisor clears it."*
+
+    Enforced by RETURNING EARLY rather than by hiding a section. A gate that renders the jobs and
+    then covers them is a gate that a page-source view walks straight through, and — more to the
+    point — this way the jobs genuinely are not on the phone, which is what was asked for.
+
+    It only applies to somebody who drives a company vehicle. Making an office person do a tyre
+    check is how a check stops being read by the people it is actually for.
+  */
+  const day = todayIn();
+  const gate = await gateFor({
+    tenantId: user.tenantId,
+    personKey: `user:${user.id}`,
+    personName: user.name ?? '',
+    drivesCompanyVehicle: await drivesFor(user.tenantId, user.id),
+    day,
+  });
+
+  if (gate.applies && !gate.mayWork) {
+    return gate.state === 'held'
+      ? <PreStartHeld says={gate.says} />
+      : <PreStartForm preStart={gate.preStart} action={submitPreStart} day={day} />;
+  }
 
   /*
     Clear to work, for this person only. Guarded: the day on the phone must still open when the card
