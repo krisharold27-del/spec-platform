@@ -26,7 +26,7 @@ import { ROLE_STEPS, roleKindOf, stepsFor, nextStep, progressLine } from '@/lib/
 import type { Pillar, RoleScore } from '@/lib/scoring';
 import { Problems } from '@/components/problems';
 import { PowerMeter, PowerBreakdown } from '@/components/power-meter';
-import { viewerPowerMeter } from '@/lib/power-meter-data';
+import { businessPowerMeter } from '@/lib/power-meter-data';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { startHere } from '@/lib/start-here';
 import { LateQuotes } from './late-quotes';
@@ -150,10 +150,17 @@ export default async function MyPage({
     meter and be the 25th data point"*. Computed from the same register read the page draws below,
     so the two can never disagree.
   */
-  // The same call the Virtual GM makes, so the two dials can never disagree — see viewerPowerMeter.
+  /*
+    THE BUSINESS's power score, not this viewer's branch — Kris, 26 September: *"is power meter on
+    managements my page - so they can all see the power score of the business."*
+
+    It read `scope.visible` until then, so a supervisor's dial scored their crew against twenty-four
+    questions about a whole business and came out low for reasons that had nothing to do with how
+    they run their people. Same call the Virtual GM makes, so the two dials cannot disagree.
+  */
   // Make it simple: written after the page has gone, the day before the meeting. Nobody waits on it.
   after(() => ensureReport(user.tenantId).catch(() => {}));
-  const power = await viewerPowerMeter({ tenantId: user.tenantId, visible: scope.visible, register });
+  const power = await businessPowerMeter({ tenantId: user.tenantId, register });
   // Manages somebody: their scope reaches past their own role. The same population the design gives
   // the number to, worked out from the chart rather than from a flag anybody sets.
   const runsAnything = scope.visible.size > 1;

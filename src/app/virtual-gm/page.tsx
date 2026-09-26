@@ -10,7 +10,7 @@ import { getTenantById } from '@/lib/queries';
 import { getToday } from '@/lib/today-data';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { registerFor } from '@/lib/register-data';
-import { viewerPowerMeter } from '@/lib/power-meter-data';
+import { businessPowerMeter } from '@/lib/power-meter-data';
 import { scopeLabel } from '@/lib/power-meter';
 import { LIGHT_COLOUR } from '@/lib/today';
 import { levers, leversLine, coverageGrid, ledgerPanel, ANGUS_SHIELD, ADMIN_DEPARTMENT } from '@/lib/virtual-gm-overview';
@@ -43,7 +43,7 @@ export const metadata = { title: 'Virtual GM + Virtual Admin' };
  *
  * Four things, and every one of them is read rather than written:
  *
- *   The dial and breakdown are My Page's own — the same `viewerPowerMeter` call with the same inputs,
+ *   The dial and breakdown are My Page's own — the same `businessPowerMeter` call with the same inputs,
  *   drawn by the same components. The two screens cannot disagree.
  *
  *   The levers are what that reading marked not met, each naming the workflow that moves it and the
@@ -74,7 +74,7 @@ export default async function VirtualGm({
   const teamNames = data.team.map(m => m.holder).filter((n): n is string => !!n);
   const register = await registerFor(user.tenantId, user.name, teamNames);
   const [power, ledger] = await Promise.all([
-    viewerPowerMeter({ tenantId: user.tenantId, visible: scope.visible, register }),
+    businessPowerMeter({ tenantId: user.tenantId, register }),
     ledgerConnections(user.tenantId).then(ledgerPanel),
   ]);
   // Make it simple: written after the page has gone, the day before the meeting. Nobody waits on it.

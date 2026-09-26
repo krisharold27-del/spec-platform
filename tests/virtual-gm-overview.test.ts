@@ -18,8 +18,12 @@ const code = (t: string) => t.replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ').replace(/\/\
 
 describe('the Virtual GM reads the same dial as My Page', () => {
   it('both screens get their reading from the one shared call', () => {
-    expect(page).toContain('viewerPowerMeter(');
-    expect(myPage).toContain('viewerPowerMeter(');
+    /* `businessPowerMeter` since 26 September. Kris: "is power meter on managements my page - so
+       they can all see the power score of the business." It read the viewer's own branch until
+       then, so a supervisor's dial scored their crew against twenty-four questions about a whole
+       business. Both screens still go through the ONE call — that is what this test is for. */
+    expect(page).toContain('businessPowerMeter(');
+    expect(myPage).toContain('businessPowerMeter(');
     // Neither assembles the meter's inputs its own way.
     expect(code(page)).not.toMatch(/powerMeterFor\(|powerReading\(|snapScore\(/);
     expect(code(myPage)).not.toMatch(/powerMeterFor\(|powerReading\(/);

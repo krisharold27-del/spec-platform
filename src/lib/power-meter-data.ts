@@ -83,6 +83,50 @@ export async function viewerPowerMeter(input: {
   });
 }
 
+/**
+ * The power score OF THE BUSINESS, the same number for everybody who manages.
+ *
+ * ── Kris, 26 September ───────────────────────────────────────────────────────────────────────────
+ *
+ * *"virtual GM - is power meter on managements my page - so they can all see the power score of the
+ * business."*
+ *
+ * The meter was already on My Page, and it was reading the viewer's OWN BRANCH — `scope.visible`,
+ * their role and everything under it. So the GM saw the business and a supervisor saw their crew,
+ * and both dials were labelled the same way. Two managers comparing notes would have found two
+ * different "power scores" and no way to tell which was which.
+ *
+ * That is not a smaller version of the same reading. The framework asks twenty-four questions about
+ * a BUSINESS — does it have a safety system, are its KPIs set, is it winning work at the right rate
+ * — and most of them are not answerable about one branch of it. Scored over a supervisor's crew,
+ * the ones their crew has nothing to do with simply read as not measured, and the number comes out
+ * low for reasons that are nothing to do with how they are running their people.
+ *
+ * So: one number, the business's, for everybody who manages anybody. What they can SEE is unchanged
+ * — the breakdown lists the business's own KPI wording and how many roles carry each one, never a
+ * name, a role title or anybody's individual score. Widening the score must not widen what people
+ * can find out about each other, and here it does not.
+ *
+ * Somebody who manages nobody still sees no dial at all. The percentage is for the people who can
+ * do something about it; on everybody else's page it would be a number to feel judged by.
+ */
+export async function businessPowerMeter(input: {
+  tenantId: string;
+  register: readonly RegisterEntry[];
+}): Promise<PowerMeterResult> {
+  /* Every role in the business, which is what "of the business" has to mean. One query, not one
+     per role — this page was taking the site down a fortnight ago for exactly that. */
+  const rows = await db.select({ id: schema.roles.id })
+    .from(schema.roles)
+    .where(and(eq(schema.roles.tenantId, input.tenantId), eq(schema.roles.active, true)));
+  return powerMeterFor({
+    tenantId: input.tenantId,
+    visible: new Set(rows.map(r => r.id)),
+    snap: snapScore([...input.register]),
+    choices: await coverageFor(input.tenantId),
+  });
+}
+
 export async function powerMeterFor(input: PowerMeterInput): Promise<PowerMeterResult> {
   const result = await readPower(input);
   return input.choices ? { ...result, reading: withSources(result.reading, input.choices) } : result;
