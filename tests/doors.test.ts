@@ -121,9 +121,24 @@ describe('the navigation bar', () => {
     */
     // Eleven since 25 September: Financials, which Kris asked for by name after People.
     // Fourteen later the same day: he could not find the org chart, and every core component in
-    // docs/CORE-COMPONENTS.md now has its own item — findability beats a short bar. The ceiling is
-    // held at fourteen; the next addition must be a core component Kris names, or go under one.
-    expect(navDoors(f)).toHaveLength(14);
+    // docs/CORE-COMPONENTS.md now has its own item — findability beats a short bar.
+    /*
+      SIXTEEN since 26 September, and this is the addition the ceiling was wrong to resist.
+
+      Kris: *"there are three absolutely critical aspects to this system - links (org chart) - kpi
+      boards (flow) and mirrors to support (growth) - where the fuck are they - im furious."*
+
+      Read the comment directly above: the shape this test defends says in as many words **"Scoring
+      and Mirrors under Board"**. So this check was holding the bar to a design in which two of the
+      product's three foundations sat in a drawer — and it passed, every run, while doing it. The
+      ceiling worked exactly as written; it simply had the wrong number behind it, and a limit
+      defended more carefully than the thing it limits is a limit doing harm.
+
+      LINK, FLOW and GROW now sit together at the front, in that order, because reading them apart
+      is what let two of them go missing. The ceiling is sixteen; the next addition must be a core
+      component Kris names, or go under one.
+    */
+    expect(navDoors(f)).toHaveLength(16);
     expect(navDoors(f).length).toBeLessThan(allDoors(f).length);
   });
 
@@ -178,8 +193,15 @@ describe('the navigation bar', () => {
       written before the rename and nobody updated it — so it was asserting the old name as though
       it were the design's.
     */
+    /*
+      Scoring and Mirrors sit second and third, next to Org chart, from 26 September — LINK, FLOW,
+      GROW, in that order and together. Kris named all three as the critical aspects of the system
+      and could find only one of them; keeping them adjacent is what stops the next tidy-up lifting
+      two out and leaving the third looking like it was always alone.
+    */
     expect(labels).toEqual([
-      'My page', 'Org chart', 'Virtual GM', 'Jobs', 'CRM', 'People', 'Financials', 'Safety', 'Compliance', 'Board',
+      'My page', 'Org chart', 'Scoring', 'Mirrors',
+      'Virtual GM', 'Jobs', 'CRM', 'People', 'Financials', 'Safety', 'Compliance', 'Board',
       'COGS meeting', 'Setup', 'Connections', 'All pages',
     ]);
   });

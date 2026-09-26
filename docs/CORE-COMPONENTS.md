@@ -4,6 +4,29 @@ Kris, 25 September: *"I can't find the org chart."* It is THE key component of S
 at `/org`, and nothing led to it: the September tidy-up of the menu had tucked it "under People",
 which in practice meant nowhere.
 
+## LINK, FLOW, GROW — the three the product is built on
+
+Kris, 26 September: *"there are three absolutely critical aspects to this system - links (org
+chart) - kpi boards (flow) and mirrors to support (growth) - where the fuck are they - im
+furious."*
+
+| | What it is | Menu label | Route |
+|---|---|---|---|
+| **LINK** | The org chart. Who does what, and who reports to whom. | Org chart | `/org` |
+| **FLOW** | The KPI boards, and closing the month on them. | Scoring | `/scoring` |
+| **GROW** | Mirrors — the artifacts a team pins and runs projects through. | Mirrors | `/mirrors` |
+
+**How two of the three went missing, twice, in three days.** On 24 September the menu was shortened
+from fourteen items to seven, and Scoring and Mirrors were moved "under Board" — reachable, in the
+sense that a thing in a drawer is reachable. On 25 September Kris could not find the org chart, and
+LINK was restored with its own item and a test to hold it there. FLOW and GROW were not, and neither
+was ever added to the table below — so this check went green every single run while guarding a list
+that was missing two thirds of the point.
+
+That is the failure this file is now written against: not a component being deleted, which is loud,
+but a component being *quietly demoted* while the check that guards it passes. A check aimed at the
+wrong list buys silence, and silence is worse than no check.
+
 **The rule:** never remove or hide a core component. Every one is in the main menu, and every new
 feature must be reachable from the menu or from a clearly linked page. A shorter menu is never
 worth a component somebody cannot find.
@@ -27,6 +50,8 @@ and this file changes first.
 |---|---|---|
 | My Page | My page | /my-page |
 | Org chart | Org chart | /org |
+| Scoring — the KPI boards | Scoring | /scoring |
+| Mirrors | Mirrors | /mirrors |
 | Virtual GM + Virtual Admin | Virtual GM | /virtual-gm |
 | Jobs | Jobs | /jobs |
 | CRM | CRM | /crm |

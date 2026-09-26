@@ -14,8 +14,24 @@ const doc = readFileSync('docs/CORE-COMPONENTS.md', 'utf8');
 const rows = [...doc.matchAll(/^\| ([^|]+?) \| ([^|]+?) \| (\/[^|\s]*) \|$/gm)]
   .map(m => ({ component: m[1].trim(), label: m[2].trim(), route: m[3].trim() }));
 
+/*
+  ── LINK, FLOW, GROW ─────────────────────────────────────────────────────────────────────────────
+
+  Kris, 26 September: *"there are three absolutely critical aspects to this system - links (org
+  chart) - kpi boards (flow) and mirrors to support (growth) - where the fuck are they - im
+  furious."*
+
+  Only LINK was on this list. Scoring and Mirrors had been moved "under Board" on 24 September and
+  were never written down here, so this check — the one written two days later, on the day he could
+  not find the org chart, for exactly this failure — went green every run while two thirds of the
+  product's foundations sat in a drawer.
+
+  That is the lesson worth keeping: the check was never broken, it was aimed at an incomplete list.
+  A guarantee is only as wide as the list behind it, and nothing about a passing test says which.
+*/
 const REQUIRED = [
-  'My Page', 'Org chart', 'Virtual GM + Virtual Admin', 'Financials', 'Jobs', 'CRM', 'People', 'Safety',
+  'My Page', 'Org chart', 'Scoring — the KPI boards', 'Mirrors',
+  'Virtual GM + Virtual Admin', 'Financials', 'Jobs', 'CRM', 'People', 'Safety',
   'Compliance', 'Board', 'COGS meeting', 'Make it simple report', 'Setup', 'Connections',
 ];
 

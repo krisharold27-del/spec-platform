@@ -226,7 +226,29 @@ export function navDoors(f: DoorsFor): Door[] {
       every component in docs/CORE-COMPONENTS.md now has its own item, the org chart second, and
       `tests/core-components.test.ts` fails the build if one ever leaves.
     */
-    find('/org') ?? { href: '/org', label: 'Org chart', note: 'Who does what, and who reports to whom.' },
+    /*
+      ── LINK, FLOW, GROW — the three, together, 26 September ──────────────────────────────────────
+
+      Kris: *"there are three absolutely critical aspects to this system - links (org chart) - kpi
+      boards (flow) and mirrors to support (growth) - where the fuck are they."*
+
+      He was right, and the history is worth writing down because the same mistake has now been made
+      twice in three days.
+
+      On 24 September the bar was shortened from fourteen items to seven, and the note two blocks
+      above records exactly what went: *"Scoring and Mirrors under Board."* On 25 September he could
+      not find the org chart, and LINKS was put back with its own item and a test to hold it there.
+      FLOW and GROW were never put back. So of the three things this product is built on, one was
+      protected and two stayed buried — and `docs/CORE-COMPONENTS.md`, the file written that same day
+      to stop precisely this, listed neither of them. The check passed every run while guarding a
+      list that did not contain two thirds of the point.
+
+      They sit together, in order, because they are one idea and reading them apart is what let two
+      of them go missing. A longer bar is a price worth paying; a component nobody can find is not.
+    */
+    find('/org') ?? { href: '/org', label: 'Org chart', note: 'LINK — who does what, and who reports to whom.' },
+    { href: '/scoring', label: 'Scoring', note: 'FLOW — the KPI boards, and closing the month on them.' },
+    { href: '/mirrors', label: 'Mirrors', note: 'GROW — the artifacts your team pins and runs projects through.' },
     /* Its own short label: the directory calls it "Virtual GM + Virtual Admin", too long for a tab. */
     { href: '/virtual-gm', label: 'Virtual GM', note: 'The whole business on one screen — the GM thinking and the admin department.' },
     find('/jobs') ?? { href: '/jobs', label: 'Jobs', note: 'Quote it, win it, book the crew, do the job, invoice it.' },
