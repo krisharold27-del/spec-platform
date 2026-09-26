@@ -217,7 +217,7 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
  */
 export const NAV_HREFS = [
   '/my-page', '/mirrors', '/jobs', '/financials', '/crm', '/safety', '/people', '/compliance',
-  '/setup', '/connections',
+  '/board', '/setup', '/connections',
 ] as const;
 
 export function navDoors(f: DoorsFor): Door[] {
@@ -273,6 +273,20 @@ export function navDoors(f: DoorsFor): Door[] {
     /* People, and the org chart and the training under it — they are all the same question. */
     find('/people') ?? { href: '/people', label: 'People', note: 'Who you have, the chart they sit in, what they are trained on, who you need.' },
     { href: '/compliance', label: 'Compliance', note: 'Licences, insurance, certificates, audits, contracts — and nothing lapsed.' },
+    /*
+      ── Board pack, the eleventh — Kris, 26 September ─────────────────────────────────────────
+
+      *"one more tab must be added ... the Board tab must be replaced."*
+
+      Replaced rather than restored, and the rename is the point. "Board" meant two different
+      things on one screen: the governing body that approves the pack, and the boards a team pins
+      things to. Design 11 already settled the second half by renaming those to Mirrors; the tab
+      kept the ambiguous word for another fortnight. **Board pack** can only mean the one thing.
+
+      It opens /board, which shows the pack for the most recently CLOSED month — a board pack is a
+      record of a month that finished, not a live screen.
+    */
+    { href: '/board', label: 'Board pack', note: 'The pack for the month that finished, and the decisions in it.' },
 
     /* ── The two on the right: setting it up, not running it ─────────────────────────────────── */
     { href: '/setup', label: 'Set up', note: 'Roles, KPIs, pricing and the things still to do.' },

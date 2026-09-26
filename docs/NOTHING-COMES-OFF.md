@@ -61,10 +61,27 @@ Six items came off the bar. **None were deleted, and every one is one click from
 | Org chart (`/org`) | its own card on My Page, People, Virtual GM and Setup (`OrgChartDoor`), and under People |
 | Scoring (`/scoring`) | the directory, under "The rhythm" as **The month** |
 | Virtual GM (`/virtual-gm`) | the directory, and its power meter now sits on management's My Page |
-| Board (`/board`) | the directory, under "The rhythm" as **Board pack** — *added that day, it was in neither* |
+| ~~Board (`/board`)~~ | **Back on the bar the same day**, renamed **Board pack** — see below |
 | COGS meeting (`/meeting`) | the directory, under "The rhythm" |
 | All pages (`/pages`) | the directory — *added that day, it was in neither* |
 
-The last two rows are the point of this file. Following the instruction exactly would have made
+### 26 September, later — Board pack added back as the eleventh tab
+
+Kris: *"one more tab must be added ... the Board tab must be replaced."*
+
+Replaced rather than restored, and the rename is the whole point. **Board** meant two different
+things on one screen: the governing body that approves the pack, and the boards a team pins things
+to. Design 11 settled the second half by renaming those to Mirrors; the tab kept the ambiguous word
+for another fortnight. **Board pack** can only mean the one thing.
+
+The bar is eleven: My Page · Mirrors · Jobs · Financials · CRM · Safety · People · Compliance ·
+Board pack · Set up · Connections.
+
+Worth noting against the row above: `/board` appears in both lists — taken off the bar in the
+morning and put back in the afternoon. That is not a contradiction to tidy away. It is the record
+working: each move is dated and has the words that asked for it, so "why does the bar look like
+this" has an answer that does not depend on anybody remembering.
+
+The two `added that day` rows are the point of this file. Following the instruction exactly would have made
 `/board` and `/pages` reachable only by typing the address — losing the safety net inside the very
 change meant to stop things being lost. The check caught it. Nobody's memory did.

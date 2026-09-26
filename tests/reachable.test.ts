@@ -47,7 +47,7 @@ describe('nothing gets lost in a drawer', () => {
     */
     const bar = navDoors(shape).map(d => d.href);
     expect(bar).toEqual([...NAV_HREFS]);
-    for (const must of ['/my-page', '/mirrors', '/jobs', '/financials', '/crm', '/safety', '/people', '/compliance', '/setup', '/connections']) {
+    for (const must of ['/my-page', '/mirrors', '/jobs', '/financials', '/crm', '/safety', '/people', '/compliance', '/board', '/setup', '/connections']) {
       expect(bar, `${must} is a tab Kris named and it has gone`).toContain(must);
     }
   });
@@ -62,7 +62,9 @@ describe('nothing gets lost in a drawer', () => {
     */
     const directory = new Set(allDoors(shape).map(d => d.href));
     const myPage = readFileSync('src/app/my-page/page.tsx', 'utf8');
-    for (const gone of ['/scoring', '/virtual-gm', '/board', '/meeting', '/pages']) {
+    /* /board came back to the bar as "Board pack" on 26 September, so it is no longer one of the
+       ones this has to catch below — it is checked as a named tab above instead. */
+    for (const gone of ['/scoring', '/virtual-gm', '/meeting', '/pages']) {
       expect(directory.has(gone), `${gone} came off the bar and is in no directory group`).toBe(true);
     }
     /* The org chart is the one Kris placed by hand: "on my page and under people". */

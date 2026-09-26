@@ -141,7 +141,11 @@ describe('the navigation bar', () => {
       is what let two of them go missing. The ceiling is sixteen; the next addition must be a core
       component Kris names, or go under one.
     */
-    expect(navDoors(f)).toHaveLength(10);
+        /* ELEVEN since Kris added Board pack, 26 September: "one more tab must be added ... the Board
+       tab must be replaced." Replaced rather than restored — "Board" meant both the governing body
+       and the boards a team pins things to, and Design 11 had already renamed the second to
+       Mirrors. "Board pack" can only mean the one thing. */
+    expect(navDoors(f)).toHaveLength(11);
     expect(navDoors(f).length).toBeLessThan(allDoors(f).length);
   });
 
@@ -209,7 +213,7 @@ describe('the navigation bar', () => {
     /* Kris named these, in this order, on 26 September — see docs/NOTHING-COMES-OFF.md. */
     expect(labels).toEqual([
       'My page', 'Mirrors', 'Jobs', 'Financials', 'CRM', 'Safety', 'People', 'Compliance',
-      'Set up', 'Connections',
+      'Board pack', 'Set up', 'Connections',
     ]);
   });
 
