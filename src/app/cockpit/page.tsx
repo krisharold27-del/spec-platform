@@ -5,6 +5,7 @@ import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
 import { getCurrentUser } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
+import { Listening } from './listening';
 import { LIGHT_INK } from '@/lib/today';
 import { summarise } from '@/lib/uptime';
 import { running, runningLine } from '@/lib/running';
@@ -424,6 +425,9 @@ export default async function Cockpit() {
           ))}
         </ul>
       </section>
+
+      {/* ── siteVIP listening ──────────────────────────────────────────────────────────────── */}
+      <Listening />
 
       {/* ── Talk to build ───────────────────────────────────────────────────────────────────── */}
       <section className="card mt-6">

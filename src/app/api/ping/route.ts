@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { lt, desc } from 'drizzle-orm';
 import { CHECK_EVERY_MINUTES } from '@/lib/uptime';
 import { deliverAngus } from '@/lib/angus-shield-data';
+import { after } from 'next/server';
+import { listenIfDue } from '@/lib/listening-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,6 +104,10 @@ export async function GET(request: Request) {
   // five minutes for a day (docs/ANGUS_SHIELD_SITEVIP_CONTRACT.md §3). Its own try: a slow or absent
   // Angus Shield never changes what this endpoint says about SiteVIP's own health.
   try { await deliverAngus({ limit: 100 }); } catch { /* retried at the next ping */ }
+
+  // siteVIP listening, once a night, after the answer has gone (lib/listening). Its own guard means
+  // most pings do nothing here; a slow night's search never delays what this says about health.
+  if (ok) after(async () => { try { await listenIfDue(); } catch { /* tomorrow */ } });
 
   return NextResponse.json(
     { ok, ms, recorded, ...(recorded ? {} : { why: 'a reading was already taken this interval' }) },

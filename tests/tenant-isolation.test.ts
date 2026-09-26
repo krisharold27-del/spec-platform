@@ -36,12 +36,14 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
  *   rulebookRules   — the method itself.
  *   users           — looked up by sign-in identity BEFORE a tenant is known, which is the whole
  *                     point of a sign-in. Scoping it by tenant would be circular.
+ *   listeningNotes  — what trades say in PUBLIC, heard nightly for /cockpit (lib/listening). No
+ *                     tenant_id and no business's data in it; locked to everybody like healthPings.
  *   healthPings     — uptime readings: a timestamp, a yes-or-no and a duration. It has no tenant_id
  *                     because there is no business in it to scope to, and it is locked harder than
  *                     any table here — RLS on with no policy at all, denying everyone but the app.
  *                     See drizzle/0001_rls.sql and scripts/check-rls.mjs, which prove that lock.
  */
-const SHARED = ['trainingModules', 'rulebookRules', 'users', 'healthPings'];
+const SHARED = ['trainingModules', 'rulebookRules', 'users', 'healthPings', 'listeningNotes'];
 
 /**
  * The one page that is SUPPOSED to see every account.

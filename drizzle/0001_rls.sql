@@ -240,6 +240,11 @@ begin
   if to_regclass('health_pings') is not null then
     execute 'alter table health_pings enable row level security';
   end if;
+  -- listening_notes (26 September): what trades say in public, heard nightly for /cockpit. SPEC's
+  -- own data like health_pings — no tenant_id — so locked the same way, to everybody.
+  if to_regclass('listening_notes') is not null then
+    execute 'alter table listening_notes enable row level security';
+  end if;
 end $$;
 
 -- ───────────────────────────────────────────────────────────────────────────────────────────────

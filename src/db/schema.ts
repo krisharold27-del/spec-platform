@@ -3394,3 +3394,22 @@ export const planTakeoffs = pgTable('plan_takeoffs', {
   createdAt: text('created_at').notNull(),
   createdBy: text('created_by'),
 }, t => [index('plan_takeoffs_tenant').on(t.tenantId, t.jobId)]).enableRLS();
+
+/**
+ * siteVIP listening (Design 20, `SPEC Cockpit.dc.html`): themes heard in PUBLIC about job software and
+ * siteVIP, each with its sources and a proposed fix, for Kris to approve or set aside. SPEC's own
+ * data, not any business's — no tenant_id, locked to everybody like health_pings, read only by
+ * /cockpit. A row with state 'run' marks that a night's listening happened, whatever it found.
+ */
+export const listeningNotes = pgTable('listening_notes', {
+  id: text('id').primaryKey(),
+  runAt: text('run_at').notNull(),
+  theme: text('theme').notNull(),
+  heard: text('heard').notNull(),
+  /** JSON array of public links. */
+  sources: text('sources').notNull().default('[]'),
+  fix: text('fix').notNull(),
+  /** 'run' (a night's marker) · 'proposed' · 'approved' · 'set_aside'. */
+  state: text('state').notNull(),
+  decidedAt: text('decided_at'),
+}, t => [index('listening_notes_run').on(t.runAt)]).enableRLS();

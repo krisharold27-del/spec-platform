@@ -134,3 +134,18 @@ export interface CustomerView {
   variation: { what: string; amountCents: number; state: string } | null;
   invoice: { amountCents: number; state: string; ref: string } | null;
 }
+
+/**
+ * "Hi Sam" — the first line of the page, as the design has it (`SPEC Customer Page.dc.html`).
+ *
+ * Only a first name, and only when the job is for a person: a job logged against "Ridge Homes Pty
+ * Ltd" is read by whoever at Ridge Homes opened the link, and "Hi Ridge" is worse than "Hi there".
+ * The first name is all the page needs; the rest of the customer's name never reaches it.
+ */
+export function greeting(client: string | null | undefined): string {
+  const c = (client ?? '').trim();
+  const business = /\b(pty|ltd|limited|inc|group|homes|builders?|construction|constructions|services|holdings|trust|co|company|council|school|church|club|&)\b/i;
+  const first = c.split(/\s+/)[0] ?? '';
+  if (!c || business.test(c) || !/^[A-Za-z][A-Za-z'’-]{0,29}$/.test(first) || /^new$/i.test(first)) return 'Hi there';
+  return `Hi ${first[0].toUpperCase()}${first.slice(1)}`;
+}

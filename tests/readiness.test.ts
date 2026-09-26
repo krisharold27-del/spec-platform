@@ -63,9 +63,10 @@ describe('the readiness list matches the product', () => {
     Supabase caught on 15 September:
       rulebook_rules  the method itself. RLS on, readable by all, writable by nobody
       health_pings    uptime readings. RLS on with NO policy at all, denying everybody
+      listening_notes what trades say in public, heard nightly for /cockpit. Locked like health_pings
   */
   it('states the right number of tenant tables', () => {
-    const OUTSIDE_THE_TENANT_POLICY = ['rulebook_rules', 'health_pings'];
+    const OUTSIDE_THE_TENANT_POLICY = ['rulebook_rules', 'health_pings', 'listening_notes'];
     const withRls = [...schema.matchAll(/pgTable\('([a-z_]+)'/g)]
       .map(m => m[1])
       .filter(name => {

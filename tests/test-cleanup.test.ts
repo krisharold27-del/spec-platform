@@ -38,8 +38,8 @@ describe('the cleanup covers the whole schema', () => {
     const indirect = tableShapes()
       .filter(t => !t.columns.some(c => c.name === 'tenant_id'))
       .map(t => t.name)
-      // Not a business's data: the shared rulebook, uptime pings, and the tenants table itself.
-      .filter(t => !['rulebook_rules', 'health_pings', 'tenants'].includes(t));
+      // Not a business's data: the shared rulebook, uptime pings, what SPEC hears in public, and the tenants table itself.
+      .filter(t => !['rulebook_rules', 'health_pings', 'listening_notes', 'tenants'].includes(t));
 
     for (const table of indirect) {
       expect(cleanup, `${table} has no tenant_id and is never cleared`).toContain(`delete from ${table} `);

@@ -86,8 +86,10 @@ const GLOBAL = 'rulebook_rules';
  * through PostgREST, the table editor, and anything that ever connects as `anon`.
  */
 const DENIED = 'health_pings';
+/** The same, for what SPEC hears in public each night (lib/listening): SPEC's own, read only by /cockpit. */
+const DENIED_TOO = 'listening_notes';
 
-const exempt = new Set([GLOBAL, DENIED]);
+const exempt = new Set([GLOBAL, DENIED, DENIED_TOO]);
 const tenantTables = tables.filter(t => !exempt.has(t));
 const missing = tenantTables.filter(t => !withPolicy.has(t));
 check(`every tenant table has a policy (${tenantTables.length - missing.length} of ${tenantTables.length})`, missing.length === 0, missing.join(', '));
@@ -155,6 +157,10 @@ const deniedRls = psql(['-t', '-A', '-c', `select relrowsecurity from pg_class w
 check(`${DENIED} is locked with RLS on and no policy`, deniedRls === 't', `relrowsecurity=${deniedRls}`);
 const deniedPolicies = psql(['-t', '-A', '-c', `select count(*) from pg_policies where tablename = '${DENIED}'`]).trim();
 check(`${DENIED} really has no policy letting anybody in`, deniedPolicies === '0', `${deniedPolicies} policies`);
+const tooRls = psql(['-t', '-A', '-c', `select relrowsecurity from pg_class where relname = '${DENIED_TOO}'`]).trim();
+check(`${DENIED_TOO} is locked with RLS on and no policy`, tooRls === 't', `relrowsecurity=${tooRls}`);
+const tooPolicies = psql(['-t', '-A', '-c', `select count(*) from pg_policies where tablename = '${DENIED_TOO}'`]).trim();
+check(`${DENIED_TOO} really has no policy letting anybody in`, tooPolicies === '0', `${tooPolicies} policies`);
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed');
 process.exit(failed ? 1 : 0);
