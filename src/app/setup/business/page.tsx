@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
 import { and, eq, inArray, isNull, isNotNull } from 'drizzle-orm';
+import Link from 'next/link';
+import { SubmitButton } from '@/components/submit-button';
 import { db, schema } from '@/db';
 import { getCurrentUser } from '@/lib/auth';
 import { Shell, PILLAR_META } from '@/components/ui';
@@ -11,7 +13,8 @@ import { getScope } from '@/lib/scope';
 import { seatKindFor } from '@/lib/chart-seats';
 import templates from '../../../../seed/criteria_templates.json';
 import { addRole, removeRole } from '../roles/actions';
-import { nameRole, unplaceStaff, resolveRoleChange, invite } from '../people/actions';
+import { nameRole, unplaceStaff, resolveRoleChange, invite, addEveryone } from '../people/actions';
+import { readyForMonth, PASTE_LABEL, PASTE_HELP, addedSays } from '@/lib/ready-for-october';
 import { SeatLink } from '@/components/seat-link';
 import { seatUrl } from '@/lib/seat';
 import { currentOrigin } from '@/lib/origin';
@@ -130,6 +133,36 @@ export default async function Business({ searchParams }: { searchParams: Promise
   };
 
   const named = roleRows.filter(r => holderOf(r.id)).length;
+
+  /*
+    ── Ready for the start of October ─────────────────────────────────────────────────────────────
+
+    Kris, 26 September: *"add everyone into the system and then make sure they all have a place on
+    the org chart - then set everyones kpis and be ready for the start of october."*
+
+    A month that starts with half the crew off the chart cannot be scored honestly afterwards — the
+    numbers would be about whoever happened to be set up in time. So this NAMES what is left rather
+    than giving a percentage: see lib/ready-for-october for why `startHere` was not enough.
+
+    One query for every criterion, counted in memory. Not one per role.
+  */
+  const criteriaRows = roleIds.size
+    ? await db.select({ roleId: schema.criteria.roleId, active: schema.criteria.active })
+        .from(schema.criteria).where(inArray(schema.criteria.roleId, [...roleIds]))
+    : [];
+  const kpiCount = new Map<string, number>();
+  for (const c of criteriaRows) {
+    if (c.active) kpiCount.set(c.roleId, (kpiCount.get(c.roleId) ?? 0) + 1);
+  }
+  const placed = new Set(assignments.filter(a => !a.toDate).map(a => a.staffId));
+  const readiness = readyForMonth(
+    'October',
+    staff.map(p => ({ id: p.id, name: p.name, roleId: placed.has(p.id) ? 'on' : null })),
+    roleRows
+      .filter(r => r.level !== 'staff')
+      .map(r => ({ id: r.id, title: r.title, kpis: kpiCount.get(r.id) ?? 0, vacant: !holderOf(r.id) })),
+  );
+  const pasted = { added: Number(sp.added ?? NaN), already: Number(sp.already ?? NaN) };
   const nextStep = await nextStepAfter(user.tenantId, '/setup/business');
 
   function RoleRowItem({ r }: { r: typeof roleRows[number] }) {
@@ -183,6 +216,65 @@ export default async function Business({ searchParams }: { searchParams: Promise
       subtitle="Add the roles the business needs, then write in who does each one. Nothing is emailed and nothing is charged until you send invites, which is the last section."
     >
       {error && <div className="mb-4 rounded-lg border-l-4 border-rust-400 bg-surface p-4 text-sm">{error}</div>}
+
+      {/*
+        ── Add everybody at once ─────────────────────────────────────────────────────────────────
+
+        The form below this one takes ONE name per role, which is right for filling a gap and wrong
+        for a business going live: thirty-five people meant thirty-five round trips. That is the
+        friction that gets a rollout postponed rather than reported as a problem.
+
+        Nothing is emailed and nothing is charged. A name is just a name until somebody is
+        deliberately invited, which is what makes it safe to paste the whole company in before
+        anybody has decided who gets a login.
+      */}
+      <section className="card mb-6" data-add-everyone>
+        <h2 className="font-serif text-lg text-ink">{PASTE_LABEL}</h2>
+        <p className="mt-1 max-w-[68ch] text-sm text-ink-light">{PASTE_HELP}</p>
+        <form action={addEveryone} className="mt-3">
+          <textarea
+            name="names"
+            rows={4}
+            aria-label={PASTE_LABEL}
+            placeholder={'Kris Harold\nDan Reilly\nMel Tran'}
+            className="w-full rounded-lg border border-ink/20 p-3 font-mono text-sm"
+          />
+          <div className="mt-2">
+            <SubmitButton pending="Adding&hellip;">Add them all</SubmitButton>
+          </div>
+        </form>
+        {Number.isFinite(pasted.added) && (
+          <p className="mt-3 text-sm text-ink" data-added-says>{addedSays(pasted.added, pasted.already || 0)}</p>
+        )}
+      </section>
+
+      {/*
+        What is still between this business and a month it can score. Named, not counted — see the
+        note where `readiness` is worked out.
+      */}
+      <section className={`mb-6 rounded-lg p-4 ${readiness.ready ? 'bg-sage-200 text-sage-900' : 'bg-cream text-ink'}`} data-ready-for-october>
+        <h2 className="font-serif text-lg">{readiness.ready ? 'Ready for October' : 'Not ready for October yet'}</h2>
+        <p className="mt-1 max-w-[68ch] text-sm">{readiness.says}</p>
+        {readiness.offChart.length > 0 && (
+          <div className="mt-3">
+            <h3 className="label-caps">Nobody has put these people on the chart</h3>
+            <p className="mt-1 text-sm" data-off-chart>{readiness.offChart.map(p => p.name).join(', ')}</p>
+          </div>
+        )}
+        {readiness.short.length > 0 && (
+          <div className="mt-3">
+            <h3 className="label-caps">These roles need their KPIs</h3>
+            <ul className="mt-1 grid gap-1 text-sm" data-short-kpis>
+              {readiness.short.map(r => (
+                <li key={r.id}>
+                  <Link href={`/setup/kpis?role=${r.id}`} className="underline hover:text-rust">{r.title}</Link>
+                  {' '}&mdash; {r.kpis} of {r.need}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
 
       {/*
         The seat is real and the email did not go.

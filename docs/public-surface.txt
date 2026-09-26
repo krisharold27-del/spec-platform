@@ -2074,6 +2074,16 @@ src/lib/reach.ts :: NEITHER_SAYS
 src/lib/reach.ts :: ROUTE_SAYS
 src/lib/reach.ts :: Reach
 src/lib/reach.ts :: reachBy
+src/lib/ready-for-october.ts :: MOST_AT_ONCE
+src/lib/ready-for-october.ts :: NEED_PER_ROLE
+src/lib/ready-for-october.ts :: PASTE_HELP
+src/lib/ready-for-october.ts :: PASTE_LABEL
+src/lib/ready-for-october.ts :: Person
+src/lib/ready-for-october.ts :: Readiness
+src/lib/ready-for-october.ts :: ScoredRole
+src/lib/ready-for-october.ts :: addedSays
+src/lib/ready-for-october.ts :: readNames
+src/lib/ready-for-october.ts :: readyForMonth
 src/lib/recommends-data.ts :: SwitchReading
 src/lib/recommends-data.ts :: asSwitchRow
 src/lib/recommends-data.ts :: businessCounts

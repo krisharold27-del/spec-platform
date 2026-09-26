@@ -9,6 +9,7 @@ import { requireManager } from '@/lib/guard';
 import { assertWritable } from '@/lib/plan';
 import { roleChangeFor, type AssignmentRow, type RoleRow, type StaffRow } from '@/lib/staff';
 import { inviteToSeat } from '@/lib/invite';
+import { readNames } from '@/lib/ready-for-october';
 import { getScope } from '@/lib/scope';
 import { seatKindFromForm } from '@/lib/chart-seats';
 import { syncSubscriptionSeats } from '@/lib/plan';
@@ -265,4 +266,55 @@ export async function invite(formData: FormData) {
   await done(['/setup/business', '/org', '/journey', '/team', '/billing']);
   if (!outcome.sent) redirect(`/setup/business?notsent=${encodeURIComponent(outcome.email)}`);
   redirect('/setup/business?invited=1');
+}
+
+/**
+ * Add everybody at once, from a pasted list.
+ *
+ * ── Kris, 26 September ───────────────────────────────────────────────────────────────────────────
+ *
+ * *"HR for Monday is add everyone into the system and then make sure they all have a place on the
+ * org chart."*
+ *
+ * `addStaff` above takes ONE name per submission. For a business of thirty-five that is thirty-five
+ * round trips through a form — the single biggest piece of friction between a decision to go live
+ * and a business that actually is, and the kind that gets a rollout postponed rather than reported
+ * as a problem.
+ *
+ * The staff list already exists somewhere: a payroll screen, a spreadsheet, a group chat. So the
+ * box takes whatever shape that paste arrives in, and `readNames` does the tidying — see the note
+ * there on why it will never split a name on spaces.
+ *
+ * ── Names only, and nothing else happens ─────────────────────────────────────────────────────────
+ *
+ * No invitations, no emails, no seats, no charge. A name on the chart is just a name until somebody
+ * is deliberately invited, and that rule is what makes it safe to paste a whole company in one go
+ * before anybody has decided who gets a login.
+ */
+export async function addEveryone(formData: FormData) {
+  const user = await requireLeader();
+  await assertWritable(user.tenantId);
+
+  const names = readNames(String(formData.get('names') ?? ''));
+  if (!names.length) redirect('/setup/business?added=0&already=0');
+
+  /* One read and one insert, not one of each per name — thirty-five people must not be seventy
+     round trips, which is the fault this action exists to remove. */
+  const existing = await db.select({ name: schema.staff.name })
+    .from(schema.staff).where(eq(schema.staff.tenantId, user.tenantId));
+  const have = new Set(existing.map(s => s.name.trim().toLowerCase()));
+
+  const fresh = names.filter(n => !have.has(n.toLowerCase()));
+  if (fresh.length) {
+    await db.insert(schema.staff).values(fresh.map(name => ({
+      id: randomUUID(),
+      tenantId: user.tenantId,
+      name,
+      userId: null,
+      createdAt: now(),
+    })));
+  }
+
+  await done(['/setup/business', '/org', '/people'], user.tenantId);
+  redirect(`/setup/business?added=${fresh.length}&already=${names.length - fresh.length}`);
 }
