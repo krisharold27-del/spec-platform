@@ -352,11 +352,14 @@ describe('the tables', () => {
 });
 
 describe('where it lives', () => {
-  it('is a door under The work, and on the bar right after Jobs', () => {
+  it('is a door under The work, and on the bar right after Financials', () => {
     const door = allDoors({ businesses: 1, runsSpec: false }).find(d => d.href === '/crm');
     expect(door?.label).toBe('CRM');
     expect((NAV_HREFS as readonly string[])).toContain('/crm');
-    const bar = navDoors({ businesses: 1, runsSpec: false }).map(d => d.href); expect(bar.indexOf('/crm')).toBe(bar.indexOf('/jobs') + 1);
+    /* Kris set the order by hand on 26 September: My Page, Mirrors, Jobs, Financials, CRM. CRM is
+       still beside the work it belongs to; Financials moved between them at his word. */
+    const bar = navDoors({ businesses: 1, runsSpec: false }).map(d => d.href);
+    expect(bar.indexOf('/crm')).toBe(bar.indexOf('/financials') + 1);
   });
   it('the coverage map sends "Customers & sites" to the whole client list, which the CRM feeds', () => {
     // Was /crm until 23 September, when /clients became "every client, site, contact and job

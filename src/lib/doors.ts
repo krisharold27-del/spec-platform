@@ -56,6 +56,19 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
         { href: '/meeting', label: 'COGS meeting', note: 'The weekly meeting, opening with the Make it simple report.' },
         { href: '/scoring', label: 'The month', note: 'Mark the month, and close it when it is done.' },
         { href: '/inbox', label: 'Approvals', note: 'What is waiting on a decision from you.' },
+        /*
+          ── Two doors added the day the bar became ten, 26 September ─────────────────────────────
+
+          Kris named the tabs and `/board` and `/pages` were not among them — but neither was in this
+          directory either, so taking them off the bar would have left them reachable only by typing
+          the address. That is precisely the thing he had just said he cannot cope with, and it would
+          have happened inside the very change meant to fix it.
+
+          `/pages` most of all: it is the door to the complete list, the safety net under everything
+          else. Losing the safety net while tidying the menu is how a tidy-up becomes a loss.
+        */
+        { href: '/board', label: 'Board pack', note: 'The pack for the month that finished, and the decisions in it.' },
+        { href: '/pages', label: 'All pages', note: 'Every screen in SPEC, grouped — the complete list.' },
       ],
     },
     {
@@ -118,6 +131,22 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
         */
         { href: '/billing', label: 'Pricing', note: 'What it costs, and Stripe billing.' },
         { href: '/setup', label: 'Setting up', note: 'Roles, KPIs and the things still to do.' },
+        /*
+          ── Two setup steps that existed and could not be opened, 26 September ────────────────────
+
+          `/setup/roles` and `/setup/people` are built, work, and had NO link anywhere in the source
+          — found by `scripts/reachable.mjs` the day Kris said *"im so worried about you deleting
+          things."* Nothing had been deleted; these had simply never been pointed at. To somebody
+          looking for them that is the same thing, which is the whole reason that check now exists.
+        */
+        { href: '/setup/roles', label: 'The roles you need', note: 'What the business needs doing, before who does it.' },
+        { href: '/setup/people', label: 'Who sits where', note: 'Putting names to the roles.' },
+        /*
+          The owner questions page: every question Kris has asked about the product, answered
+          against what is actually built. It was live-checked and then reachable only by typing the
+          address — see the note above.
+        */
+        { href: '/questions', label: 'Owner questions', note: 'Every question asked about SPEC, answered against the built product.' },
         { href: '/charter', label: 'Board charter', note: 'What the Board commits to — the four, identical in every business.' },
         { href: '/settings', label: 'Administration', note: 'Seats, billing, permissions and the board.' },
         /*
@@ -187,106 +216,67 @@ export function doors({ businesses, runsSpec }: DoorsFor): DoorGroup[] {
  * bar pointing at nothing while the directory quietly stays right.
  */
 export const NAV_HREFS = [
-  '/my-page', '/org', '/virtual-gm', '/jobs', '/crm', '/people', '/financials', '/safety', '/compliance', '/board', '/meeting',
-  '/setup', '/connections', '/pages',
+  '/my-page', '/mirrors', '/jobs', '/financials', '/crm', '/safety', '/people', '/compliance',
+  '/setup', '/connections',
 ] as const;
 
 export function navDoors(f: DoorsFor): Door[] {
   const all = allDoors(f);
   const find = (href: string) => all.find(d => d.href === href);
+  /*
+    ── The bar, named by Kris, 26 September ──────────────────────────────────────────────────────
+
+    *"tabs MUST be - My Page - Mirrors - Jobs - Financials - CRM - Safety - People - Compliance -
+    Set Up - Connections"*
+
+    Ten, in that order, and this list is now his rather than something argued into shape. The two
+    previous attempts both went wrong the same way, and the record is worth keeping:
+
+      **24 September.** Fourteen tabs were cut to seven, and Scoring and Mirrors were moved "under
+      Board". Nothing was deleted. But a page in a drawer is a page nobody opens, and two months of
+      Mirrors work went quiet.
+
+      **25 September.** Kris could not find the org chart. It was given a tab, `docs/CORE-COMPONENTS.md`
+      was written to stop it recurring, and a test was pointed at that file. Scoring and Mirrors
+      were not added to either — so the check guarding against exactly this passed, green, every
+      run, while two of the three things the product is built on stayed buried.
+
+      **26 September.** *"where the fuck are they - im furious."* Fair.
+
+    ── Why the org chart has no tab, and why that is not the 24 September mistake again ──────────
+
+    Kris, in the same breath as the list: *"org chart is on my page and under people but doesnt have
+    own tab."* That is a decision, not an oversight, and it is a different thing from what happened
+    on 24 September — there, Mirrors went into a drawer with nothing pointing at it. Here the chart
+    has a card of its own on My Page (`OrgChartDoor`, on My Page, People, Virtual GM and Setup),
+    which is the first screen of the morning.
+
+    `tests/core-components.test.ts` now holds the rule that actually matters: a core component is
+    either ON this bar or ONE CLICK from a page that is. Not "exists somewhere". Not "is in the
+    directory". One click, from a named page, proved.
+  */
   return [
+    { href: '/my-page', label: 'My page', note: 'Your day, the org chart, and everything else opens from it.' },
     /*
-      ── The key areas, 24 September ────────────────────────────────────────────────────────────
-
-      Kris, looking at a bar of fourteen: *"why is this like this - we already talked about these
-      are to be combined."* He is right, and the design says it plainly:
-
-        "Top menu on every app page is now the key areas: My page · Jobs · CRM · People · Safety ·
-         Compliance · Board, with Setup, Connections and All pages on the right. Org chart and
-         Training sit under People; Scoring and Mirrors under Board."
-
-      Fourteen tabs is not navigation, it is a list of everything — the exact fault that got the old
-      nineteen-item dropdown deleted in September, growing back one reasonable addition at a time.
-      Each of Clients, Org chart, Pricing, Scoring and Mirrors earned its place on its own, and
-      together they made a bar nobody reads.
-
-      So the bar is now SEVEN key areas plus three on the right. What came off it did not become
-      unreachable: Org chart and Training are opened from People, Scoring and Mirrors from Board,
-      Clients from CRM, Pricing from Setup — and every one of them is still in the full directory
-      behind All pages. `tests/doors.test.ts` holds that: nothing may leave the bar without still
-      being reachable from somewhere a person would look.
+      Mirrors, second. GROW in LINK-FLOW-GROW, and the one that spent two days in a drawer.
+      Kris, 26 September: *"mirrors are for the business to use for all sorts of important things."*
     */
-    { href: '/my-page', label: 'My page', note: 'Your day, and everything else opens from it.' },
-    /*
-      ── The core components, 25 September ─────────────────────────────────────────────────────────
-
-      Kris could not find the org chart. It is THE key component of SiteVIP — everything hangs off
-      it — and the September shortening had tucked it "under People", which in practice meant
-      nothing in the bar and nothing on the pages he opens led to it. Findability beats a short bar:
-      every component in docs/CORE-COMPONENTS.md now has its own item, the org chart second, and
-      `tests/core-components.test.ts` fails the build if one ever leaves.
-    */
-    /*
-      ── LINK, FLOW, GROW — the three, together, 26 September ──────────────────────────────────────
-
-      Kris: *"there are three absolutely critical aspects to this system - links (org chart) - kpi
-      boards (flow) and mirrors to support (growth) - where the fuck are they."*
-
-      He was right, and the history is worth writing down because the same mistake has now been made
-      twice in three days.
-
-      On 24 September the bar was shortened from fourteen items to seven, and the note two blocks
-      above records exactly what went: *"Scoring and Mirrors under Board."* On 25 September he could
-      not find the org chart, and LINKS was put back with its own item and a test to hold it there.
-      FLOW and GROW were never put back. So of the three things this product is built on, one was
-      protected and two stayed buried — and `docs/CORE-COMPONENTS.md`, the file written that same day
-      to stop precisely this, listed neither of them. The check passed every run while guarding a
-      list that did not contain two thirds of the point.
-
-      They sit together, in order, because they are one idea and reading them apart is what let two
-      of them go missing. A longer bar is a price worth paying; a component nobody can find is not.
-    */
-    find('/org') ?? { href: '/org', label: 'Org chart', note: 'LINK — who does what, and who reports to whom.' },
-    { href: '/scoring', label: 'Scoring', note: 'FLOW — the KPI boards, and closing the month on them.' },
-    { href: '/mirrors', label: 'Mirrors', note: 'GROW — the artifacts your team pins and runs projects through.' },
-    /* Its own short label: the directory calls it "Virtual GM + Virtual Admin", too long for a tab. */
-    { href: '/virtual-gm', label: 'Virtual GM', note: 'The whole business on one screen — the GM thinking and the admin department.' },
+    { href: '/mirrors', label: 'Mirrors', note: 'The artifacts your team pins and runs projects through.' },
     find('/jobs') ?? { href: '/jobs', label: 'Jobs', note: 'Quote it, win it, book the crew, do the job, invoice it.' },
+    find('/financials') ?? { href: '/financials', label: 'Financials', note: 'Cash, profit, GST, wages, who owes you and who you owe — and payroll.' },
     /*
-      CRM, and Clients folded into it. The design: "CRM opens Jobs on the Customers tab." Ours is
-      its own page and stays that way — what matters is that the selling and the people sold to are
-      one door rather than two beside each other.
+      CRM, with Clients folded into it. The design: "CRM opens Jobs on the Customers tab." Ours is
+      its own page — what matters is that the selling and the people sold to are one door.
     */
     find('/crm') ?? { href: '/crm', label: 'CRM', note: 'Deals, the clients behind them, and everyone at them.' },
-    /* People, with the chart and the training under it — they are all the same question. */
-    find('/people') ?? { href: '/people', label: 'People', note: 'Who you have, the chart they sit in, what they are trained on, who you need.' },
-    /*
-      Financials, right after People — Kris, 25 September: he could not see the money. It sat inside
-      the Virtual GM, two screens down, and the bar had nothing for it. Money is the thing a trade
-      business owner checks most, so it is a key area, and the ceiling moves from ten to eleven for
-      it rather than something else being pushed off.
-    */
-    find('/financials') ?? { href: '/financials', label: 'Financials', note: 'Cash, profit, GST, wages, who owes you and who you owe — and payroll.' },
     find('/safety') ?? { href: '/safety', label: 'Safety', note: 'Report it, fix it, prove it.' },
+    /* People, and the org chart and the training under it — they are all the same question. */
+    find('/people') ?? { href: '/people', label: 'People', note: 'Who you have, the chart they sit in, what they are trained on, who you need.' },
     { href: '/compliance', label: 'Compliance', note: 'Licences, insurance, certificates, audits, contracts — and nothing lapsed.' },
-    /*
-      Board: the pack, and the month and the mirrors that feed it. The pack lives at
-      /board/[periodId]; `/board` is the door, and it opens the most recently closed month, because
-      a board pack is a record of a month that finished.
-    */
-    { href: '/board', label: 'Board', note: 'The pack, the month being scored, and the mirrors behind it.' },
-    /* The weekly COGS meeting — and the Make it simple report, which is its first item. */
-    { href: '/meeting', label: 'COGS meeting', note: 'The weekly meeting, opening with the Make it simple report.' },
 
-    /* ── The three on the right: setting it up, not running it ──────────────────────────────── */
-    { href: '/setup', label: 'Setup', note: 'Roles, KPIs, pricing and the things still to do.' },
+    /* ── The two on the right: setting it up, not running it ─────────────────────────────────── */
+    { href: '/setup', label: 'Set up', note: 'Roles, KPIs, pricing and the things still to do.' },
     find('/connections') ?? { href: '/connections', label: 'Connections', note: 'The systems that feed your numbers.' },
-    /*
-      The last item, and the reason the bar can stay this short whatever else gets added. SPEC has
-      far more than ten screens and always will. The complete grouped directory is at the foot of My
-      Page — this is the door to it, so nothing is ever only reachable by knowing it is there.
-    */
-    { href: '/pages', label: 'All pages', note: 'Every screen in SPEC, grouped.' },
   ];
 }
 

@@ -75,7 +75,10 @@ describe('everywhere else in SPEC', () => {
 
   it('leads with the rhythm, because that is what most days are made of', () => {
     expect(doors(SOLO)[0].title).toBe('The rhythm');
-    expect(doors(SOLO)[0].doors.map(d => d.href)).toEqual(['/meeting', '/scoring', '/inbox']);
+    /* Board pack and All pages joined this group on 26 September, when the bar was cut to Kris's
+       ten: both were in neither the bar nor the directory, so taking them off would have lost them
+       outright. See docs/NOTHING-COMES-OFF.md. */
+    expect(doors(SOLO)[0].doors.map(d => d.href)).toEqual(['/meeting', '/scoring', '/inbox', '/board', '/pages']);
   });
 
   /*
@@ -138,7 +141,7 @@ describe('the navigation bar', () => {
       is what let two of them go missing. The ceiling is sixteen; the next addition must be a core
       component Kris names, or go under one.
     */
-    expect(navDoors(f)).toHaveLength(16);
+    expect(navDoors(f)).toHaveLength(10);
     expect(navDoors(f).length).toBeLessThan(allDoors(f).length);
   });
 
@@ -177,9 +180,13 @@ describe('the navigation bar', () => {
       every day — and Setup, Connections and All pages sit to the right of them because setting the
       business up is not one of them. My Page goes back to first, which is where every day starts.
     */
+    /* 26 September: Kris named the ten by hand and kept this shape — the places you work in, then
+       Set up and Connections on the right. Held against Compliance, the last of the key areas, now
+       that Board is not a tab. */
     expect(navDoors(f)[0].href).toBe('/my-page');
     const labels = navDoors(f).map(d => d.label);
-    expect(labels.indexOf('Setup')).toBeGreaterThan(labels.indexOf('Board'));
+    expect(labels.indexOf('Set up')).toBeGreaterThan(labels.indexOf('Compliance'));
+    expect(labels.indexOf('Connections')).toBeGreaterThan(labels.indexOf('Set up'));
   });
 
   it('and every item carries the words the design uses', () => {
@@ -199,10 +206,10 @@ describe('the navigation bar', () => {
       and could find only one of them; keeping them adjacent is what stops the next tidy-up lifting
       two out and leaving the third looking like it was always alone.
     */
+    /* Kris named these, in this order, on 26 September — see docs/NOTHING-COMES-OFF.md. */
     expect(labels).toEqual([
-      'My page', 'Org chart', 'Scoring', 'Mirrors',
-      'Virtual GM', 'Jobs', 'CRM', 'People', 'Financials', 'Safety', 'Compliance', 'Board',
-      'COGS meeting', 'Setup', 'Connections', 'All pages',
+      'My page', 'Mirrors', 'Jobs', 'Financials', 'CRM', 'Safety', 'People', 'Compliance',
+      'Set up', 'Connections',
     ]);
   });
 

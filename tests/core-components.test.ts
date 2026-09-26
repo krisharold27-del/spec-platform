@@ -42,22 +42,70 @@ describe('the core components', () => {
     expect(rows.map(r => r.component).sort()).toEqual([...REQUIRED].sort());
   });
 
-  for (const shape of [{ businesses: 1, runsSpec: false }, { businesses: 3, runsSpec: true }]) {
-    it(`are every one in the main menu, under its own label (${shape.businesses} business${shape.businesses > 1 ? 'es' : ''})`, () => {
-      const bar = navDoors(shape);
-      const missing = rows.filter(r => !bar.some(d => d.href === r.route && d.label === r.label));
-      expect(missing.map(r => `${r.component} (${r.label} → ${r.route})`)).toEqual([]);
-    });
-  }
+  /*
+    ── On the bar, or ONE CLICK from it — 26 September ────────────────────────────────────────────
+
+    This used to demand that every core component have its OWN tab. Kris replaced the bar by hand:
+
+      *"tabs MUST be - My Page - Mirrors - Jobs - Financials - CRM - Safety - People - Compliance -
+      Set Up - Connections"*
+      *"org chart is on my page and under people but doesnt have own tab"*
+
+    Ten tabs cannot hold sixteen components, so the old rule had to go — and the honest danger in
+    relaxing it is that "reachable" quietly degrades into "exists somewhere", which is precisely how
+    Mirrors spent two days in a drawer while a green check reported the menu as protected.
+
+    So the replacement is stricter than prose and narrower than the old rule: a component is on the
+    bar, or a page that IS on the bar links to it. One click, named, proved by reading the source of
+    the bar page and of the components that page imports — because the org chart's door on My Page
+    is a component (`OrgChartDoor`), and a rule that could not see inside it would fail the very
+    case Kris just described.
+  */
+  const barPages = navDoors({ businesses: 1, runsSpec: false }).map(d => d.href);
+
+  /** A bar page's own source, plus the source of every local component it imports. */
+  const sourceReachableFrom = (href: string): string => {
+    const page = pageFor(href);
+    if (!existsSync(page)) return '';
+    let src = readFileSync(page, 'utf8');
+    for (const m of src.matchAll(/from '@\/(components|lib)\/([\w-]+)'/g)) {
+      for (const ext of ['.tsx', '.ts']) {
+        const f = join('src', m[1], m[2] + ext);
+        if (existsSync(f)) { src += readFileSync(f, 'utf8'); break; }
+      }
+    }
+    return src;
+  };
+
+  const barSources = new Map(barPages.map(h => [h, sourceReachableFrom(h)]));
+
+  it('ARE EVERY ONE ON THE BAR, OR ONE CLICK FROM A PAGE THAT IS', () => {
+    const lost = [];
+    for (const r of rows) {
+      if (barPages.includes(r.route)) continue;
+      const from = [...barSources].find(([, src]) => src.includes(`"${r.route}"`) || src.includes(`'${r.route}'`) || src.includes(`\`${r.route}\``));
+      if (!from) lost.push(`${r.component} (${r.route}) — not on the bar, and no bar page links to it`);
+    }
+    expect(lost).toEqual([]);
+  });
+
+  it('REACHES THE ORG CHART FROM MY PAGE, which is where Kris says it lives', () => {
+    /* His words, 26 September: "org chart is on my page and under people but doesnt have own tab."
+       Both halves, because "it is on the other one" is how a thing ends up on neither. */
+    expect(barSources.get('/my-page') ?? '', 'the org chart is not reachable from My page').toContain('/org');
+    expect(sourceReachableFrom('/people'), 'the org chart is not reachable from People').toContain('/org');
+  });
 
   it('each open a page that exists', () => {
     expect(rows.filter(r => !existsSync(pageFor(r.route))).map(r => r.route)).toEqual([]);
   });
 
-  it('with the org chart second, right after My page', () => {
+  it('OPENS ON MY PAGE, WITH MIRRORS SECOND', () => {
+    /* Kris's order, 26 September, verbatim: My Page then Mirrors. Mirrors is second because it is
+       the one that was lost, and the position is the apology. */
     const bar = navDoors({ businesses: 1, runsSpec: false });
-    expect(bar[0].href).toBe('/my-page');
-    expect(bar[1]).toMatchObject({ href: '/org', label: 'Org chart' });
+    expect(bar[0]).toMatchObject({ href: '/my-page' });
+    expect(bar[1]).toMatchObject({ href: '/mirrors', label: 'Mirrors' });
   });
 
   it('and the org chart is also a door on My Page, People, Virtual GM and Setup', () => {
@@ -74,8 +122,13 @@ describe('the core components', () => {
 
 describe('All pages', () => {
   it('opens a real page listing every page, not My Page', () => {
-    const bar = navDoors({ businesses: 1, runsSpec: false });
-    const all = bar[bar.length - 1];
+    /*
+      All pages came off the BAR on 26 September when Kris named the ten tabs, and is now a door in
+      the directory — which My Page renders in full. It still has to exist and still has to be the
+      complete list: it is the safety net under every other item, and the one thing that must never
+      become the thing that got tidied away.
+    */
+    const all = allDoors({ businesses: 1, runsSpec: false }).find(d => d.href === '/pages');
     expect(all).toMatchObject({ label: 'All pages', href: '/pages' });
     const src = readFileSync('src/app/pages/page.tsx', 'utf8');
     expect(src).toContain("from '@/lib/doors'");

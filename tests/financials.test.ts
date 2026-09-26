@@ -119,9 +119,12 @@ describe('payroll: hours in, checked, sent to pay', () => {
 
 describe('Financials is on the bar, right after People, and linked', () => {
   const ctx = { businesses: 1, runsSpec: false };
-  it('sits after People and is a real page', () => {
+  it('sits after Jobs and is a real page', () => {
+    /* It sat after People from 25 September. Kris reordered the whole bar by hand on the 26th —
+       "tabs MUST be - My Page - Mirrors - Jobs - Financials - CRM - ..." — which puts the money
+       directly after the work that earns it. See docs/NOTHING-COMES-OFF.md. */
     const labels = navDoors(ctx).map(d => d.label);
-    expect(labels.indexOf('Financials')).toBe(labels.indexOf('People') + 1);
+    expect(labels.indexOf('Financials')).toBe(labels.indexOf('Jobs') + 1);
     expect(allDoors(ctx).some(d => d.href === '/financials')).toBe(true);
     expect(existsSync('src/app/financials/page.tsx')).toBe(true);
   });

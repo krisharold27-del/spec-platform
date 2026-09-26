@@ -1,0 +1,105 @@
+/*
+  Every page a person can actually get to — so nothing can go quiet without going away.
+
+  ── Kris, 26 September ──────────────────────────────────────────────────────────────────────────
+
+  *"there are three absolutely critical aspects to this system - links (org chart) - kpi boards
+  (flow) and mirrors to support (growth) - where the fuck are they - im furious."*
+
+  Then, a moment later: *"im so worried about you deleting things - really really worried now."*
+
+  Both are the same worry, and the measurement is the point. Nothing had been deleted: 80 pages
+  before, 80 after; 2,869 exported functions before, 2,878 after. Scoring and Mirrors were never
+  removed. They were moved out of the menu on 24 September and left in a drawer.
+
+  To the person looking for them, that is identical to deletion. They went to find the thing and it
+  was not there. `tests/surface.test.ts` — the check written that morning against deleting — would
+  have passed every single run while it happened, because nothing WAS deleted.
+
+  ── So this is the other half of that rule ──────────────────────────────────────────────────────
+
+  A page nobody can reach is not in the product, whatever the file tree says. This walks every route
+  under src/app and asks a blunt question: is there a link to it ANYWHERE in the source? Not "is it
+  in the menu" — anywhere at all. A page nothing points at is an orphan, and orphans fail the build.
+
+  The asymmetry matches the surface rule, deliberately:
+
+    LINKING something is free — write the link, carry on.
+    ORPHANING something fails, by name, and the only way past is a line in docs/UNREACHABLE.md
+    saying why that page is reached another way.
+
+  ── What it deliberately does NOT do ────────────────────────────────────────────────────────────
+
+  It does not try to prove a page is reachable in a browser, in the right role, in the right state —
+  a link inside a block nobody's permissions open is still an orphan in practice. That is a harder
+  question and `scripts/core-components-journey.mjs` asks it of the components that matter most.
+  This one holds the floor: no page may have nothing pointing at it at all. A floor that is actually
+  enforced beats a ceiling that is aspired to.
+*/
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+
+export const EXCUSES = 'docs/UNREACHABLE.md';
+
+const files = (dir, test, out = []) => {
+  for (const e of readdirSync(dir)) {
+    const p = join(dir, e);
+    if (statSync(p).isDirectory()) files(p, test, out);
+    else if (test(p, e)) out.push(p);
+  }
+  return out;
+};
+
+/** Every route with a page, as an address. */
+export function routes() {
+  return files('src/app', (_p, e) => e === 'page.tsx')
+    .map(p => {
+      const r = `/${p.replace(/^src\/app\/?/, '').replace(/\/?page\.tsx$/, '')}`;
+      return r === '/' ? '/' : r.replace(/\/$/, '');
+    })
+    .sort();
+}
+
+/**
+ * Every address mentioned anywhere in the source.
+ *
+ * Deliberately generous. A link written as `href={`/jobs/${id}`}` or handed to `redirect()` counts
+ * just as much as a `<Link>`, because the question is whether anything points there at all — and a
+ * check that cries wolf over a real link written in an unusual way is a check people switch off.
+ */
+export function mentioned() {
+  const found = new Set();
+  for (const f of files('src', p => /\.tsx?$/.test(p))) {
+    const src = readFileSync(f, 'utf8');
+    for (const m of src.matchAll(/["'`](\/[a-z0-9\-/[\]]*)(?:["'`?#])/gi)) found.add(m[1]);
+  }
+  return found;
+}
+
+/** Routes that are deliberately reached some other way, and the reason, from docs/UNREACHABLE.md. */
+export function excused() {
+  let doc = '';
+  try { doc = readFileSync(EXCUSES, 'utf8'); } catch { return new Set(); }
+  return new Set([...doc.matchAll(/^- `(\/[^`]*)`/gm)].map(m => m[1]));
+}
+
+/**
+ * Pages nothing points at, and nobody has written down a reason for.
+ *
+ * A dynamic segment is skipped: `/jobs/[id]` is never written out literally, and the parent that
+ * links to it is what proves the branch is alive.
+ */
+export function orphans() {
+  const links = mentioned();
+  const said = excused();
+  return routes().filter(r =>
+    r !== '/' && !r.includes('[') && !links.has(r) && !said.has(r));
+}
+
+if (process.argv[1]?.endsWith('reachable.mjs')) {
+  const all = routes();
+  const lost = orphans();
+  console.log(`${all.length} pages; ${lost.length} that nothing links to.`);
+  for (const r of lost) console.log(`  ${r}`);
+  if (lost.length) process.exit(1);
+}
