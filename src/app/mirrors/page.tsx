@@ -17,7 +17,11 @@ import { listBoards, getBoard, markViewing, mirrorKpisFor } from '@/lib/boards-l
 import { kpiStanding, kpiGap, kpiWorking } from '@/lib/mirror-kpis';
 import { NAME_WORDS, atRest, signifier, tabName } from '@/lib/mirror-rules';
 import { LIGHT_COLOUR } from '@/lib/today';
-import { newBoard, sayOnBoard, putKpiOnBoard, takeKpiOffBoard, moveStepOnBoard, addStepToBoard } from './actions';
+import { newBoard, sayOnBoard, putKpiOnBoard, takeKpiOffBoard, moveStepOnBoard, addStepToBoard, askForMirror } from './actions';
+import {
+  ASK_LABEL, ASK_HELP, ASK_PLACEHOLDER, A_DRAFT_NOT_A_DECISION, TOO_SHORT, MIN_ASK,
+  CAN_DRAFT, WILL_NOT_DRAFT,
+} from '@/lib/mirror-maker';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +79,8 @@ export default async function Boards({ searchParams }: {
   searchParams: Promise<{
     board?: string; type?: string; needs?: string; said?: string; period?: string;
     cannot?: string; full?: string; title?: string; summary?: string; kind?: string;
+    /** The ask was too short to spend a draft on — see MIN_ASK in lib/mirror-maker. */
+    short?: string; drafted?: string;
   }>;
 }) {
   const user = await getCurrentUser();
@@ -611,7 +617,47 @@ export default async function Boards({ searchParams }: {
 
   return (
     <Shell title="Mirrors" headline="Mirrors" subtitle={BOARDS_INTRO}>
-      <div className="flex flex-wrap items-center gap-2">
+      {/*
+        ── Ask for one, at the top ────────────────────────────────────────────────────────────────
+
+        Kris, 26 September: *"have chat function at the top and then produce the mirrors - artifacts
+        - then the staff have a fabulous resource to help them be succesful."*
+
+        At the TOP, above the filters and the cards, because the hard part of a resource library is
+        never reading it — it is somebody sitting down to write the first one. A blank page is why
+        most of them stay empty. This turns that into a sentence.
+
+        What it will NOT do is on the card too, in the open. It drafts the four kinds made of words
+        and refuses the two made of figures, because those read the business's own numbers and a
+        drafted one would be guesses that looked like readings. Saying so where somebody is typing
+        is kinder than refusing them after they have pressed the button.
+      */}
+      <section className="card" data-ask-for-mirror>
+        <h2 className="font-serif text-lg text-ink">{ASK_LABEL}</h2>
+        <p className="mt-1 max-w-[62ch] text-sm text-ink-light">{ASK_HELP}</p>
+        <form action={askForMirror} className="mt-3">
+          <textarea
+            name="ask"
+            rows={2}
+            required
+            minLength={MIN_ASK}
+            placeholder={ASK_PLACEHOLDER}
+            aria-label={ASK_LABEL}
+            className="w-full rounded-lg border border-ink/20 p-3 text-base"
+          />
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <SubmitButton pending="Drafting&hellip;">Draft a mirror</SubmitButton>
+            <span className="text-xs text-ink-light">{A_DRAFT_NOT_A_DECISION}</span>
+          </div>
+        </form>
+        {sp.short === '1' && <p className="mt-3 text-sm text-rust-700">{TOO_SHORT}</p>}
+        <p className="mt-4 border-t border-ink/10 pt-3 text-xs text-ink-light">
+          Drafts {CAN_DRAFT.map(k => k.label.toLowerCase()).join(', ')}.{' '}
+          {WILL_NOT_DRAFT.map(w => `${w.label}: ${w.why}`).join(' ')}
+        </p>
+      </section>
+
+      <div className="mt-6 flex flex-wrap items-center gap-2">
         <Link
           href="/mirrors"
           className={`rounded-full px-4 py-2 text-sm ${!filter ? 'bg-rust text-cream' : 'bg-surface text-ink hover:bg-cream'}`}

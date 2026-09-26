@@ -9,6 +9,8 @@ import { createBoard, commentOnBoard, addKpiToBoard, removeKpiFromBoard, moveSte
 import { getScope } from '@/lib/scope';
 import { readTitle } from '@/lib/mirror-rules';
 import { refuseTo } from '@/lib/refuse';
+import { CLAUDE_MODEL, anthropicHeaders } from '@/lib/claude';
+import { starter, readDraft, systemPrompt, MIN_ASK } from '@/lib/mirror-maker';
 
 /**
  * Starting a board, and saying something on one.
@@ -191,4 +193,90 @@ export async function addStepToBoard(form: FormData) {
     refuseTo(back, 'That step needs some words, and cannot be one already on this plan.');
   }
   redirect(back);
+}
+
+/**
+ * Ask for a mirror in plain words, and get a draft back.
+ *
+ * ── Kris, 26 September ───────────────────────────────────────────────────────────────────────────
+ *
+ * *"have chat function at the top and then produce the mirrors - artifacts - then the staff have a
+ * fabulous resource to help them be succesful."*
+ *
+ * The rules this works to are in lib/mirror-maker, next to the words the page says, so the promise
+ * on screen and the behaviour cannot drift apart. Three of them matter here:
+ *
+ *   **It drafts, it never publishes.** The mirror lands unpinned with the request kept beside it as
+ *   the first comment, so the next person can see what was actually asked for. Anybody reading it
+ *   later can tell a drafted one from a written one, which matters when they decide whether to
+ *   trust it.
+ *
+ *   **It never invents a figure.** `readDraft` strips percentages, money and rates out of whatever
+ *   comes back, and the system prompt says so too — the strip is the net, not the plan. A mirror
+ *   gets PINNED: an invented callback rate on a board is a lie the business will act on.
+ *
+ *   **No key is not a dead feature.** Without ANTHROPIC_API_KEY it saves `starter()`, which turns
+ *   the request into a real first step rather than a confident-looking empty template. Every other
+ *   Claude caller in this codebase degrades the same way and for the same reason.
+ */
+export async function askForMirror(form: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/signin');
+  await assertWritable(user.tenantId);
+
+  const ask = String(form.get('ask') ?? '').trim().replace(/\s+/g, ' ');
+  if (ask.length < MIN_ASK) redirect(`/mirrors?short=1`);
+
+  let draft = starter(ask);
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (key) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: anthropicHeaders(key),
+        body: JSON.stringify({
+          model: CLAUDE_MODEL,
+          max_tokens: 1200,
+          system: systemPrompt(),
+          messages: [{ role: 'user', content: ask }],
+        }),
+      });
+      if (res.ok) {
+        const body = await res.json() as { content?: { text?: string }[] };
+        /* A shape that does not fit falls back to the starter rather than to an error page: a bad
+           answer should cost one more press, not somebody's afternoon. */
+        draft = readDraft(body.content?.[0]?.text ?? '') ?? draft;
+      }
+    } catch {
+      /* Anthropic having a moment is not this business's problem to look at. The starter is real
+         work, so the person gets something either way and nothing says the feature is broken. */
+    }
+  }
+
+  const id = await createBoard({
+    tenantId: user.tenantId,
+    title: draft.title,
+    kind: draft.kind,
+    summary: draft.summary,
+    createdBy: user.id,
+  });
+  for (const step of draft.steps) {
+    await addStep({ boardId: id, tenantId: user.tenantId, text: step.text, owner: step.owner });
+  }
+  /*
+    The request, kept on the mirror itself.
+
+    Six weeks later somebody reads a pinned checklist and wants to know where it came from. "Asked
+    for by name, in these words, on this date" is the answer, and it lives next to the thing rather
+    than in a log nobody opens.
+  */
+  await commentOnBoard({
+    boardId: id,
+    tenantId: user.tenantId,
+    authorName: user.name ?? 'Somebody',
+    text: `Drafted from: "${ask}"`,
+  });
+
+  revalidatePath('/mirrors');
+  redirect(`/mirrors?board=${id}&drafted=1`);
 }
