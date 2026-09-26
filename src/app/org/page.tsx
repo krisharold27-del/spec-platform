@@ -44,6 +44,9 @@ export const dynamic = 'force-dynamic';
  * business that has not finished drawing itself.
  */
 export default async function OrgChart({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  /* Where /org spends its time, step by step — it hung for 300s on 26 September and the log could not say where. Step names only, never business content. */
+  const t0 = Date.now();
+  const mark = (step: string) => console.log(`[org] ${step} ${Date.now() - t0}ms`);
   const sp = await searchParams;
   const read = String(sp.read ?? '');
   /*
@@ -70,9 +73,11 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   /* Design 19: pick a duty and the chart shows only the seats that carry part of it. */
   const duty = String(sp.duty ?? '') || null;
   const user = await getCurrentUser();
+  mark('user');
   if (!user) redirect('/signin');
   const tenant = (await getTenantById(user.tenantId))!;
   const chain = await chainFor(user.tenantId, duty);
+  mark('chain');
   /*
     The person just reached by phone, and the message to send them. Scoped to this business by the
     same query that finds them — a staff id arriving in the address bar is somebody else's text
@@ -85,6 +90,7 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
     : [];
   const scope = await getScope(user);
   const period = await currentPeriod(tenant.id);
+  mark('scope+period');
   const manage = canManage(user.access);
 
   /*
@@ -98,6 +104,7 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   const criteria = ourRoleIds.length
     ? await db.select().from(schema.criteria).where(inArray(schema.criteria.roleId, ourRoleIds))
     : [];
+  mark('criteria');
   /*
     Every role's Ace run, read once for the whole chart.
 
@@ -109,10 +116,12 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   const aces = period
     ? new Map((await aceWatch(tenant.id, period.id, ourRoleIds)).map(a => [a.roleId, a]))
     : new Map<string, AceWatchRow>();
+  mark('ace');
 
   // Proposals, which are deliberately NOT roles — see lib/predict-data. Nothing that walks the
   // business can see them, which is what stops one ever being counted, scored or billed for.
   const predicted = await pendingPredictions(user.tenantId);
+  mark('predicted');
 
   /*
     This business's own systems, for the "Connect a system" card.
@@ -139,6 +148,7 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
   // The goal, worked down the chart. Proposals too — a row becomes a KPI only when somebody takes it.
   const cascade = await cascadeFor(user.tenantId);
   const goalsSet = goalsAnswered(await goalsFor(user.tenantId));
+  mark('connections+cascade+goals');
 
   const roles: ChartRole[] = [];
   for (const r of scope.roles) {
@@ -210,6 +220,7 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
       },
     });
   }
+  mark('scorecards');
 
   // The chart hangs off the top of the business, not off whatever this viewer happens to see.
   const rootId = roles.find(r => r.level === 'gm')?.id ?? roles.find(r => !r.parentId)?.id ?? null;
@@ -269,6 +280,7 @@ export default async function OrgChart({ searchParams }: { searchParams: Promise
     could hold it.
   */
   const link = readLink(await seatsFor(user, scope));
+  mark('seats');
   /* One answer: the stage reads the same reading the three questions do. */
   const journey = stages(roles, detached, averages, 0.9,
     { linked: link.linked, seats: link.seats, says: linkLine(link) });
