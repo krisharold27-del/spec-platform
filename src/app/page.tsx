@@ -61,11 +61,14 @@ export default async function SiteVipLanding() {
       <main>
         {/* (1) The word, set enormous, and the one line under it. */}
         <section aria-labelledby="hero" className="mx-auto max-w-[1000px] px-[clamp(16px,5vw,72px)] pb-[clamp(56px,10vh,112px)] pt-[clamp(40px,9vh,120px)] text-center">
+          <p className="mb-4 text-[12.5px] font-semibold uppercase tracking-[0.06em] text-rust-700">For every trade, from one person to hundreds</p>
           <h1 id="hero" className="m-0 font-serif text-[clamp(64px,14vw,148px)] leading-none">{OUT_SIMPLE_HERO.word}</h1>
           <p className="mx-auto mt-[clamp(20px,3vw,32px)] max-w-[22ch] font-serif text-[clamp(24px,3.6vw,40px)] leading-tight">
             {OUT_SIMPLE_HERO.line}
           </p>
           <p className="mx-auto mt-4 max-w-[40ch] text-[clamp(17px,1.8vw,20px)] leading-[1.5] text-ink-light">{OUT_SIMPLE_HERO.push}</p>
+          {/* Counted, not claimed: scripts/taps-journey.mjs presses every one in a real browser and fails if it grows. */}
+          <p className="mx-auto mt-3 text-[15px] font-semibold text-ink" data-taps>Enquiry to paid in 12 taps. Count them.</p>
           <a href="#problem" className="mt-8 inline-flex min-h-[48px] items-center rounded-full bg-rust px-7 text-base font-semibold text-white hover:bg-rust-600">
             Start with one problem &darr;
           </a>

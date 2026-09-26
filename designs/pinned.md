@@ -101,6 +101,26 @@ assume a meeting is called that: the weekly meeting is named by the business, an
 company's word for it into every customer's page is exactly the kind of thing the rest of this
 product refuses to do.
 
+### `SPEC My Page` — Sent · has it
+
+The late-quotes block (26 September) says "Sent · Dana Ward has it" — the design's own sentence
+with the customer's name in the hole it leaves for one (`{{ lq.who }}`). The check reads the design
+with its holes taken out and the code as bare words, so a name filled in is always a loose match.
+The wording is the design's; the name is the business's.
+
+**Decided:** 26 September 2026.
+
+### `SPEC Landing` — SPEC, AI included
+### `SPEC Landing` — per leadership seat / team seat, a month
+
+The design prices a with-AI tier on the front page. That tier has a rate but is not on sale
+(`AI_TIER_ON_SALE` in `lib/plan`; CLAUDE.md: "not sellable yet"), and a price on the first page a
+stranger sees for something they cannot buy is a promise the product would then have to break. The
+seat prices that ARE on sale are shown, from `lib/pricing`. This line comes back, word for word,
+the day the tier goes on sale.
+
+**Decided:** 26 September 2026.
+
 ---
 
 *Everything else on both screens is word for word, and the build fails if that stops being true.*
