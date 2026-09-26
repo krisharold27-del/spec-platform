@@ -38,6 +38,13 @@ What this means when building:
 opens with one question — *How SPEC is your business?* — and answers it through Safety, People,
 Earnings and Compliance in turn.
 
+**SPEC is the centrepiece (Kris, 26 September).** SPEC is the power and the engine; the two key
+products it powers are **SiteVIP** (the operations side) and **Angus Shield** (the money side),
+sold as "SiteVIP powered by SPEC" and "Angus Shield powered by SPEC". Each stands on its own, with
+its own codebase, database and login, joined only by `docs/ANGUS_SHIELD_SITEVIP_CONTRACT.md`. When
+a choice is unclear, choose what keeps them working as one SPEC system for a business that has
+both. Every screen in both is built to the same method: `docs/METHOD.md`.
+
 Each pillar has its own system inside SiteVIP, so drilling in never hits "where is this data coming
 from, what system?":
 
