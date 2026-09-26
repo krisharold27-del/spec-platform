@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/styles.css">
+<script src="_ds/organic-9532d08f-7dc0-47ea-b759-54b28ffce331/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; text-wrap: pretty; background: #ffffff; }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-800); text-decoration: underline; }
+</style>
+<style id="white-ground">:root { --color-bg: #f4ede1; --color-surface: #ffffff; --shadow-sm: 0 0 0 1.5px #e0d3be, 0 2px 6px rgba(32,30,29,0.06); --shadow-md: 0 0 0 1.5px #d9cbb3, 0 6px 18px rgba(32,30,29,0.09); }</style>
+</helmet>
+<div style="font-family: var(--font-body); color: var(--color-text); background: #ffffff; min-height: 100vh;">
+  <div style="max-width: 1200px; margin: 0 auto; padding: clamp(28px,4vw,48px) clamp(20px,5vw,72px) 80px;">
+    <span style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 12px;">SPEC · every function, captured</span>
+    <h1 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px,4vw,50px); line-height: 1.1; margin: 0;">Capture everything. Then make it simple.</h1>
+    <p style="font-size: 16px; line-height: 26px; margin: 14px 0 0; max-width: 64ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);">Every function a trade business needs, grouped by the journey it belongs to. Each is designed, partly designed, or missing. Missing ones get built, then everything gets simplified.</p>
+
+    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 12px; padding: 24px 0 16px;">
+      <sc-for list="{{ counts }}" as="ct" hint-placeholder-count="4">
+        <button type="button" onClick="{{ ct.pick }}" style="{{ ct.style }}">
+          <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">{{ ct.label }}</span>
+          <span style="display: block; font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 32px; line-height: 1; margin-top: 8px; color: {{ ct.tone }};">{{ ct.value }}</span>
+        </button>
+      </sc-for>
+    </section>
+
+    <div style="display: grid; gap: 14px;">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="12">
+        <section style="background: var(--color-surface, #fff); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(18px,2.5vw,26px);">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px;">
+            <h2 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 21px; line-height: 1.2; margin: 0;">{{ g.name }}</h2>
+            <span style="font-size: 13px; font-weight: 600;">{{ g.tally }}</span>
+          </div>
+          <div style="display: grid; gap: 6px; margin-top: 12px;">
+            <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="8">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 10px 14px; border-radius: 14px; background: var(--color-bg);">
+                <span style="display: grid; gap: 2px; min-width: 0; flex: 1 1 280px;">
+                  <strong style="font-size: 14.5px;">{{ it.name }}</strong>
+                  <span style="font-size: 12.5px; line-height: 18px; color: color-mix(in srgb, var(--color-text) 66%, transparent);">{{ it.where }}</span>
+                </span>
+                <span style="{{ it.chip }}">{{ it.state }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ g.empty }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size: 13.5px; color: color-mix(in srgb, var(--color-text) 62%, transparent);">Nothing in this filter.</span>
+            </sc-if>
+          </div>
+        </section>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const GREEN = '#4f7a3f', AMBER = '#c67139', RED = '#a63b26';
+const chip = t => 'display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;white-space:nowrap;background:color-mix(in srgb, ' + t + ' 14%, transparent);color:' + t + ';';
+const ST = { d: ['Designed', GREEN], p: ['Partly', AMBER], m: ['Missing', RED] };
+const MAP = [
+  ['1 · Starting on SPEC', [
+    ['Business name, first improvement opportunity', 'd', 'Landing → My Page'],
+    ['Staff file in, org chart built, leadership and team seats', 'd', 'Setup · Org chart'],
+    ['What everyone does, and what makes the business amazing', 'd', 'Setup'],
+    ['Customers, open jobs and price book brought across', 'd', 'Setup'],
+    ['Business facts: hours, service area, call-out fee, after-hours rate', 'd', 'Calls · What SPEC knows'],
+    ['Business hours and public holidays for the state', 'd', 'Calls · What SPEC knows'],
+    ['Logo and details on every document', 'd', 'Calls · What SPEC knows'],
+    ['Quote and invoice terms and conditions, uploaded by the owner', 'd', 'Calls · What SPEC knows'],
+    ['Invite every person, first 2-minute walkthrough', 'd', 'Setup · Tech Day'],
+    ['Who sees what (money, pay, people)', 'd', 'Permissions'],
+  ]],
+  ['2 · Phones and email', [
+    ['Business number, forwarding check', 'd', 'Calls · setup'],
+    ['Who takes which calls', 'd', 'Calls · setup'],
+    ['On-call roster SPEC reads for emergencies', 'd', 'People · On call after hours → Calls'],
+    ['After-hours rates: known, never said on after-hours calls', 'd', 'Calls · What SPEC knows'],
+    ['Recordings: kept 90 days, owner, GM and office manager only', 'd', 'Calls'],
+    ['Work mobiles: supervisors and managers first, then everyone', 'd', 'Calls · after the business line'],
+    ['Staff email read for leads and bills', 'd', 'Connections · mailboxes'],
+  ]],
+  ['3 · Win the work', [
+    ['Leads from every source', 'd', 'Jobs · Leads'],
+    ['Tenders, takeoff from plans', 'd', 'Jobs'],
+    ['Customers and CRM', 'd', 'Jobs · Customers'],
+    ['Quotes, pre-builds, how long a job takes', 'd', 'Jobs'],
+    ['Quote follow-ups and late quotes shouting on My Page', 'd', 'Jobs · My Page'],
+    ['Quotes valid 30 days, re-priced after that', 'd', 'Jobs · Quotes'],
+    ['Google profile kept up to date: hours, job photos, review replies', 'd', 'Jobs · Reviews'],
+    ['Sales Ace', 'd', 'Jobs'],
+  ]],
+  ['4 · Do the work', [
+    ['Jobs, maintenance and projects, by sector', 'd', 'Jobs'],
+    ['Schedule and billable hours', 'd', 'Jobs · Schedule'],
+    ['Tech\u2019s day on the phone, pre-start, SWMS', 'd', 'Tech Day'],
+    ['Materials, supplier prices, holdups', 'd', 'Jobs · Materials'],
+    ['Variations signed on site', 'd', 'Jobs · Customer page'],
+    ['Plan markup and as-builts, certificates', 'd', 'Tech Day · Compliance'],
+    ['Subcontractors on the job', 'd', 'People · Org chart'],
+    ['Documents stay in SharePoint, linked to jobs and people', 'd', 'Connections · Microsoft 365'],
+    ['Fleet: rego and servicing', 'd', 'Compliance · Insurance and registrations'],
+  ]],
+  ['5 · Get paid', [
+    ['Invoices, progress claims, retentions', 'd', 'Jobs'],
+    ['Work in progress and cash flow', 'd', 'Jobs'],
+    ['Chasing debtors by call and email', 'd', 'Jobs · Calls'],
+    ['Disputes and credit notes', 'd', 'Jobs'],
+  ]],
+  ['6 · People', [
+    ['Recruitment and onboarding, staff and subbies', 'd', 'People'],
+    ['Training and Aces', 'd', 'Training'],
+    ['Leave, payroll, award, apprentice funding', 'd', 'People'],
+    ['Reviews, conduct, monthly scorecards on file', 'd', 'People'],
+    ['Wellbeing check-in', 'd', 'People'],
+    ['Someone leaving: access off, tools back, final pay, exit reason, handover', 'd', 'People · Someone leaving'],
+    ['Crew hours, used by the schedule and timesheets', 'd', 'People · Crew hours'],
+  ]],
+  ['7 · Safety', [
+    ['Incidents, hazards, WorkSafe notification', 'd', 'Safety'],
+    ['Chain of responsibility on the org chart', 'd', 'Safety · Org chart'],
+    ['Pre-start, toolbox talks, psychosocial', 'd', 'Safety · Tech Day'],
+  ]],
+  ['8 · Compliance', [
+    ['Licences, insurance, certificates, audits', 'd', 'Compliance'],
+    ['Contracts, award, TPAR, ABN checks', 'd', 'Compliance'],
+    ['Tolls and fines', 'd', 'Compliance'],
+    ['Privacy and who owns the data', 'd', 'Rules'],
+  ]],
+  ['9 · Money', [
+    ['Xero or Angus Shield, financial reviews', 'd', 'siteVIP · Angus Shield'],
+    ['Spend cards, receipts, every spend on a job', 'd', 'Angus Shield'],
+    ['Money you\u2019re owed, payroll tax', 'd', 'Angus Shield'],
+    ['BAS figures prepared each quarter, accountant checks and lodges', 'd', 'Angus Shield'],
+  ]],
+  ['10 · Owner and board', [
+    ['My Page, Virtual GM, Power Meter', 'd', 'My Page · siteVIP GM'],
+    ['Month close and board pack', 'd', 'Board'],
+    ['I\u2019m away, time saved, more than one business', 'd', 'siteVIP GM'],
+  ]],
+  ['11 · The customer\u2019s side', [
+    ['Customer page: book, tech on the way, approve, pay', 'd', 'Customer page'],
+    ['Calls answered any time', 'd', 'Calls'],
+    ['Reviews and complaints', 'd', 'Jobs'],
+  ]],
+  ['12 · SPEC\u2019s own business', [
+    ['Cockpit, pricing, listening', 'd', 'Cockpit · Pricing'],
+    ['Sign in, two-step security', 'd', 'Sign In'],
+    ['Support for businesses using SPEC', 'd', 'Same working day'],
+    ['Leaving SPEC: export everything', 'd', 'Rules'],
+  ]],
+];
+class Component extends DCLogic {
+  state = { filter: 'all' };
+  renderVals() {
+    const f = this.state.filter;
+    const all = MAP.flatMap(([, items]) => items);
+    const n = k => all.filter(i => i[1] === k).length;
+    return {
+      counts: [['all', 'Everything', String(all.length), 'var(--color-text)'], ['d', 'Designed', String(n('d')), GREEN], ['p', 'Partly', String(n('p')), AMBER], ['m', 'Missing', String(n('m')), RED]].map(([k, label, value, tone]) => ({
+        label, value, tone, pick: () => this.setState({ filter: k }),
+        style: 'all:unset;cursor:pointer;display:block;box-sizing:border-box;padding:16px 18px;border-radius:var(--radius-lg);background:var(--color-surface, #fff);box-shadow:' + (f === k ? '0 0 0 2px var(--color-accent)' : 'var(--shadow-sm)') + ';',
+      })),
+      groups: MAP.map(([name, items]) => {
+        const shown = items.filter(i => f === 'all' || i[1] === f);
+        const gaps = items.filter(i => i[1] !== 'd').length;
+        return {
+          name, empty: shown.length === 0,
+          tally: gaps ? gaps + ' to finish' : 'All designed',
+          items: shown.map(([nm, s, where]) => ({ name: nm, where, state: ST[s][0], chip: chip(ST[s][1]) })),
+        };
+      }),
+    };
+  }
+}
+</script>
+</body>
+</html>

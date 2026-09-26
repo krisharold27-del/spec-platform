@@ -215,7 +215,7 @@
             <input type="text" value="{{ subDraft }}" onInput="{{ setSubDraft }}" onChange="{{ setSubDraft }}" onKeyDown="{{ subKey }}" placeholder="Invite a subbie: business name and mobile" aria-label="Invite a subcontractor" style="flex: 1; min-width: 0; border: 0; background: transparent; font-family: var(--font-body); font-size: 15px; color: var(--color-text); outline: none; padding: 10px 0;" />
             <button type="button" onClick="{{ addSub }}" aria-label="Send invite" style="cursor: pointer; border: 0; width: 42px; height: 42px; flex: none; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 19px;">→</button>
           </div>
-          <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">They get a text with a link. On their phone they add their ABN, insurance and licences, sign your subcontract, and do the induction and SWMS. About 10 minutes.</p>
+          <p style="font-size: 13px; line-height: 20px; margin: 10px 0 0; color: color-mix(in srgb, var(--color-text) 65%, transparent);">They get an email with a link. On their phone they add their ABN, insurance and licences, sign your subcontract, and do the induction and SWMS. About 10 minutes.</p>
           <p style="font-size: 13.5px; line-height: 21px; margin: 8px 0 0; padding: 12px 16px; border-radius: 14px; background: color-mix(in srgb, #4f7a3f 9%, transparent);"><strong>Same standard as your own crew.</strong> On your jobs, subbies sign the same SWMS, follow the same checklists and are scored on the same KPIs. Their scores count on the supervisor's team board. They see their own jobs only, never your prices.</p>
 
           <div style="display: grid; gap: 8px; margin-top: 18px;">
@@ -241,7 +241,7 @@
                     </div>
                     <sc-if value="{{ sb.canChase }}" hint-placeholder-val="{{ false }}">
                       <div style="display: grid; gap: 8px; padding: 12px 14px; border-radius: 14px; background: #fff;">
-                        <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">SPEC's text to {{ sb.who }}</span>
+                        <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-text) 65%, transparent);">SPEC's email to {{ sb.who }}</span>
                         <span style="font-size: 14px; line-height: 21px;">{{ sb.chase }}</span>
                         <sc-if value="{{ sb.chaseOpen }}" hint-placeholder-val="{{ true }}">
                           <button type="button" onClick="{{ sb.sendChase }}" class="btn btn-primary" style="justify-self: start;">Approve and send</button>
@@ -646,10 +646,26 @@ const HR_GROUPS = {
       hrRow('Marcus Bly \u00b7 Technician', 'No timesheet since Tuesday', 'Tom Reyes told', 'Not this week', '#a63b26'),
       hrRow('Dion Reyes \u00b7 Technician', 'Timesheets in, pre-starts missed twice', 'Tom Reyes told', 'Part way', '#c67139'),
     ] },
-    { title: 'On call after hours', action: 'Open the roster', feeds: 'People \u00b7 Pay', blurb: 'A weekly on-call roster. After-hours calls go straight to that person\u2019s phone and book a job. The award on-call allowance goes into their pay on its own.', rows: [
-      hrRow('This week \u00b7 Hemi Walker', 'Mon 22 to Sun 28 Sep \u00b7 2 call-outs so far', 'Allowance in this pay run', 'On call', '#4f7a3f'),
-      hrRow('Next week \u00b7 Jai Fenton', 'Mon 29 Sep to Sun 5 Oct', 'Jai confirmed', 'Rostered', '#4f7a3f'),
-      hrRow('Week of 6 Oct', 'No one rostered yet', 'Tom Reyes to pick', 'Gap', '#a63b26'),
+    { title: 'Someone leaving', action: 'Start a leaving checklist', feeds: 'People \u00b7 Negative turnover', blurb: 'One checklist, started when notice is given. SPEC does each step on the right day, so nothing is forgotten.', rows: [
+      hrRow('Marcus Bly \u00b7 Technician \u00b7 last day Fri 10 Oct', 'Exit reason and a short exit chat with Tom', 'Booked Wed 8 Oct', 'To do', '#c67139'),
+      hrRow('Jobs and customers', '3 open jobs handed to Dion Reyes', 'Done 26 Sep', 'Done', '#4f7a3f'),
+      hrRow('Tools, keys and fuel card', 'Fluke tester, van keys, fuel card ending 4471', 'Due back 10 Oct', 'To do', '#c67139'),
+      hrRow('Final pay', 'Leave paid out: 38.5 hours annual leave', 'In the 10 Oct pay run', 'Ready', '#4f7a3f'),
+      hrRow('Logins off', 'siteVIP, email and SharePoint', 'Switched off 5pm, 10 Oct', 'Scheduled', '#4f7a3f'),
+      hrRow('Org chart', 'Seat under Tom Reyes freed', 'After 10 Oct', 'Scheduled', '#4f7a3f'),
+    ] },
+    { title: 'Crew hours', action: 'Edit crew hours', feeds: 'Jobs \u00b7 Schedule and timesheets', blurb: 'Each crew\u2019s start and finish. The schedule books inside these hours, and timesheets flag anything outside them.', rows: [
+      hrRow('Tom Reyes\u2019s crew', '6 techs and apprentices', '6:30am to 3pm', 'Set', '#4f7a3f'),
+      hrRow('Anthony Reeve\u2019s crew', '5 techs', '7am to 3:30pm', 'Set', '#4f7a3f'),
+      hrRow('Solar crew', 'Sione Tui and 2 techs', '7am to 3:30pm', 'Set', '#4f7a3f'),
+      hrRow('Mining crew', 'On site at Hunter Coal', '12-hour shifts, 6am to 6pm', 'Set', '#4f7a3f'),
+      hrRow('Office', '5 people', '8am to 4:30pm', 'Set', '#4f7a3f'),
+    ] },
+    { title: 'On call after hours', action: 'Edit the roster', feeds: 'Safety \u00b7 Calls', blurb: 'One person on call each night, set a week at a time. SPEC reads this roster for every after-hours emergency and keeps calling that person until they answer. If there\u2019s danger to life, SPEC always tells the caller to ring 000 first.', rows: [
+      hrRow('Mon 29 Sep \u00b7 Hemi Walker', 'Technician \u00b7 Ute 04', '5pm to 7am', 'On call', '#4f7a3f'),
+      hrRow('Tue 30 Sep \u00b7 Jai Fenton', 'Technician \u00b7 Ute 07', '5pm to 7am', 'On call', '#4f7a3f'),
+      hrRow('Wed 1 Oct \u00b7 Sione Tui', 'Solar tech \u00b7 Ute 11', '5pm to 7am', 'On call', '#4f7a3f'),
+      hrRow('Thu 2 Oct \u00b7 not set', 'Pick someone before Wednesday', 'SPEC will remind Tom', 'Gap', '#a63b26'),
     ] },
     { title: 'Key roles and backups', action: 'Check the backups', feeds: 'People \u00b7 Compliance', blurb: 'Every role\u2019s how-to lives in SPEC, not in someone\u2019s head. Every key role has a named backup. When someone resigns, SPEC starts a handover checklist on the day.', rows: [
       hrRow('Estimator \u00b7 Nadia Cole', 'How-to written \u00b7 backup: Lena Ford', 'Covered', 'Covered', '#4f7a3f'),

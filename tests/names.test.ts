@@ -82,6 +82,32 @@ const REFERENCE_SCREENS: string[] = (() => {
   }
 })();
 
+/**
+ * Screens that are real and simply not built yet — read from the one file that already records them.
+ *
+ * ── Why this list, and not a new exception (26 September) ────────────────────────────────────────
+ *
+ * Design 20 brought two screens nobody has built. Left alone, this file failed them as NAME DRIFT,
+ * which is the wrong accusation: the name matches perfectly, there is just no page behind it yet.
+ *
+ * The tempting fix is a line in NOT_PAGES above. That would be a lie with a reason attached — it
+ * says "this is not a screen", when it is a screen that has not been made. And it is permanent: the
+ * day somebody builds it, nothing tells them to take the exception out, so the address goes
+ * unchecked forever.
+ *
+ * `designs/not-built-yet.md` already exists for exactly this, already carries the date each one
+ * arrived, and `design-coverage.mjs` already shouts about it on every run. Reading the same file
+ * here rather than keeping a second list is the same rule this whole test exists to enforce.
+ */
+const NOT_BUILT_YET: string[] = (() => {
+  try {
+    const text = readFileSync('designs/not-built-yet.md', 'utf8');
+    return [...text.matchAll(/^### Screen: (.+)$/gm)].map(m => m[1].trim());
+  } catch {
+    return [];
+  }
+})();
+
 /** What a design file's name becomes as an address: "SPEC My Page" -> "/my-page". */
 const addressFor = (screen: string): string =>
   `/${screen.replace(/^SPEC /, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
@@ -108,10 +134,35 @@ describe('one thing, one name', () => {
     for (const screen of designScreens()) {
       if (screen in NOT_PAGES) continue;
       if (REFERENCE_SCREENS.includes(screen)) continue;
+      if (NOT_BUILT_YET.includes(screen)) continue;
       const address = addressFor(screen);
       if (!hasRoute(address)) adrift.push(`"${screen}" implies ${address}, which does not exist`);
     }
     expect(adrift, 'these design names no longer match an address').toEqual([]);
+  });
+
+  /*
+    ── And the waiver expires by itself ─────────────────────────────────────────────────────────
+
+    The danger in any "not yet" list is that it becomes "not ever": the screen gets built, the
+    entry stays, and the address it was excusing goes unchecked from then on — silently, because
+    everything is green.
+
+    So a screen on that list whose page EXISTS fails here, by name. Building it is what removes the
+    entry, and nobody has to remember.
+  */
+  it('takes a screen off the not-built-yet list the moment it is built', () => {
+    const stale = NOT_BUILT_YET
+      .filter(screen => hasRoute(addressFor(screen)))
+      .map(screen => `"${screen}" is built at ${addressFor(screen)} — take it out of designs/not-built-yet.md`);
+    expect(stale, 'these are no longer unbuilt').toEqual([]);
+  });
+
+  /* A name on that list has to be a real screen in the export, not a note somebody left behind. */
+  it('does not carry a not-built-yet entry for a screen that is not in the designs', () => {
+    const screens = designScreens();
+    const ghosts = NOT_BUILT_YET.filter(s => !screens.includes(s));
+    expect(ghosts, 'these are on the list and not in designs/').toEqual([]);
   });
 
   it('turns a design name into an address the way a person would guess', () => {
