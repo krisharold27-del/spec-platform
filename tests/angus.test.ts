@@ -84,8 +84,8 @@ describe('where the figures come from is always said', () => {
     expect(sourceNote('connector', 'Xero')).toContain('each morning');
   });
 
-  it('says there is nothing to sync on Angus', () => {
-    expect(sourceNote('angus', null)).toContain('Nothing to sync');
+  it('says Angus figures cross within the minute and are checked nightly (separate product, one connection)', () => {
+    expect(sourceNote('angus', null)).toContain('within the minute');
   });
 
   it('does not pretend a missing connector is one', () => {
@@ -177,8 +177,8 @@ describe('the reviews', () => {
 });
 
 describe('payroll ends here and never starts here', () => {
-  it('posts into Angus with nothing to reconcile', () => {
-    expect(payrollPostsTo('angus', null)).toContain('same database');
+  it('sends approved hours to Angus, which works out the pay (Angus processes, SiteVIP captures)', () => {
+    expect(payrollPostsTo('angus', null)).toContain('works out the pay run');
   });
 
   it('posts into whatever they are on otherwise', () => {

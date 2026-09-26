@@ -93,7 +93,7 @@ export function CoverageMap({ choices, connections, canChange }: {
             <section key={area.key} id={area.key} className="card scroll-mt-6">
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <h2 className="font-serif text-2xl text-ink">{area.title}</h2>
-                <Link href={area.href} className="text-sm text-rust-700 hover:underline">Open {area.short} →</Link>
+                <Link href={area.href} className="inline-flex min-h-[24px] items-center text-sm text-rust-700 hover:underline">Open {area.short} →</Link>
               </div>
               <p className="mb-4 mt-2 max-w-[66ch] text-sm leading-relaxed text-ink-light">{area.blurb}</p>
 
@@ -124,7 +124,7 @@ export function CoverageMap({ choices, connections, canChange }: {
                         <span className="text-[14.5px] font-bold text-ink">
                           {c.name}
                           {c.href && !own && (
-                            <Link href={c.href} className="ml-2 text-[13px] font-normal text-rust-700 hover:underline">Open in SPEC →</Link>
+                            <Link href={c.href} className="ml-2 inline-flex min-h-[24px] items-center text-[13px] font-normal text-rust-700 hover:underline">Open in SPEC →</Link>
                           )}
                         </span>
                         <span className="text-[13px] leading-[19px] text-ink-light">{c.what}</span>

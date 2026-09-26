@@ -114,14 +114,19 @@ describe('no screen claims a number arrived on its own', () => {
     expect(guilty, `Found in: ${guilty.join(', ')}`).toEqual([]);
   });
 
-  it('AND THAT SECOND NOTCH IS STILL SHUT, because nothing writes a read time yet', () => {
+  it('THE SECOND NOTCH OPENED ONLY FOR A REAL EXCHANGE: nothing but the connector writes a read time', () => {
     /*
-      Asserted rather than assumed, for the same reason the first notch is. If this ever passes
-      while `lastSyncAt` is still only ever null, the check above has quietly stopped checking —
-      and the wording it guards is the one that was on four screens on 18 September.
+      25 September: the Angus Shield connection landed, and `lastSyncAt` is now written — but only
+      when an event has really crossed between the two products (sent and accepted, or received and
+      its signature checked), in lib/angus-shield-data. Never from a button, never from the sign-in
+      itself. So the ratchet is held to exactly that: if any other file starts stamping a read time,
+      this fails, because that is the 18 September lie coming back by another door.
     */
-    expect(readsAreRecorded, 'something now records a read time; the ban above has lifted itself')
-      .toBe(false);
+    const writers = files
+      .map((path, i) => [path, code(source[i])] as const)
+      .filter(([, text]) => READ_EVIDENCE.test(text))
+      .map(([path]) => path.replace(`${process.cwd()}/`, ''));
+    expect(writers, 'something other than the connector records a read time').toEqual(['src/lib/angus-shield-data.ts']);
   });
 
   it('never says numbers are "arriving on their own"', () => {

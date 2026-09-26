@@ -39,8 +39,9 @@ const check = (what, ok, detail = '') => {
 const browser = await chromium.launch({ executablePath: CHROME });
 const page = await browser.newPage();
 
-// The public front door, because the mark has to move for somebody who has never signed in.
-await page.goto(BASE, { waitUntil: 'domcontentloaded' });
+// A public page, because the mark has to move for somebody who has never signed in. Since 25
+// September the front door is siteVIP's (its own mark); the SPEC mark lives on /spec, the full edition.
+await page.goto(`${BASE}/spec`, { waitUntil: 'domcontentloaded' });
 
 const mark = page.locator('svg[aria-label="SPEC"]').first();
 check('THE MARK IS ON THE PAGE', await mark.count() > 0);

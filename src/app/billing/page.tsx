@@ -274,7 +274,7 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
                       id={`seat-kind-${row.roleId}`}
                       name="seatKind"
                       defaultValue={row.override ?? 'auto'}
-                      className="min-h-[36px] rounded-md border border-ink/15 bg-surface-raised px-2 text-sm text-ink"
+                      className="min-h-[36px] w-full min-w-0 max-w-full rounded-md border border-ink/15 bg-surface-raised px-2 text-sm text-ink sm:w-auto"
                     >
                       <option value="auto">Auto — from the chart ({row.chartKind === 'leadership' ? 'Leadership' : 'Team'} seat right now)</option>
                       <option value="leadership">Leadership seat</option>

@@ -232,7 +232,7 @@ export default async function Inbox({ searchParams }: {
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ background: line.done ? LIGHT_COLOUR.green : LIGHT_COLOUR.pending }}
                   />
-                  <Link href={`/scorecard/${line.roleId}`} className="truncate hover:text-rust">
+                  <Link href={`/scorecard/${line.roleId}`} className="inline-flex min-h-[24px] min-w-0 items-center truncate hover:text-rust">
                     {line.title}
                   </Link>
                   <span className="truncate text-xs text-ink-light">{line.holder ?? 'Vacant'}</span>
@@ -291,7 +291,7 @@ export default async function Inbox({ searchParams }: {
                       : 'Every role is marked. The top of the chart submits it.')
                     : `${progress.filter(p => !p.done).length} still to mark — each manager marks their own reports.`}
             </p>
-            <Link href="/scoring" className="text-[13px] text-rust-700 underline-offset-2 hover:underline">
+            <Link href="/scoring" className="inline-flex min-h-[24px] items-center text-[13px] text-rust-700 underline-offset-2 hover:underline">
               Open scoring
             </Link>
           </div>

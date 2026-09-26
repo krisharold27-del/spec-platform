@@ -96,8 +96,8 @@ export default async function VirtualGm({
   return (
     <Shell title="Virtual GM + Virtual Admin" headline={`${tenant.name}: the GM and the admin department, run virtually.`}>
       <div className="flex flex-wrap justify-between gap-2 text-sm">
-        <Link href="/my-page" className="text-rust-700 hover:underline">&larr; My Page</Link>
-        <Link href="/financials" className="text-rust-700 hover:underline" data-door-financials-top>Financials &rarr;</Link>
+        <Link href="/my-page" className="inline-flex min-h-[24px] items-center text-rust-700 hover:underline">&larr; My Page</Link>
+        <Link href="/financials" className="inline-flex min-h-[24px] items-center text-rust-700 hover:underline" data-door-financials-top>Financials &rarr;</Link>
       </div>
       <Refused reason={refusedReason(arrival)} />
       <OrgChartDoor className="mt-3" />
@@ -143,7 +143,7 @@ export default async function VirtualGm({
               </div>
               <p className="text-sm text-ink">{a.read}</p>
               <p className="text-xs text-ink-light">{a.q.why}</p>
-              {a.to && <Link href={a.to} className="mt-1 text-sm text-rust-700 hover:underline">Go and see &rarr;</Link>}
+              {a.to && <Link href={a.to} className="mt-1 inline-flex min-h-[24px] items-center text-sm text-rust-700 hover:underline">Go and see &rarr;</Link>}
             </article>
           ))}
         </div>
@@ -235,7 +235,7 @@ export default async function VirtualGm({
             </Link>
           ))}
         </div>
-        <Link href="/workflows" className="mt-3 inline-block text-sm text-rust-700 hover:underline">
+        <Link href="/workflows" className="mt-3 inline-flex min-h-[24px] items-center text-sm text-rust-700 hover:underline">
           Every workflow, step by step &rarr;
         </Link>
       </section>
@@ -277,7 +277,7 @@ export default async function VirtualGm({
       {/* ── Your financial system — the same panel /financials draws ──────────────────────────── */}
       <div className="mt-10">
         <FinancialSystemPanel ledger={ledger} back="/virtual-gm" />
-        <Link href="/financials" className="mt-3 inline-block text-sm text-rust-700 hover:underline" data-door-financials>
+        <Link href="/financials" className="mt-3 inline-flex min-h-[24px] items-center text-sm text-rust-700 hover:underline" data-door-financials>
           See the money: Financials &rarr;
         </Link>
       </div>

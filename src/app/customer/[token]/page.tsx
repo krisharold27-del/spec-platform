@@ -4,7 +4,7 @@ import { db, schema } from '@/db';
 import { SubmitButton } from '@/components/submit-button';
 import {
   isToken, customerStage, headline, CUSTOMER_STAGES, VARIATION_ANSWERS, mayAnswer,
-  type CustomerView,
+  type CustomerView, greeting,
 } from '@/lib/customer-page';
 import { pickSlot, answerVariation } from './actions';
 
@@ -87,6 +87,8 @@ export default async function CustomerPage({ params }: { params: Promise<{ token
     invoice: invoice ? { ref: invoice.what, amountCents: invoice.amountCents, state: invoice.state } : null,
   };
 
+  /* Only the first name, worked out here; the customer's full name is never handed to the page. */
+  const hi = greeting(job.client);
   const at = CUSTOMER_STAGES.findIndex(s => s.key === view.stage);
   const slots = nextSlots();
 
@@ -94,6 +96,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ token
     <main className="mx-auto grid max-w-[560px] gap-4 px-4 py-6">
       <header className="grid gap-1">
         <span className="label-caps">{view.business}</span>
+        <p className="text-sm text-ink">{hi}</p>
         <h1 className="font-serif text-2xl leading-tight text-ink">
           {headline(view.stage, view.who, view.slot)}
         </h1>

@@ -451,6 +451,8 @@ const JOURNEYS = [
     that only works at desk width fails the only test this page has.
   */
   ['growth', 'work coming in without anybody remembering to look', 'growth-journey'],
+  ['control', "the administrator's controls: late quotes, the inbox, reading the work", 'admin-control-journey'],
+  ['taps', 'enquiry to paid in the twelve taps the landing page promises', 'taps-journey'],
   /*
     Who can see what. Driven as three seats rather than three people, because the thing that has to
     be proved is that typing ?tab=cash does not get past it — filtering the tab row only hides the

@@ -479,6 +479,13 @@ export const connectionCredentials = pgTable('connection_credentials', {
   scope: text('scope'),
   /** When the refresh token itself dies. Xero gives sixty days and rotates on every use. */
   expiresAt: text('expires_at'),
+  /** Angus Shield only: the business's id on the other side (its `angus_id`), sent on every event. */
+  remoteId: text('remote_id'),
+  /**
+   * Angus Shield only: the connection's webhook signing secret, sealed (lib/secret-box). Given once
+   * over OAuth; signs every event both ways (docs/ANGUS_SHIELD_SITEVIP_CONTRACT.md §4).
+   */
+  signingSecretSealed: text('signing_secret_sealed'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at'),
 }, t => [
@@ -2233,6 +2240,10 @@ export const jobBills = pgTable('job_bills', {
   /** How many of the 7, 14 and 30-day reminders have gone, so the same one never goes twice. */
   remindersSent: integer('reminders_sent').notNull().default(0),
   lastReminderAt: text('last_reminder_at'),
+  /** Set when the business's financial system made the invoice for this bill (its own number). */
+  invoiceNumber: text('invoice_number'),
+  /** Days late, as the financial system last said (7, 14, 30…); never red, just "11 days late". */
+  overdueDays: integer('overdue_days'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 }, t => [
@@ -3048,6 +3059,68 @@ export const gentleConfirmations = pgTable('gentle_confirmations', {
   createdAt: text('created_at').notNull(),
 }, t => [index('gentle_confirmations_tenant').on(t.tenantId, t.createdAt)]).enableRLS();
 
+
+/* ── The Angus Shield connection (docs/ANGUS_SHIELD_SITEVIP_CONTRACT.md) ──────────────────────── */
+
+/**
+ * Events waiting to go to the business's financial system, sent within the minute and retried for a
+ * day (§3). Written in the same step as the change it describes, so an event can never tell of
+ * something that did not happen. Carries its own tenant_id, isolated in drizzle/0001_rls.sql.
+ */
+export const connectionOutbox = pgTable('connection_outbox', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  connectionId: text('connection_id').notNull(),
+  eventId: text('event_id').notNull(),
+  type: text('type').notNull(),
+  /** The data, as JSON: the full current state of the thing, never a diff. */
+  payload: text('payload').notNull(),
+  occurredAt: text('occurred_at').notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  nextAttemptAt: text('next_attempt_at').notNull(),
+  deliveredAt: text('delivered_at'),
+  gaveUpAt: text('gave_up_at'),
+  lastError: text('last_error'),
+}, t => [
+  index('connection_outbox_tenant').on(t.tenantId),
+  uniqueIndex('connection_outbox_event').on(t.eventId),
+]).enableRLS();
+
+/** Events received from the financial system, by id, so a repeat is applied once (§4). */
+export const connectionInbox = pgTable('connection_inbox', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  eventId: text('event_id').notNull(),
+  type: text('type').notNull(),
+  occurredAt: text('occurred_at').notNull(),
+  receivedAt: text('received_at').notNull(),
+  result: text('result'),
+}, t => [
+  index('connection_inbox_tenant').on(t.tenantId),
+  uniqueIndex('connection_inbox_event').on(t.tenantId, t.eventId),
+]).enableRLS();
+
+/**
+ * A job's money as the business's own books have it ("from your books"), sent by the financial
+ * system on job.profit_updated. Kept apart from the job's own estimate so neither can overwrite the
+ * other; the newer occurred_at wins.
+ */
+export const jobBookFigures = pgTable('job_book_figures', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  jobId: text('job_id').notNull(),
+  invoicedCents: integer('invoiced_cents').notNull().default(0),
+  receivedCents: integer('received_cents').notNull().default(0),
+  costCents: integer('cost_cents').notNull().default(0),
+  profitCents: integer('profit_cents').notNull().default(0),
+  marginPct: text('margin_pct'),
+  asAt: text('as_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, t => [
+  index('job_book_figures_tenant').on(t.tenantId),
+  uniqueIndex('job_book_figures_job').on(t.tenantId, t.jobId),
+]).enableRLS();
+
 /**
  * The Power Meter, as it stood at the end of a week.
  *
@@ -3258,3 +3331,85 @@ export const chainLinks = pgTable('chain_links', {
   uniqueIndex('chain_links_one').on(t.tenantId, t.obligation, t.link),
   index('chain_links_tenant').on(t.tenantId),
 ]).enableRLS();
+
+/**
+ * From your inboxes (Design 20, `SPEC Jobs.dc.html`): customer emails put in front of the pipeline,
+ * each read into what it is asking for and a reply to approve. Arrives by hand — forwarded or pasted
+ * — because nothing yet fetches mail from the mailboxes approved in Connections (see lib/email-read).
+ * Approving an enquiry opens the job; the row keeps which one, so it can never open two.
+ */
+export const mailboxMessages = pgTable('mailbox_messages', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  kind: text('kind').notNull(),
+  fromName: text('from_name').notNull(),
+  subject: text('subject').notNull(),
+  /** The message as it arrived. Kept so a reading can always be checked against the words. */
+  body: text('body').notNull(),
+  readLine: text('read_line').notNull(),
+  reply: text('reply').notNull(),
+  /** The job this opened, once approved. */
+  jobId: text('job_id'),
+  addedBy: text('added_by'),
+  addedAt: text('added_at').notNull(),
+  doneAt: text('done_at'),
+  doneBy: text('done_by'),
+}, t => [index('mailbox_messages_tenant').on(t.tenantId, t.addedAt)]).enableRLS();
+
+/**
+ * Understand the work (Design 20): what SPEC read in a job's photos, plans and message, kept so the
+ * reading is not lost when the page reloads and so the quote built from it can say where it came
+ * from. Everything in it is a proposal (lib/understand); the quote is built only when a person says so.
+ */
+export const jobReadings = pgTable('job_readings', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  jobId: text('job_id').notNull(),
+  /** What the customer said, as it was typed or pasted. */
+  said: text('said').notNull().default(''),
+  photos: integer('photos').notNull().default(0),
+  /** The cleaned reading, as JSON: sees, scope, extras, questions. */
+  reading: text('reading').notNull(),
+  byModel: boolean('by_model').notNull().default(false),
+  questionsApprovedAt: text('questions_approved_at'),
+  quoteId: text('quote_id'),
+  createdAt: text('created_at').notNull(),
+  createdBy: text('created_by'),
+}, t => [index('job_readings_tenant').on(t.tenantId, t.jobId)]).enableRLS();
+
+/**
+ * Estimate from plans (Design 20): the counts SPEC read off a set of drawings, against the business's
+ * own pre-builds, each marked sure or to confirm. Kept so the counts a quote was built from can be
+ * shown beside it later.
+ */
+export const planTakeoffs = pgTable('plan_takeoffs', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  jobId: text('job_id').notNull(),
+  fileName: text('file_name').notNull().default(''),
+  /** The cleaned rows, as JSON (lib/understand TakeoffRow[]). */
+  rows: text('rows').notNull().default('[]'),
+  byModel: boolean('by_model').notNull().default(false),
+  quoteId: text('quote_id'),
+  createdAt: text('created_at').notNull(),
+  createdBy: text('created_by'),
+}, t => [index('plan_takeoffs_tenant').on(t.tenantId, t.jobId)]).enableRLS();
+
+/**
+ * siteVIP listening (Design 20, `SPEC Cockpit.dc.html`): themes heard in PUBLIC about job software and
+ * siteVIP, each with its sources and a proposed fix, for Kris to approve or set aside. SPEC's own
+ * data, not any business's — no tenant_id, locked to everybody like health_pings, read only by
+ * /cockpit. A row with state 'run' marks that a night's listening happened, whatever it found.
+ */
+export const listeningNotes = pgTable('listening_notes', {
+  id: text('id').primaryKey(),
+  runAt: text('run_at').notNull(),
+  theme: text('theme').notNull(),
+  heard: text('heard').notNull(),
+  /** JSON array of public links. */
+  sources: text('sources').notNull().default('[]'),
+  fix: text('fix').notNull(),
+  /** 'run' (a night's marker) · 'proposed' · 'approved' · 'set_aside'. */
+  state: text('state').notNull(),
+  decidedAt: text('decided_at'),
+}, t => [index('listening_notes_run').on(t.runAt)]).enableRLS();

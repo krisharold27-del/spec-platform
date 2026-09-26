@@ -1,3 +1,4 @@
+import { emitHoursApproved, sendSoon } from './angus-shield-data';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '../db';
@@ -70,6 +71,8 @@ export async function approveCrewWeek(user: CurrentUser, monday: string): Promis
   if (ids.length) {
     await db.update(schema.timesheetEntries).set({ approvedBy: user.name, approvedAt: new Date().toISOString() })
       .where(and(eq(schema.timesheetEntries.tenantId, user.tenantId), inArray(schema.timesheetEntries.id, ids)));
+    // The seamless path (contract §3): approved hours go to Angus Shield as they are approved.
+    if (await emitHoursApproved(user.tenantId, ids)) sendSoon(user.tenantId);
   }
   return ids.length;
 }
@@ -88,10 +91,9 @@ export async function payRunFor(tenantId: string, monday: string) {
  * `provider = 'angus_shield'` on a live `financials` connection). Then each approval is an
  * `hours.approved` event and there is no send step at all.
  *
- * Neither the connection nor that event sender exists in SiteVIP yet, so this is false for every
- * business today and the screen offers the export — the business's own-system path, which is always
- * complete. Whoever builds the connector must emit `hours.approved` from `approveCrewWeek` in the
- * same change; until both exist, nothing on screen says hours are flowing anywhere.
+ * The connection is lib/angus-shield-data (25 September), and `approveCrewWeek` emits `hours.approved`
+ * in the same change. Until a business connects, this is false and the screen offers the export —
+ * the business's own-system path, which is always complete.
  */
 export async function angusConnected(tenantId: string): Promise<boolean> {
   const rows = await db.select({ status: schema.systemConnections.status })

@@ -7,6 +7,10 @@ import { db, schema } from '@/db';
 import { Shell } from '@/components/ui';
 import { SubmitButton } from '@/components/submit-button';
 import { CopyBox } from '@/components/copy-box';
+import { InboxPanel } from './inbox-panel';
+import { UnderstandPanel } from './understand-panel';
+import { PlansPanel } from './plans-panel';
+import { MaterialsPanel } from './materials-panel';
 import { quoteWatch, chaseDraft, worthGoingBackFor, tenderWatch, growthLine } from '@/lib/growth';
 import { Refused } from '@/components/refused';
 import { QuoteBuilder } from '@/components/quote-builder';
@@ -342,6 +346,8 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
 
       <OwnSystemLine line={own.line} connected={own.connected} />
 
+      {tab === 'pipeline' && <InboxPanel tenantId={user.tenantId} manage={manage} />}
+      {tab === 'pipeline' && <UnderstandPanel tenantId={user.tenantId} jobId={one(sp.job)} manage={manage} business={tenantRow?.name ?? ''} />}
       {tab === 'pipeline' && (
         <Pipeline jobs={costed} openId={one(sp.job)} crew={crew} quotes={quotes} manage={manage} now={now} tabHref={tabHref} hasRate={!!standard} kind={isFilter(one(sp.kind)) ? one(sp.kind) as Filter : 'all'} />
       )}
@@ -365,6 +371,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       {tab === 'catalogue' && (
         <Catalogue items={itemRows} kits={kits} kitRows={kitRows} rates={rates} q={one(sp.q)} skipped={one(sp.skipped)} rises={one(sp.rises)} rose={one(sp.rose)} manage={manage} today={today} />
       )}
+      {tab === 'catalogue' && <MaterialsPanel tenantId={user.tenantId} jobId={one(sp.job)} manage={manage} />}
       {/* Claude recommends the labour rate, beside the rates it would change. */}
       {tab === 'catalogue' && <div className="mt-6"><Recommends topic="labour_rate" back="/jobs?tab=catalogue" /></div>}
       {tab === 'leads' && (
@@ -459,6 +466,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       )}
       {tab === 'tenders' && <Tenders rows={tenderRows} manage={manage} today={today} />}
       {tab === 'takeoff' && <Takeoff kits={kits} items={itemRows} manage={manage} />}
+      {tab === 'takeoff' && <PlansPanel tenantId={user.tenantId} jobId={one(sp.job)} manage={manage} />}
       {tab === 'howlong' && <HowLong jobs={costed} quotes={quotes} />}
       {tab === 'ace' && <AceBoard kind="sales" tenantId={user.tenantId} jobs={costed} quotes={quotes} today={today} />}
       {tab === 'jobace' && <AceBoard kind="jobs" tenantId={user.tenantId} jobs={costed} quotes={quotes} today={today} />}
@@ -1116,8 +1124,8 @@ async function Schedule({ jobs, crew, week, book, manage, today, tenantId, tabHr
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="font-serif text-xl text-ink">{weekLabel(monday)}</h2>
         <span className="flex flex-wrap items-center gap-3 text-sm">
-          <Link href={tabHref('schedule', { week: shiftWeek(monday, -1), ...(target ? { book: target.id } : {}) })} className="text-rust-700 hover:underline">← Last week</Link>
-          <Link href={tabHref('schedule', { week: shiftWeek(monday, 1), ...(target ? { book: target.id } : {}) })} className="text-rust-700 hover:underline">Next week →</Link>
+          <Link href={tabHref('schedule', { week: shiftWeek(monday, -1), ...(target ? { book: target.id } : {}) })} className="inline-flex min-h-[24px] items-center text-rust-700 hover:underline">← Last week</Link>
+          <Link href={tabHref('schedule', { week: shiftWeek(monday, 1), ...(target ? { book: target.id } : {}) })} className="inline-flex min-h-[24px] items-center text-rust-700 hover:underline">Next week →</Link>
         </span>
       </div>
 
@@ -1311,8 +1319,8 @@ async function Timesheets({ jobs, crew, week, manage, today, tenantId, tabHref }
           or payslips; your payroll system does that.
         </p>
         <p className="mt-2 flex gap-3 text-sm">
-          <Link href={tabHref('time', { week: shiftWeek(monday, -1) })} className="text-rust-700 hover:underline">← Last week</Link>
-          <Link href={tabHref('time', { week: shiftWeek(monday, 1) })} className="text-rust-700 hover:underline">Next week →</Link>
+          <Link href={tabHref('time', { week: shiftWeek(monday, -1) })} className="inline-flex min-h-[24px] items-center text-rust-700 hover:underline">← Last week</Link>
+          <Link href={tabHref('time', { week: shiftWeek(monday, 1) })} className="inline-flex min-h-[24px] items-center text-rust-700 hover:underline">Next week →</Link>
         </p>
       </div>
 
@@ -1330,7 +1338,7 @@ async function Timesheets({ jobs, crew, week, manage, today, tenantId, tabHref }
             const waiting = theirs.some(e => !e.approvedAt);
             const tags = [...new Set(theirs.flatMap(e => parseAllowances(e.allowances)))];
             return (
-              <div key={c.key} className="grid grid-cols-[minmax(150px,1.4fr)_repeat(3,minmax(80px,1fr))_auto] items-center gap-3 rounded-2xl bg-cream px-4 py-3 text-sm">
+              <div key={c.key} className="grid grid-cols-2 items-center gap-3 rounded-2xl bg-cream px-4 py-3 text-sm sm:grid-cols-[minmax(150px,1.4fr)_repeat(3,minmax(80px,1fr))_auto]">
                 <span className="grid gap-0.5"><strong>{c.name}</strong><span className="text-xs text-ink-light">{c.roleTitle}</span></span>
                 <span>{theirs.length ? `${b.hours} h` : '—'}</span>
                 <span style={b.light === 'pending' ? undefined : { color: pillTone(b.light).color }}>

@@ -156,3 +156,18 @@ describe('picking a time', () => {
     expect(page).toContain('min-h-[48px]');
   });
 });
+
+import { greeting } from '../src/lib/customer-page';
+
+describe('the customer page greets the person, never the company', () => {
+  it('uses a person\'s first name only', () => {
+    expect(greeting('priya shah')).toBe('Hi Priya');
+    expect(greeting('Sam')).toBe('Hi Sam');
+  });
+  it('says "Hi there" to a business, an empty name, or a placeholder', () => {
+    expect(greeting('Ridge Homes Pty Ltd')).toBe('Hi there');
+    expect(greeting('')).toBe('Hi there');
+    expect(greeting(null)).toBe('Hi there');
+    expect(greeting('New client')).toBe('Hi there');
+  });
+});

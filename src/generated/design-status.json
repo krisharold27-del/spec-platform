@@ -1,12 +1,12 @@
 {
-  "at": "2026-09-19T02:02:30.417Z",
+  "at": "2026-09-26T05:00:53.939Z",
   "ran": true,
   "phrases": {
-    "found": 322,
-    "total": 322,
+    "found": 534,
+    "total": 534,
     "pct": 100
   },
-  "screens": 24,
+  "screens": 37,
   "missingScreens": 0,
   "gaps": []
 }

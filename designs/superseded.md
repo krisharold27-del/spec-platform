@@ -234,3 +234,92 @@ it. Nothing about the behaviour is lost; only the brand is.
 
 **Decided:** 23 September 2026, building `/safety`.
 
+
+---
+
+### `Use Priya's photos and message`
+### `Use the Epping plans from Paul's email`
+### `Approve and send to Paul`
+### `Materials for J-4431`
+### `EV charger install · Better, smart 7 kW`
+### `Home built before 1980`
+
+Design 20's invented business, carried in the prototype so its screens have something to show: a
+customer called Priya with an EV charger, a builder called Paul with plans for a duplex in Epping,
+job J-4431, a pre-build named "EV charger install · Better, smart 7 kW", and a photo reading that
+added an hour for a pre-1980 house. The two "Use …" buttons exist only to load that invented data
+into a prototype that has no database.
+
+Every feature behind them is built, and says these things with the business's own data (26
+September): **Understand the work** reads a job's photos, plans and message into a scope priced
+from the business's own pre-builds, with any extra time as its own line (`src/app/jobs/understand-panel.tsx`);
+**Estimate from plans** counts drawings the same way, and its button reads "Approve and send to"
+the job's own customer (`plans-panel.tsx`); **Materials for** is followed by the job's own
+reference (`materials-panel.tsx`). Carrying the prototype's names would put a stranger's customer
+in every business's quote — design rule 13, nothing client-specific, applies to invented clients
+as much as real ones. `scripts/admin-control-journey.mjs` drives all three with real rows.
+
+**Decided:** 26 September 2026, when the features were built.
+
+---
+
+### `Phone notifications`
+
+`SPEC Admin.dc.html` lists "Phone notifications — same events, to the mobile number on file"
+beside email notifications, and its own note calls the pair a placeholder.
+
+SPEC does not send text messages, and that is a decision rather than a gap. On 26 September, when
+people could first be reached by phone number instead of email, it was settled that SPEC hands
+back the message ready to send and the admin sends it from the phone already in their hand
+(`src/app/org/page.tsx`, "SPEC does not send the text"). A switch promising texts SPEC will not
+send would be the kind of claim `lib/notify` was written to stop making — it lists, beside the
+loudness setting, exactly what SPEC sends today.
+
+**Decided:** 26 September 2026.
+
+---
+
+### `Two things to check with Priya first`
+### `Quote Q-2296 sent · on the Jobs board`
+### `Q-2297 built · ready for Leah`
+### `EV charger and switchboard upgrade · Marrickville`
+### `Today · J-4402 Northside`
+### `Invoice INV-8852`
+### `Microsoft 365 · jbielectrical.com.au ·`
+### `Sample data until the listener is live`
+
+More of Design 20's invented business, found by the deep tier: a customer's name, quote, job and
+invoice numbers, a suburb, and a mailbox on a real-looking domain. The product says each of these
+with the business's own records — "Two things to check with" the job's own customer (`lib/understand`
+`checkLine`), "Quote … sent · on the Jobs board" with the quote's own reference (`plans-panel.tsx`),
+the customer page's job title and site from the job itself. The domain is the strongest case: a
+real business's mailbox name in the product would break design rule 13 outright.
+
+"Sample data until the listener is live" is the prototype labelling its own placeholder. The
+listener is built (`lib/listening-data`, run nightly from `/api/ping`), so the cockpit shows what
+was actually heard, or says plainly that it has not listened yet.
+
+**Decided:** 26 September 2026.
+
+---
+
+### `Owner, Commercial and estimators`
+
+`SPEC Jobs.dc.html` labels "Is our rate right?" as seen by the owner, Commercial and estimators. The
+product's rule is that **money is leadership** (`lib/sight`): the rate panel sits on a money tab, so
+it is seen by leadership seats. An estimator who leads people sees it; an estimator on a team seat
+does not, because the rate is the price list. Printing a line that says estimators see it would be
+wrong for exactly the people it names.
+
+**Decided:** 26 September 2026.
+
+---
+
+### `Essential — your financial system`
+### `Their walkthrough:`
+
+Both are from `SPEC Setup v1.dc.html`, which `designs/MANIFEST.md` keeps "for reference only. Build
+SPEC Setup, not v1." The current Setup is built from `SPEC Setup.dc.html`. "Essential" would also
+contradict design rule 7 — no connector is ever required; manual is a complete, permanent mode.
+
+**Decided:** 26 September 2026.

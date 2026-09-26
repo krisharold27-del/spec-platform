@@ -65,6 +65,22 @@ if (page.url().includes('error=busy')) {
 }
 
 /*
+  ── The AI layer on, the way a customer who connects Xero has it ────────────────────────────────
+
+  Since 23 September a live connection needs the AI layer (`aiActive` in lib/plan): going live is
+  not worth the key SPEC would hold until something is reading across it. This journey was written
+  before that gate and never turned the layer on, so "Connect to Xero" never appeared — a failure
+  nobody saw, because an earlier CI step stopped every run first. The business goes on `beta`, the
+  plan SPEC switches on deliberately and for free, which is exactly what it is for.
+*/
+if (process.env.DATABASE_URL) {
+  const { default: postgres } = await import('postgres');
+  const db = postgres(process.env.DATABASE_URL, { onnotice: () => {} });
+  await db`update tenants set plan = 'beta' where name = ${BUSINESS}`;
+  await db.end();
+}
+
+/*
   ── Is there a connector on the app being driven at all? ────────────────────────────────────────
 
   The app needs SPEC's Xero client id, a key to seal tokens with, and the offline server to talk to.

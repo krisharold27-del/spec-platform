@@ -29,6 +29,7 @@ import { PowerMeter, PowerBreakdown } from '@/components/power-meter';
 import { viewerPowerMeter } from '@/lib/power-meter-data';
 import { getScope, isTopOfChart } from '@/lib/scope';
 import { startHere } from '@/lib/start-here';
+import { LateQuotes } from './late-quotes';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,7 @@ export const dynamic = 'force-dynamic';
 export default async function MyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ welcome?: string; kept?: string; power?: string }>;
+  searchParams: Promise<{ welcome?: string; kept?: string; power?: string; chased?: string }>;
 }) {
   const arrival = await searchParams;
   const user = await getCurrentUser();
@@ -236,13 +237,18 @@ export default async function MyPage({
       {/* The org chart — THE key component, one press from the page everybody opens first. */}
       <OrgChartDoor className="mt-4" />
 
+      {/* Late quotes: the administrator's control, on the page they open first (Kris, 26 September). */}
+      {scope.canAdminister && (
+        <LateQuotes tenantId={user.tenantId} business={tenant.name} chased={arrival.chased} />
+      )}
+
       {/*
         The door to the Virtual GM — the whole business on one screen. A door from here rather than a
         tab on the bar, and only for the people the percentage is for: it is the same reading, opened up.
       */}
       {runsAnything && (
         <div className="mt-2 flex justify-end">
-          <Link href="/virtual-gm" className="text-sm text-rust-700 hover:underline" data-door-virtual-gm>
+          <Link href="/virtual-gm" className="inline-flex min-h-[24px] items-center text-sm text-rust-700 hover:underline" data-door-virtual-gm>
             Open the Virtual GM + Virtual Admin &rarr;
           </Link>
         </div>
@@ -250,7 +256,7 @@ export default async function MyPage({
       {/* The money, one tap from where the day starts — for anybody who manages. */}
       {data.canManage && (
         <div className="mt-1 flex justify-end">
-          <Link href="/financials" className="text-sm text-rust-700 hover:underline" data-door-financials>
+          <Link href="/financials" className="inline-flex min-h-[24px] items-center text-sm text-rust-700 hover:underline" data-door-financials>
             See the money: Financials &rarr;
           </Link>
         </div>

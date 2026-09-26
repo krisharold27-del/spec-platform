@@ -1,4 +1,5 @@
 'use server';
+import { emitInvoiceRequest, emitJobStage, sendSoon } from '@/lib/angus-shield-data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -83,6 +84,8 @@ export async function advanceJob(formData: FormData) {
   if (!to) back('pipeline', { job: job.id });
   await db.update(schema.jobs).set({ stage: to, stageAt: now() })
     .where(and(eq(schema.jobs.id, job.id), eq(schema.jobs.tenantId, user.tenantId)));
+  // Connected to Angus Shield: the stage goes across (job.won opens it for costs; leaving onsite is job.completed).
+  if (await emitJobStage(user.tenantId, job.id, job.stage)) sendSoon(user.tenantId);
   revalidatePath('/jobs');
   back('pipeline', { job: job.id });
 }
@@ -676,6 +679,8 @@ export async function agreeVariation(formData: FormData) {
   await db.update(schema.jobBills)
     .set({ state: 'agreed', agreedBy: who, agreedAt: now(), updatedAt: now() })
     .where(eq(schema.jobBills.id, id));
+  // An agreed variation becomes an invoice request to the financial system (contract §3).
+  if (await emitInvoiceRequest(user.tenantId, id)) sendSoon(user.tenantId);
   revalidatePath('/jobs');
   back('billing');
 }
@@ -694,6 +699,8 @@ export async function sendBill(formData: FormData) {
   await db.update(schema.jobBills)
     .set({ state: 'sent', sentAt: now(), updatedAt: now() })
     .where(eq(schema.jobBills.id, id));
+  // A claim or invoice marked to send is an invoice request (a variation already went when it was agreed).
+  if (bill.kind !== 'variation' && await emitInvoiceRequest(user.tenantId, id)) sendSoon(user.tenantId);
   revalidatePath('/jobs');
   back('billing');
 }
