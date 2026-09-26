@@ -6,9 +6,9 @@ import { randomUUID } from 'node:crypto';
 import { db, schema } from '@/db';
 import { requireManager } from '@/lib/guard';
 import { assertWritable } from '@/lib/plan';
-import { readTheWork, type Picture } from '@/lib/understand-data';
-import { cleanReading } from '@/lib/understand';
-import { lineFrom, nextRef, parseComponents, DEFAULT_MARKUP, type Kit, type QuoteLine } from '@/lib/jobs';
+import { readTheWork, readPlans, type Picture } from '@/lib/understand-data';
+import { cleanReading, cleanTakeoff } from '@/lib/understand';
+import { lineFrom, nextRef, parseComponents, priceQuote, DEFAULT_MARKUP, type Kit, type QuoteLine } from '@/lib/jobs';
 
 /*
   Understand the work: read, ask, build. See lib/understand for what is proposed and what is not.
@@ -136,4 +136,89 @@ export async function buildQuoteFromReading(form: FormData) {
     .where(and(eq(schema.jobReadings.id, r.id), eq(schema.jobReadings.tenantId, user.tenantId)));
   revalidatePath('/jobs');
   redirect(`/jobs?tab=quotes&quote=${id}`);
+}
+
+/* ── Estimate from plans ──────────────────────────────────────────────────────────────────────── */
+
+const backPlans = (jobId: string, extra = ''): never => redirect(`/jobs?tab=takeoff&job=${jobId}${extra}#plans`);
+
+/** Count the plans against this business's pre-builds. */
+export async function readPlansAction(form: FormData) {
+  const user = await writer();
+  const job = await ownJob(user.tenantId, String(form.get('jobId') ?? '').slice(0, 64));
+  if (!job) redirect('/jobs?tab=takeoff');
+  const plans: Picture[] = [];
+  let total = 0;
+  for (const f of form.getAll('plans').slice(0, 4)) {
+    if (!(f instanceof File) || !f.size || !PICTURE_TYPES.includes(f.type)) continue;
+    total += f.size;
+    if (total > MAX_TOTAL) break;
+    plans.push({ mediaType: f.type, name: f.name.slice(0, 80), base64: Buffer.from(await f.arrayBuffer()).toString('base64') });
+  }
+  if (!plans.length) backPlans(job.id, '&cannot=' + encodeURIComponent('Add the plans — a PDF or photos of the drawings.'));
+
+  const kits = await kitsOf(user.tenantId);
+  const { rows, byModel } = await readPlans({ plans, kits: kits.map(k => ({ id: k.id, name: k.name })) });
+  await db.insert(schema.planTakeoffs).values({
+    id: randomUUID(), tenantId: user.tenantId, jobId: job.id,
+    fileName: plans.map(p => p.name).join(', ').slice(0, 200),
+    rows: JSON.stringify(rows), byModel,
+    createdAt: new Date().toISOString(), createdBy: user.name,
+  });
+  revalidatePath('/jobs');
+  backPlans(job.id);
+}
+
+/**
+ * Approve the counts. Every count read clearly: the quote is built and recorded as sent (it goes out
+ * the business's usual way, as every SPEC quote does), and the job moves to Quoted. Any count marked
+ * to confirm: the quote is built as a draft and opened, so the counts are checked before anything
+ * goes — "check the counts before you send" as a gate, not a sentence.
+ */
+export async function approveTakeoff(form: FormData) {
+  const user = await writer();
+  const [t] = await db.select().from(schema.planTakeoffs)
+    .where(and(eq(schema.planTakeoffs.id, String(form.get('id') ?? '').slice(0, 64)), eq(schema.planTakeoffs.tenantId, user.tenantId)));
+  if (!t) redirect('/jobs?tab=takeoff');
+  if (t.quoteId) redirect(`/jobs?tab=quotes&quote=${t.quoteId}`);
+
+  const [kits, items, rates] = await Promise.all([
+    kitsOf(user.tenantId),
+    db.select().from(schema.catalogueItems).where(eq(schema.catalogueItems.tenantId, user.tenantId)),
+    db.select().from(schema.labourRates).where(eq(schema.labourRates.tenantId, user.tenantId))
+      .orderBy(schema.labourRates.position, schema.labourRates.createdAt),
+  ]);
+  const rows = cleanTakeoff(JSON.parse(t.rows), kits);
+  const byKit = new Map<string, number>();
+  for (const r of rows) byKit.set(r.kitId, (byKit.get(r.kitId) ?? 0) + r.qty);
+  const ctx = { items, kits, rates };
+  const lines = [...byKit].map(([kitId, qty]) => lineFrom('kit', kitId, ctx, qty)).filter((l): l is QuoteLine => !!l);
+  if (!lines.length) backPlans(t.jobId, '&cannot=' + encodeURIComponent('There is nothing counted to price yet.'));
+
+  const sure = rows.every(r => !r.unsure);
+  const allRefs = await db.select({ ref: schema.quotes.ref }).from(schema.quotes).where(eq(schema.quotes.tenantId, user.tenantId));
+  const id = randomUUID();
+  const at = new Date().toISOString();
+  await db.insert(schema.quotes).values({
+    id, tenantId: user.tenantId, jobId: t.jobId, ref: nextRef('Q', allRefs.map(x => x.ref)),
+    markupPct: DEFAULT_MARKUP, status: sure ? 'sent' : 'draft', createdAt: at, updatedAt: at,
+    ...(sure ? { sentAt: at, sentBy: user.name } : {}),
+  });
+  await db.insert(schema.quoteLines).values(lines.map((l, i) => ({
+    id: randomUUID(), tenantId: user.tenantId, quoteId: id, position: i,
+    kind: l.kind, refId: l.ref, name: l.name, unitCostCents: l.unitCostCents, hours: l.hours,
+    rateCostCents: l.rateCostCents, rateChargeCents: l.rateChargeCents, qty: l.qty,
+  })));
+  if (sure) {
+    const job = await ownJob(user.tenantId, t.jobId);
+    if (job) {
+      await db.update(schema.jobs)
+        .set({ valueCents: priceQuote(lines, DEFAULT_MARKUP).exGstCents, ...(job.stage === 'enquiry' ? { stage: 'quoted', stageAt: at, quotedAt: at } : {}) })
+        .where(and(eq(schema.jobs.id, job.id), eq(schema.jobs.tenantId, user.tenantId)));
+    }
+  }
+  await db.update(schema.planTakeoffs).set({ quoteId: id })
+    .where(and(eq(schema.planTakeoffs.id, t.id), eq(schema.planTakeoffs.tenantId, user.tenantId)));
+  revalidatePath('/jobs');
+  redirect(sure ? `/jobs?tab=takeoff&job=${t.jobId}#plans` : `/jobs?tab=quotes&quote=${id}`);
 }

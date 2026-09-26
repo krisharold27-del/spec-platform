@@ -3376,3 +3376,21 @@ export const jobReadings = pgTable('job_readings', {
   createdAt: text('created_at').notNull(),
   createdBy: text('created_by'),
 }, t => [index('job_readings_tenant').on(t.tenantId, t.jobId)]).enableRLS();
+
+/**
+ * Estimate from plans (Design 20): the counts SPEC read off a set of drawings, against the business's
+ * own pre-builds, each marked sure or to confirm. Kept so the counts a quote was built from can be
+ * shown beside it later.
+ */
+export const planTakeoffs = pgTable('plan_takeoffs', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  jobId: text('job_id').notNull(),
+  fileName: text('file_name').notNull().default(''),
+  /** The cleaned rows, as JSON (lib/understand TakeoffRow[]). */
+  rows: text('rows').notNull().default('[]'),
+  byModel: boolean('by_model').notNull().default(false),
+  quoteId: text('quote_id'),
+  createdAt: text('created_at').notNull(),
+  createdBy: text('created_by'),
+}, t => [index('plan_takeoffs_tenant').on(t.tenantId, t.jobId)]).enableRLS();

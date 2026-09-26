@@ -9,6 +9,7 @@ import { SubmitButton } from '@/components/submit-button';
 import { CopyBox } from '@/components/copy-box';
 import { InboxPanel } from './inbox-panel';
 import { UnderstandPanel } from './understand-panel';
+import { PlansPanel } from './plans-panel';
 import { quoteWatch, chaseDraft, worthGoingBackFor, tenderWatch, growthLine } from '@/lib/growth';
 import { Refused } from '@/components/refused';
 import { QuoteBuilder } from '@/components/quote-builder';
@@ -463,6 +464,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
       )}
       {tab === 'tenders' && <Tenders rows={tenderRows} manage={manage} today={today} />}
       {tab === 'takeoff' && <Takeoff kits={kits} items={itemRows} manage={manage} />}
+      {tab === 'takeoff' && <PlansPanel tenantId={user.tenantId} jobId={one(sp.job)} manage={manage} />}
       {tab === 'howlong' && <HowLong jobs={costed} quotes={quotes} />}
       {tab === 'ace' && <AceBoard kind="sales" tenantId={user.tenantId} jobs={costed} quotes={quotes} today={today} />}
       {tab === 'jobace' && <AceBoard kind="jobs" tenantId={user.tenantId} jobs={costed} quotes={quotes} today={today} />}

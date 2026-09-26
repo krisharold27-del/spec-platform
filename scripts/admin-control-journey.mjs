@@ -123,4 +123,19 @@ await Promise.all([page.waitForURL(u => u.searchParams.get('tab') === 'quotes', 
 const quotes = await sql`select q.id, q.status, count(l.id)::int as lines from quotes q left join quote_lines l on l.quote_id = q.id where q.tenant_id = ${tenant.id} group by q.id`;
 check('BUILD THE QUOTE MAKES A DRAFT WITH THE KIT ON IT', quotes.length === 1 && quotes[0].status === 'draft' && quotes[0].lines >= 1, JSON.stringify(quotes));
 
+/* ── 4. Estimate from plans: approving a clean count records the quote as sent ─────────────── */
+const takeoffId = randomUUID();
+const plansJob = { ...late, id: randomUUID(), ref: 'J-9901', stage: 'enquiry', client: 'Paul Builder', title: 'Duplex', quoted_at: null, stage_at: daysAgo(1), created_at: daysAgo(1) };
+await sql`insert into jobs ${sql(plansJob)}`;
+await sql`insert into plan_takeoffs ${sql({ id: takeoffId, tenant_id: tenant.id, job_id: plansJob.id, file_name: 'plans.pdf', rows: JSON.stringify([{ kitId, where: 'Unit 1', qty: 2, unsure: false }]), by_model: true, created_at: daysAgo(0) })}`;
+await page.goto(`${BASE}/jobs?tab=takeoff&job=${plansJob.id}`, { waitUntil: 'networkidle' });
+const plans = page.locator('[data-plans]');
+const plansText = await plans.innerText().catch(() => '(no section)');
+check('TAKEOFF HAS "ESTIMATE FROM PLANS" WITH THE COUNT', await plans.count() === 1 && plansText.includes('EV charger install · Unit 1 × 2'), plansText.slice(0, 500));
+await Promise.all([page.waitForLoadState('networkidle'), plans.getByRole('button', { name: 'Approve and send to Paul' }).click({ timeout: 15000 }).catch(() => {})]);
+await page.waitForTimeout(800);
+const [sentQ] = await sql`select status from quotes where tenant_id = ${tenant.id} and job_id = ${plansJob.id}`;
+const [movedJob] = await sql`select stage from jobs where id = ${plansJob.id}`;
+check('APPROVING A CLEAN COUNT RECORDS THE QUOTE AS SENT AND MOVES THE JOB', sentQ?.status === 'sent' && movedJob?.stage === 'quoted', JSON.stringify({ sentQ, movedJob }));
+
 await finish();

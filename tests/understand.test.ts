@@ -43,3 +43,28 @@ describe('understand the work', () => {
     expect(questionsMessage('Sam', [], 'Acme')).toBe('');
   });
 });
+
+import { cleanTakeoff, takeoffLine } from '../src/lib/understand';
+
+describe('estimate from plans', () => {
+  it('keeps only real kits and whole, sane counts, and carries what SPEC was unsure of', () => {
+    const rows = cleanTakeoff({ rows: [
+      { kitId: 'k-ev', where: 'Garage', qty: 2.4, unsure: false },
+      { kitId: 'k-sb', where: 'Hall', qty: 1, unsure: true },
+      { kitId: 'made-up', qty: 5 },
+      { kitId: 'k-ev', qty: 0 },
+    ] }, kits);
+    expect(rows).toEqual([
+      { kitId: 'k-ev', where: 'Garage', qty: 2, unsure: false },
+      { kitId: 'k-sb', where: 'Hall', qty: 1, unsure: true },
+    ]);
+    expect(takeoffLine(rows)).toBe('2 lines counted · 1 marked for you to confirm');
+  });
+});
+
+describe('estimate from plans, read back', () => {
+  it('reads the stored list the same as the model\'s answer — the counts are never dropped on the way back', () => {
+    const stored = JSON.parse(JSON.stringify([{ kitId: 'k-ev', where: 'Unit 1', qty: 2, unsure: false }]));
+    expect(cleanTakeoff(stored, kits)).toEqual([{ kitId: 'k-ev', where: 'Unit 1', qty: 2, unsure: false }]);
+  });
+});

@@ -104,3 +104,38 @@ export function checkLine(client: string, n: number): string {
   const who = client.trim().split(/\s+/)[0] || 'the customer';
   return n === 1 ? `One thing to check with ${who} first` : `${questionsWord(n)} things to check with ${who} first`;
 }
+
+/* ── Estimate from plans ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * One counted line from a set of plans: which of the business's pre-builds, where on the drawings,
+ * how many, and whether SPEC was sure. "Check the counts before you send" is only honest if the
+ * page can say WHICH counts to check — so an unsure count is carried, never rounded into a sure one.
+ */
+export interface TakeoffRow { kitId: string; where: string; qty: number; unsure: boolean }
+
+export function cleanTakeoff(raw: unknown, kits: readonly KitRef[]): TakeoffRow[] {
+  /* The model answers {rows: [...]}; what is stored is the cleaned list itself. Both read the same. */
+  const list = Array.isArray(raw) ? raw
+    : Array.isArray((raw as { rows?: unknown } | null)?.rows) ? (raw as { rows: unknown[] }).rows : [];
+  const known = new Set(kits.map(k => k.id));
+  return list.slice(0, 60).map(r => {
+    const x = (r ?? {}) as Record<string, unknown>;
+    const qty = Math.round(Number(x.qty));
+    return {
+      kitId: String(x.kitId ?? ''),
+      where: clip(x.where, 60),
+      qty: Number.isFinite(qty) ? Math.max(0, Math.min(qty, 2000)) : 0,
+      unsure: x.unsure === true,
+    };
+  }).filter(r => known.has(r.kitId) && r.qty > 0);
+}
+
+/** The line under the total: how much of it is certain, in words. */
+export function takeoffLine(rows: readonly TakeoffRow[]): string {
+  const unsure = rows.filter(r => r.unsure).length;
+  if (!rows.length) return '';
+  return unsure
+    ? `${rows.length} lines counted · ${unsure} marked for you to confirm`
+    : `${rows.length} lines counted · every count read clearly`;
+}
